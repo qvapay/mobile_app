@@ -85,11 +85,17 @@ const colors = {
 	}
 }
 
-// Font scale multipliers
+// Multiplicadores de fuente. El Mediano (el de casi todos: el onboarding persiste
+// `appearance` entera con 'medium') va a 0.94 y no a 1.0: Rubik es ~7 % más ancha que
+// SF Pro, así que la escala base (md 16, sm 14) se veía un punto más grande que iOS y
+// Material. A 0.94 queda md 15 · sm 13 · xs 11 · h1 28 — densidad de iOS. Recalibrar
+// el multiplicador (y no cambiar la clave por defecto) es lo que llega a los usuarios
+// que ya tienen la app. Pequeño baja a 0.88 para seguir siendo un paso distinto (a 0.9
+// `sm` también saldría 13); Grande y XL no se tocan: quien pidió letra grande la conserva
 export const fontScaleMap = {
 	extraSmall: 0.8,
-	small: 0.9,
-	medium: 1.0,
+	small: 0.88,
+	medium: 0.94,
 	large: 1.15,
 	extraLarge: 1.3,
 }
@@ -105,7 +111,7 @@ export const fontScaleMap = {
  * @returns The theme object: `{ isDark, colors, spacing, borderRadius, typography }`
  *   (type left to inference so TS sees the full literal, colors included).
  */
-export const createTheme = (isDark: boolean, fontScale: number = 1.0, accentId: string = 'default') => ({
+export const createTheme = (isDark: boolean, fontScale: number = fontScaleMap.medium, accentId: string = 'default') => ({
 	isDark,
 	colors: {
 		primary: resolveAccentColor(accentId),
@@ -145,7 +151,13 @@ export const createTheme = (isDark: boolean, fontScale: number = 1.0, accentId: 
 			mono: 'JetBrainsMono-Regular',
 			monoMedium: 'JetBrainsMono-Medium',
 		},
+		// LA escala de la app: ningún texto lleva un tamaño en número, todo sale de aquí
+		// (y así sigue al ajuste de Fuente). Roles: xxs = micro (badges, versión, hora del
+		// chat) · xs = h7 · sm = h6/body/caption · md = h5 · lg = h4 · xl = h3 · xxl = h2 ·
+		// xxxl = h1 · displaySm = importe héroe de pantalla · displayMd = héroe grande ·
+		// display = saldo principal
 		fontSize: {
+			xxs: Math.round(11 * fontScale),
 			xs: Math.round(12 * fontScale),
 			sm: Math.round(14 * fontScale),
 			md: Math.round(16 * fontScale),
@@ -153,8 +165,13 @@ export const createTheme = (isDark: boolean, fontScale: number = 1.0, accentId: 
 			xl: Math.round(20 * fontScale),
 			xxl: Math.round(24 * fontScale),
 			xxxl: Math.round(30 * fontScale),
+			displaySm: Math.round(34 * fontScale),
+			displayMd: Math.round(44 * fontScale),
 			display: Math.round(60 * fontScale),
 		},
+		// El multiplicador del ajuste, para las medidas tipográficas que no son un tamaño
+		// de la escala (lineHeight, altura de un hueco de texto): ver `scaleType`
+		scale: fontScale,
 	}
 })
 

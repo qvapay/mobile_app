@@ -158,7 +158,7 @@ const LockScreen = () => {
 							: <LockHeroIcon biometryType={null} biometricsAvailable={false} color={theme.colors.primary} size={compact ? 40 : 48} />}
 
 						{/* Una sola línea de texto */}
-						<Text style={[styles.hint, compact && styles.hintCompact, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.light }]} numberOfLines={1}>
+						<Text style={[styles.hint, compact && styles.hintCompact, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.light, fontSize: theme.typography.fontSize.md }]} numberOfLines={1}>
 							{name ? t('misc.lock.greeting', { name }) : t('misc.lock.enterPin')}
 						</Text>
 
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
 	brandCompact: { marginTop: 16 },
 	brandName: { fontSize: 14, letterSpacing: 0.2 },
 	stage: { flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%' },
-	hint: { textAlign: 'center', marginTop: 24, fontSize: 16, letterSpacing: 0.2 },
+	hint: { textAlign: 'center', marginTop: 24, letterSpacing: 0.2 },
 	hintCompact: { marginTop: 14 },
 	dots: { marginTop: 28 },
 	dotsCompact: { marginTop: 18 },

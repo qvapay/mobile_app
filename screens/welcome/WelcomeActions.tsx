@@ -7,6 +7,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
+import { scaleType } from '../../theme/themeUtils'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -74,7 +75,7 @@ const WelcomeActions = ({ navigation }: WelcomeActionsProps) => {
 
 			{/* La frase de términos vive en UNA sola clave (el enlace va como <0> vía
 			    Trans) — nunca partir la oración en claves por el Text anidado */}
-			<Text style={[styles.terms, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>
+			<Text style={[styles.terms, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm, lineHeight: scaleType(theme, 18) }]}>
 				<Trans
 					i18nKey="welcome.actions.terms"
 					components={[
@@ -86,7 +87,7 @@ const WelcomeActions = ({ navigation }: WelcomeActionsProps) => {
 				/>
 			</Text>
 
-			<Text style={[styles.version, { color: theme.colors.tertiaryText + '40', fontFamily: theme.typography.fontFamily.regular }]}>
+			<Text style={[styles.version, { color: theme.colors.tertiaryText + '40', fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xxs }]}>
 				v{DeviceInfo.getVersion()}
 			</Text>
 		</Animated.View>
@@ -114,10 +115,8 @@ const styles = StyleSheet.create({
 	terms: {
 		textAlign: 'center',
 		marginTop: 16,
-		lineHeight: 18,
 	},
 	version: {
-		fontSize: 9,
 		textAlign: 'center',
 		paddingVertical: 6,
 	},

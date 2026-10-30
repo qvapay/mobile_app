@@ -5,7 +5,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
-import { createTextStyles } from '../theme/themeUtils'
+import { createTextStyles, scaleType } from '../theme/themeUtils'
 
 // UI
 import QPButton from './particles/QPButton'
@@ -115,7 +115,7 @@ const OfacAttestationModal = ({ visible, scope, context, tick, onConfirm, onClos
 
 						<ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-							<Text style={[textStyles.caption, styles.paragraph, { color: theme.colors.secondaryText }]}>{copy.paragraph}</Text>
+							<Text style={[textStyles.caption, { color: theme.colors.secondaryText, lineHeight: scaleType(theme, 18) }]}>{copy.paragraph}</Text>
 
 							{/* Propósito: W-1 es único (tarjeta fija); en Cuba/fondeo se elige */}
 							{!singlePurpose && <Text style={[textStyles.caption, styles.sectionLabel, { color: theme.colors.primaryText }]}>{copy.purposeLabel}</Text>}
@@ -140,7 +140,7 @@ const OfacAttestationModal = ({ visible, scope, context, tick, onConfirm, onClos
 													<Text style={[textStyles.body, styles.flex, { color: theme.colors.primaryText }]}>{copy.purposes[code].label}</Text>
 													<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{code}</Text>
 												</View>
-												{selected && <Text style={[textStyles.caption, styles.purposeSummary, { color: theme.colors.secondaryText }]}>{selectedPurpose.summary}</Text>}
+												{selected && <Text style={[textStyles.caption, styles.purposeSummary, { color: theme.colors.secondaryText, lineHeight: scaleType(theme, 17) }]}>{selectedPurpose.summary}</Text>}
 											</QPPressable>
 									)
 								})}
@@ -164,7 +164,7 @@ const OfacAttestationModal = ({ visible, scope, context, tick, onConfirm, onClos
 										style={[styles.attestation, { backgroundColor: theme.colors.background }, surfaceBorder]}
 									>
 										<QPCheckbox checked={checked} size={20} color={theme.colors.successFill} style={styles.checkbox} />
-										<Text style={[textStyles.caption, styles.flex, styles.attestationText, { color: theme.colors.primaryText }]}>{copy.attestations[key]}</Text>
+										<Text style={[textStyles.caption, styles.flex, { color: theme.colors.primaryText, lineHeight: scaleType(theme, 18) }]}>{copy.attestations[key]}</Text>
 									</QPPressable>
 								)
 							})}
@@ -179,7 +179,7 @@ const OfacAttestationModal = ({ visible, scope, context, tick, onConfirm, onClos
 								multiline
 							/>
 
-							<Text style={[textStyles.caption, styles.footer, { color: theme.colors.secondaryText, borderTopColor: theme.colors.warning + '33' }]}>{copy.footer}</Text>
+							<Text style={[textStyles.caption, styles.footer, { color: theme.colors.secondaryText, borderTopColor: theme.colors.warning + '33', lineHeight: scaleType(theme, 17) }]}>{copy.footer}</Text>
 						</ScrollView>
 
 						<View style={styles.buttonsRow}>
@@ -217,17 +217,15 @@ const styles = StyleSheet.create({
 	langOption: { paddingHorizontal: 9, paddingVertical: 4 },
 	scroll: { flexGrow: 0, flexShrink: 1 },
 	scrollContent: { paddingBottom: 4 },
-	paragraph: { lineHeight: 18 },
 	sectionLabel: { marginTop: 16, marginBottom: 8 },
 	purposes: { gap: 8, marginTop: 8 },
 	purpose: { borderRadius: 12, borderCurve: 'continuous', borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 10 },
 	purposeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-	purposeSummary: { marginTop: 4, fontStyle: 'italic', lineHeight: 17 },
+	purposeSummary: { marginTop: 4, fontStyle: 'italic' },
 	certifyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 	attestation: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 12, borderCurve: 'continuous', padding: 12, marginBottom: 8 },
 	checkbox: { marginTop: 1 },
-	attestationText: { lineHeight: 18 },
-	footer: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, lineHeight: 17 },
+	footer: { marginTop: 16, paddingTop: 12, borderTopWidth: 1 },
 	buttonsRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
 	button: { flex: 1 },
 	cancelButton: { backgroundColor: 'transparent', borderWidth: 1.5 },

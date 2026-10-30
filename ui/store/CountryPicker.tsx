@@ -151,7 +151,7 @@ const CountryPicker = ({ countries = NO_COUNTRIES, value = null, onChange = noop
 								onChangeText={setQuery}
 								placeholder={t('ui.storeCountryPicker.searchPlaceholder')}
 								placeholderTextColor={theme.colors.placeholder}
-								style={[styles.searchInput, { color: theme.colors.primaryText }]}
+								style={[styles.searchInput, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md }]}
 								autoCorrect={false}
 								autoCapitalize="none"
 							/>
@@ -218,7 +218,6 @@ const styles = StyleSheet.create({
 	},
 	searchInput: {
 		flex: 1,
-		fontSize: 15,
 		paddingVertical: 4,
 	},
 	row: {

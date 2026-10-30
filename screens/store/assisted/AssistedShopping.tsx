@@ -12,7 +12,7 @@ import { toast } from 'sonner-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
-import { createContainerStyles, createTextStyles } from '../../../theme/themeUtils'
+import { createContainerStyles, createTextStyles, scaleType } from '../../../theme/themeUtils'
 
 // UI
 import QPInput from '../../../ui/particles/QPInput'
@@ -114,7 +114,7 @@ const AssistedShopping = ({ navigation }: Props) => {
 				<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '600', marginTop: 12 }]}>
 					{t('assisted.shopping.heroTitle')}
 				</Text>
-				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6, lineHeight: 18 }]}>
+				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6, lineHeight: scaleType(theme, 18) }]}>
 					{t('assisted.shopping.heroSubtitle')}
 				</Text>
 
@@ -159,7 +159,7 @@ const AssistedShopping = ({ navigation }: Props) => {
 								{store.label}
 							</Text>
 							{!store.available && (
-								<Text style={[styles.soonTag, { color: theme.colors.warning, fontFamily: theme.typography.fontFamily.medium }]}>
+								<Text style={{ fontSize: theme.typography.fontSize.xxs, color: theme.colors.warning, fontFamily: theme.typography.fontFamily.medium }}>
 									{t('assisted.shopping.soon')}
 								</Text>
 							)}
@@ -184,7 +184,7 @@ const AssistedShopping = ({ navigation }: Props) => {
 						</View>
 						{cartCount > 0 && (
 							<View style={[styles.countBadge, { backgroundColor: theme.colors.primary }]}>
-								<Text style={[styles.countBadgeText, { fontFamily: theme.typography.fontFamily.medium }]}>{cartCount}</Text>
+								<Text style={[styles.countBadgeText, { fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>{cartCount}</Text>
 							</View>
 						)}
 					</Pressable>
@@ -232,7 +232,7 @@ const AssistedShopping = ({ navigation }: Props) => {
 										<Text style={[textStyles.h6, { fontWeight: '600', color: theme.colors.primary }]}>
 											{money(product.qp_price)}
 										</Text>
-										<Text style={[styles.providerTag, { color: theme.colors.secondaryText }]}>
+										<Text style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.secondaryText }}>
 											{providerLabel(product.provider)}
 										</Text>
 									</View>
@@ -243,7 +243,7 @@ const AssistedShopping = ({ navigation }: Props) => {
 				)}
 
 				{/* Fine print */}
-				<Text style={[styles.finePrint, { color: theme.colors.tertiaryText }]}>
+				<Text style={[styles.finePrint, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 16) }]}>
 					{t('assisted.shopping.finePrint', { minimum: MINIMUM_CART })}
 				</Text>
 
@@ -267,9 +267,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 8,
 		borderRadius: 20,
 	},
-	soonTag: {
-		fontSize: 10,
-	},
 	shortcutsRow: {
 		flexDirection: 'row',
 		gap: 10,
@@ -292,7 +289,7 @@ const styles = StyleSheet.create({
 	},
 	countBadge: {
 		minWidth: 22,
-		height: 22,
+		minHeight: 22,
 		borderRadius: 11,
 		alignItems: 'center',
 		justifyContent: 'center',
@@ -300,7 +297,6 @@ const styles = StyleSheet.create({
 	},
 	countBadgeText: {
 		color: '#FFFFFF',
-		fontSize: 12,
 	},
 	recentGrid: {
 		flexDirection: 'row',
@@ -320,12 +316,7 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		overflow: 'hidden',
 	},
-	providerTag: {
-		fontSize: 11,
-	},
 	finePrint: {
-		fontSize: 11,
-		lineHeight: 16,
 		textAlign: 'center',
 		marginTop: 26,
 	},

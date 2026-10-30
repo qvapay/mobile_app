@@ -212,7 +212,7 @@ const PhoneTopupIndex = ({ navigation, route }: NativeStackScreenProps<RootStack
 									<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.primaryText, fontWeight: '600', marginTop: 6, maxWidth: 90, textAlign: 'center' }]}>
 										{f.brand}
 									</Text>
-									<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: 10 }]}>
+									<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xxs }]}>
 										{f.country_meta?.flag} {f.country_meta?.name}
 									</Text>
 								</Pressable>

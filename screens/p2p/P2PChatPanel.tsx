@@ -16,6 +16,7 @@ import { getShortDateTime, copyTextToClipboard } from "../../helpers"
 import ReactNativeHapticFeedback from "react-native-haptic-feedback"
 
 import type { Theme } from "../../theme/ThemeContext"
+import { scaleType } from "../../theme/themeUtils"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
 import type { P2PUser, User } from "../../types/domain"
 import type { PeerStats } from "./p2pQueries"
@@ -232,7 +233,7 @@ const P2PChatPanel = ({
 									{messageText ? (
 										<ChatMessageText
 											text={messageText}
-											textStyle={[textStyles.h6, { color: mine ? theme.colors.almostWhite : theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}
+											textStyle={[textStyles.h6, { color: mine ? theme.colors.almostWhite : theme.colors.primaryText, lineHeight: scaleType(theme, 20), textAlign: mine ? "right" : "left" }]}
 											highlightColor={mine ? theme.colors.almostWhite : theme.colors.primary}
 										/>
 									) : null}
@@ -240,7 +241,7 @@ const P2PChatPanel = ({
 									{/* Show timestamp only when manually toggled */}
 									{showTimestamp && m.created_at && (
 										<Animated.View style={{ opacity: messageAnimations.current[m.id] || new Animated.Value(0), transform: [{ translateY: (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
-											<Text style={[{ fontSize: 10, fontFamily: theme.typography.fontFamily.light, color: mine ? theme.colors.almostWhite : theme.colors.secondaryText, marginTop: 4, opacity: 0.6, textAlign: mine ? "right" : "left" }]}>
+											<Text style={[{ fontSize: theme.typography.fontSize.xxs, fontFamily: theme.typography.fontFamily.light, color: mine ? theme.colors.almostWhite : theme.colors.secondaryText, marginTop: 4, opacity: 0.6, textAlign: mine ? "right" : "left" }]}>
 												{getShortDateTime(m.created_at)}
 											</Text>
 										</Animated.View>

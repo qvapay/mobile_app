@@ -151,7 +151,7 @@ const AssistedCart = ({ navigation }: Props) => {
 								</View>
 								<View style={{ flex: 1, gap: 4 }}>
 									<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={2}>{item.title}</Text>
-									<Text style={[styles.itemMeta, { color: theme.colors.secondaryText }]}>
+									<Text style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.secondaryText }}>
 										{t('assisted.cart.itemMeta', { store: providerLabel(item.provider), amount: money(item.qp_price) })}
 									</Text>
 									<View style={styles.itemActions}>
@@ -237,9 +237,6 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
-	itemMeta: {
-		fontSize: 11,
 	},
 	itemActions: {
 		flexDirection: 'row',

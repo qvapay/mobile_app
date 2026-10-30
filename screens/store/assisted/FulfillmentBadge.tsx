@@ -25,7 +25,7 @@ const FulfillmentBadge = ({ status }: Props) => {
 
 	return (
 		<View style={[styles.badge, { backgroundColor: `${color}26` }]}>
-			<Text style={[styles.text, { color, fontFamily: theme.typography.fontFamily.medium }]}>
+			<Text style={{ color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }}>
 				{t(meta.labelKey)}
 			</Text>
 		</View>
@@ -38,9 +38,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 4,
 		borderRadius: 12,
 		alignSelf: 'flex-start',
-	},
-	text: {
-		fontSize: 12,
 	},
 })
 

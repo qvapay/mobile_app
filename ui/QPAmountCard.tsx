@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } 
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
-import { useTextStyles } from '../theme/themeUtils'
+import { scaleType, useTextStyles } from '../theme/themeUtils'
 
 // UI
 import QPFitText from './particles/QPFitText'
@@ -47,7 +47,9 @@ const QPAmountCard = forwardRef<TextInputInstance, Props>(({ label, hint, token,
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const editable = !!onChangeAmount
-	const amountStyle = { color: amount ? theme.colors.primaryText : theme.colors.placeholder, fontFamily: theme.typography.fontFamily.semiBold, fontSize: 34 }
+	const amountStyle = { color: amount ? theme.colors.primaryText : theme.colors.placeholder, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.displaySm }
+	// El hueco del importe crece con la escala de texto o el número se recortaría
+	const boxHeight = scaleType(theme, 52)
 
 
 
@@ -66,7 +68,7 @@ const QPAmountCard = forwardRef<TextInputInstance, Props>(({ label, hint, token,
 				) : !!hint && <Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{hint}</Text>}
 			</View>
 
-			<View style={styles.middle}>
+			<View style={[styles.middle, { minHeight: boxHeight }]}>
 				{editable ? (
 					<View style={styles.input}>
 						{/* Placeholder PROPIO, no el nativo: iOS pinta `attributedPlaceholder` en su
@@ -75,7 +77,7 @@ const QPAmountCard = forwardRef<TextInputInstance, Props>(({ label, hint, token,
 						{!amount && <Text style={[styles.placeholder, amountStyle]} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no">{placeholder}</Text>}
 						<TextInput
 							ref={ref}
-							style={[styles.inputBox, amountStyle]}
+							style={[styles.inputBox, { height: boxHeight }, amountStyle]}
 							value={amount}
 							onChangeText={onChangeAmount}
 							keyboardType="decimal-pad"
@@ -107,10 +109,10 @@ const styles = StyleSheet.create({
 	top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 24 },
 	chips: { flexDirection: 'row', gap: 6 },
 	chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
-	middle: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
+	middle: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 	input: { flex: 1, paddingVertical: 0, justifyContent: 'center' },
 	// Altura explícita: sin placeholder nativo, el TextInput vacío no tendría tamaño intrínseco
-	inputBox: { height: 52, paddingVertical: 0 },
+	inputBox: { paddingVertical: 0 },
 	placeholder: { position: 'absolute', left: 0, right: 0 },
 	stale: { opacity: 0.35 },
 	bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },

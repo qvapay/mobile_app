@@ -268,7 +268,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 		<View>
 			<View style={styles.hero}>
 				<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />
-				<QPFitText style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText }]}>
+				<QPFitText style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.displaySm }]}>
 					{showBalance ? `${asset.totalLabel} ${asset.symbol}` : `•••• ${asset.symbol}`}
 				</QPFitText>
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
 	center: { alignItems: 'center', justifyContent: 'center' },
 	listContent: { paddingBottom: 40 },
 	hero: { alignItems: 'center', paddingTop: 12, paddingBottom: 18, gap: 4 },
-	heroAmount: { marginTop: 10, fontSize: 38 },
+	heroAmount: { marginTop: 10 },
 	actions: { flexDirection: 'row', gap: 10, height: 56 },
 	tronWarning: { marginBottom: 16 },
 	action: { flex: 1, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', gap: 5 },

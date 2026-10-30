@@ -141,7 +141,7 @@ const AddressAutocomplete = ({ onSelect }: Props) => {
 					))}
 				</View>
 			)}
-			<Text style={[styles.hint, { color: theme.colors.tertiaryText }]}>
+			<Text style={[styles.hint, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs }]}>
 				{t('assisted.addressSearch.hint')}
 			</Text>
 		</View>
@@ -162,7 +162,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 11,
 	},
 	hint: {
-		fontSize: 11,
 		marginTop: 6,
 	},
 })

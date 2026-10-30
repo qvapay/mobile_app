@@ -8,6 +8,7 @@ import QPFitText from '../../ui/particles/QPFitText'
 
 import type { P2PUser } from '../../types/domain'
 import type { Theme } from '../../theme/ThemeContext'
+import { scaleType } from '../../theme/themeUtils'
 import type { TextStyles, ContainerStyles } from '../../theme/themeUtils'
 
 type TransferSummaryCardsProps = {
@@ -65,7 +66,7 @@ const TransferSummaryCards = ({ recipientUser, sendAmount, description, isUserOn
 							</Text>
 						</View>
 					) : (
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>
+						<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: scaleType(theme, 20) }]}>
 							"{description}"
 						</Text>
 					)}

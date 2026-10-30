@@ -106,7 +106,7 @@ const OfferRow = ({ offer, selected, onSelect, theme, textStyles }: OfferRowProp
 				)}
 			</View>
 			<View style={{ alignItems: 'flex-end', marginLeft: 10 }}>
-				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', fontSize: 10 }]}>{t('store.summary.youPay')}</Text>
+				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', fontSize: theme.typography.fontSize.xxs }]}>{t('store.summary.youPay')}</Text>
 				<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>{priceMain}</Text>
 				{priceSub && (
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{priceSub}</Text>
@@ -337,7 +337,7 @@ const GiftCardBrand = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 									keyboardType="decimal-pad"
 									placeholder={`${selectedOffer.price_min}`}
 									placeholderTextColor={theme.colors.placeholder}
-									style={[styles.rangeInput, { color: theme.colors.primaryText, backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+									style={[styles.rangeInput, { color: theme.colors.primaryText, backgroundColor: theme.colors.surface, fontSize: theme.typography.fontSize.md }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 								/>
 							</View>
 						)}
@@ -436,7 +436,6 @@ const styles = StyleSheet.create({
 	rangeInput: {
 		padding: 10,
 		borderRadius: 8,
-		fontSize: 16,
 		fontWeight: '600',
 	},
 	summary: {

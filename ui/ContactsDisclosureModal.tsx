@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
-import { createTextStyles } from '../theme/themeUtils'
+import { createTextStyles, scaleType } from '../theme/themeUtils'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -47,7 +47,7 @@ const ContactsDisclosureModal = ({ visible, onAccept, onDecline }: ContactsDiscl
 						{t('ui.contactsDisclosure.title')}
 					</Text>
 					<ScrollView style={styles.scrollArea} bounces={false}>
-						<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', lineHeight: 22 }]}>
+						<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', lineHeight: scaleType(theme, 22) }]}>
 							{t('ui.contactsDisclosure.body')}
 						</Text>
 					</ScrollView>

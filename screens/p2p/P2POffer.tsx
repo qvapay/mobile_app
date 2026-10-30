@@ -6,7 +6,7 @@ import { View, Text, ScrollView, useWindowDimensions } from "react-native"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
-import { createContainerStyles, createTextStyles } from "../../theme/themeUtils"
+import { createContainerStyles, createTextStyles, scaleType } from "../../theme/themeUtils"
 
 // UI Particles
 import P2POfferItem from "../../ui/P2POfferItem"
@@ -210,7 +210,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 										<FontAwesome6 name="file-lines" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 										<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5 }]}>{t('p2p.offer.advertiserTerms')}</Text>
 									</View>
-									<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>{rawP2p.User.p2p_message}</Text>
+									<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: scaleType(theme, 20) }]}>{rawP2p.User.p2p_message}</Text>
 								</View>
 							) : null}
 
@@ -255,7 +255,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 											<FontAwesome6 name="file-lines" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 											<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5 }]}>{t('p2p.offer.advertiserTerms')}</Text>
 										</View>
-										<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>{p2p.User.p2p_message}</Text>
+										<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: scaleType(theme, 20) }]}>{p2p.User.p2p_message}</Text>
 									</View>
 								) : null}
 

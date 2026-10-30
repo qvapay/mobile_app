@@ -38,8 +38,8 @@ type ThemeProviderProps = {
 // Create context
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
-// Get current font scale from key
-const getFontScale = (key: string) => (fontScaleMap as Record<string, number>)[key] || 1.0
+// Get current font scale from key (una clave desconocida cae al Mediano, el defecto)
+const getFontScale = (key: string) => (fontScaleMap as Record<string, number>)[key] || fontScaleMap.medium
 
 /**
  * Provides the app theme (light / dark / auto) and memoized shared styles.

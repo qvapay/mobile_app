@@ -6,7 +6,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
 import type { Theme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { scaleType, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
@@ -85,7 +85,7 @@ const HowItWorks = ({ kind, theme }: { kind: StakingKind, theme: Theme }) => {
 					<View style={[styles.stepDot, { backgroundColor: theme.colors.primary + '18' }]}>
 						<Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xs }}>{index + 1}</Text>
 					</View>
-					<Text style={[styles.stepText, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>
+					<Text style={[styles.stepText, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm, lineHeight: scaleType(theme, 20) }]}>
 						{t(`crypto.staking.asset.how.${kind}.${step}`)}
 					</Text>
 				</View>
@@ -197,7 +197,7 @@ const WalletStake = ({ navigation, route }: Props) => {
 				<View style={styles.hero}>
 					<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />
 					<Text style={[textStyles.h5, styles.heroLabel, { color: theme.colors.secondaryText }]}>{t('crypto.staking.asset.committed')}</Text>
-					<QPFitText style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText }]}>
+					<QPFitText style={[textStyles.amount, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.displaySm }]}>
 						{showBalance ? `${displayAmount(committed)} ${asset.symbol}` : `•••• ${asset.symbol}`}
 					</QPFitText>
 					{showBalance && price !== null && summary.committed > 0n && (
@@ -266,7 +266,7 @@ const WalletStake = ({ navigation, route }: Props) => {
 				{!canEnter && (
 					<View style={[styles.notice, { backgroundColor: theme.colors.primary + '12' }]}>
 						<FontAwesome6 name="seedling" size={14} color={theme.colors.primary} iconStyle="solid" style={styles.noticeIcon} />
-						<Text style={[styles.noticeText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>
+						<Text style={[styles.noticeText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm, lineHeight: scaleType(theme, 20) }]}>
 							{t('crypto.staking.asset.soonNotice', { symbol: asset.symbol })}
 						</Text>
 					</View>
@@ -274,7 +274,7 @@ const WalletStake = ({ navigation, route }: Props) => {
 
 				<HowItWorks kind={kind} theme={theme} />
 
-				<Text style={[styles.disclaimer, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }]}>
+				<Text style={[styles.disclaimer, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 16) }]}>
 					{t('crypto.staking.hub.disclaimer')}
 				</Text>
 			</ScrollView>
@@ -295,7 +295,6 @@ const styles = StyleSheet.create({
 	content: { paddingBottom: 32, gap: 12 },
 	hero: { alignItems: 'center', paddingTop: 12, paddingBottom: 8, gap: 4 },
 	heroLabel: { marginTop: 10 },
-	heroAmount: { fontSize: 34 },
 	available: { marginTop: 2 },
 	apyPill: { marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
 	sectionTitle: { marginTop: 8 },
@@ -304,12 +303,12 @@ const styles = StyleSheet.create({
 	empty: { textAlign: 'center', paddingVertical: 18 },
 	notice: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 12, alignItems: 'flex-start' },
 	noticeIcon: { marginTop: 2 },
-	noticeText: { flex: 1, lineHeight: 20 },
+	noticeText: { flex: 1 },
 	how: { paddingVertical: 14, gap: 12 },
 	step: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
 	stepDot: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-	stepText: { flex: 1, lineHeight: 20 },
-	disclaimer: { textAlign: 'center', paddingHorizontal: 8, marginTop: 4, lineHeight: 16 },
+	stepText: { flex: 1 },
+	disclaimer: { textAlign: 'center', paddingHorizontal: 8, marginTop: 4 },
 	actionCard: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
 	actionIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
 	actionInfo: { flex: 1, minWidth: 0, gap: 2 },

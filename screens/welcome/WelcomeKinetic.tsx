@@ -22,6 +22,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 import type { Theme } from '../../theme/ThemeContext'
+import { scaleType } from '../../theme/themeUtils'
 import type { RootStackParamList } from '../../types/navigation'
 
 // Marca: isotipo + nombre plano con halo respirando detrás
@@ -84,7 +85,7 @@ const Pill = ({ Icon, label, theme }: MarqueeItem & { theme: Theme }) => (
 		!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border },
 	]}>
 		{Icon && <Icon width={18} height={18} />}
-		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: 13 }}>
+		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }}>
 			{label}
 		</Text>
 	</View>
@@ -173,6 +174,7 @@ const WelcomeKinetic = ({ onSecretLongPress, actions }: WelcomeKineticProps) => 
 	}, [reducedMotion, words.length])
 
 	const bg = theme.colors.background
+	const headlineType = { fontSize: theme.typography.fontSize.displayMd, lineHeight: scaleType(theme, 54) }
 
 	return (
 		<View style={[styles.container, { backgroundColor: bg }]}>
@@ -207,15 +209,15 @@ const WelcomeKinetic = ({ onSecretLongPress, actions }: WelcomeKineticProps) => 
 				<Pressable onLongPress={onSecretLongPress} delayLongPress={3000} style={styles.headlineBlock}>
 					<Animated.Text
 						entering={FadeInDown.delay(150).duration(700)}
-						style={[styles.headline, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold }]}>
+						style={[styles.headline, headlineType, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold }]}>
 						{t('welcome.kinetic.headline')}
 					</Animated.Text>
-					<View style={styles.wordSlot}>
+					<View style={[styles.wordSlot, { height: scaleType(theme, 58) }]}>
 						<Animated.Text
 							key={wordIndex}
 							entering={FadeInDown.duration(450).easing(Easing.out(Easing.cubic))}
 							exiting={FadeOutUp.duration(320)}
-							style={[styles.headline, styles.kineticWord, { color: words[wordIndex].color, fontFamily: theme.typography.fontFamily.bold }]}>
+							style={[styles.headline, headlineType, styles.kineticWord, { color: words[wordIndex].color, fontFamily: theme.typography.fontFamily.bold }]}>
 							{words[wordIndex].text}
 						</Animated.Text>
 					</View>
@@ -223,7 +225,7 @@ const WelcomeKinetic = ({ onSecretLongPress, actions }: WelcomeKineticProps) => 
 
 				<Animated.Text
 					entering={FadeInDown.delay(400).duration(700)}
-					style={[styles.subtitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.md }]}>
+					style={[styles.subtitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.md, lineHeight: scaleType(theme, 23) }]}>
 					{t('welcome.kinetic.subtitle')}
 				</Animated.Text>
 
@@ -273,12 +275,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 24,
 	},
 	headline: {
-		fontSize: 46,
-		lineHeight: 54,
 		letterSpacing: -1.2,
 	},
 	wordSlot: {
-		height: 58,
 		justifyContent: 'center',
 	},
 	kineticWord: {
@@ -288,7 +287,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 24,
 		marginTop: 14,
 		marginBottom: 28,
-		lineHeight: 23,
 	},
 })
 

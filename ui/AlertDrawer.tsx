@@ -13,6 +13,7 @@ import Animated, {
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
+import { scaleType } from '../theme/themeUtils'
 
 // Press feedback
 import QPPressable from './particles/QPPressable'
@@ -190,7 +191,7 @@ const AlertDrawer = ({ buttonLabel, title, description, onConfirm, confirmLabel,
 				<Text style={{ fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.semiBold, color: theme.colors.primaryText, marginTop: 16 }}>
 					{title}
 				</Text>
-				<Text style={{ fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.secondaryText, lineHeight: 21, marginTop: 8 }}>
+				<Text style={{ fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.secondaryText, lineHeight: scaleType(theme, 21), marginTop: 8 }}>
 					{description}
 				</Text>
 

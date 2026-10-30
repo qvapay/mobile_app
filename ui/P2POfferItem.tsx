@@ -12,7 +12,7 @@ import { getDateLocale } from '../i18n'
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
 import type { Theme } from '../theme/ThemeContext'
-import { createTextStyles } from '../theme/themeUtils'
+import { createTextStyles, scaleType } from '../theme/themeUtils'
 
 // Dominio y navegación tipados
 import type { P2POffer, P2PMarketAverages } from '../types/domain'
@@ -132,7 +132,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const myOrder = offer.my_order || null
 	const flexible = isFlexibleOffer(offer)
 	const coinName = offer.Coin?.name || offer.coin
-	const small = theme.typography.fontSize.xs - 2
+	const small = theme.typography.fontSize.xxs
 
 	// Tasa y desviación frente al promedio de su moneda
 	const rateValue = offerRate(offer)
@@ -205,12 +205,12 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 			<View style={styles.priceRow}>
 				<View style={styles.fill}>
 					<View style={styles.rateLine}>
-						<Text style={[styles.rate, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold }]} numberOfLines={1}>
+						<Text style={[styles.rate, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xl }]} numberOfLines={1}>
 							{formatRate(rateValue)}
 						</Text>
 						{deviation && (
 							<Pressable onLongPress={() => toast(trendLabel)} accessibilityLabel={`${formatDeviation(deviation.pct)}. ${trendLabel}`} hitSlop={6}>
-								<Text style={[styles.deviation, { color: trendColor(deviation.trend, theme), fontSize: small, fontFamily: theme.typography.fontFamily.medium }]}>
+								<Text style={[styles.deviation, { color: trendColor(deviation.trend, theme), fontSize: small, lineHeight: scaleType(theme, 12), fontFamily: theme.typography.fontFamily.medium }]}>
 									{formatDeviation(deviation.pct)}
 								</Text>
 							</Pressable>
@@ -227,7 +227,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 					{!!offer.bank && (
 						<View style={styles.coinLine}>
 							<FontAwesome6 name="building-columns" size={small} color={theme.colors.secondaryText} iconStyle="solid" />
-							<Text style={{ color: theme.colors.secondaryText, fontSize: small + 1, fontFamily: theme.typography.fontFamily.regular, flexShrink: 1 }} numberOfLines={1}>{offer.bank}</Text>
+							<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular, flexShrink: 1 }} numberOfLines={1}>{offer.bank}</Text>
 						</View>
 					)}
 				</View>
@@ -267,12 +267,12 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 			<View style={styles.dataGrid}>
 				<View style={styles.dataColumn}>
 					{rows.map(row => (
-						<Text key={row.label} style={[styles.dataText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{row.label}</Text>
+						<Text key={row.label} style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 17), fontFamily: theme.typography.fontFamily.regular }}>{row.label}</Text>
 					))}
 				</View>
 				<View style={[styles.dataColumn, styles.fill]}>
 					{rows.map((row, i) => (
-						<Text key={row.label} numberOfLines={1} style={[styles.dataText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xs, fontFamily: i === 0 ? theme.typography.fontFamily.semiBold : theme.typography.fontFamily.medium, fontVariant: TABULAR }]}>
+						<Text key={row.label} numberOfLines={1} style={{ color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 17), fontFamily: i === 0 ? theme.typography.fontFamily.semiBold : theme.typography.fontFamily.medium, fontVariant: TABULAR }}>
 							{row.value}
 							{row.unit ? <Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular }}> {row.unit}</Text> : null}
 						</Text>
@@ -400,13 +400,11 @@ const styles = StyleSheet.create({
 		gap: 6,
 	},
 	rate: {
-		fontSize: 20,
 		letterSpacing: -0.3,
 		fontVariant: ['tabular-nums'],
 		flexShrink: 1,
 	},
 	deviation: {
-		lineHeight: 12,
 		fontVariant: ['tabular-nums'],
 	},
 	coinLine: {
@@ -435,9 +433,6 @@ const styles = StyleSheet.create({
 	},
 	dataColumn: {
 		gap: 2,
-	},
-	dataText: {
-		lineHeight: 17,
 	},
 	chipColumn: {
 		justifyContent: 'center',

@@ -7,7 +7,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { scaleType, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
@@ -70,7 +70,7 @@ const WalletStakeSuccess = ({ navigation, route }: Props) => {
 				{note === 'votePending' && (
 					<View style={[styles.notice, { backgroundColor: theme.colors.warning + '14' }]}>
 						<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" />
-						<Text style={[styles.noticeText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{t('crypto.staking.success.votePending')}</Text>
+						<Text style={[styles.noticeText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm, lineHeight: scaleType(theme, 20) }]}>{t('crypto.staking.success.votePending')}</Text>
 					</View>
 				)}
 
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
 	hash: { letterSpacing: 0.3 },
 	actions: { gap: 10 },
 	notice: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 12, alignItems: 'flex-start', alignSelf: 'stretch', marginTop: 8 },
-	noticeText: { flex: 1, lineHeight: 20 },
+	noticeText: { flex: 1 },
 })
 
 export default WalletStakeSuccess

@@ -28,7 +28,7 @@ import useStepTransitions from '../../hooks/useStepTransitions'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
-import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
+import { createContainerStyles, createTextStyles, scaleType } from '../../theme/themeUtils'
 
 // UI Components
 import QPPressable from '../../ui/particles/QPPressable'
@@ -168,7 +168,7 @@ const Onboard = ({ navigation }: Props) => {
 						testID="onboard-skip"
 						onPress={handleCompleteOnboarding}
 						hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-						<Text style={{ color: theme.colors.primary, fontSize: 13, fontFamily: theme.typography.fontFamily.medium, opacity: 0.7 }}>
+						<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium, opacity: 0.7 }}>
 							{t('welcome.onboard.skip')}
 						</Text>
 					</QPPressable>
@@ -206,7 +206,7 @@ const Onboard = ({ navigation }: Props) => {
 
 					{/* Description */}
 					<Animated.View entering={makeStepEnter(140)}>
-						<Text style={[fontStyles.subtitle, { textAlign: 'center', lineHeight: 24 }]}>
+						<Text style={[fontStyles.subtitle, { textAlign: 'center', lineHeight: scaleType(theme, 24) }]}>
 							{t(`welcome.onboard.steps.${currentStepData.asset}.description`)}
 						</Text>
 					</Animated.View>

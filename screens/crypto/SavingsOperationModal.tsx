@@ -84,7 +84,7 @@ const SavingsOperationModal = ({ operation, amount, loading, available, onChange
 								autoFocus
 								style={{
 									color: theme.colors.primaryText,
-									fontSize: 40,
+									fontSize: theme.typography.fontSize.displayMd,
 									fontFamily: theme.typography.fontFamily.semiBold,
 									minWidth: 80,
 									textAlign: 'center',

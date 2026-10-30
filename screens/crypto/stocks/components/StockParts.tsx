@@ -11,7 +11,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import QPButton from '../../../../ui/particles/QPButton'
 import QPPressable from '../../../../ui/particles/QPPressable'
-import { useContainerStyles } from '../../../../theme/themeUtils'
+import { scaleType, useContainerStyles } from '../../../../theme/themeUtils'
 import { displayAmount } from '../../../../wallet/chains/units'
 import type { Theme } from '../../../../theme/ThemeContext'
 import type { XStock } from '../../../../wallet/xstocks'
@@ -96,7 +96,7 @@ export const RegionNotice = ({ theme, compact = false }: { theme: Theme, compact
 			<View style={styles.noticeText}>
 				<Text style={{ color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>{t('crypto.xstocks.unavailable.title')}</Text>
 				{!compact && (
-					<Text style={[styles.noticeBody, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.xstocks.unavailable.body')}</Text>
+					<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 17), fontFamily: theme.typography.fontFamily.regular }}>{t('crypto.xstocks.unavailable.body')}</Text>
 				)}
 			</View>
 		</View>
@@ -122,7 +122,7 @@ export const RiskSheet = ({ visible, onClose, onAccept, theme }: { visible: bool
 						{points.map(point => (
 							<View key={point} style={styles.riskPoint}>
 								<FontAwesome6 name="circle-info" size={13} color={theme.colors.secondaryText} iconStyle="solid" style={styles.riskIcon} />
-								<Text style={[styles.riskText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{point}</Text>
+								<Text style={[styles.riskText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, lineHeight: scaleType(theme, 20), fontFamily: theme.typography.fontFamily.regular }]}>{point}</Text>
 							</View>
 						))}
 					</ScrollView>
@@ -136,7 +136,6 @@ export const RiskSheet = ({ visible, onClose, onAccept, theme }: { visible: bool
 const styles = StyleSheet.create({
 	notice: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 12, borderCurve: 'continuous' },
 	noticeText: { flex: 1, gap: 2 },
-	noticeBody: { lineHeight: 17 },
 	changeLine: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -182,6 +181,5 @@ const styles = StyleSheet.create({
 	},
 	riskText: {
 		flex: 1,
-		lineHeight: 20,
 	},
 })

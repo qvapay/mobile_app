@@ -44,7 +44,7 @@ const BalanceHero = ({ amount, showBalance, onPress, loading = false, width, chi
 				<QPSkeleton width={200} height={60} borderRadius={14} />
 			) : showBalance ? (
 				<View style={styles.content}>
-					<QPBalance amount={amount} fontSize={60} theme={theme} />
+					<QPBalance amount={amount} fontSize={theme.typography.fontSize.display} theme={theme} />
 					{children}
 				</View>
 			) : (

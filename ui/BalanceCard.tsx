@@ -144,7 +144,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 
 				{/* Page 2: Savings Balance */}
 				<BalanceHero amount={Number(savings.balance ?? 0)} showBalance={showBalance} onPress={() => navigation?.navigate('Savings')} width={cardWidth}>
-					<Text style={[styles.rateLabel, { color: theme.colors.successText, fontFamily: theme.typography.fontFamily.medium }]}>
+					<Text style={[styles.rateLabel, { color: theme.colors.successText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]}>
 						{savings.rate}%
 					</Text>
 				</BalanceHero>
@@ -157,7 +157,6 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 
 const styles = StyleSheet.create({
 	rateLabel: {
-		fontSize: 13,
 		marginTop: -14,
 	},
 })

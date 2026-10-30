@@ -4,7 +4,7 @@
  * @jest-environment node
  */
 import { createTheme, fontScaleMap } from './themeTokens'
-import { createTextStyles, createContainerStyles } from './themeUtils'
+import { createTextStyles, createContainerStyles, scaleType } from './themeUtils'
 
 describe('createTheme', () => {
 	test('dark theme uses the dark palette over the brand colors', () => {
@@ -38,11 +38,29 @@ describe('createTheme', () => {
 	test('fontScaleMap exposes the five user-facing sizes', () => {
 		expect(fontScaleMap).toEqual({
 			extraSmall: 0.8,
-			small: 0.9,
-			medium: 1.0,
+			small: 0.88,
+			medium: 0.94,
 			large: 1.15,
 			extraLarge: 1.3,
 		})
+	})
+
+	test('the default (Medium) lands ~1pt below the base scale', () => {
+		const { fontSize } = createTheme(true).typography
+		expect(fontSize).toEqual({ xxs: 10, xs: 11, sm: 13, md: 15, lg: 17, xl: 19, xxl: 23, xxxl: 28, displaySm: 32, displayMd: 41, display: 56 })
+		expect(createTheme(true, fontScaleMap.medium).typography.fontSize).toEqual(fontSize)
+	})
+
+	test('scaleType carries design measures (×1.0) to the chosen size', () => {
+		expect(scaleType(createTheme(true, 1.0), 20)).toBe(20)
+		expect(scaleType(createTheme(true), 20)).toBe(19)
+		expect(scaleType(createTheme(true, fontScaleMap.extraLarge), 18)).toBe(23)
+	})
+
+	test('every step is visibly distinct from its neighbours on the body token', () => {
+		const order = ['extraSmall', 'small', 'medium', 'large', 'extraLarge']
+		const sm = order.map(key => createTheme(true, fontScaleMap[key]).typography.fontSize.sm)
+		sm.slice(1).forEach((size, i) => expect(size).toBeGreaterThan(sm[i]))
 	})
 
 	test('typography uses the Rubik family', () => {

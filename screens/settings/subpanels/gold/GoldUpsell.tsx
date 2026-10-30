@@ -10,6 +10,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context'
 import type { ProductSubscription } from 'react-native-iap'
 import type { GoldPlan } from '../../../../helpers/iap'
 import type { Theme } from '../../../../theme/ThemeContext'
+import { scaleType } from '../../../../theme/themeUtils'
 import type { TextStyles } from '../../../../theme/themeUtils'
 
 /** Banderas de compra en curso (saldo / IAP / restaurar). */
@@ -132,7 +133,7 @@ const GoldUpsell = ({ plans, selectedPlan, onSelectPlan, subscriptions, connecte
 				{benefits.map((benefit) => (
 					<View key={benefit} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.md, paddingLeft: theme.spacing.sm }}>
 						<Image source={require('../../../../assets/images/ui/qvapay-logo-gold.png')} style={{ width: 20, height: 20, marginRight: theme.spacing.md }} resizeMode="contain" />
-						<Text style={[textStyles.text, { flex: 1, color: theme.colors.primaryText, lineHeight: 22 }]}>
+						<Text style={[textStyles.text, { flex: 1, color: theme.colors.primaryText, lineHeight: scaleType(theme, 22) }]}>
 							{t(benefit)}
 						</Text>
 					</View>
@@ -185,7 +186,7 @@ const GoldUpsell = ({ plans, selectedPlan, onSelectPlan, subscriptions, connecte
 			</View>
 
 			{/* Disclaimer */}
-			<Text style={[textStyles.caption, { textAlign: 'center', marginTop: theme.spacing.sm, marginBottom: insets.bottom + theme.spacing.sm, color: theme.colors.secondaryText, lineHeight: 18 }]}>
+			<Text style={[textStyles.caption, { textAlign: 'center', marginTop: theme.spacing.sm, marginBottom: insets.bottom + theme.spacing.sm, color: theme.colors.secondaryText, lineHeight: scaleType(theme, 18) }]}>
 				{t('settings.goldCheck.upsell.disclaimer')}
 			</Text>
 		</>

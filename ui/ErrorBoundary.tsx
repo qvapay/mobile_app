@@ -2,6 +2,7 @@ import React, { type ReactNode } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import i18n from '../i18n'
+import { createTheme } from '../theme/themeTokens'
 
 type ErrorBoundaryProps = {
 	children?: ReactNode
@@ -11,6 +12,10 @@ type ErrorBoundaryProps = {
 type ErrorBoundaryState = {
 	hasError: boolean
 }
+
+// Se pinta POR ENCIMA de los providers (sin ThemeContext ni ajustes): usa la escala al
+// tamaño por defecto y no puede seguir al ajuste de Fuente
+const { fontSize } = createTheme(true).typography
 
 /**
  * App-wide error boundary — the codebase's only class component (error
@@ -68,14 +73,14 @@ const styles = StyleSheet.create({
 	},
 	title: {
 		color: '#F7F7F7',
-		fontSize: 20,
+		fontSize: fontSize.xl,
 		fontFamily: 'Rubik-SemiBold',
 		marginTop: 20,
 		textAlign: 'center',
 	},
 	subtitle: {
 		color: '#9DA3B4',
-		fontSize: 14,
+		fontSize: fontSize.sm,
 		fontFamily: 'Rubik-Regular',
 		marginTop: 8,
 		textAlign: 'center',
@@ -89,7 +94,7 @@ const styles = StyleSheet.create({
 	},
 	buttonText: {
 		color: '#FFFFFF',
-		fontSize: 16,
+		fontSize: fontSize.md,
 		fontFamily: 'Rubik-Medium',
 	},
 })

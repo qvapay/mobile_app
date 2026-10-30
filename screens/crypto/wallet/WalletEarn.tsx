@@ -5,7 +5,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { scaleType, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { assetPrice } from '../../../wallet/assets'
@@ -79,7 +79,7 @@ const WalletEarn = ({ navigation }: Props) => {
 
 			<View style={[styles.totalCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.staking.hub.totalLabel')}</Text>
-				<QPFitText style={[textStyles.amount, styles.totalAmount, { color: theme.colors.primaryText }]}>
+				<QPFitText style={[textStyles.amount, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.displaySm }]}>
 					{showBalance ? formatUsd(total) : '••••'}
 				</QPFitText>
 			</View>
@@ -115,7 +115,7 @@ const WalletEarn = ({ navigation }: Props) => {
 				})}
 			</View>
 
-			<Text style={[styles.disclaimer, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }]}>
+			<Text style={[styles.disclaimer, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 16) }]}>
 				{t('crypto.staking.hub.disclaimer')}
 			</Text>
 		</ScrollView>
@@ -128,14 +128,13 @@ const styles = StyleSheet.create({
 	heroIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
 	centered: { textAlign: 'center' },
 	totalCard: { borderRadius: 14, padding: 16, alignItems: 'center', gap: 4, marginTop: 8 },
-	totalAmount: { fontSize: 32 },
 	sectionTitle: { marginTop: 8 },
 	card: { borderRadius: 14, paddingHorizontal: 12 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
 	info: { flex: 1, minWidth: 0, gap: 2 },
 	// Píldora = estado, no acción
 	pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-	disclaimer: { textAlign: 'center', paddingHorizontal: 8, marginTop: 4, lineHeight: 16 },
+	disclaimer: { textAlign: 'center', paddingHorizontal: 8, marginTop: 4 },
 })
 
 export default WalletEarn

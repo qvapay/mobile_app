@@ -48,7 +48,7 @@ const SwapReviewSheet = ({ visible, title, from, to, rate, badge, rows, notice, 
 	// pegado al importe. Repetirlo en texto solo alargaba la hoja
 	const side = (value: SwapReviewSide) => (
 		<View style={styles.side}>
-			<QPFitText style={[textStyles.amount, styles.sideAmount, { color: theme.colors.primaryText }]}>{`${value.amount} ${value.symbol}`}</QPFitText>
+			<QPFitText style={[textStyles.amount, styles.sideAmount, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl }]}>{`${value.amount} ${value.symbol}`}</QPFitText>
 			<QPAssetBadge icon={value.icon} size={40} ringColor={theme.colors.background} />
 		</View>
 	)
@@ -83,7 +83,7 @@ const SwapReviewSheet = ({ visible, title, from, to, rate, badge, rows, notice, 
 const styles = StyleSheet.create({
 	content: { gap: 10, paddingBottom: 4 },
 	side: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-	sideAmount: { fontSize: 28, flexShrink: 1 },
+	sideAmount: { flexShrink: 1 },
 	// `alignSelf` explícito: con ancho fijo en una columna, el elemento se va al borde
 	arrow: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
 	divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },

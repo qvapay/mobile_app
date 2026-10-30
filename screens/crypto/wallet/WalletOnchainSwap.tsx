@@ -306,7 +306,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 					<FontAwesome6 name="arrow-right" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
 					<QPAssetIcon logoTick={to.logoTick} networkTick={to.networkTick} size={44} ringColor={theme.colors.background} />
 				</View>
-				<Text style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText }]}>
+				<Text style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.displaySm }]}>
 					{`${displayAmount(String(amount))} ${from.symbol}`}
 				</Text>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
 	spacer: { flex: 1 },
 	hero: { alignItems: 'center', gap: 6, paddingBottom: 8 },
 	pair: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-	heroAmount: { fontSize: 32, marginTop: 8, textAlign: 'center' },
+	heroAmount: { marginTop: 8, textAlign: 'center' },
 	card: { borderRadius: 14, paddingHorizontal: 14 },
 	row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 12 },
 	rowValue: { flex: 1, textAlign: 'right' },
