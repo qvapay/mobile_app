@@ -198,7 +198,8 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		// Antes de firmar otro paso tras una difusión sin respuesta: ¿entró el anterior?
 		lookup: lookupOnchainSwap,
 	})
-	refreshRef.current = tx.refresh
+	// Tras el commit, no en render: un render descartado no debe dejar su `refresh` en la ref
+	useEffect(() => { refreshRef.current = tx.refresh }, [tx.refresh])
 	const { phase, prepared, error, busy } = tx
 
 	// El total de pasos se fija con la PRIMERA preparación: tras el permiso, `remaining` baja a
