@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-import { STORAGE_KEYS, DEFAULT_SETTINGS } from './settingsConstants'
+import { STORAGE_KEYS, DEFAULT_SETTINGS, CATEGORY_STORAGE_KEYS } from './settingsConstants'
 import type { Settings } from './settingsConstants'
 
-// Vista "ancha" para los accesos dinámicos por clave: la forma estricta la
-// da `Settings`; este cast local permite indexar por string sin perderla.
-const KEYS = STORAGE_KEYS as Record<string, string>
+/** Categorías con su clave de AsyncStorage (la misma tabla para leer y para escribir). */
+const CATEGORY_ENTRIES = Object.entries(CATEGORY_STORAGE_KEYS)
+
+/**
+ * Clave de AsyncStorage de una categoría. Una categoría desconocida cae en la
+ * genérica `SETTINGS`, que la carga no lee (no existe en `DEFAULT_SETTINGS`).
+ *
+ * @param category - Category name, e.g. 'roundup'.
+ * @returns Storage key.
+ */
+const storageKeyFor = (category: string): string => (CATEGORY_STORAGE_KEYS as Record<string, string>)[category] ?? STORAGE_KEYS.SETTINGS
 
 /**
  * Loads every settings category from its own AsyncStorage key in parallel.
@@ -17,52 +25,8 @@ const KEYS = STORAGE_KEYS as Record<string, string>
  */
 const loadAllSettings = async (): Promise<Record<string, unknown>> => {
 	try {
-		const [
-			notifications,
-			security,
-			privacy,
-			appearance,
-			language,
-			transactions,
-			p2p,
-			investment,
-			store,
-			sounds,
-			vibration,
-			roundup,
-			crypto
-		] = await Promise.all([
-			AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATIONS),
-			AsyncStorage.getItem(STORAGE_KEYS.SECURITY),
-			AsyncStorage.getItem(STORAGE_KEYS.PRIVACY),
-			AsyncStorage.getItem(STORAGE_KEYS.APPEARANCE),
-			AsyncStorage.getItem(STORAGE_KEYS.LANGUAGE),
-			AsyncStorage.getItem(STORAGE_KEYS.TRANSACTION_HISTORY),
-			AsyncStorage.getItem(STORAGE_KEYS.P2P_SETTINGS),
-			AsyncStorage.getItem(STORAGE_KEYS.INVESTMENT_SETTINGS),
-			AsyncStorage.getItem(STORAGE_KEYS.STORE_SETTINGS),
-			AsyncStorage.getItem(STORAGE_KEYS.SOUNDS),
-			AsyncStorage.getItem(STORAGE_KEYS.VIBRATION),
-			AsyncStorage.getItem(STORAGE_KEYS.ROUNDUP_SETTINGS),
-			AsyncStorage.getItem(STORAGE_KEYS.CRYPTO)
-		])
-
-		return {
-			notifications: notifications ? JSON.parse(notifications) : null,
-			security: security ? JSON.parse(security) : null,
-			privacy: privacy ? JSON.parse(privacy) : null,
-			appearance: appearance ? JSON.parse(appearance) : null,
-			language: language ? JSON.parse(language) : null,
-			transactions: transactions ? JSON.parse(transactions) : null,
-			p2p: p2p ? JSON.parse(p2p) : null,
-			investment: investment ? JSON.parse(investment) : null,
-			store: store ? JSON.parse(store) : null,
-			sounds: sounds ? JSON.parse(sounds) : null,
-			vibration: vibration ? JSON.parse(vibration) : null,
-			roundup: roundup ? JSON.parse(roundup) : null,
-			crypto: crypto ? JSON.parse(crypto) : null
-		}
-
+		const stored = await Promise.all(CATEGORY_ENTRIES.map(([, key]) => AsyncStorage.getItem(key)))
+		return Object.fromEntries(CATEGORY_ENTRIES.map(([category], i) => [category, stored[i] ? JSON.parse(stored[i]) : null]))
 	} catch (err) { return {} }
 }
 
@@ -91,15 +55,9 @@ const mergeWithDefaults = (storedSettings: Record<string, unknown>): Settings =>
  * Lives in a hook (not the provider component) per the "lift logic into hooks" pattern.
  *
  * Persistence: granular AsyncStorage keys, one per category (see
- * `settingsConstants.STORAGE_KEYS`), loaded once on mount and merged over
- * `DEFAULT_SETTINGS`. Writes are optimistic — state updates first, then storage.
- *
- * Gotcha: writes resolve their key via `STORAGE_KEYS[category.toUpperCase()]`.
- * That only matches categories whose constant is named exactly like them
- * (NOTIFICATIONS, SECURITY, PRIVACY, APPEARANCE, LANGUAGE, SOUNDS, VIBRATION);
- * the rest (`transactions`, `p2p`, `investment`, `store`, `roundup`) fall back
- * to the shared `SETTINGS` key, which `loadAllSettings` does not read — so those
- * categories currently don't survive an app restart.
+ * `settingsConstants.CATEGORY_STORAGE_KEYS`, shared by every read and write
+ * path), loaded once on mount and merged over `DEFAULT_SETTINGS`. Writes are
+ * optimistic — state updates first, then storage.
  *
  * @returns {{
  *   settings: Object,
@@ -153,7 +111,7 @@ export default function useSettingsState() {
 
 	/**
 	 * Merges several values into one settings category and persists that
-	 * category to its AsyncStorage key (see the storage-key gotcha above).
+	 * category to its AsyncStorage key.
 	 *
 	 * @param category - Category name, e.g. 'appearance'.
 	 * @param newSettings - Partial category object to merge in.
@@ -178,7 +136,7 @@ export default function useSettingsState() {
 
 			// Save to storage
 			await AsyncStorage.setItem(
-				KEYS[category.toUpperCase()] || STORAGE_KEYS.SETTINGS,
+				storageKeyFor(category),
 				JSON.stringify((updatedSettings as Record<string, unknown>)[category])
 			)
 
@@ -218,7 +176,7 @@ export default function useSettingsState() {
 
 			// Save to storage
 			await AsyncStorage.setItem(
-				KEYS[category.toUpperCase()] || STORAGE_KEYS.SETTINGS,
+				storageKeyFor(category),
 				JSON.stringify((updatedSettings as Record<string, unknown>)[category])
 			)
 
@@ -254,7 +212,7 @@ export default function useSettingsState() {
 				setSettings(updatedSettings)
 
 				await AsyncStorage.setItem(
-					KEYS[category.toUpperCase()] || STORAGE_KEYS.SETTINGS,
+					storageKeyFor(category),
 					JSON.stringify((DEFAULT_SETTINGS as Record<string, unknown>)[category])
 				)
 			} else {
@@ -325,21 +283,10 @@ export default function useSettingsState() {
 
 			setSettings(mergedSettings)
 
-			// Save all settings to storage
-			await Promise.all([
-				AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(mergedSettings.notifications)),
-				AsyncStorage.setItem(STORAGE_KEYS.SECURITY, JSON.stringify(mergedSettings.security)),
-				AsyncStorage.setItem(STORAGE_KEYS.PRIVACY, JSON.stringify(mergedSettings.privacy)),
-				AsyncStorage.setItem(STORAGE_KEYS.APPEARANCE, JSON.stringify(mergedSettings.appearance)),
-				AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE, JSON.stringify(mergedSettings.language)),
-				AsyncStorage.setItem(STORAGE_KEYS.TRANSACTION_HISTORY, JSON.stringify(mergedSettings.transactions)),
-				AsyncStorage.setItem(STORAGE_KEYS.P2P_SETTINGS, JSON.stringify(mergedSettings.p2p)),
-				AsyncStorage.setItem(STORAGE_KEYS.INVESTMENT_SETTINGS, JSON.stringify(mergedSettings.investment)),
-				AsyncStorage.setItem(STORAGE_KEYS.STORE_SETTINGS, JSON.stringify(mergedSettings.store)),
-				AsyncStorage.setItem(STORAGE_KEYS.SOUNDS, JSON.stringify(mergedSettings.sounds)),
-				AsyncStorage.setItem(STORAGE_KEYS.VIBRATION, JSON.stringify(mergedSettings.vibration)),
-				AsyncStorage.setItem(STORAGE_KEYS.ROUNDUP_SETTINGS, JSON.stringify(mergedSettings.roundup))
-			])
+			// Save all settings to storage (todas las categorías: antes faltaba `crypto`)
+			await Promise.all(CATEGORY_ENTRIES.map(([category, key]) =>
+				AsyncStorage.setItem(key, JSON.stringify((mergedSettings as Record<string, unknown>)[category]))
+			))
 
 			return { success: true }
 
