@@ -2,7 +2,6 @@ import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import QPAddress from '../../ui/particles/QPAddress'
-import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 
 import { ROUTES } from '../../routes'
@@ -15,13 +14,6 @@ import { getShortDateTime, statusText, p2pTypeText, getFirstChunk, copyTextToCli
 
 import type { Transaction } from '../../types/domain'
 import type { RootStackParamList } from '../../types/navigation'
-
-/**
- * OJO: en FontAwesome 6 el icono se llama `bell-concierge`; `concierge-bell` es
- * el nombre de FA5 y no existe en el glyphmap, así que la cabecera de la tarjeta
- * de servicio se pinta sin icono. Se conserva el valor (cero cambios de runtime).
- */
-const SERVICE_ICON = 'concierge-bell' as FontAwesome6SolidIconName
 
 // Parse a JSON-or-object details blob into DetailRows
 const renderDetailsBlob = (blob: unknown) => {
@@ -163,7 +155,7 @@ const RelatedTransactionCards = ({ t, navigation }: RelatedTransactionCardsProps
 			{/* Service Card (Phone topup, etc.) */}
 			{t.service && (
 				<View style={[styles.detailsCard, { backgroundColor: theme.colors.surface, marginTop: 16 }]}>
-					<CardHeader icon={SERVICE_ICON} title={tr('transactions.detail.related.service')} color={theme.colors.warning} badge={statusText(t.service.status)} badgeColor={getStatusColor(t.service.status, theme)} />
+					<CardHeader icon="bell-concierge"title={tr('transactions.detail.related.service')} color={theme.colors.warning} badge={statusText(t.service.status)} badgeColor={getStatusColor(t.service.status, theme)} />
 
 					{t.service.service && <DetailRow label={tr('transactions.detail.related.serviceLabel')} value={t.service.service.name} />}
 
