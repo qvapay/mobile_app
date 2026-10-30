@@ -21,8 +21,6 @@ export const STORAGE_KEYS = {
 	INVESTMENT_SETTINGS: 'investment_settings',
 	STORE_SETTINGS: 'store_settings',
 	ROUNDUP_SETTINGS: 'roundup_settings',
-	// Nombrada exactamente como la categoría para que el write path
-	// (`KEYS[category.toUpperCase()]`) resuelva y la categoría persista.
 	CRYPTO: 'crypto_settings'
 }
 
@@ -183,3 +181,26 @@ export type Settings = typeof DEFAULT_SETTINGS
 
 /** Nombre de categoría de ajustes ('notifications' | 'security' | ...). */
 export type SettingsCategory = keyof Settings
+
+/**
+ * Categoría → su clave de AsyncStorage: la ÚNICA tabla que usan la carga, la escritura,
+ * el reset y la importación. Antes la escritura derivaba la clave con
+ * `STORAGE_KEYS[category.toUpperCase()]` y cinco categorías (`transactions`, `p2p`,
+ * `investment`, `store`, `roundup`) caían en `app_settings`, que la carga nunca lee: se
+ * perdían al reiniciar. El tipo obliga a dar clave a toda categoría nueva.
+ */
+export const CATEGORY_STORAGE_KEYS: Record<SettingsCategory, string> = {
+	notifications: STORAGE_KEYS.NOTIFICATIONS,
+	security: STORAGE_KEYS.SECURITY,
+	privacy: STORAGE_KEYS.PRIVACY,
+	appearance: STORAGE_KEYS.APPEARANCE,
+	language: STORAGE_KEYS.LANGUAGE,
+	transactions: STORAGE_KEYS.TRANSACTION_HISTORY,
+	p2p: STORAGE_KEYS.P2P_SETTINGS,
+	investment: STORAGE_KEYS.INVESTMENT_SETTINGS,
+	store: STORAGE_KEYS.STORE_SETTINGS,
+	crypto: STORAGE_KEYS.CRYPTO,
+	roundup: STORAGE_KEYS.ROUNDUP_SETTINGS,
+	sounds: STORAGE_KEYS.SOUNDS,
+	vibration: STORAGE_KEYS.VIBRATION,
+}

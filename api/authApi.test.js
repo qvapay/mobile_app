@@ -160,13 +160,14 @@ describe('authApi.requestPin', () => {
 		expect(result.error).toBe('No se pudo solicitar el PIN')
 	})
 
-	// LATENT BUG: the network-error branch reads `error.response.status` without a
-	// guard, so when there is no response the catch itself throws a TypeError and
-	// the promise rejects instead of resolving the fallback object.
-	test('rejects with a TypeError on a network error (documents current unguarded catch)', async () => {
-		apiClient.post.mockRejectedValue(networkError())
+	// Regresión: sin respuesta el catch leía `error.response.status`, lanzaba un TypeError
+	// y el login enseñaba su texto en el toast en vez del mensaje de conexión
+	test('resolves the connection message with no status on a network error', async () => {
+		apiClient.post.mockRejectedValue(networkError('No se ha podido conectar con el servidor'))
 
-		await expect(authApi.requestPin({ email: 'a@b.com', password: 'secret' })).rejects.toThrow(TypeError)
+		const result = await authApi.requestPin({ email: 'a@b.com', password: 'secret' })
+
+		expect(result).toEqual({ success: false, error: 'No se ha podido conectar con el servidor', status: undefined })
 	})
 })
 
@@ -189,13 +190,12 @@ describe('authApi.logout', () => {
 		expect(result).toEqual({ success: true, error: 'Request failed', status: 403 })
 	})
 
-	// LATENT BUG: the catch reads `error.response.status` without a guard, so a
-	// network error (no response) makes logout reject with a TypeError instead of
-	// resolving success true as the best-effort contract promises.
-	test('rejects with a TypeError on a network error (documents current unguarded catch)', async () => {
+	test('still resolves success true on a network error (best-effort logout)', async () => {
 		apiClient.post.mockRejectedValue(networkError())
 
-		await expect(authApi.logout()).rejects.toThrow(TypeError)
+		const result = await authApi.logout()
+
+		expect(result).toEqual({ success: true, error: 'Network Error', status: undefined })
 	})
 })
 

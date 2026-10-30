@@ -87,12 +87,35 @@ describe('updateSetting / updateSettings', () => {
 		expect(AsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.SECURITY, expect.any(String))
 	})
 
-	test('KNOWN GOTCHA: categories without a same-named constant fall back to the shared SETTINGS key, which loadAllSettings never reads (they do not survive a restart)', async () => {
-		const { result } = await renderHook()
-		await act(async () => { await result.current.updateSetting('transactions', 'showFees', false) })
-		// STORAGE_KEYS.TRANSACTIONS does not exist (the constant is TRANSACTION_HISTORY),
-		// so the write lands on the generic fallback key.
-		expect(AsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.SETTINGS, expect.any(String))
+	test('every category survives a restart (it is written to the key the next launch reads)', async () => {
+		// AsyncStorage en memoria: lo que escribe una instancia lo lee la siguiente
+		const disk = new Map()
+		AsyncStorage.getItem.mockImplementation(async (key) => disk.get(key) ?? null)
+		AsyncStorage.setItem.mockImplementation(async (key, value) => { disk.set(key, value) })
+
+		const categories = Object.keys(DEFAULT_SETTINGS)
+		const first = await renderHook()
+		for (const category of categories) {
+			await act(async () => { await first.result.current.updateSetting(category, 'probe', category) })
+		}
+		// Regresión: `transactions`, `p2p`, `investment`, `store` y `roundup` caían aquí
+		expect(disk.has(STORAGE_KEYS.SETTINGS)).toBe(false)
+
+		const second = await renderHook()
+		for (const category of categories) {
+			expect(second.result.current.settings[category].probe).toBe(category)
+		}
+	})
+
+	test('roundup keeps the user choice across a restart', async () => {
+		const disk = new Map()
+		AsyncStorage.getItem.mockImplementation(async (key) => disk.get(key) ?? null)
+		AsyncStorage.setItem.mockImplementation(async (key, value) => { disk.set(key, value) })
+
+		const first = await renderHook()
+		await act(async () => { await first.result.current.updateSettings('roundup', { enabled: true, destination: 'savings' }) })
+		const second = await renderHook()
+		expect(second.result.current.roundup).toEqual({ enabled: true, destination: 'savings' })
 	})
 
 	test('a persistence failure reports the error but keeps the optimistic state', async () => {
@@ -118,6 +141,15 @@ describe('resetSettings', () => {
 		expect(AsyncStorage.setItem).toHaveBeenCalledWith(
 			STORAGE_KEYS.APPEARANCE,
 			JSON.stringify(DEFAULT_SETTINGS.appearance)
+		)
+	})
+
+	test('resetting a category without a same-named constant writes to its own key', async () => {
+		const { result } = await renderHook()
+		await act(async () => { await result.current.resetSettings('roundup') })
+		expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+			STORAGE_KEYS.ROUNDUP_SETTINGS,
+			JSON.stringify(DEFAULT_SETTINGS.roundup)
 		)
 	})
 
@@ -158,9 +190,10 @@ describe('export / import', () => {
 		expect(outcome).toEqual({ success: true })
 		expect(result.current.appearance.theme).toBe('light')
 		expect(result.current.p2p.enabled).toBe(false)
-		// 12 categories, one setItem each
-		expect(AsyncStorage.setItem).toHaveBeenCalledTimes(12)
+		// Todas las categorías, un setItem cada una (`crypto` incluida: antes faltaba)
+		expect(AsyncStorage.setItem).toHaveBeenCalledTimes(Object.keys(DEFAULT_SETTINGS).length)
 		expect(AsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.P2P_SETTINGS, expect.any(String))
+		expect(AsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.CRYPTO, expect.any(String))
 	})
 
 	test('export → import round-trips the settings', async () => {
