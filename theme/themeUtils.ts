@@ -36,6 +36,17 @@ export const monoFont = (theme: Theme, style?: StyleProp<TextStyle>): TextStyle 
 }
 
 /**
+ * Una medida tipográfica de diseño (pensada a ×1.0) llevada al tamaño de fuente
+ * elegido: `lineHeight`, la altura de un hueco que contiene texto… Los TAMAÑOS no
+ * pasan por aquí: salen de la escala (`theme.typography.fontSize`).
+ *
+ * @param theme - Tema activo.
+ * @param size - Medida a ×1.0, p. ej. el `lineHeight: 20` del diseño.
+ * @returns La medida escalada y redondeada.
+ */
+export const scaleType = (theme: Theme, size: number) => Math.round(size * theme.typography.scale)
+
+/**
  * Builds the shared text StyleSheet for a theme: `text`, `title`, `subtitle`,
  * `amount` (hero numbers), `h1`–`h7`, `body`, `caption`, `error`. Font sizes
  * already carry the user's font scale (baked into `theme.typography`).
