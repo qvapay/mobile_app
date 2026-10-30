@@ -253,12 +253,9 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 							device={device}
 							isActive={isScanning}
 							outputs={[scannerOutput]}
-							// Vision Camera 5 renombró `torch` a `torchMode`: el prop que pasa
-							// la pantalla ya no existe en CameraViewProps (la linterna nunca
-							// enciende). Bug de runtime PRE-EXISTENTE — se preserva tal cual y
-							// solo se silencia el tipo.
-							// @ts-expect-error prop de Vision Camera 4 conservada a propósito
-							torch={isTorchEnabled ? 'on' : 'off'}
+							// Vision Camera 5 (`torch` de la v4 ya no existe y la linterna no
+							// encendía). Sin linterna, `setTorchMode('on')` lanza: no se pide
+							torchMode={isTorchEnabled && device.hasTorch ? 'on' : 'off'}
 						/>
 					)}
 
