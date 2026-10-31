@@ -10,7 +10,6 @@
 		"empty": "No mini-apps available yet. Check back soon!",
 		"publishTitle": "Do you build apps?",
 		"publishBody": "Publish yours in this catalog.",
-		"longPressToShare": "Long-press to share",
 		"categories": {
 			"shopping": "Shopping",
 			"games": "Games",
@@ -24,6 +23,18 @@
 	"share": {
 		"title": "{{name}} on QvaPay",
 		"message": "Discover {{name}} on QvaPay: {{url}}"
+	},
+	"actions": {
+		"favorite": "Add to favorites",
+		"unfavorite": "Remove from favorites",
+		"addToHomeScreen": "Add to home screen",
+		"longPressHint": "Long-press for options",
+		"favoriteBadge": "Favorite",
+		"toasts": {
+			"favorited": "{{name}} is now in your favorites",
+			"unfavorited": "{{name}} is no longer in your favorites",
+			"pinFailed": "Couldn't add the shortcut"
+		}
 	},
 	"host": {
 		"menu": "Mini-app options",

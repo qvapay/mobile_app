@@ -303,7 +303,7 @@ const Home = ({ navigation }: HomeProps) => {
 					)}
 				</View>
 
-				{/* Mini-apps: destacadas primero, seis como mucho; sin catálogo no ocupa nada */}
+				{/* Mini-apps: favoritas del usuario y destacadas hasta seis; sin catálogo no ocupa nada */}
 				<HomeMiniApps navigation={navigation as unknown as RootNav} onSeeAll={() => navigation.navigate(ROUTES.MINIAPPS)} style={styles.section} />
 
 				{/* Ofertas P2P: solo las promocionadas, como el dashboard web */}

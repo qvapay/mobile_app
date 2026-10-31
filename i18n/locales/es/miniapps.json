@@ -10,7 +10,6 @@
 		"empty": "Aún no hay mini-apps disponibles. ¡Vuelve pronto!",
 		"publishTitle": "¿Creas apps?",
 		"publishBody": "Publica la tuya en este catálogo.",
-		"longPressToShare": "Mantén pulsado para compartir",
 		"categories": {
 			"shopping": "Compras",
 			"games": "Juegos",
@@ -24,6 +23,18 @@
 	"share": {
 		"title": "{{name}} en QvaPay",
 		"message": "Descubre {{name}} en QvaPay: {{url}}"
+	},
+	"actions": {
+		"favorite": "Añadir a favoritas",
+		"unfavorite": "Quitar de favoritas",
+		"addToHomeScreen": "Añadir a la pantalla de inicio",
+		"longPressHint": "Mantén pulsado para ver las opciones",
+		"favoriteBadge": "Favorita",
+		"toasts": {
+			"favorited": "{{name}} está en tus favoritas",
+			"unfavorited": "{{name}} ya no está en tus favoritas",
+			"pinFailed": "No se pudo añadir el acceso directo"
+		}
 	},
 	"host": {
 		"menu": "Opciones de la mini-app",

@@ -22,8 +22,9 @@ import { useTextStyles, useContainerStyles, hexToRgba } from '../../theme/themeU
 import { ROUTES } from '../../routes'
 
 import MiniAppIcon from './MiniAppIcon'
+import MiniAppActionsSheet from './MiniAppActionsSheet'
+import useMiniAppFavorites from './useMiniAppFavorites'
 import { useMiniAppsList } from './miniappsQueries'
-import { shareMiniApp } from './shareMiniApp'
 import { CATEGORY_META, SEARCH_MIN_APPS, buildCatalogView, categoryOf, coverOf, normalizeSearch, presentCategories } from './miniappsCatalog'
 import type { MiniAppCategory } from './miniappsCatalog'
 import type { MiniApp } from '../../types/domain'
@@ -79,6 +80,8 @@ const MiniApps = ({ navigation }: Props) => {
 	const [refreshing, setRefreshing] = useState(false)
 	const [query, setQuery] = useState('')
 	const [category, setCategory] = useState<MiniAppCategory | null>(null)
+	const [menuApp, setMenuApp] = useState<MiniApp | null>(null)
+	const { favorites, isFavorite } = useMiniAppFavorites()
 
 	useEffect(() => {
 		if (isError && !data) toast.error(t('miniapps.errors.loadList'), { description: error?.message })
@@ -97,11 +100,11 @@ const MiniApps = ({ navigation }: Props) => {
 		navigation.navigate(ROUTES.MINIAPP_HOST, { slug: app.slug, name: app.name, icon: app.icon })
 	}, [navigation])
 
-	// Mantener pulsada una app = compartir su enlace sin entrar en ella
-	const share = useCallback((app: MiniApp) => {
+	// Mantener pulsada una app = su menú (favorita, acceso directo, compartir) sin entrar en ella
+	const openMenu = useCallback((app: MiniApp) => {
 		ReactNativeHapticFeedback.trigger('impactMedium', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
-		shareMiniApp(app, t).catch(() => { /* cancelado o sin hoja */ })
-	}, [t])
+		setMenuApp(app)
+	}, [])
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
@@ -116,11 +119,14 @@ const MiniApps = ({ navigation }: Props) => {
 		const cat = categoryOf(item)
 		const author = authorOf(item)
 		return (
-			<QPPressable onPress={() => open(item)} onLongPress={() => share(item)} accessibilityHint={t('miniapps.directory.longPressToShare')} style={styles.row}>
+			<QPPressable onPress={() => open(item)} onLongPress={() => openMenu(item)} accessibilityHint={t('miniapps.actions.longPressHint')} style={styles.row}>
 				<MiniAppIcon app={item} size={56} />
 				<View style={styles.rowText}>
 					<View style={styles.nameRow}>
 						<Text style={[textStyles.h5, styles.shrink, { color: theme.colors.primaryText }]} numberOfLines={1}>{item.name}</Text>
+						{isFavorite(item.slug) ? (
+							<FontAwesome6 name="star" size={11} color={theme.colors.warning} iconStyle="solid" style={styles.ml5} accessibilityLabel={t('miniapps.actions.favoriteBadge')} />
+						) : null}
 						{item.preview ? <PreviewBadge label={t('miniapps.directory.preview')} /> : null}
 					</View>
 					{item.tagline ? (
@@ -135,7 +141,7 @@ const MiniApps = ({ navigation }: Props) => {
 				</View>
 			</QPPressable>
 		)
-	}, [open, share, theme, textStyles, t])
+	}, [open, openMenu, isFavorite, theme, textStyles, t])
 
 	if (isPending) {
 		return <View style={[containerStyles.subContainer, styles.center]}><QPLoader /></View>
@@ -156,7 +162,7 @@ const MiniApps = ({ navigation }: Props) => {
 						contentContainerStyle={[styles.featuredRow, { paddingHorizontal: theme.spacing.md }]}
 					>
 						{view.featured.map(app => (
-							<FeaturedCard key={app.slug} app={app} width={featuredWidth} cardBorder={cardBorder} onPress={() => open(app)} onLongPress={() => share(app)} />
+							<FeaturedCard key={app.slug} app={app} width={featuredWidth} cardBorder={cardBorder} onPress={() => open(app)} onLongPress={() => openMenu(app)} />
 						))}
 					</ScrollView>
 				</>
@@ -235,9 +241,11 @@ const MiniApps = ({ navigation }: Props) => {
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 				ListHeaderComponent={header}
 				renderItem={renderApp}
+				extraData={favorites}
 				ListEmptyComponent={empty}
 				ListFooterComponent={footer}
 			/>
+			<MiniAppActionsSheet app={menuApp} onClose={() => setMenuApp(null)} />
 		</View>
 	)
 }
@@ -261,7 +269,7 @@ const FeaturedCard = ({ app, width, cardBorder, onPress, onLongPress }: { app: M
 	const withCover = !!cover && !coverFailed
 
 	return (
-		<QPPressable onPress={onPress} onLongPress={onLongPress} accessibilityHint={t('miniapps.directory.longPressToShare')} style={[styles.featuredCard, { width, backgroundColor: theme.colors.surface }, cardBorder]}>
+		<QPPressable onPress={onPress} onLongPress={onLongPress} accessibilityHint={t('miniapps.actions.longPressHint')} style={[styles.featuredCard, { width, backgroundColor: theme.colors.surface }, cardBorder]}>
 			<LinearGradient
 				colors={[hexToRgba(color, 0.32), hexToRgba(color, 0.04)]}
 				start={{ x: 0, y: 0 }}

@@ -13,8 +13,13 @@ jest.mock('react-native', () => ({
 	Platform: { OS: 'ios' },
 }))
 
+jest.mock('./miniAppShortcuts', () => ({
+	refreshMiniAppQuickActions: jest.fn(async () => {}),
+}))
+
 import { NativeModules, Platform } from 'react-native'
 import { APP_ICONS, changeAppIcon, getAppIcon } from './appIcon'
+import { refreshMiniAppQuickActions } from './miniAppShortcuts'
 
 const { AppIconChanger } = NativeModules
 
@@ -50,6 +55,17 @@ describe('changeAppIcon', () => {
 		Platform.OS = 'android'
 		await changeAppIcon('halloween')
 		expect(AppIconChanger.changeIcon).toHaveBeenCalledWith('halloween')
+	})
+
+	test('on Android republishes the mini-app quick actions on the new alias', async () => {
+		Platform.OS = 'android'
+		await changeAppIcon('gold')
+		expect(refreshMiniAppQuickActions).toHaveBeenCalledTimes(1)
+	})
+
+	test('on iOS the quick actions are left alone', async () => {
+		await changeAppIcon('gold')
+		expect(refreshMiniAppQuickActions).not.toHaveBeenCalled()
 	})
 
 	test('maps default to the "default" sentinel on both platforms', async () => {
