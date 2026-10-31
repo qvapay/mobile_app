@@ -10,13 +10,18 @@
  * Aquí se clasifica el destino contra el historial del propio usuario en la misma familia de
  * direcciones (una dirección EVM es la misma en Ethereum, BSC y Base):
  *   · `self`      una dirección propia.
- *   · `known`     ya se le envió dinero de verdad (salida confirmada y mayor que 0).
  *   · `lookalike` comparte principio y final con una de confianza, pero es OTRA.
+ *   · `known`     ya se le envió dinero de verdad (salida confirmada y mayor que 0).
  *   · `poisoner`  solo aparece en el historial por polvo o transferencias de 0.
  *   · `new`       nada de lo anterior.
  *
  * "De confianza" = propias, a las que se envió dinero y las que mandaron una cantidad real.
  * Una salida de 0 no cuenta como envío: es la firma del `transferFrom` de 0 del atacante.
+ *
+ * El parecido se mira ANTES que "ya se le envió": una sola salida hacia la imitación (el envío
+ * de prueba de 1 USDT antes del grande, o la estafa que ya funcionó una vez) no puede silenciar
+ * el aviso para siempre. El precio es que el Bob de verdad también avisa mientras su imitación
+ * sea de confianza en el historial, y esa es justo una señal que conviene dar.
  */
 import { isSameAddress } from './assets'
 import { isDustTx } from './dust'
@@ -31,8 +36,12 @@ export const LOOKALIKE_MIN_EDGES = 6
 export type RecipientVerdict =
 	| { kind: 'self' }
 	| { kind: 'known' }
-	/** `of`: la dirección de confianza a la que imita, tal como la conoce el usuario. */
-	| { kind: 'lookalike', of: string }
+	/**
+	 * `of`: la dirección de confianza a la que se parece, tal como la conoce el usuario.
+	 * `known`: al destino YA se le envió dinero, así que no se puede saber cuál de las dos es la
+	 * de verdad (quizá pagó a la imitación una vez): el aviso no puede señalar ninguna.
+	 */
+	| { kind: 'lookalike', of: string, known: boolean }
 	| { kind: 'poisoner' }
 	| { kind: 'new' }
 
@@ -126,21 +135,21 @@ export const checkRecipient = ({ kind, to, own, histories }: {
 	}
 
 	const target = key(to)
-	if (sentTo.has(target)) return { kind: 'known' }
-
+	// `lookalikeScore` descarta el propio destino: se compara con las DEMÁS de confianza
 	let best: { of: string, score: number } | null = null
 	for (const [candidate, original] of trusted) {
 		const score = lookalikeScore(kind, target, candidate)
 		if (score > 0 && (!best || score > best.score)) best = { of: original, score }
 	}
-	if (best) return { kind: 'lookalike', of: best.of }
+	if (best) return { kind: 'lookalike', of: best.of, known: sentTo.has(target) }
 
+	if (sentTo.has(target)) return { kind: 'known' }
 	if (suspicious.has(target) && !trusted.has(target)) return { kind: 'poisoner' }
 	return { kind: 'new' }
 }
 
 /** El veredicto exige que el usuario confirme expresamente que revisó la dirección. */
-export const isBlockingVerdict = (verdict: RecipientVerdict | null): boolean =>
+export const isBlockingVerdict = (verdict: RecipientVerdict | null): verdict is Extract<RecipientVerdict, { kind: 'lookalike' | 'poisoner' }> =>
 	verdict?.kind === 'lookalike' || verdict?.kind === 'poisoner'
 
 export type AddressDiff = { head: string, middle: string, tail: string }

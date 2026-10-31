@@ -300,7 +300,10 @@
 				"poisoner": "This address only shows up in your history through tiny amounts or 0-value transfers: the trail left by someone trying to get you to copy a fake address. Don’t copy addresses from your history; ask the person you’re paying for their address again.",
 				"sendingTo": "You’re sending to",
 				"usedBefore": "The one you used before",
-				"checked": "I’ve checked the address character by character"
+				"checked": "I’ve checked the address character by character",
+				"twinTitle": "Careful: there’s a near-identical address in your history",
+				"twin": "You’ve sent to this address before, but your history has another one that starts and ends the same. One of them may be an imitation: check with the person you’re paying which one is theirs before you send.",
+				"otherSimilar": "The other, near-identical one"
 			}
 		},
 		"settings": {

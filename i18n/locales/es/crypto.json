@@ -300,7 +300,10 @@
 				"poisoner": "Esta dirección solo aparece en tu historial por cantidades mínimas o transferencias de 0: es el rastro de quien intenta que copies una dirección falsa. No copies direcciones del historial; pide la dirección de nuevo a quien vas a pagar.",
 				"sendingTo": "Vas a enviar a",
 				"usedBefore": "La que ya usaste",
-				"checked": "He comprobado la dirección carácter a carácter"
+				"checked": "He comprobado la dirección carácter a carácter",
+				"twinTitle": "Cuidado: hay otra dirección casi igual en tu historial",
+				"twin": "Ya enviaste a esta dirección, pero en tu historial hay otra que empieza y termina igual. Una de las dos puede ser una imitación: confirma con quien vas a pagar cuál es la suya antes de enviar.",
+				"otherSimilar": "La otra, casi igual"
 			}
 		},
 		"settings": {
