@@ -63,6 +63,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 ///   `launchOptions` que lee `Linking.getInitialURL()` (URL de esquema y universal link);
 /// - app ya abierta: `scene(_:openURLContexts:)` y `scene(_:continue:)`.
 ///
+/// Los accesos rápidos del icono (mini-apps favoritas, `MiniAppShortcuts`) llevan la
+/// URL pública de la mini-app y entran por el mismo camino que un universal link.
+///
 /// Siempre por los métodos `RCTLinkingManager.scene(...)`: desde RN 0.88 los
 /// `RCTLinkingManager.application(...)` NO hacen nada en una app con escenas.
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
@@ -90,16 +93,43 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         RCTLinkingManager.scene(scene, openURLContexts: connectionOptions.urlContexts)
       } else if let activity = connectionOptions.userActivities.first {
         RCTLinkingManager.scene(scene, continue: activity)
+      } else if let item = connectionOptions.shortcutItem, let url = MiniAppShortcuts.url(for: item) {
+        RCTLinkingManager.scene(scene, continue: MiniAppShortcuts.browsingActivity(for: url))
       }
       return
     }
 
-    factory.startReactNative(
-      withModuleName: "QvaPay",
-      in: window,
-      connectionOptions: connectionOptions
-    )
+    // Arranque desde un acceso rápido: la factoría no traduce `shortcutItem` de las
+    // connectionOptions, así que su URL entra como URL de lanzamiento y la devuelve
+    // `Linking.getInitialURL()` (iOS no llama luego a `performActionFor` por este toque)
+    if let item = connectionOptions.shortcutItem, let url = MiniAppShortcuts.url(for: item) {
+      factory.startReactNative(
+        withModuleName: "QvaPay",
+        in: window,
+        launchOptions: [UIApplication.LaunchOptionsKey.url: url]
+      )
+    } else {
+      factory.startReactNative(
+        withModuleName: "QvaPay",
+        in: window,
+        connectionOptions: connectionOptions
+      )
+    }
     appDelegate.reactRootViewController = window.rootViewController
+  }
+
+  // Acceso rápido del icono con la app ya abierta (o en segundo plano)
+  func windowScene(
+    _ windowScene: UIWindowScene,
+    performActionFor shortcutItem: UIApplicationShortcutItem,
+    completionHandler: @escaping (Bool) -> Void
+  ) {
+    guard let url = MiniAppShortcuts.url(for: shortcutItem) else {
+      completionHandler(false)
+      return
+    }
+    RCTLinkingManager.scene(windowScene, continue: MiniAppShortcuts.browsingActivity(for: url))
+    completionHandler(true)
   }
 
   // Custom URL scheme (qvapay://p2p/...) con la app abierta

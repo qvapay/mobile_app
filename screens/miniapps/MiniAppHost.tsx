@@ -20,7 +20,10 @@ import { buildSdkScript } from '../../miniapps/sdkScript'
 import { useMiniAppDetail, forgetGrant } from './miniappsQueries'
 import { useMiniAppBridge, type MiniAppThemePayload } from './useMiniAppBridge'
 import { shareMiniApp } from './shareMiniApp'
+import { useCanPinShortcut, addToHomeScreen } from './homeScreenShortcut'
+import useMiniAppFavorites from './useMiniAppFavorites'
 import MiniAppIcon from './MiniAppIcon'
+import MiniAppMenuRow from './MiniAppMenuRow'
 import MiniAppConsentSheet from './MiniAppConsentSheet'
 import MiniAppPaySheet from './MiniAppPaySheet'
 import KycGateModal from '../../ui/KycGateModal'
@@ -64,6 +67,8 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	const [loadError, setLoadError] = useState(false)
 	const [progress, setProgress] = useState(0)
 	const [menuOpen, setMenuOpen] = useState(false)
+	const { isFavorite, toggle: toggleFavorite } = useMiniAppFavorites()
+	const canPin = useCanPinShortcut()
 	// Recargar = remontar el WebView (la URL de arranque, no la actual)
 	const [webViewKey, setWebViewKey] = useState(0)
 
@@ -139,6 +144,16 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	const openInBrowser = () => {
 		setMenuOpen(false)
 		if (app) Linking.openURL(app.entry_url).catch(() => {})
+	}
+
+	const favoriteFromMenu = () => {
+		setMenuOpen(false)
+		if (app) toggleFavorite(app)
+	}
+
+	const pinFromMenu = () => {
+		setMenuOpen(false)
+		if (app) addToHomeScreen(app, t)
 	}
 
 	// Compartir desde el menú: en iOS la hoja de compartir no puede presentarse
@@ -272,26 +287,18 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 			<Modal visible={menuOpen} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setMenuOpen(false)} onDismiss={onMenuDismiss}>
 				<Pressable style={containerStyles.modalOverlay} onPress={() => setMenuOpen(false)}>
 					<View style={[containerStyles.modalCard, { paddingVertical: 8 }]} onStartShouldSetResponder={() => true}>
-						<MenuRow icon="share-nodes" label={t('common.actions.share')} onPress={shareFromMenu} />
-						<MenuRow icon="rotate-right" label={t('miniapps.host.reload')} onPress={reload} />
-						<MenuRow icon="arrow-up-right-from-square" label={t('miniapps.host.openInBrowser')} onPress={openInBrowser} />
-						{app?.granted ? <MenuRow icon="user-slash" label={t('miniapps.host.revoke')} onPress={revoke} danger /> : null}
+						{app && isFavorite(app.slug)
+							? <MiniAppMenuRow icon="star" iconColor={theme.colors.warning} label={t('miniapps.actions.unfavorite')} onPress={favoriteFromMenu} />
+							: <MiniAppMenuRow icon="star-outline" label={t('miniapps.actions.favorite')} onPress={favoriteFromMenu} />}
+						{canPin ? <MiniAppMenuRow icon="mobile-screen-button" label={t('miniapps.actions.addToHomeScreen')} onPress={pinFromMenu} /> : null}
+						<MiniAppMenuRow icon="share-nodes" label={t('common.actions.share')} onPress={shareFromMenu} />
+						<MiniAppMenuRow icon="rotate-right" label={t('miniapps.host.reload')} onPress={reload} />
+						<MiniAppMenuRow icon="arrow-up-right-from-square" label={t('miniapps.host.openInBrowser')} onPress={openInBrowser} />
+						{app?.granted ? <MiniAppMenuRow icon="user-slash" label={t('miniapps.host.revoke')} onPress={revoke} danger /> : null}
 					</View>
 				</Pressable>
 			</Modal>
 		</View>
-	)
-}
-
-const MenuRow = ({ icon, label, onPress, danger = false }: { icon: 'share-nodes' | 'rotate-right' | 'arrow-up-right-from-square' | 'user-slash', label: string, onPress: () => void, danger?: boolean }) => {
-	const { theme } = useTheme()
-	const textStyles = useTextStyles(theme)
-	const color = danger ? theme.colors.danger : theme.colors.primaryText
-	return (
-		<Pressable onPress={onPress} style={styles.menuRow} accessibilityRole="button">
-			<FontAwesome6 name={icon} size={16} color={color} iconStyle="solid" style={{ width: 28 }} />
-			<Text style={[textStyles.h5, { color }]}>{label}</Text>
-		</Pressable>
 	)
 }
 
@@ -305,7 +312,6 @@ const styles = StyleSheet.create({
 	titleWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
 	progress: { height: 2 },
 	footer: { paddingHorizontal: 16, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },
-	menuRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14 },
 })
 
 export default MiniAppHost

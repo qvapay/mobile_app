@@ -53,12 +53,22 @@ export const coverOf = (app: Pick<MiniApp, 'cover'>): string | null => {
 export const HOME_MINIAPPS_LIMIT = 6
 
 /**
- * Fila de mini-apps del Home: destacadas primero, luego el resto en el orden
- * del servidor, sin borradores (`preview`, solo los ve su autor), `limit` como mucho.
+ * Fila de mini-apps del Home, sin borradores (`preview`, solo los ve su autor):
+ * primero TODAS las favoritas del usuario en su orden (sin tope: las marcó él),
+ * y luego destacadas y resto en el orden del servidor, solo hasta `limit` en
+ * total. Una favorita que ya no está en el directorio no sale.
  */
-export const pickHomeMiniApps = <T extends Pick<MiniApp, 'featured' | 'preview'>>(apps: T[] | null | undefined, limit = HOME_MINIAPPS_LIMIT): T[] => {
+export const pickHomeMiniApps = <T extends Pick<MiniApp, 'slug' | 'featured' | 'preview'>>(
+	apps: T[] | null | undefined,
+	{ favorites = [], limit = HOME_MINIAPPS_LIMIT }: { favorites?: readonly string[], limit?: number } = {},
+): T[] => {
 	const live = (apps ?? []).filter(app => !app.preview)
-	return [...live.filter(app => app.featured), ...live.filter(app => !app.featured)].slice(0, Math.max(0, limit))
+	const bySlug = new Map(live.map(app => [app.slug, app]))
+	const pinned = [...new Set(favorites)].map(slug => bySlug.get(slug)).filter((app): app is T => !!app)
+	const taken = new Set(pinned.map(app => app.slug))
+	const rest = live.filter(app => !taken.has(app.slug))
+	const fill = [...rest.filter(app => app.featured), ...rest.filter(app => !app.featured)]
+	return [...pinned, ...fill.slice(0, Math.max(0, limit - pinned.length))]
 }
 
 export type CatalogView = {

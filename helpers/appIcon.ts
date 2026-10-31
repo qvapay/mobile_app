@@ -7,6 +7,8 @@
 import { NativeModules, Platform } from 'react-native'
 import type { ImageSourcePropType } from 'react-native'
 
+import { refreshMiniAppQuickActions } from './miniAppShortcuts'
+
 /** Surface del módulo nativo usada aquí; opcional porque puede no estar linkeado. */
 type AppIconChangerModule = {
 	changeIcon?: (name: string) => Promise<void>
@@ -52,6 +54,8 @@ export const changeAppIcon = async (id: string): Promise<void> => {
 	if (!icon) throw new Error(`Unknown app icon: ${id}`)
 	if (!AppIconChanger?.changeIcon) throw new Error('AppIconChanger module unavailable')
 	await AppIconChanger.changeIcon(Platform.OS === 'ios' ? icon.iosName : icon.id)
+	// En Android los accesos rápidos cuelgan del alias LAUNCHER que se acaba de apagar
+	if (Platform.OS === 'android') refreshMiniAppQuickActions().catch(() => {})
 }
 
 /**

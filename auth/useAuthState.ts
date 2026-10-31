@@ -12,6 +12,7 @@ import { syncPushToken, unregisterPush } from '../push'
 
 // Widget Bridge
 import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
+import { clearMiniAppQuickActions } from '../helpers/miniAppShortcuts'
 
 // Cold-start data cache (transactions, quick-pay, catalogs…) — purged with the session
 import { clearDataCache } from '../helpers/dataCache'
@@ -92,6 +93,9 @@ const clearAuthData = async () => {
 			// sus transacciones antes del primer fetch
 			queryClient.clear(),
 			persister.removeClient(),
+			// Las favoritas siguen en el teléfono (por cuenta), pero el icono de la
+			// app no debe enseñar las de la cuenta que acaba de salir
+			clearMiniAppQuickActions(),
 		])
 	} catch (err) { /* error clearing auth data */ }
 }

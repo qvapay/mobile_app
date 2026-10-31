@@ -82,8 +82,31 @@ describe('miniappsCatalog', () => {
 			const apps = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(slug => app(slug))
 			expect(HOME_MINIAPPS_LIMIT).toBe(6)
 			expect(pickHomeMiniApps(apps)).toHaveLength(6)
-			expect(pickHomeMiniApps(apps, 2).map(a => a.slug)).toEqual(['a', 'b'])
-			expect(pickHomeMiniApps(apps, 0)).toEqual([])
+			expect(pickHomeMiniApps(apps, { limit: 2 }).map(a => a.slug)).toEqual(['a', 'b'])
+			expect(pickHomeMiniApps(apps, { limit: 0 })).toEqual([])
+		})
+
+		test('las favoritas van primero, en su orden, por delante de las destacadas', () => {
+			const apps = [app('a'), app('b', { featured: true }), app('c'), app('d')]
+			expect(pickHomeMiniApps(apps, { favorites: ['d', 'a'] }).map(a => a.slug)).toEqual(['d', 'a', 'b', 'c'])
+		})
+
+		test('las favoritas no tienen tope; el resto solo rellena hasta seis', () => {
+			const slugs = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
+			const apps = slugs.map(slug => app(slug, { featured: slug === 'i' }))
+			const favorites = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+			expect(pickHomeMiniApps(apps, { favorites }).map(a => a.slug)).toEqual(favorites)
+			expect(pickHomeMiniApps(apps, { favorites: ['h', 'g'] }).map(a => a.slug)).toEqual(['h', 'g', 'i', 'a', 'b', 'c'])
+		})
+
+		test('sin duplicados: una favorita destacada no sale dos veces', () => {
+			const apps = [app('a', { featured: true }), app('b')]
+			expect(pickHomeMiniApps(apps, { favorites: ['a', 'a'] }).map(a => a.slug)).toEqual(['a', 'b'])
+		})
+
+		test('ignora favoritas que ya no están en el directorio o son borradores', () => {
+			const apps = [app('a'), app('b', { preview: true })]
+			expect(pickHomeMiniApps(apps, { favorites: ['gone', 'b', 'a'] }).map(a => a.slug)).toEqual(['a'])
 		})
 
 		test('los borradores en preview no salen aunque estén destacados', () => {

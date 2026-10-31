@@ -49,6 +49,10 @@ jest.mock('../helpers/widgetBridge', () => ({
 	reloadWidgets: jest.fn(),
 }))
 
+jest.mock('../helpers/miniAppShortcuts', () => ({
+	clearMiniAppQuickActions: jest.fn(async () => {}),
+}))
+
 import React from 'react'
 import { act, create } from 'react-test-renderer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -58,6 +62,7 @@ import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
 import { setAuthToken, getAuthToken, removeAuthToken } from '../api/client'
 import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
+import { clearMiniAppQuickActions } from '../helpers/miniAppShortcuts'
 import useAuthState from './useAuthState'
 
 // `me` payload as returned by the auth endpoints
@@ -136,6 +141,8 @@ describe('initializeAuth', () => {
 			'device_contacts_last_sync',
 			'device_contacts_consent',
 		])
+		// and the mini-app quick actions of the app icon (the favorites stay on disk)
+		expect(clearMiniAppQuickActions).toHaveBeenCalled()
 	})
 
 	test('always purges the legacy pre-Keychain AsyncStorage token', async () => {
