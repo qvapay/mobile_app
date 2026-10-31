@@ -35,8 +35,21 @@ export const renderMiniAppIconPng = async (icon: string | null | undefined): Pro
 		if (/\.svg($|\?)/i.test(uri)) {
 			const svg = Skia.SVG.MakeFromData(data)
 			if (!svg) return null
-			canvas.translate(offset, offset)
-			canvas.drawSvg(svg, ICON, ICON)
+			// El tamaño que recibe drawSvg es solo el del contenedor: un <svg> con
+			// width/height absolutos (los de qvapay.com traen 512) lo ignora y se
+			// pintaba a su tamaño, con solo una esquina dentro del lienzo. Antes de
+			// pintarlo, width()/height() son su tamaño propio (0 si es relativo).
+			const width = svg.width()
+			const height = svg.height()
+			if (width > 0 && height > 0) {
+				const scale = ICON / Math.max(width, height)
+				canvas.translate(offset + (ICON - width * scale) / 2, offset + (ICON - height * scale) / 2)
+				canvas.scale(scale, scale)
+				canvas.drawSvg(svg, width, height)
+			} else {
+				canvas.translate(offset, offset)
+				canvas.drawSvg(svg, ICON, ICON)
+			}
 		} else {
 			const image = Skia.Image.MakeImageFromEncoded(data)
 			if (!image) return null
