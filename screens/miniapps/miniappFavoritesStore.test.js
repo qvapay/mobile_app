@@ -26,6 +26,17 @@ test('hidrata lo guardado al suscribirse y avisa', async () => {
 	expect(listener).toHaveBeenCalled()
 })
 
+test('avisa al terminar de leer aunque no hubiera nada guardado', async () => {
+	const store = loadStore()
+	const listener = jest.fn()
+	store.subscribe(listener)
+	expect(store.isHydrated()).toBe(false)
+	await store.hydrate()
+	expect(store.isHydrated()).toBe(true)
+	expect(store.getFavoritesByOwner()).toEqual({})
+	expect(listener).toHaveBeenCalled()
+})
+
 test('marcar persiste y devuelve si quedó como favorita', async () => {
 	const store = loadStore()
 	await store.hydrate()

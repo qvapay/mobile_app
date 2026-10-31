@@ -41,10 +41,12 @@ export function hydrate(): Promise<void> {
 			const touched = Object.keys(byOwner).length > 0
 			byOwner = { ...stored, ...byOwner }
 			if (touched) persist()
-			notify()
 		})
 		.catch(() => {})
-		.finally(() => { hydrated = true })
+		.finally(() => {
+			hydrated = true
+			notify()
+		})
 	return hydrating
 }
 
@@ -54,6 +56,14 @@ export function hydrate(): Promise<void> {
  * @returns Favorite slugs by account uuid.
  */
 export const getFavoritesByOwner = (): FavoritesByOwner => byOwner
+
+/**
+ * Whether the stored favorites were already read (or the read failed). Until
+ * then an empty list does not mean "no favorites".
+ *
+ * @returns true once hydration finished.
+ */
+export const isHydrated = (): boolean => hydrated
 
 /**
  * Subscribes to favorites changes (also kicks off hydration).
