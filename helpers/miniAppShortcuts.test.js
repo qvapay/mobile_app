@@ -82,6 +82,15 @@ describe('setMiniAppQuickActions', () => {
 		expect(native.setQuickActions).toHaveBeenCalledTimes(2)
 	})
 
+	test('si Android la limita (responde false), el siguiente intento vuelve a mandarla', async () => {
+		native.setQuickActions.mockResolvedValueOnce(false)
+		const { setMiniAppQuickActions } = load()
+		await setMiniAppQuickActions([item('a')])
+		await setMiniAppQuickActions([item('a')])
+		await setMiniAppQuickActions([item('a')])
+		expect(native.setQuickActions).toHaveBeenCalledTimes(2)
+	})
+
 	test('si llega una lista más nueva mientras se pintan los iconos, gana la nueva', async () => {
 		let release
 		const { setMiniAppQuickActions } = load()

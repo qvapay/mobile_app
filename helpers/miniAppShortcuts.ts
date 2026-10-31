@@ -104,7 +104,9 @@ export const setMiniAppQuickActions = async (items: QuickActionItem[]): Promise<
 		const shortcuts = await Promise.all(items.map(toNative))
 		// Llegó una lista más nueva mientras se pintaban los iconos: gana esa
 		if (current !== generation) return
-		await (shortcuts.length > 0 ? native.setQuickActions(shortcuts) : native.clearQuickActions())
+		const published = await (shortcuts.length > 0 ? native.setQuickActions(shortcuts) : native.clearQuickActions())
+		// false = Android lo limitó (llamadas en segundo plano): la próxima vez se reintenta
+		if (published === false && current === generation) publishedSignature = null
 	} catch {
 		// Que el siguiente render lo reintente
 		if (current === generation) publishedSignature = null
