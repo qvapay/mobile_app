@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Linking } from 'react-native'
 import type WebView from 'react-native-webview'
 import type { WebViewMessageEvent } from 'react-native-webview'
@@ -7,21 +7,26 @@ import { toast } from 'sonner-native'
 
 import { miniappsApi } from '../../api/miniappsApi'
 import {
-	BRIDGE_ERRORS,
+	EMPTY_HEADER,
 	MODAL_METHODS,
+	applyHeaderPatch,
+	applyMainButtonPatch,
 	bridgeErrorResponse,
 	bridgeEvent,
 	bridgeResponse,
 	isAllowedOrigin,
+	isMainButtonShown,
 	parseBridgeMessage,
 	type BridgeError,
 	type BridgeEvent,
 	type BridgeRequest,
 	type HapticType,
+	type HeaderState,
 	type MainButtonState,
 	type MiniAppScope,
 } from '../../miniapps/protocol'
 import { buildDeliveryScript } from '../../miniapps/sdkScript'
+import { authorizeFailureError, bridgeErrors } from './bridgeErrors'
 import type { MiniApp } from '../../types/domain'
 
 /** Tema que ve la mini-app: solo lo necesario para pintar a juego. */
@@ -95,6 +100,8 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 	}, [])
 	const [mainButton, setMainButton] = useState<MainButtonState>(HIDDEN_MAIN_BUTTON)
 	const [backButtonVisible, setBackButtonVisible] = useState(false)
+	// Subtítulo y acciones del encabezado nativo (nombre y logo salen del registro)
+	const [header, setHeader] = useState<HeaderState>(EMPTY_HEADER)
 
 	// Refs espejo: el dispatcher es estable y lee siempre lo último
 	const appRef = useRef(app)
@@ -130,7 +137,7 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 	}, [respond, openModal])
 
 	/** Cierra la hoja en curso con un error (por defecto, el usuario canceló). */
-	const rejectModal = useCallback((error: BridgeError = { code: BRIDGE_ERRORS.USER_CANCELLED, message: 'User cancelled' }) => {
+	const rejectModal = useCallback((error: BridgeError = bridgeErrors.userCancelled()) => {
 		const current = modalRef.current
 		if (current) reject(current.id, error)
 		openModal(null)
@@ -139,7 +146,7 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 	const requestLogin = useCallback(async (id: string, scopes: MiniAppScope[]) => {
 		const current = appRef.current!
 		if (!isSubset(scopes, current.scopes)) {
-			reject(id, { code: BRIDGE_ERRORS.NOT_ALLOWED, message: 'Scope not approved for this mini-app' })
+			reject(id, bridgeErrors.scopeNotAllowed())
 			busyRef.current = false
 			return
 		}
@@ -148,7 +155,7 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 			const result = await miniappsApi.authorize(current.slug, scopes)
 			busyRef.current = false
 			if (result.success && result.data) { respond(id, result.data) }
-			else { reject(id, { code: result.status == null ? BRIDGE_ERRORS.NETWORK : BRIDGE_ERRORS.FAILED, message: 'Authorization failed' }) }
+			else { reject(id, result.success ? bridgeErrors.authorizeFailed() : authorizeFailureError(result.status)) }
 			return
 		}
 		openModal({ kind: 'consent', id, scopes })
@@ -174,11 +181,16 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 				openModal({ kind: 'pay', id: request.id, invoiceUuid: request.params.invoiceUuid })
 				return
 			case 'ui.mainButton.set':
-				setMainButton(request.params)
+				// Parcial: solo cambia lo que la mini-app mandó (updater puro, seguro en StrictMode)
+				setMainButton(prev => applyMainButtonPatch(prev, request.params))
 				respond(request.id)
 				return
 			case 'ui.backButton.set':
 				setBackButtonVisible(request.params.visible)
+				respond(request.id)
+				return
+			case 'ui.header.set':
+				setHeader(prev => applyHeaderPatch(prev, request.params))
 				respond(request.id)
 				return
 			case 'ui.haptic':
@@ -200,16 +212,16 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 			case 'share': {
 				// `busyRef` y no `modalRef`: cubre también el login que firma sin hoja
 				if (shareBusyRef.current || busyRef.current) {
-					reject(request.id, { code: BRIDGE_ERRORS.BUSY, message: 'Another request is in progress' })
+					reject(request.id, bridgeErrors.busy())
 					return
 				}
 				shareBusyRef.current = true
 				callbacksRef.current.share(request.params.text)
 					.then(outcome => {
-						if (outcome === 'dismissed') reject(request.id, { code: BRIDGE_ERRORS.USER_CANCELLED, message: 'User cancelled' })
+						if (outcome === 'dismissed') reject(request.id, bridgeErrors.userCancelled())
 						else respond(request.id)
 					})
-					.catch(() => reject(request.id, { code: BRIDGE_ERRORS.FAILED, message: 'Share failed' }))
+					.catch(() => reject(request.id, bridgeErrors.shareFailed()))
 					.finally(() => { shareBusyRef.current = false })
 				return
 			}
@@ -233,24 +245,24 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 		const { request } = parsed
 
 		if (!isAllowedOrigin(url, current.allowed_origins)) {
-			reject(request.id, { code: BRIDGE_ERRORS.NOT_ALLOWED, message: 'Origin not allowed' })
+			reject(request.id, bridgeErrors.originNotAllowed())
 			return
 		}
 
 		if (MODAL_METHODS.has(request.method)) {
 			// Identidad y pago exigen KYC en el backend (403 KYC_REQUIRED): se corta ANTES
 			// de abrir la hoja o firmar, para no pedir consentimiento ni PIN para nada.
-			// Código existente del contrato del SDK (NOT_ALLOWED): uno nuevo exigiría
-			// tocar la documentación pública de qpweb
+			// Código existente del contrato del SDK (NOT_ALLOWED): uno nuevo rompería
+			// mini-apps publicadas. La app ya le enseña al usuario su KycGateModal
 			// Ocupado va ANTES que el KYC: con la hoja de compartir en pantalla, ni la hoja
 			// de pago ni la del KYC pueden presentarse (iOS no apila presentaciones: la
 			// hoja no saldría y `busyRef` se quedaría en true hasta recargar)
 			if (busyRef.current || shareBusyRef.current) {
-				reject(request.id, { code: BRIDGE_ERRORS.BUSY, message: 'Another request is in progress' })
+				reject(request.id, bridgeErrors.busy())
 				return
 			}
 			if (!callbacksRef.current.requireKyc()) {
-				reject(request.id, { code: BRIDGE_ERRORS.NOT_ALLOWED, message: 'Identity verification (KYC) required' })
+				reject(request.id, bridgeErrors.kycRequired())
 				return
 			}
 			busyRef.current = true
@@ -263,7 +275,13 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 	const resetUi = useCallback(() => {
 		setMainButton(HIDDEN_MAIN_BUTTON)
 		setBackButtonVisible(false)
+		setHeader(EMPTY_HEADER)
 	}, [])
 
-	return { onMessage, emit, modal, resolveModal, rejectModal, mainButton, backButtonVisible, resetUi }
+	// Lo que la pantalla pinta: `visible` ya cuenta con la regla "sin texto no hay botón"
+	// (el estado guarda lo que pidió la mini-app, para que `set({ text })` tras
+	// `set({ visible: true })` lo muestre)
+	const shownMainButton = useMemo(() => ({ ...mainButton, visible: isMainButtonShown(mainButton) }), [mainButton])
+
+	return { onMessage, emit, modal, resolveModal, rejectModal, mainButton: shownMainButton, backButtonVisible, header, resetUi }
 }

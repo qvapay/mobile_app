@@ -12,7 +12,8 @@ import { useTheme } from '../../theme/ThemeContext'
 import { useTextStyles } from '../../theme/themeUtils'
 
 import { miniappsApi } from '../../api/miniappsApi'
-import { BRIDGE_ERRORS, type BridgeError } from '../../miniapps/protocol'
+import type { BridgeError } from '../../miniapps/protocol'
+import { authorizeFailureError, bridgeErrors } from './bridgeErrors'
 import MiniAppIcon from './MiniAppIcon'
 import { MINIAPPS_ROOT } from './miniappsQueries'
 import type { MiniApp, MiniAppAuthorization, MiniAppScope } from '../../types/domain'
@@ -54,11 +55,11 @@ const MiniAppConsentSheet = ({ app, scopes, onAllow, onDeny }: Props) => {
 				queryClient.invalidateQueries({ queryKey: MINIAPPS_ROOT })
 				onAllow(result.data)
 			} else {
-				onDeny({ code: BRIDGE_ERRORS.FAILED, message: 'Authorization failed' })
+				onDeny(bridgeErrors.authorizeFailed())
 			}
 		} else {
 			toast.error(t('miniapps.consent.failed'), { description: result.error })
-			onDeny({ code: result.status == null ? BRIDGE_ERRORS.NETWORK : BRIDGE_ERRORS.FAILED, message: 'Authorization failed' })
+			onDeny(authorizeFailureError(result.status))
 		}
 	}
 

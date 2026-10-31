@@ -46,7 +46,9 @@
 		"unavailableTitle": "Mini-app indisponível",
 		"unavailableBody": "Esta mini-app não está disponível agora. Pode estar em manutenção.",
 		"loadErrorTitle": "Não foi possível carregar",
-		"loadErrorBody": "Verifique sua conexão e tente novamente."
+		"loadErrorBody": "Verifique sua conexão e tente novamente.",
+		"closeApp": "Fechar mini-app",
+		"backHint": "Mantenha pressionado para fechar a mini-app"
 	},
 	"consent": {
 		"title": "{{name}} quer saber quem você é",
@@ -92,5 +94,18 @@
 	},
 	"kycGate": {
 		"message": "Entrar e pagar dentro dos mini-apps exige identidade verificada. É rápido e você só faz uma vez."
+	},
+	"bridgeErrors": {
+		"userCancelled": "Operação cancelada.",
+		"busy": "Já há outra operação aberta. Aguarde até que termine.",
+		"network": "Não foi possível conectar ao QvaPay. Tente novamente.",
+		"originNotAllowed": "Esta página não tem permissão para usar o QvaPay.",
+		"scopeNotAllowed": "Esta mini-app não pode solicitar esses dados.",
+		"kycRequired": "Para continuar, verifique sua identidade no QvaPay.",
+		"authorizeFailed": "Não foi possível entrar com o QvaPay.",
+		"payFailed": "Não foi possível concluir o pagamento.",
+		"invoiceNotFound": "Fatura não encontrada.",
+		"invoiceMismatch": "Esta fatura não pertence a esta mini-app.",
+		"shareFailed": "Não foi possível compartilhar."
 	}
 }

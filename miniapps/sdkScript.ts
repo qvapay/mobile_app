@@ -32,7 +32,7 @@ export function buildSdkScript(initialTheme: unknown, launchParams: { slug: stri
 	var V = ${PROTOCOL_VERSION};
 	var seq = 0;
 	var pending = {};
-	var listeners = { themeChanged: [], backButton: [], mainButton: [] };
+	var listeners = { themeChanged: [], backButton: [], mainButton: [], headerAction: [] };
 	var theme = ${theme};
 
 	function post(method, params) {
@@ -90,6 +90,7 @@ export function buildSdkScript(initialTheme: unknown, launchParams: { slug: stri
 			payInvoice: function (invoiceUuid) { return post('payments.payInvoice', { invoiceUuid: invoiceUuid }); }
 		},
 		ui: {
+			header: { set: function (state) { return post('ui.header.set', state || {}); } },
 			mainButton: { set: function (state) { return post('ui.mainButton.set', state || {}); } },
 			backButton: { set: function (state) { return post('ui.backButton.set', state || {}); } },
 			haptic: function (type) { return post('ui.haptic', { type: type || 'light' }); },

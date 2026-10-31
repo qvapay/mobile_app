@@ -21,8 +21,9 @@ import { withdrawApi } from '../../api/withdrawApi'
 import { miniappsApi } from '../../api/miniappsApi'
 import { callWithDuplicateRetry, isNetworkFailure, makeIdempotencyKey, safeRetryHint } from '../../helpers/idempotency'
 import { payInvoiceState } from '../transaction/payModel'
-import { invoiceBelongsToApp, isSecondFactorFailure, payFailureCode, requiresOtp } from '../../miniapps/miniAppPayModel'
-import { BRIDGE_ERRORS, type BridgeError } from '../../miniapps/protocol'
+import { invoiceBelongsToApp, isSecondFactorFailure, requiresOtp } from '../../miniapps/miniAppPayModel'
+import type { BridgeError } from '../../miniapps/protocol'
+import { bridgeErrors, payFailureError } from './bridgeErrors'
 import MiniAppIcon from './MiniAppIcon'
 import type { MiniApp, MiniAppPayment, Transaction } from '../../types/domain'
 
@@ -66,7 +67,7 @@ const MiniAppPaySheet = ({ app, invoiceUuid, onPaid, onCancel }: Props) => {
 	const onInvoiceLoaded = useEffectEvent((tx: Transaction) => {
 		if (!invoiceBelongsToApp(tx, app.app_uuid)) {
 			toast.error(t('miniapps.pay.mismatchTitle'), { description: t('miniapps.pay.mismatchBody', { name: app.name }) })
-			onCancel({ code: BRIDGE_ERRORS.INVOICE_APP_MISMATCH, message: 'Invoice does not belong to this mini-app' })
+			onCancel(bridgeErrors.invoiceMismatch())
 			return
 		}
 		setInvoice(tx)
@@ -100,7 +101,7 @@ const MiniAppPaySheet = ({ app, invoiceUuid, onPaid, onCancel }: Props) => {
 		setPaying(false)
 
 		if (result.success) {
-			if (!result.data) { onCancel({ code: BRIDGE_ERRORS.FAILED, message: 'Payment failed' }); return }
+			if (!result.data) { onCancel(bridgeErrors.payFailed()); return }
 			idempotencyKeyRef.current = makeIdempotencyKey()
 			ReactNativeHapticFeedback.trigger('notificationSuccess', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
 			queryClient.invalidateQueries({ queryKey: ['home'] })
@@ -124,7 +125,8 @@ const MiniAppPaySheet = ({ app, invoiceUuid, onPaid, onCancel }: Props) => {
 			return
 		}
 		toast.error(t('miniapps.pay.failedTitle'), { description: result.error || t('miniapps.pay.failedBody') })
-		onCancel({ code: payFailureCode(result.status, code), message: 'Payment failed' })
+		// El motivo concreto ya lo vio el usuario en el toast de arriba; a la mini-app, código + frase genérica
+		onCancel(payFailureError(result.status, code))
 	}
 
 	// Auto-envío al completar las cajitas (como SendConfirm)
@@ -141,7 +143,7 @@ const MiniAppPaySheet = ({ app, invoiceUuid, onPaid, onCancel }: Props) => {
 						<>
 							<FontAwesome6 name="circle-exclamation" size={32} color={theme.colors.danger} iconStyle="solid" />
 							<Text style={[textStyles.h5, styles.center, { marginTop: 12 }]}>{t('transactions.pay.invoiceUnavailable')}</Text>
-							<QPButton title={t('common.actions.close')} onPress={() => onCancel({ code: BRIDGE_ERRORS.FAILED, message: 'Invoice not found' })} style={{ marginTop: 16, alignSelf: 'stretch' }} textStyle={{ color: theme.colors.buttonText }} />
+							<QPButton title={t('common.actions.close')} onPress={() => onCancel(bridgeErrors.invoiceNotFound())} style={{ marginTop: 16, alignSelf: 'stretch' }} textStyle={{ color: theme.colors.buttonText }} />
 						</>
 					) : (
 						<ActivityIndicator color={theme.colors.primary} />
