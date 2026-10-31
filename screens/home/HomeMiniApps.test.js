@@ -30,12 +30,12 @@ const app = (slug, extra = {}) => ({ slug, name: slug, icon: null, featured: fal
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	useMiniAppFavorites.mockReturnValue({ favorites: [], isFavorite: () => false, toggle: jest.fn() })
+	useMiniAppFavorites.mockReturnValue({ favorites: [], ready: true, isFavorite: () => false, toggle: jest.fn() })
 })
 
-const render = (data, favorites = []) => {
+const render = (data, favorites = [], { ready = true } = {}) => {
 	useMiniAppsList.mockReturnValue({ data })
-	useMiniAppFavorites.mockReturnValue({ favorites, isFavorite: slug => favorites.includes(slug), toggle: jest.fn() })
+	useMiniAppFavorites.mockReturnValue({ favorites, ready, isFavorite: slug => favorites.includes(slug), toggle: jest.fn() })
 	const navigation = { navigate: jest.fn() }
 	const onSeeAll = jest.fn()
 	let tree
@@ -97,5 +97,10 @@ test('sin favoritas los accesos rápidos quedan vacíos; sin directorio no se to
 	expect(setMiniAppQuickActions).toHaveBeenLastCalledWith([])
 	setMiniAppQuickActions.mockClear()
 	render(undefined, ['a'])
+	expect(setMiniAppQuickActions).not.toHaveBeenCalled()
+})
+
+test('hasta leer las favoritas del disco no toca los accesos rápidos', () => {
+	render([app('a', { featured: true })], [], { ready: false })
 	expect(setMiniAppQuickActions).not.toHaveBeenCalled()
 })

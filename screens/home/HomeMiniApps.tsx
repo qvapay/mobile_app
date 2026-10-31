@@ -42,7 +42,8 @@ type HomeMiniAppsProps = {
  * extra. Sin apps (cargando sin caché, error o solo borradores) no ocupa nada.
  *
  * También publica las favoritas como accesos rápidos del icono de QvaPay: el
- * Home está montado durante toda la sesión.
+ * Home está montado durante toda la sesión. Fuera de foco está congelado, así
+ * que al marcar una favorita en otra pantalla los publica `useMiniAppFavorites`.
  */
 const HomeMiniApps = ({ navigation, onSeeAll, style }: HomeMiniAppsProps) => {
 
@@ -51,12 +52,13 @@ const HomeMiniApps = ({ navigation, onSeeAll, style }: HomeMiniAppsProps) => {
 	const textStyles = useTextStyles(theme)
 
 	const { data } = useMiniAppsList()
-	const { favorites } = useMiniAppFavorites()
+	const { favorites, ready } = useMiniAppFavorites()
 	const apps = useMemo(() => pickHomeMiniApps(data, { favorites }), [data, favorites])
 	const [menuApp, setMenuApp] = useState<MiniApp | null>(null)
 
-	// Sin directorio todavía no se toca nada: vaciarlos para rellenarlos al instante sería ruido
-	const quickActions = useMemo(() => data ? quickActionFavorites(data, favorites) : null, [data, favorites])
+	// Sin directorio o sin haber leído las favoritas del disco no se toca nada:
+	// en el arranque vaciarlos para rellenarlos al instante sería ruido
+	const quickActions = useMemo(() => data && ready ? quickActionFavorites(data, favorites) : null, [data, favorites, ready])
 	useEffect(() => {
 		if (quickActions) setMiniAppQuickActions(quickActions)
 	}, [quickActions])
