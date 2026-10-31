@@ -40,7 +40,7 @@ describe('checkRecipient: el ataque', () => {
 			tx({ direction: 'in', from: FAKE_BOB_TRON, to: ME_TRON, amount: '0.001' }),
 			tx({ to: BOB_TRON }),
 		]
-		expect(tron(FAKE_BOB_TRON, history)).toEqual({ kind: 'lookalike', of: BOB_TRON })
+		expect(tron(FAKE_BOB_TRON, history)).toEqual({ kind: 'lookalike', of: BOB_TRON, known: false })
 	})
 
 	test('transferFrom de 0 desde la wallet del usuario: la imitación aparece como SALIDA, y no por eso es conocida', () => {
@@ -48,7 +48,7 @@ describe('checkRecipient: el ataque', () => {
 			tx({ direction: 'out', to: FAKE_BOB_TRON, amount: '0' }),
 			tx({ to: BOB_TRON }),
 		]
-		expect(tron(FAKE_BOB_TRON, history)).toEqual({ kind: 'lookalike', of: BOB_TRON })
+		expect(tron(FAKE_BOB_TRON, history)).toEqual({ kind: 'lookalike', of: BOB_TRON, known: false })
 	})
 
 	test('la imitación manda algo más que polvo ($0.50) para parecer legítima: sigue siendo lookalike', () => {
@@ -56,18 +56,18 @@ describe('checkRecipient: el ataque', () => {
 			tx({ direction: 'in', from: FAKE_BOB_TRON, to: ME_TRON, amount: '0.5' }),
 			tx({ to: BOB_TRON }),
 		]
-		expect(tron(FAKE_BOB_TRON, history)).toEqual({ kind: 'lookalike', of: BOB_TRON })
+		expect(tron(FAKE_BOB_TRON, history)).toEqual({ kind: 'lookalike', of: BOB_TRON, known: false })
 	})
 
 	test('imitación de una dirección PROPIA (mover fondos entre wallets) → lookalike de la propia', () => {
 		const fakeMe = `${ME_TRON.slice(0, 7)}9xQ2mWvLpZ4kHs7nDd3aB${ME_TRON.slice(-6)}`
 		expect(fakeMe).toHaveLength(ME_TRON.length)
-		expect(tron(fakeMe, [])).toEqual({ kind: 'lookalike', of: ME_TRON })
+		expect(tron(fakeMe, [])).toEqual({ kind: 'lookalike', of: ME_TRON, known: false })
 	})
 
 	test('imitación de quien PAGÓ al usuario (devolverle el dinero) → lookalike', () => {
 		const history = [tx({ direction: 'in', from: BOB_TRON, to: ME_TRON, amount: '50' })]
-		expect(tron(FAKE_BOB_TRON, history)).toEqual({ kind: 'lookalike', of: BOB_TRON })
+		expect(tron(FAKE_BOB_TRON, history)).toEqual({ kind: 'lookalike', of: BOB_TRON, known: false })
 	})
 
 	test('solo polvo o ceros, sin nada de confianza a lo que se parezca → poisoner', () => {
@@ -79,25 +79,56 @@ describe('checkRecipient: el ataque', () => {
 	test('EVM: lo enviado en BSC protege un envío en Ethereum (la misma dirección en las dos)', () => {
 		const bsc = { items: [tx({ from: ME_EVM, to: BOB_EVM, contract: '0x55d398326f99059fF775485246999027B3197955' })], priceUsd: 1 }
 		const eth = { items: [tx({ direction: 'in', from: FAKE_BOB_EVM, to: ME_EVM, amount: '0.0001' })], priceUsd: 1 }
-		expect(evm(FAKE_BOB_EVM, [eth, bsc])).toEqual({ kind: 'lookalike', of: BOB_EVM })
+		expect(evm(FAKE_BOB_EVM, [eth, bsc])).toEqual({ kind: 'lookalike', of: BOB_EVM, known: false })
 	})
 
 	test('EVM: la imitación pegada en minúsculas no se escapa por el checksum', () => {
 		const history = [{ items: [tx({ from: ME_EVM, to: BOB_EVM })], priceUsd: 1 }]
-		expect(evm(FAKE_BOB_EVM.toLowerCase(), history)).toEqual({ kind: 'lookalike', of: BOB_EVM })
+		expect(evm(FAKE_BOB_EVM.toLowerCase(), history)).toEqual({ kind: 'lookalike', of: BOB_EVM, known: false })
 	})
 
 	test('base58 distingue mayúsculas: cambiar UNA letra de caja es otra dirección, y se parece', () => {
 		const flipped = `${BOB_TRON.slice(0, 12)}${BOB_TRON[12].toLowerCase()}${BOB_TRON.slice(13)}`
 		expect(flipped).not.toBe(BOB_TRON)
-		expect(tron(flipped, [tx({ to: BOB_TRON })])).toEqual({ kind: 'lookalike', of: BOB_TRON })
+		expect(tron(flipped, [tx({ to: BOB_TRON })])).toEqual({ kind: 'lookalike', of: BOB_TRON, known: false })
 	})
 
 	test('con varias de confianza parecidas, señala la que MÁS se parece', () => {
 		const closer = `${FAKE_BOB_TRON.slice(0, 10)}${BOB_TRON.slice(10)}`
 		const history = [tx({ to: BOB_TRON }), tx({ to: closer })]
 		const target = `${FAKE_BOB_TRON.slice(0, 10)}Zz${BOB_TRON.slice(12)}`
-		expect(tron(target, history)).toEqual({ kind: 'lookalike', of: closer })
+		expect(tron(target, history)).toEqual({ kind: 'lookalike', of: closer, known: false })
+	})
+})
+
+describe('checkRecipient: el parecido manda sobre "ya se le envió"', () => {
+	test('envío de prueba a la imitación (1 USDT) y luego el grande: el grande también avisa', () => {
+		const history = [
+			tx({ to: FAKE_BOB_TRON, amount: '1' }),
+			tx({ to: BOB_TRON }),
+		]
+		expect(tron(FAKE_BOB_TRON, history)).toEqual({ kind: 'lookalike', of: BOB_TRON, known: true })
+	})
+
+	test('ya pagó una vez a la imitación: enviar al Bob de verdad avisa, sin decir cuál es la buena', () => {
+		const history = [
+			tx({ to: FAKE_BOB_TRON, amount: '300' }),
+			tx({ to: BOB_TRON }),
+		]
+		expect(tron(BOB_TRON, history)).toEqual({ kind: 'lookalike', of: FAKE_BOB_TRON, known: true })
+	})
+
+	test('la imitación mandó una cantidad real ($0.50) para parecer legítima: enviar a Bob avisa', () => {
+		const history = [
+			tx({ direction: 'in', from: FAKE_BOB_TRON, to: ME_TRON, amount: '0.5' }),
+			tx({ to: BOB_TRON }),
+		]
+		expect(tron(BOB_TRON, history)).toEqual({ kind: 'lookalike', of: FAKE_BOB_TRON, known: true })
+	})
+
+	test('polvo o un transferFrom de 0 desde una imitación NO hacen avisar al Bob de verdad (llegan a diario)', () => {
+		expect(tron(BOB_TRON, [tx({ direction: 'in', from: FAKE_BOB_TRON, to: ME_TRON, amount: '0.001' }), tx({ to: BOB_TRON })])).toEqual({ kind: 'known' })
+		expect(tron(BOB_TRON, [tx({ to: FAKE_BOB_TRON, amount: '0' }), tx({ to: BOB_TRON })])).toEqual({ kind: 'known' })
 	})
 })
 
@@ -183,7 +214,7 @@ describe('umbral de parecido', () => {
 
 describe('isBlockingVerdict', () => {
 	test('lookalike y poisoner exigen confirmar; el resto no', () => {
-		expect(isBlockingVerdict({ kind: 'lookalike', of: BOB_TRON })).toBe(true)
+		expect(isBlockingVerdict({ kind: 'lookalike', of: BOB_TRON, known: false })).toBe(true)
 		expect(isBlockingVerdict({ kind: 'poisoner' })).toBe(true)
 		for (const kind of ['self', 'known', 'new']) expect(isBlockingVerdict({ kind })).toBe(false)
 		expect(isBlockingVerdict(null)).toBe(false)

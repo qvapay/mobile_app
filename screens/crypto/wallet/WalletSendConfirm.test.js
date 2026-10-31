@@ -65,9 +65,9 @@ const settle = () => act(async () => { await sleep(20) })
 let caches
 let tree
 let screen
-const render = async (to) => {
+const render = async (to, extra = {}) => {
 	const navigation = { replace: jest.fn(), navigate: jest.fn(), goBack: jest.fn() }
-	screen = () => <WalletSendConfirm navigation={navigation} route={{ params: { assetId: USDT_BSC.id, to, amount: '10' } }} />
+	screen = () => <WalletSendConfirm navigation={navigation} route={{ params: { assetId: USDT_BSC.id, to, amount: '10', ...extra } }} />
 	await act(async () => { tree = create(screen()) })
 	await settle()
 	return tree
@@ -195,5 +195,37 @@ test('lo marcado vale para ESE aviso: si el aviso pasa a señalar otra direcció
 	// Ahora imita a Bob, y eso no lo revisó nadie
 	expect(hasText('1cB57D9a0C4e6F1b2D3c4E5f6A7b8')).toBe(true)
 	expect(checkbox().props.accessibilityState.checked).toBe(false)
+	expect(confirmButton().props.disabled).toBe(true)
+})
+
+test('ya pagó una vez a la imitación (o fue el envío de prueba): el siguiente envío también avisa, sin señalar cuál es la buena', async () => {
+	caches[USDT_BSC.id] = cache([
+		tx({ to: FAKE_BOB, amount: '1' }),
+		tx({ to: BOB }),
+	])
+	await render(FAKE_BOB)
+
+	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(true)
+	expect(hasText('La otra, casi igual')).toBe(true)
+	// No dice "la que ya usaste": las dos se usaron y no se sabe cuál es la de verdad
+	expect(hasText('La que ya usaste')).toBe(false)
+	expect(confirmButton().props.disabled).toBe(true)
+
+	await act(async () => { checkbox().props.onPress() })
+	expect(confirmButton().props.disabled).toBe(false)
+})
+
+test('depósito de un intercambio: sin el recordatorio de compararla "con la que te dieron" (la generó el proveedor)', async () => {
+	await render(BOB, { exchangeUuid: 'ex-1' })
+
+	expect(hasText('Es la primera vez')).toBe(false)
+	expect(confirmButton().props.disabled).toBe(false)
+})
+
+test('depósito de un intercambio que imita a una dirección de confianza: el aviso que bloquea se queda', async () => {
+	caches[USDT_BSC.id] = cache([tx({ to: BOB })])
+	await render(FAKE_BOB, { exchangeUuid: 'ex-1' })
+
+	expect(hasText('Cuidado: esta dirección imita a otra')).toBe(true)
 	expect(confirmButton().props.disabled).toBe(true)
 })

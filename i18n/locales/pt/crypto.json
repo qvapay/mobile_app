@@ -300,7 +300,10 @@
 				"poisoner": "Este endereço só aparece no seu histórico por valores mínimos ou transferências de 0: é o rastro de quem tenta fazer você copiar um endereço falso. Não copie endereços do histórico; peça o endereço de novo a quem você vai pagar.",
 				"sendingTo": "Você vai enviar para",
 				"usedBefore": "O que você já usou",
-				"checked": "Conferi o endereço caractere por caractere"
+				"checked": "Conferi o endereço caractere por caractere",
+				"twinTitle": "Cuidado: há outro endereço quase igual no seu histórico",
+				"twin": "Você já enviou para este endereço, mas no seu histórico há outro que começa e termina igual. Um dos dois pode ser uma imitação: confirme com quem você vai pagar qual é o dele antes de enviar.",
+				"otherSimilar": "O outro, quase igual"
 			}
 		},
 		"settings": {
