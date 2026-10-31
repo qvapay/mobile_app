@@ -55,6 +55,8 @@
 		W2000015000000000000000A /* ScreenBrightness.m in Sources */ = {isa = PBXBuildFile; fileRef = W2000006000000000000000A /* ScreenBrightness.m */; };
 		W2000016000000000000000A /* QPPush.swift in Sources */ = {isa = PBXBuildFile; fileRef = W2000007000000000000000A /* QPPush.swift */; };
 		W2000017000000000000000A /* QPPush.m in Sources */ = {isa = PBXBuildFile; fileRef = W2000008000000000000000A /* QPPush.m */; };
+		W2000018000000000000000A /* MiniAppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = W2000009000000000000000A /* MiniAppShortcuts.swift */; };
+		W2000019000000000000000A /* MiniAppShortcuts.m in Sources */ = {isa = PBXBuildFile; fileRef = W2000009100000000000000A /* MiniAppShortcuts.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -143,6 +145,8 @@
 		W2000006000000000000000A /* ScreenBrightness.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = ScreenBrightness.m; path = QvaPay/ScreenBrightness.m; sourceTree = "<group>"; };
 		W2000007000000000000000A /* QPPush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QPPush.swift; path = QvaPay/QPPush.swift; sourceTree = "<group>"; };
 		W2000008000000000000000A /* QPPush.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = QPPush.m; path = QvaPay/QPPush.m; sourceTree = "<group>"; };
+		W2000009000000000000000A /* MiniAppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MiniAppShortcuts.swift; path = QvaPay/MiniAppShortcuts.swift; sourceTree = "<group>"; };
+		W2000009100000000000000A /* MiniAppShortcuts.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = MiniAppShortcuts.m; path = QvaPay/MiniAppShortcuts.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -188,6 +192,8 @@
 				W2000006000000000000000A /* ScreenBrightness.m */,
 				W2000007000000000000000A /* QPPush.swift */,
 				W2000008000000000000000A /* QPPush.m */,
+				W2000009000000000000000A /* MiniAppShortcuts.swift */,
+				W2000009100000000000000A /* MiniAppShortcuts.m */,
 				750C83FB2993084E343FD512 /* QPSecureView.h */,
 				13535756FD2F0D07659DC28B /* QPSecureView.mm */,
 			);
@@ -539,6 +545,8 @@
 				W2000015000000000000000A /* ScreenBrightness.m in Sources */,
 				W2000016000000000000000A /* QPPush.swift in Sources */,
 				W2000017000000000000000A /* QPPush.m in Sources */,
+				W2000018000000000000000A /* MiniAppShortcuts.swift in Sources */,
+				W2000019000000000000000A /* MiniAppShortcuts.m in Sources */,
 				18ABBA757990E51F31A9B592 /* QPSecureView.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
