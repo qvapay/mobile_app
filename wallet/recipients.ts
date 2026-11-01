@@ -38,10 +38,12 @@ export type RecipientVerdict =
 	| { kind: 'known' }
 	/**
 	 * `of`: la dirección de confianza a la que se parece, tal como la conoce el usuario.
-	 * `known`: al destino YA se le envió dinero, así que no se puede saber cuál de las dos es la
-	 * de verdad (quizá pagó a la imitación una vez): el aviso no puede señalar ninguna.
+	 * `known`: al destino YA se le envió dinero.
+	 * `ofOwn`: `of` es una dirección PROPIA. Es lo único que prueba cuál de las dos es la buena
+	 * (ver `isCertainLookalike`): haberle enviado dinero a `of` no lo prueba, porque pagarle una
+	 * vez a la imitación es justo el ataque que salió bien, y que mandara algo tampoco.
 	 */
-	| { kind: 'lookalike', of: string, known: boolean }
+	| { kind: 'lookalike', of: string, known: boolean, ofOwn: boolean }
 	| { kind: 'poisoner' }
 	| { kind: 'new' }
 
@@ -136,17 +138,32 @@ export const checkRecipient = ({ kind, to, own, histories }: {
 
 	const target = key(to)
 	// `lookalikeScore` descarta el propio destino: se compara con las DEMÁS de confianza
-	let best: { of: string, score: number } | null = null
+	const ownKeys = new Set(own.map(key))
+	// Con qué dirección se compara: propia, luego una a la que se envió, luego una que solo MANDÓ
+	// algo; el parecido desempata. Es la que el usuario reconocerá antes, y el atacante no elige
+	// la que enseña el aviso mandando $0.50 desde otra aún más parecida. No dice cuál es la buena
+	const rankOf = (candidate: string) => (ownKeys.has(candidate) ? 2 : sentTo.has(candidate) ? 1 : 0)
+	let best: { of: string, score: number, rank: number } | null = null
 	for (const [candidate, original] of trusted) {
 		const score = lookalikeScore(kind, target, candidate)
-		if (score > 0 && (!best || score > best.score)) best = { of: original, score }
+		if (score === 0) continue
+		const rank = rankOf(candidate)
+		if (!best || rank > best.rank || (rank === best.rank && score > best.score)) best = { of: original, score, rank }
 	}
-	if (best) return { kind: 'lookalike', of: best.of, known: sentTo.has(target) }
+	if (best) return { kind: 'lookalike', of: best.of, known: sentTo.has(target), ofOwn: best.rank === 2 }
 
 	if (sentTo.has(target)) return { kind: 'known' }
 	if (suspicious.has(target) && !trusted.has(target)) return { kind: 'poisoner' }
 	return { kind: 'new' }
 }
+
+/**
+ * ¿Se sabe cuál de las dos es la buena? Solo si `of` es una dirección propia: entonces el
+ * destino imita la del usuario y el aviso puede decirlo. Con una dirección de fuera, nada del
+ * historial lo prueba (el usuario pudo pagarle a la imitación), y el aviso no señala ninguna.
+ */
+export const isCertainLookalike = (verdict: RecipientVerdict | null): boolean =>
+	verdict?.kind === 'lookalike' && verdict.ofOwn
 
 /** El veredicto exige que el usuario confirme expresamente que revisó la dirección. */
 export const isBlockingVerdict = (verdict: RecipientVerdict | null): verdict is Extract<RecipientVerdict, { kind: 'lookalike' | 'poisoner' }> =>
