@@ -294,17 +294,17 @@
 			},
 			"recipient": {
 				"new": "Es la primera vez que envías a esta dirección desde esta wallet. Compárala entera con la que te dieron, no solo el principio y el final.",
-				"lookalikeTitle": "Cuidado: esta dirección imita a otra",
-				"lookalike": "Empieza y termina igual que una dirección que ya usaste, pero NO es la misma. Es una estafa conocida: te mandan una cantidad mínima desde una dirección parecida para que la copies del historial. Pide la dirección de nuevo a quien vas a pagar.",
 				"poisonerTitle": "Cuidado: dirección sospechosa",
 				"poisoner": "Esta dirección solo aparece en tu historial por cantidades mínimas o transferencias de 0: es el rastro de quien intenta que copies una dirección falsa. No copies direcciones del historial; pide la dirección de nuevo a quien vas a pagar.",
 				"sendingTo": "Vas a enviar a",
-				"usedBefore": "La que ya usaste",
 				"checked": "He comprobado la dirección carácter a carácter",
 				"twinTitle": "Cuidado: hay otra dirección casi igual en tu historial",
 				"twin": "Ya enviaste a esta dirección, pero en tu historial hay otra que empieza y termina igual. Una de las dos puede ser una imitación: confirma con quien vas a pagar cuál es la suya antes de enviar.",
 				"otherSimilar": "La otra, casi igual",
-				"similar": "En tu historial hay otra dirección que empieza y termina igual que esta. Una de las dos puede ser una imitación: confirma con quien vas a pagar cuál es la suya antes de enviar."
+				"similar": "En tu historial hay otra dirección que empieza y termina igual que esta. Una de las dos puede ser una imitación: confirma con quien vas a pagar cuál es la suya antes de enviar.",
+				"ownTitle": "Cuidado: esta dirección imita a la tuya",
+				"own": "Empieza y termina igual que tu propia dirección, pero NO es tuya. Es una estafa conocida: imitan tu dirección para que la copies del historial creyendo que es la tuya.",
+				"ownLabel": "Tu dirección"
 			}
 		},
 		"settings": {

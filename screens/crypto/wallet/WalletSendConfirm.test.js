@@ -105,7 +105,7 @@ test('imitación de Bob sacada del historial → aviso, y no se firma hasta marc
 	])
 	await render(FAKE_BOB)
 
-	expect(hasText('Cuidado: esta dirección imita a otra')).toBe(true)
+	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(true)
 	// Las dos direcciones, con el medio que cambia aparte
 	expect(hasText('d41F0b9C7e2A5d8E1f3B6c9a0D2e4')).toBe(true)
 	expect(hasText('1cB57D9a0C4e6F1b2D3c4E5f6A7b8')).toBe(true)
@@ -121,7 +121,7 @@ test('lo enviado en Ethereum protege un envío en BSC: la misma dirección EVM, 
 	await render(FAKE_BOB)
 
 	expect(loadHistoryCache).toHaveBeenCalledWith(USDT_ETH.id, ME)
-	expect(hasText('Cuidado: esta dirección imita a otra')).toBe(true)
+	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(true)
 	expect(confirmButton().props.disabled).toBe(true)
 })
 
@@ -227,7 +227,7 @@ test('depósito de un intercambio que imita a una dirección de confianza: el av
 	caches[USDT_BSC.id] = cache([tx({ to: BOB })])
 	await render(FAKE_BOB, { exchangeUuid: 'ex-1' })
 
-	expect(hasText('Cuidado: esta dirección imita a otra')).toBe(true)
+	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(true)
 	expect(confirmButton().props.disabled).toBe(true)
 })
 
@@ -247,4 +247,28 @@ test('Bob pagó, una imitación mandó $0.50 y el usuario le paga a Bob por prim
 
 	await act(async () => { checkbox().props.onPress() })
 	expect(confirmButton().props.disabled).toBe(false)
+})
+
+test('le pagó por error 1 USDT a la imitación y luego pega la dirección real de Bob: nunca se presenta a la imitación como «la que ya usaste»', async () => {
+	caches[USDT_BSC.id] = cache([
+		tx({ direction: 'in', from: BOB, to: ME, amount: '50' }),
+		tx({ direction: 'in', from: FAKE_BOB, to: ME, amount: '0.5' }),
+		tx({ to: FAKE_BOB, amount: '1' }),
+	])
+	await render(BOB)
+
+	expect(hasText('Cuidado: esta dirección imita a otra')).toBe(false)
+	expect(hasText('La que ya usaste')).toBe(false)
+	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(true)
+	expect(confirmButton().props.disabled).toBe(true)
+})
+
+test('imita a la dirección PROPIA: la única comparación en la que el aviso puede decir cuál es la buena', async () => {
+	const fakeMe = `${ME.slice(0, 10)}${'1'.repeat(27)}${ME.slice(-5)}`
+	await render(fakeMe)
+
+	expect(hasText('Cuidado: esta dirección imita a la tuya')).toBe(true)
+	expect(hasText('Tu dirección')).toBe(true)
+	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(false)
+	expect(confirmButton().props.disabled).toBe(true)
 })
