@@ -27,11 +27,19 @@ import { HEADER_ICON_GLYPHS } from './headerIcons'
 import MiniAppMenuRow from './MiniAppMenuRow'
 import MiniAppConsentSheet from './MiniAppConsentSheet'
 import MiniAppPaySheet from './MiniAppPaySheet'
+import MiniAppHeaderTitle from './MiniAppHeaderTitle'
+import { useNativeMiniAppHeader, type NativeMenuEntry } from './useNativeMiniAppHeader'
+import type { MiniAppMenuIcon } from './MiniAppMenuRow'
 import KycGateModal from '../../ui/KycGateModal'
 import useKycGate from '../../hooks/useKycGate'
+import { supportsLiquidGlass } from '../../helpers/liquidGlass'
 import type { RootStackParamList } from '../../types/navigation'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MiniAppHost'>
+
+/** Entradas del menú ⋯: las mismas en el propio (un <Modal>) y en el UIMenu nativo de iOS 26+. */
+type MenuKey = 'favorite' | 'pin' | 'share' | 'reload' | 'browser' | 'close' | 'revoke'
+type MenuItem = NativeMenuEntry<MenuKey> & { icon: MiniAppMenuIcon, iconColor?: string }
 
 /**
  * Contenedor de una mini-app: WebView aislado + SDK `window.QvaPay` + hojas
@@ -142,7 +150,6 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	}, [])
 
 	const reload = () => {
-		setMenuOpen(false)
 		setReady(false)
 		setLoadError(false)
 		setCanGoBack(false)
@@ -150,46 +157,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 		setWebViewKey(k => k + 1)
 	}
 
-	const openInBrowser = () => {
-		setMenuOpen(false)
-		if (app) Linking.openURL(app.entry_url).catch(() => {})
-	}
-
-	const favoriteFromMenu = () => {
-		setMenuOpen(false)
-		if (app) toggleFavorite(app)
-	}
-
-	const pinFromMenu = () => {
-		setMenuOpen(false)
-		if (app) addToHomeScreen(app, t)
-	}
-
-	// Compartir desde el menú: en iOS la hoja de compartir no puede presentarse
-	// mientras el <Modal> del menú aún se desmonta ("already presenting" y no
-	// sale nada), así que se difiere a su onDismiss; Android no lo necesita
-	const afterMenuRef = useRef<(() => void) | null>(null)
-	const shareFromMenu = () => {
-		setMenuOpen(false)
-		const run = () => { if (app) shareMiniApp(app, t).catch(() => { /* cancelado o sin hoja */ }) }
-		if (Platform.OS === 'ios') afterMenuRef.current = run
-		else run()
-	}
-	// «Cerrar mini-app» del menú: la salida directa cuando la flecha retrocede.
-	// Mismo diferido que compartir: en iOS no se cierra la pantalla con el menú presentándose
-	const closeFromMenu = () => {
-		setMenuOpen(false)
-		if (Platform.OS === 'ios') afterMenuRef.current = close
-		else close()
-	}
-	const onMenuDismiss = () => {
-		const pending = afterMenuRef.current
-		afterMenuRef.current = null
-		pending?.()
-	}
-
 	const revoke = async () => {
-		setMenuOpen(false)
 		if (!app) return
 		const result = await miniappsApi.revokeGrant(app.slug)
 		if (result.success) {
@@ -200,13 +168,70 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 		}
 	}
 
+	const favorite = !!app && isFavorite(app.slug)
+	const menuItems: MenuItem[] = [
+		favorite
+			? { key: 'favorite', label: t('miniapps.actions.unfavorite'), icon: 'star', iconColor: theme.colors.warning, sfSymbol: 'star.fill' }
+			: { key: 'favorite', label: t('miniapps.actions.favorite'), icon: 'star-outline', sfSymbol: 'star' },
+		...(canPin ? [{ key: 'pin', label: t('miniapps.actions.addToHomeScreen'), icon: 'mobile-screen-button', sfSymbol: 'plus.square.on.square' } as const] : []),
+		{ key: 'share', label: t('common.actions.share'), icon: 'share-nodes', sfSymbol: 'square.and.arrow.up' },
+		{ key: 'reload', label: t('miniapps.host.reload'), icon: 'rotate-right', sfSymbol: 'arrow.clockwise' },
+		{ key: 'browser', label: t('miniapps.host.openInBrowser'), icon: 'arrow-up-right-from-square', sfSymbol: 'safari' },
+		// La salida directa cuando la flecha retrocede
+		{ key: 'close', label: t('miniapps.host.closeApp'), icon: 'xmark', sfSymbol: 'xmark' },
+		...(app?.granted ? [{ key: 'revoke', label: t('miniapps.host.revoke'), icon: 'user-slash', sfSymbol: 'person.crop.circle.badge.xmark', destructive: true } as const] : []),
+	]
+
+	const runMenu = (key: MenuKey) => {
+		switch (key) {
+			case 'favorite': if (app) toggleFavorite(app); break
+			case 'pin': if (app) addToHomeScreen(app, t); break
+			case 'share': if (app) shareMiniApp(app, t).catch(() => { /* cancelado o sin hoja */ }); break
+			case 'reload': reload(); break
+			case 'browser': if (app) Linking.openURL(app.entry_url).catch(() => {}); break
+			case 'close': close(); break
+			case 'revoke': revoke(); break
+		}
+	}
+
+	// Desde el menú propio: en iOS ni la hoja de compartir ni el cierre de la pantalla pueden
+	// ir mientras el <Modal> del menú aún se desmonta ("already presenting" y no sale nada),
+	// así que esperan a su onDismiss; Android no lo necesita. El UIMenu nativo no es un modal
+	const afterMenuRef = useRef<(() => void) | null>(null)
+	const runFromMenu = (key: MenuKey) => {
+		setMenuOpen(false)
+		if (Platform.OS === 'ios' && (key === 'share' || key === 'close')) afterMenuRef.current = () => runMenu(key)
+		else runMenu(key)
+	}
+	const onMenuDismiss = () => {
+		const pending = afterMenuRef.current
+		afterMenuRef.current = null
+		pending?.()
+	}
+
 	const title = app?.name ?? previewName ?? ''
+	const icon = app?.icon ?? previewIcon ?? null
+	const subtitle = ready ? header.subtitle : ''
+	const actions = ready ? header.actions : []
+
+	// iOS 26+: la barra es el header nativo (botones de liquid glass y ⋯ como UIMenu)
+	useNativeMiniAppHeader(navigation, {
+		enabled: supportsLiquidGlass,
+		backMode, title, icon, subtitle, actions,
+		menu: menuItems,
+		menuDisabled: !app,
+		onBack: handleBack,
+		onAction: id => emit('headerAction', { id }),
+		onMenu: runMenu,
+	})
 
 	return (
 		<View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
 
-			{/* Barra superior propia: QvaPay manda aquí, la mini-app no puede taparla. La
-			    mini-app solo aporta subtítulo y acciones; nombre y logo son los registrados */}
+			{/* Barra superior propia (Android, iOS < 26; en iOS 26+ es el header nativo): QvaPay
+			    manda aquí, la mini-app no puede taparla. La mini-app solo aporta subtítulo y
+			    acciones; nombre y logo son los registrados */}
+			{supportsLiquidGlass ? null : (
 			<View style={[styles.topBar, { paddingTop: insets.top + 6, borderBottomColor: theme.colors.border }]}>
 				{/* Lados asimétricos a propósito: con acciones, el nombre usa el espacio que queda
 				    en vez de reservar a la izquierda un hueco igual al de la derecha */}
@@ -223,20 +248,9 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 						<FontAwesome6 name={backMode === 'close' ? 'xmark' : 'chevron-left'} size={18} color={theme.colors.primaryText} iconStyle="solid" />
 					</Pressable>
 				</View>
-				<View style={styles.titleWrap}>
-					<MiniAppIcon app={{ name: title, icon: app?.icon ?? previewIcon ?? null }} size={22} />
-					<View style={styles.titleText}>
-						<View style={styles.titleRow}>
-							<Text style={[textStyles.h5, { color: theme.colors.primaryText, flexShrink: 1 }]} numberOfLines={1}>{title}</Text>
-							<FontAwesome6 name="circle-check" size={12} color={theme.colors.primary} iconStyle="solid" style={styles.verified} />
-						</View>
-						{ready && header.subtitle ? (
-							<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]} numberOfLines={1}>{header.subtitle}</Text>
-						) : null}
-					</View>
-				</View>
+				<MiniAppHeaderTitle name={title} icon={icon} subtitle={subtitle} style={styles.titleWrap} />
 				<View style={[styles.side, styles.sideRight]}>
-					{ready ? header.actions.map(action => {
+					{actions.map(action => {
 						const badge = headerBadgeText(action.badge)
 						return (
 							<Pressable key={action.id} onPress={() => emit('headerAction', { id: action.id })} hitSlop={6} style={styles.topButton} accessibilityRole="button" accessibilityLabel={badge ? `${action.label} (${badge})` : action.label}>
@@ -248,12 +262,13 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 								) : null}
 							</Pressable>
 						)
-					}) : null}
+					})}
 					<Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={styles.topButton} disabled={!app} accessibilityRole="button" accessibilityLabel={t('miniapps.host.menu')}>
 						<FontAwesome6 name="ellipsis" size={18} color={theme.colors.primaryText} iconStyle="solid" />
 					</Pressable>
 				</View>
 			</View>
+			)}
 			{!ready && !loadError && progress > 0 && progress < 1 ? (
 				<View style={[styles.progress, { width: `${Math.round(progress * 100)}%`, backgroundColor: theme.colors.primary }]} />
 			) : null}
@@ -296,7 +311,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 
 				{(!app && !isError) || (app && !ready && !loadError) ? (
 					<View style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: theme.colors.background }]} pointerEvents="none">
-						<MiniAppIcon app={{ name: title, icon: app?.icon ?? previewIcon ?? null }} size={72} />
+						<MiniAppIcon app={{ name: title, icon }} size={72} />
 						<ActivityIndicator color={theme.colors.primary} style={{ marginTop: 20 }} />
 					</View>
 				) : null}
@@ -337,15 +352,9 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 			<Modal visible={menuOpen} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setMenuOpen(false)} onDismiss={onMenuDismiss}>
 				<Pressable style={containerStyles.modalOverlay} onPress={() => setMenuOpen(false)}>
 					<View style={[containerStyles.modalCard, { paddingVertical: 8 }]} onStartShouldSetResponder={() => true}>
-						{app && isFavorite(app.slug)
-							? <MiniAppMenuRow icon="star" iconColor={theme.colors.warning} label={t('miniapps.actions.unfavorite')} onPress={favoriteFromMenu} />
-							: <MiniAppMenuRow icon="star-outline" label={t('miniapps.actions.favorite')} onPress={favoriteFromMenu} />}
-						{canPin ? <MiniAppMenuRow icon="mobile-screen-button" label={t('miniapps.actions.addToHomeScreen')} onPress={pinFromMenu} /> : null}
-						<MiniAppMenuRow icon="share-nodes" label={t('common.actions.share')} onPress={shareFromMenu} />
-						<MiniAppMenuRow icon="rotate-right" label={t('miniapps.host.reload')} onPress={reload} />
-						<MiniAppMenuRow icon="arrow-up-right-from-square" label={t('miniapps.host.openInBrowser')} onPress={openInBrowser} />
-						<MiniAppMenuRow icon="xmark" label={t('miniapps.host.closeApp')} onPress={closeFromMenu} />
-						{app?.granted ? <MiniAppMenuRow icon="user-slash" label={t('miniapps.host.revoke')} onPress={revoke} danger /> : null}
+						{menuItems.map(item => (
+							<MiniAppMenuRow key={item.key} icon={item.icon} iconColor={item.iconColor} label={item.label} onPress={() => runFromMenu(item.key)} danger={item.destructive} />
+						))}
 					</View>
 				</Pressable>
 			</Modal>
@@ -366,10 +375,7 @@ const styles = StyleSheet.create({
 	side: { flexDirection: 'row', alignItems: 'center' },
 	sideRight: { justifyContent: 'flex-end' },
 	// A la izquierda, pegado al botón de cerrar/atrás (como una cabecera de chat), no centrado
-	titleWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingLeft: 4, paddingRight: 8 },
-	titleText: { flexShrink: 1, marginLeft: 8 },
-	titleRow: { flexDirection: 'row', alignItems: 'center' },
-	verified: { marginLeft: 6 },
+	titleWrap: { flex: 1, justifyContent: 'flex-start', paddingLeft: 4, paddingRight: 8 },
 	// Badge de contador sobre un icono, como el del carrito (CartHeaderButton): tamaño fijo a
 	// propósito (excepción de la escala de fuente)
 	badge: { position: 'absolute', top: 2, right: 0, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },

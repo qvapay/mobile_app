@@ -1,0 +1,116 @@
+import { useLayoutEffect, useRef } from 'react'
+import { useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import type { NativeStackHeaderItem, NativeStackNavigationProp } from '@react-navigation/native-stack'
+
+import { useTheme } from '../../theme/ThemeContext'
+import { headerBadgeText, type HeaderAction } from '../../miniapps/protocol'
+import type { RootStackParamList } from '../../types/navigation'
+import { HEADER_ICON_SF_SYMBOLS, type SfSymbolName } from './headerIcons'
+import MiniAppHeaderTitle from './MiniAppHeaderTitle'
+
+/** Entrada del menú ⋯ nativo (UIMenu). Solo datos: el toque llega por `onMenu(key)`. */
+export type NativeMenuEntry<K extends string> = { key: K, label: string, sfSymbol: SfSymbolName, destructive?: boolean }
+
+type Options<K extends string> = {
+	/** `supportsLiquidGlass`: fuera de iOS 26+ la barra la pinta MiniAppHost en JS. */
+	enabled: boolean
+	backMode: 'app' | 'history' | 'close'
+	title: string
+	icon: string | null
+	subtitle: string
+	actions: HeaderAction[]
+	menu: NativeMenuEntry<K>[]
+	menuDisabled: boolean
+	onBack: () => void
+	onAction: (id: string) => void
+	onMenu: (key: K) => void
+}
+
+// Medidas aproximadas de la barra de iOS 26 para dar al título un ANCHO FIJO: los items `custom`
+// se colocan con Auto Layout a partir del tamaño que llega de Yoga, y uno que cambia de ancho
+// (al llegar el subtítulo, por ejemplo) hace que UIKit recoloque la barra con un brinco
+const BAR_MARGIN = 16
+const BAR_BUTTON = 44
+const GROUP_GAP = 12
+const MIN_TITLE = 96
+
+/**
+ * Barra de la mini-app con los items nativos del header en iOS 26+, los de liquid glass: el
+ * botón de cerrar/atrás y las acciones son botones del sistema (SF Symbols, badge nativo) y el
+ * ⋯ un UIMenu. El título (logo, nombre registrado y subtítulo) va a la izquierda como item
+ * `custom` sin fondo. Mismo estado y mismos manejadores que la barra propia de MiniAppHost.
+ *
+ * Los manejadores viajan por un ref: con ellos en las deps, `setOptions` se dispararía en
+ * cada render de la pantalla.
+ */
+export function useNativeMiniAppHeader<K extends string>(
+	navigation: Pick<NativeStackNavigationProp<RootStackParamList, 'MiniAppHost'>, 'setOptions'>,
+	options: Options<K>,
+) {
+	const { t } = useTranslation()
+	const { theme } = useTheme()
+	const { width: windowWidth } = useWindowDimensions()
+
+	const { enabled, backMode, title, icon, subtitle, menuDisabled, onBack, onAction, onMenu } = options
+	const handlers = useRef({ onBack, onAction, onMenu })
+	useLayoutEffect(() => { handlers.current = { onBack, onAction, onMenu } })
+
+	// Claves estables: el padre recrea los arrays en cada render
+	const actionsKey = JSON.stringify(options.actions)
+	const menuKey = JSON.stringify(options.menu)
+	const badgeColor = theme.colors.primary
+
+	useLayoutEffect(() => {
+		if (!enabled) return
+		const actions: HeaderAction[] = JSON.parse(actionsKey)
+		const menu: NativeMenuEntry<K>[] = JSON.parse(menuKey)
+		const isClose = backMode === 'close'
+		const titleWidth = Math.max(MIN_TITLE, windowWidth - 2 * BAR_MARGIN - (actions.length + 2) * BAR_BUTTON - 2 * GROUP_GAP)
+
+		const left: NativeStackHeaderItem[] = [
+			{
+				type: 'button',
+				label: isClose ? t('common.actions.close') : t('common.actions.back'),
+				icon: { type: 'sfSymbol', name: isClose ? 'xmark' : 'chevron.left' },
+				onPress: () => handlers.current.onBack(),
+			},
+			{
+				type: 'custom',
+				element: <MiniAppHeaderTitle name={title} icon={icon} subtitle={subtitle} style={{ width: titleWidth }} />,
+				hidesSharedBackground: true,
+			},
+		]
+
+		const right: NativeStackHeaderItem[] = [
+			...actions.map((action): NativeStackHeaderItem => {
+				const badge = headerBadgeText(action.badge)
+				return {
+					type: 'button',
+					label: action.label,
+					icon: { type: 'sfSymbol', name: HEADER_ICON_SF_SYMBOLS[action.icon] },
+					onPress: () => handlers.current.onAction(action.id),
+					accessibilityLabel: badge ? `${action.label} (${badge})` : action.label,
+					...(badge ? { badge: { value: badge, style: { backgroundColor: badgeColor, color: '#FFFFFF' } } } : null),
+				}
+			}),
+			{
+				type: 'menu',
+				label: t('miniapps.host.menu'),
+				icon: { type: 'sfSymbol', name: 'ellipsis' },
+				disabled: menuDisabled,
+				menu: {
+					items: menu.map(entry => ({
+						type: 'action' as const,
+						label: entry.label,
+						icon: { type: 'sfSymbol' as const, name: entry.sfSymbol },
+						destructive: entry.destructive,
+						onPress: () => handlers.current.onMenu(entry.key),
+					})),
+				},
+			},
+		]
+
+		navigation.setOptions({ unstable_headerLeftItems: () => left, unstable_headerRightItems: () => right })
+	}, [enabled, navigation, backMode, title, icon, subtitle, actionsKey, menuKey, menuDisabled, windowWidth, badgeColor, t])
+}
