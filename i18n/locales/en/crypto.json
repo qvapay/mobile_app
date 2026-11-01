@@ -303,7 +303,8 @@
 				"checked": "I’ve checked the address character by character",
 				"twinTitle": "Careful: there’s a near-identical address in your history",
 				"twin": "You’ve sent to this address before, but your history has another one that starts and ends the same. One of them may be an imitation: check with the person you’re paying which one is theirs before you send.",
-				"otherSimilar": "The other, near-identical one"
+				"otherSimilar": "The other, near-identical one",
+				"similar": "Your history has another address that starts and ends the same as this one. One of them may be an imitation: check with the person you’re paying which one is theirs before you send."
 			}
 		},
 		"settings": {

@@ -38,10 +38,13 @@ export type RecipientVerdict =
 	| { kind: 'known' }
 	/**
 	 * `of`: la dirección de confianza a la que se parece, tal como la conoce el usuario.
-	 * `known`: al destino YA se le envió dinero, así que no se puede saber cuál de las dos es la
-	 * de verdad (quizá pagó a la imitación una vez): el aviso no puede señalar ninguna.
+	 * `known`: al destino YA se le envió dinero.
+	 * `ofSent`: a `of` se le envió dinero, o es propia.
+	 * Solo con `ofSent` y sin `known` se sabe cuál es la buena (ver `isCertainLookalike`). Si no,
+	 * el usuario envió a las dos, o `of` es de confianza solo porque MANDÓ algo: una imitación que
+	 * manda $0.50 haría pasar al Bob de verdad (que pagó antes) por la imitación.
 	 */
-	| { kind: 'lookalike', of: string, known: boolean }
+	| { kind: 'lookalike', of: string, known: boolean, ofSent: boolean }
 	| { kind: 'poisoner' }
 	| { kind: 'new' }
 
@@ -141,12 +144,23 @@ export const checkRecipient = ({ kind, to, own, histories }: {
 		const score = lookalikeScore(kind, target, candidate)
 		if (score > 0 && (!best || score > best.score)) best = { of: original, score }
 	}
-	if (best) return { kind: 'lookalike', of: best.of, known: sentTo.has(target) }
+	if (best) {
+		const ofKey = key(best.of)
+		return { kind: 'lookalike', of: best.of, known: sentTo.has(target), ofSent: sentTo.has(ofKey) || own.some(address => key(address) === ofKey) }
+	}
 
 	if (sentTo.has(target)) return { kind: 'known' }
 	if (suspicious.has(target) && !trusted.has(target)) return { kind: 'poisoner' }
 	return { kind: 'new' }
 }
+
+/**
+ * ¿Se sabe cuál de las dos es la buena? Solo si a `of` se le envió dinero (o es propia) y al
+ * destino nunca: entonces el destino es el que imita y el aviso puede decirlo. En cualquier
+ * otro caso el aviso no señala ninguna de las dos.
+ */
+export const isCertainLookalike = (verdict: RecipientVerdict | null): boolean =>
+	verdict?.kind === 'lookalike' && verdict.ofSent && !verdict.known
 
 /** El veredicto exige que el usuario confirme expresamente que revisó la dirección. */
 export const isBlockingVerdict = (verdict: RecipientVerdict | null): verdict is Extract<RecipientVerdict, { kind: 'lookalike' | 'poisoner' }> =>

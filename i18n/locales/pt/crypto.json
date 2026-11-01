@@ -302,8 +302,9 @@
 				"usedBefore": "O que você já usou",
 				"checked": "Conferi o endereço caractere por caractere",
 				"twinTitle": "Cuidado: há outro endereço quase igual no seu histórico",
-				"twin": "Você já enviou para este endereço, mas no seu histórico há outro que começa e termina igual. Um dos dois pode ser uma imitação: confirme com quem você vai pagar qual é o dele antes de enviar.",
-				"otherSimilar": "O outro, quase igual"
+				"twin": "Você já enviou para este endereço, mas no seu histórico há outro que começa e termina igual. Um dos dois pode ser uma imitação: confirme com quem você vai pagar qual é o endereço certo antes de enviar.",
+				"otherSimilar": "O outro, quase igual",
+				"similar": "No seu histórico há outro endereço que começa e termina igual a este. Um dos dois pode ser uma imitação: confirme com quem você vai pagar qual é o endereço certo antes de enviar."
 			}
 		},
 		"settings": {

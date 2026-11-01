@@ -35,7 +35,7 @@ import type { GaslessState } from './useGaslessSend'
 import type { SendPhase } from './useWalletSendTx'
 import { formatUsd, shortAddress } from './walletFormat'
 import useRecipientCheck from './useRecipientCheck'
-import { addressDiff, isBlockingVerdict } from '../../../wallet/recipients'
+import { addressDiff, isBlockingVerdict, isCertainLookalike } from '../../../wallet/recipients'
 import type { AddressDiff, RecipientVerdict } from '../../../wallet/recipients'
 import type { ChainKind } from '../../../wallet/registry/types'
 
@@ -146,7 +146,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	const recipient = useRecipientCheck(asset, to)
 	// Lo marcado vale para ESE aviso: si pasa a señalar otra dirección, hay que volver a revisar
 	const [checkedFor, setCheckedFor] = useState<string | null>(null)
-	const recipientKey = recipient ? `${recipient.kind}:${recipient.kind === 'lookalike' ? `${recipient.of}:${recipient.known}` : ''}` : null
+	const recipientKey = recipient ? `${recipient.kind}:${recipient.kind === 'lookalike' ? `${recipient.of}:${recipient.known}:${recipient.ofSent}` : ''}` : null
 	const recipientChecked = recipientKey !== null && checkedFor === recipientKey
 	const recipientBlocks = recipient === null || (isBlockingVerdict(recipient) && !recipientChecked)
 	// El veredicto depende de precios que se refrescan solos, así que puede cambiar con el PIN
@@ -539,6 +539,8 @@ const RecipientNotice = ({ theme, verdict, kind, to, checked, onToggle, disabled
 	}
 	if (!verdict || !isBlockingVerdict(verdict)) { return null }
 
+	// Solo cuando se sabe cuál es la buena se dice «imita a otra» y «la que ya usaste»
+	const certain = isCertainLookalike(verdict)
 	const ink = theme.colors.dangerText
 	const text = { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }
 
@@ -547,15 +549,15 @@ const RecipientNotice = ({ theme, verdict, kind, to, checked, onToggle, disabled
 			<FontAwesome6 name="triangle-exclamation" size={14} color={ink} iconStyle="solid" style={styles.noticeIcon} />
 			<View style={styles.noticeBody}>
 				<Text style={[text, { color: ink, fontFamily: theme.typography.fontFamily.semiBold }]}>
-					{verdict.kind === 'poisoner' ? t('crypto.wallet.send.recipient.poisonerTitle') : verdict.known ? t('crypto.wallet.send.recipient.twinTitle') : t('crypto.wallet.send.recipient.lookalikeTitle')}
+					{verdict.kind === 'poisoner' ? t('crypto.wallet.send.recipient.poisonerTitle') : certain ? t('crypto.wallet.send.recipient.lookalikeTitle') : t('crypto.wallet.send.recipient.twinTitle')}
 				</Text>
 				<Text style={text}>
-					{verdict.kind === 'poisoner' ? t('crypto.wallet.send.recipient.poisoner') : verdict.known ? t('crypto.wallet.send.recipient.twin') : t('crypto.wallet.send.recipient.lookalike')}
+					{verdict.kind === 'poisoner' ? t('crypto.wallet.send.recipient.poisoner') : certain ? t('crypto.wallet.send.recipient.lookalike') : verdict.known ? t('crypto.wallet.send.recipient.twin') : t('crypto.wallet.send.recipient.similar')}
 				</Text>
 				{verdict.kind === 'lookalike' && (
 					<View style={styles.recipientCompare}>
 						<DiffLine theme={theme} label={t('crypto.wallet.send.recipient.sendingTo')} diff={addressDiff(kind, to, verdict.of)} />
-						<DiffLine theme={theme} label={verdict.known ? t('crypto.wallet.send.recipient.otherSimilar') : t('crypto.wallet.send.recipient.usedBefore')} diff={addressDiff(kind, verdict.of, to)} />
+						<DiffLine theme={theme} label={certain ? t('crypto.wallet.send.recipient.usedBefore') : t('crypto.wallet.send.recipient.otherSimilar')} diff={addressDiff(kind, verdict.of, to)} />
 					</View>
 				)}
 				<QPPressable

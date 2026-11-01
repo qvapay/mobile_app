@@ -229,3 +229,21 @@ test('depósito de un intercambio que imita a una dirección de confianza: el av
 	expect(hasText('Cuidado: esta dirección imita a otra')).toBe(true)
 	expect(confirmButton().props.disabled).toBe(true)
 })
+
+test('Bob pagó, una imitación mandó $0.50 y el usuario le paga a Bob por primera vez: aviso neutral, nunca «la que ya usaste» sobre la falsa', async () => {
+	caches[USDT_BSC.id] = cache([
+		tx({ direction: 'in', from: BOB, to: ME, amount: '50' }),
+		tx({ direction: 'in', from: FAKE_BOB, to: ME, amount: '0.5' }),
+	])
+	await render(BOB)
+
+	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(true)
+	expect(hasText('En tu historial hay otra dirección que empieza y termina igual que esta')).toBe(true)
+	expect(hasText('La otra, casi igual')).toBe(true)
+	expect(hasText('Cuidado: esta dirección imita a otra')).toBe(false)
+	expect(hasText('La que ya usaste')).toBe(false)
+	expect(confirmButton().props.disabled).toBe(true)
+
+	await act(async () => { checkbox().props.onPress() })
+	expect(confirmButton().props.disabled).toBe(false)
+})
