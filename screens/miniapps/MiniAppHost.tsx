@@ -365,7 +365,8 @@ const styles = StyleSheet.create({
 	topButton: { width: TOP_BUTTON, height: TOP_BUTTON, alignItems: 'center', justifyContent: 'center' },
 	side: { flexDirection: 'row', alignItems: 'center' },
 	sideRight: { justifyContent: 'flex-end' },
-	titleWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+	// A la izquierda, pegado al botón de cerrar/atrás (como una cabecera de chat), no centrado
+	titleWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingLeft: 4, paddingRight: 8 },
 	titleText: { flexShrink: 1, marginLeft: 8 },
 	titleRow: { flexDirection: 'row', alignItems: 'center' },
 	verified: { marginLeft: 6 },
