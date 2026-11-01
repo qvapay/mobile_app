@@ -5,7 +5,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { useTextStyles } from '../../theme/themeUtils'
 
 /** Iconos sólidos de los menús de mini-app; `star-outline` = la estrella sin rellenar. */
-export type MiniAppMenuIcon = 'share-nodes' | 'rotate-right' | 'arrow-up-right-from-square' | 'user-slash' | 'mobile-screen-button' | 'star' | 'star-outline'
+export type MiniAppMenuIcon = 'share-nodes' | 'rotate-right' | 'arrow-up-right-from-square' | 'user-slash' | 'mobile-screen-button' | 'star' | 'star-outline' | 'xmark'
 
 type MiniAppMenuRowProps = {
 	icon: MiniAppMenuIcon

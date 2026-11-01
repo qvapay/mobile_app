@@ -1,7 +1,7 @@
-Novedades de QvaPay 3.6.6:
-• Mini-apps favoritas: mantén pulsada una para marcarla y saldrá la primera en el inicio.
-• En Android, añade una mini-app a la pantalla de inicio del teléfono.
-• Tus favoritas también aparecen al mantener pulsado el icono de QvaPay.
-• Wallet más segura: te avisamos si el destino imita a una dirección de confianza.
-• Letra algo más pequeña por defecto y un ajuste de tamaño más cómodo.
-• Arreglos en la linterna del escáner, los ajustes y el PIN sin conexión.
+Novedades de QvaPay 3.7.0:
+• Las mini-apps se integran mejor: la barra de arriba muestra su logo, su información y sus botones.
+• El botón atrás de una mini-app vuelve a la página anterior. Mantenlo pulsado para cerrarla.
+• Los avisos de las mini-apps salen en tu idioma.
+• En Android, el acceso directo de una mini-app muestra bien su logo.
+• Wallet: avisos más claros cuando un destino se parece a otra dirección de confianza.
+• Arreglos y mejoras de estabilidad.

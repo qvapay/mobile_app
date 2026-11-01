@@ -12,6 +12,12 @@ import {
 	bridgeEvent,
 	TOAST_MAX_LENGTH,
 	MAX_MESSAGE_LENGTH,
+	applyMainButtonPatch,
+	isMainButtonShown,
+	applyHeaderPatch,
+	headerBadgeText,
+	EMPTY_HEADER,
+	HEADER_ICONS,
 } from './protocol'
 import { buildSdkScript, buildDeliveryScript } from './sdkScript'
 
@@ -72,13 +78,79 @@ describe('parseBridgeMessage', () => {
 		expect(parseBridgeMessage(msg('payments.payInvoice', {})).ok).toBe(false)
 	})
 
-	test('mainButton: recorta el texto y sin texto no es visible', () => {
+	test('mainButton: recorta el texto y normaliza solo los campos presentes', () => {
 		const r = parseBridgeMessage(msg('ui.mainButton.set', { text: '  Pagar ahora ' + 'x'.repeat(100), visible: true }))
 		expect(r.ok).toBe(true)
 		expect(r.request.params.text.length).toBe(32)
-		expect(r.request.params).toMatchObject({ visible: true, loading: false, enabled: true })
-		const empty = parseBridgeMessage(msg('ui.mainButton.set', { text: '   ', visible: true }))
-		expect(empty.request.params.visible).toBe(false)
+		// Parcial: loading/enabled no venían, así que no se tocan
+		expect(r.request.params).toEqual({ text: r.request.params.text, visible: true })
+		expect(parseBridgeMessage(msg('ui.mainButton.set', { loading: true })).request.params).toEqual({ loading: true })
+		expect(parseBridgeMessage(msg('ui.mainButton.set', {})).request.params).toEqual({})
+		// Misma tolerancia de siempre con valores raros
+		expect(parseBridgeMessage(msg('ui.mainButton.set', { visible: 'yes', enabled: 0, text: 42 })).request.params)
+			.toEqual({ visible: false, enabled: true, text: '' })
+		expect(parseBridgeMessage(msg('ui.mainButton.set', { enabled: false })).request.params).toEqual({ enabled: false })
+	})
+
+	test('mainButton: el patch se aplica sobre el estado anterior y sin texto no se muestra', () => {
+		const hidden = { text: '', visible: false, loading: false, enabled: true }
+		const shown = applyMainButtonPatch(hidden, { text: 'Pagar', visible: true })
+		expect(isMainButtonShown(shown)).toBe(true)
+		const loading = applyMainButtonPatch(shown, { loading: true })
+		expect(loading).toEqual({ text: 'Pagar', visible: true, loading: true, enabled: true })
+		expect(isMainButtonShown(loading)).toBe(true)
+		// visible antes que el texto: se muestra cuando llega el texto
+		const visibleFirst = applyMainButtonPatch(hidden, { visible: true })
+		expect(isMainButtonShown(visibleFirst)).toBe(false)
+		expect(isMainButtonShown(applyMainButtonPatch(visibleFirst, { text: 'Continuar' }))).toBe(true)
+		expect(isMainButtonShown(applyMainButtonPatch(shown, { text: '   '.trim() }))).toBe(false)
+		expect(isMainButtonShown(applyMainButtonPatch(shown, { visible: false }))).toBe(false)
+	})
+
+	test('header: subtítulo de una línea, recortado; null o vacío lo borran', () => {
+		const r = parseBridgeMessage(msg('ui.header.set', { subtitle: '  Carrito\n·\t3 productos\u0000 ' + 'x'.repeat(100) }))
+		expect(r.ok).toBe(true)
+		expect(r.request.params.subtitle.startsWith('Carrito · 3 productos x')).toBe(true)
+		expect(r.request.params.subtitle.length).toBe(48)
+		expect(r.request.params).not.toHaveProperty('actions')
+		expect(parseBridgeMessage(msg('ui.header.set', { subtitle: null })).request.params).toEqual({ subtitle: '' })
+		expect(parseBridgeMessage(msg('ui.header.set', {})).request.params).toEqual({})
+		expect(parseBridgeMessage(msg('ui.header.set', { subtitle: 42 })).error.code).toBe('INVALID_PARAMS')
+	})
+
+	test('header: acciones del catálogo, con etiqueta, máximo 2 e ids únicos', () => {
+		const ok = parseBridgeMessage(msg('ui.header.set', { actions: [
+			{ id: 'cart', icon: 'cart', label: ' Carrito ', badge: 3.7 },
+			{ id: 'search', icon: 'search', label: 'Buscar' },
+		] }))
+		expect(ok.request.params.actions).toEqual([
+			{ id: 'cart', icon: 'cart', label: 'Carrito', badge: 3 },
+			{ id: 'search', icon: 'search', label: 'Buscar', badge: 0 },
+		])
+		expect(parseBridgeMessage(msg('ui.header.set', { actions: null })).request.params).toEqual({ actions: [] })
+		expect(parseBridgeMessage(msg('ui.header.set', { actions: [] })).request.params).toEqual({ actions: [] })
+
+		const bad = (actions) => parseBridgeMessage(msg('ui.header.set', { actions })).error
+		expect(bad('cart').code).toBe('INVALID_PARAMS')
+		expect(bad([{ id: 'a', icon: 'cart', label: 'A' }, { id: 'b', icon: 'cart', label: 'B' }, { id: 'c', icon: 'cart', label: 'C' }]).message).toMatch(/at most 2/)
+		expect(bad([{ id: 'a', icon: 'rocket', label: 'A' }]).message).toMatch(/icon must be one of/)
+		expect(bad([{ id: 'a', icon: 'cart' }]).message).toMatch(/label is required/)
+		expect(bad([{ id: 'a b', icon: 'cart', label: 'A' }]).message).toMatch(/action id/)
+		expect(bad([{ id: 'a', icon: 'cart', label: 'A' }, { id: 'a', icon: 'bell', label: 'B' }]).message).toMatch(/unique/)
+		expect(bad([{ id: 'a', icon: 'cart', label: 'A', badge: -1 }]).message).toMatch(/badge/)
+		expect(bad([{ id: 'a', icon: 'cart', label: 'A', badge: '3' }]).message).toMatch(/badge/)
+	})
+
+	test('header: patch parcial y texto del badge', () => {
+		const withSub = applyHeaderPatch(EMPTY_HEADER, { subtitle: 'Hola' })
+		const both = applyHeaderPatch(withSub, { actions: [{ id: 'a', icon: 'cart', label: 'A', badge: 0 }] })
+		expect(both).toEqual({ subtitle: 'Hola', actions: [{ id: 'a', icon: 'cart', label: 'A', badge: 0 }] })
+		expect(applyHeaderPatch(both, { subtitle: '' }).actions).toHaveLength(1)
+		expect(headerBadgeText(0)).toBeNull()
+		expect(headerBadgeText(7)).toBe('7')
+		expect(headerBadgeText(99)).toBe('99')
+		expect(headerBadgeText(100)).toBe('99+')
+		expect(HEADER_ICONS).toHaveLength(21)
 	})
 
 	test('toast: obligatorio, tipo conocido y longitud acotada', () => {
@@ -169,6 +241,9 @@ describe('SDK inyectado', () => {
 		window.QvaPay.ui.toast('hola')
 		window.QvaPay.share({ text: 'hola' })
 		window.QvaPay.share()
+		window.QvaPay.ui.header.set({ subtitle: 'Carrito', actions: [{ id: 'cart', icon: 'cart', label: 'Carrito', badge: 2 }] })
+		window.QvaPay.ui.header.set()
+		expect(posted.at(-2)).toMatchObject({ method: 'ui.header.set', params: { subtitle: 'Carrito' } })
 		for (const m of posted) {
 			expect(parseBridgeMessage(JSON.stringify(m)).ok).toBe(true)
 		}
@@ -182,6 +257,14 @@ describe('SDK inyectado', () => {
 		deliver(bridgeErrorResponse(posted[1].id, { code: 'USER_CANCELLED', message: 'x' }))
 		await expect(ok).resolves.toEqual({ mode: 'light' })
 		await expect(ko).rejects.toEqual({ code: 'USER_CANCELLED', message: 'x' })
+	})
+
+	test('headerAction llega a sus listeners con el id de la acción', () => {
+		const { window, deliver } = boot()
+		const seen = []
+		window.QvaPay.on('headerAction', (d) => seen.push(d))
+		deliver(bridgeEvent('headerAction', { id: 'cart' }))
+		expect(seen).toEqual([{ id: 'cart' }])
 	})
 
 	test('eventos llegan a los listeners y themeChanged actualiza theme', () => {

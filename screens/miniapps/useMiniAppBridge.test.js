@@ -221,3 +221,110 @@ describe('useMiniAppBridge — share', () => {
 		await bridge.unmount()
 	})
 })
+
+describe('useMiniAppBridge — botón principal', () => {
+
+	afterEach(() => { jest.clearAllMocks() })
+
+	test('set es parcial: { loading: true } no esconde el botón ni borra el texto', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		await bridge.send('ui.mainButton.set', { text: 'Pagar $5.00', visible: true, enabled: true })
+		expect(bridge.state.mainButton).toEqual({ text: 'Pagar $5.00', visible: true, loading: false, enabled: true })
+		await bridge.send('ui.mainButton.set', { loading: true })
+		expect(bridge.state.mainButton).toEqual({ text: 'Pagar $5.00', visible: true, loading: true, enabled: true })
+		await bridge.send('ui.mainButton.set', { loading: false })
+		expect(bridge.state.mainButton.loading).toBe(false)
+		await bridge.send('ui.mainButton.set', { visible: false })
+		expect(bridge.state.mainButton.visible).toBe(false)
+		await bridge.unmount()
+	})
+
+	test('sin texto no se muestra, y aparece cuando llega el texto', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		await bridge.send('ui.mainButton.set', { visible: true })
+		expect(bridge.state.mainButton.visible).toBe(false)
+		await bridge.send('ui.mainButton.set', { text: 'Continuar' })
+		expect(bridge.state.mainButton).toMatchObject({ text: 'Continuar', visible: true })
+		await bridge.unmount()
+	})
+
+	test('resetUi lo devuelve al estado inicial (recargar desde el menú)', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		await bridge.send('ui.mainButton.set', { text: 'Pagar', visible: true, loading: true })
+		await act(async () => { bridge.state.resetUi() })
+		expect(bridge.state.mainButton).toEqual({ text: '', visible: false, loading: false, enabled: true })
+		await bridge.unmount()
+	})
+})
+
+describe('useMiniAppBridge — mensajes de error para el usuario', () => {
+
+	afterEach(() => { jest.clearAllMocks() })
+
+	test('KYC, origen, scope y ocupado llegan con frase en el idioma del usuario', async () => {
+		const noKyc = await renderBridge({ hasKyc: false })
+		await noKyc.send('payments.payInvoice', { invoiceUuid: UUID })
+		expect(noKyc.deliveries()[0].error).toEqual({ code: 'NOT_ALLOWED', message: 'Para continuar, verifica tu identidad en QvaPay.' })
+		await noKyc.unmount()
+
+		const bridge = await renderBridge({ hasKyc: true })
+		await act(async () => { bridge.state.onMessage({ nativeEvent: { url: 'https://evil.example.com/', data: JSON.stringify({ v: 1, id: 'q9_t', method: 'getTheme' }) } }) })
+		expect(bridge.deliveries()[0].error).toEqual({ code: 'NOT_ALLOWED', message: 'Esta página no tiene permiso para usar QvaPay.' })
+		await bridge.send('auth.requestLogin', { scopes: ['kyc'] })
+		expect(bridge.deliveries()[1].error).toEqual({ code: 'NOT_ALLOWED', message: 'Esta mini-app no puede pedir esos datos.' })
+		await bridge.send('payments.payInvoice', { invoiceUuid: UUID })
+		await bridge.send('payments.payInvoice', { invoiceUuid: UUID })
+		expect(bridge.deliveries()[2].error).toEqual({ code: 'BUSY', message: 'Ya hay otra operación abierta. Espera a que termine.' })
+		await act(async () => { bridge.state.rejectModal() })
+		expect(bridge.deliveries()[3].error).toEqual({ code: 'USER_CANCELLED', message: 'Operación cancelada.' })
+		await bridge.unmount()
+	})
+
+	test('login directo sin respuesta del backend → NETWORK con frase', async () => {
+		miniappsApi.authorize.mockResolvedValue({ success: false, error: 'Network Error', status: undefined })
+		const bridge = await renderBridge({ hasKyc: true, app: baseApp({ granted: true, granted_scopes: ['profile'] }) })
+		await bridge.send('auth.requestLogin', { scopes: ['profile'] })
+		expect(bridge.deliveries()[0].error).toEqual({ code: 'NETWORK', message: 'No se pudo conectar con QvaPay. Inténtalo de nuevo.' })
+		await bridge.unmount()
+	})
+
+	test('los errores de integración siguen siendo técnicos (para la consola del dev)', async () => {
+		const bridge = await renderBridge({ hasKyc: true })
+		await bridge.send('payments.payInvoice', { invoiceUuid: 'nope' })
+		await bridge.send('ui.fly', {})
+		expect(bridge.deliveries().map(d => d.error)).toEqual([
+			{ code: 'INVALID_PARAMS', message: 'invoiceUuid must be a UUID' },
+			{ code: 'UNKNOWN_METHOD', message: 'Unknown method ui.fly' },
+		])
+		await bridge.unmount()
+	})
+})
+
+describe('useMiniAppBridge — encabezado', () => {
+
+	afterEach(() => { jest.clearAllMocks() })
+
+	test('header.set es parcial y resetUi lo vacía', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		expect(bridge.state.header).toEqual({ subtitle: '', actions: [] })
+		await bridge.send('ui.header.set', { subtitle: 'Hola, @erich' })
+		await bridge.send('ui.header.set', { actions: [{ id: 'cart', icon: 'cart', label: 'Carrito', badge: 2 }] })
+		expect(bridge.state.header).toEqual({ subtitle: 'Hola, @erich', actions: [{ id: 'cart', icon: 'cart', label: 'Carrito', badge: 2 }] })
+		await bridge.send('ui.header.set', { subtitle: null })
+		expect(bridge.state.header.subtitle).toBe('')
+		expect(bridge.state.header.actions).toHaveLength(1)
+		expect(bridge.deliveries().every(d => d.ok)).toBe(true)
+		await act(async () => { bridge.state.resetUi() })
+		expect(bridge.state.header).toEqual({ subtitle: '', actions: [] })
+		await bridge.unmount()
+	})
+
+	test('una acción inválida se rechaza y no toca el encabezado', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		await bridge.send('ui.header.set', { subtitle: 'Antes' })
+		await bridge.send('ui.header.set', { subtitle: 'Después', actions: [{ id: 'x', icon: 'rocket', label: 'X' }] })
+		expect(bridge.state.header.subtitle).toBe('Antes')
+		expect(bridge.deliveries()[1]).toMatchObject({ ok: false, error: { code: 'INVALID_PARAMS' } })
+		await bridge.unmount()
+	})
+})

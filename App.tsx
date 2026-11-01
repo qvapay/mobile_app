@@ -268,9 +268,19 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 
 	// Mini-apps: directorio + contenedor. El host pinta su propia barra (QvaPay
 	// manda en ella) y no se cierra por gesto: un swipe accidental a mitad de un
-	// pago dejaría la hoja nativa huérfana
+	// pago dejaría la hoja nativa huérfana. En iOS 26+ esa barra es el header
+	// nativo (botones de liquid glass): sus items los pone useNativeMiniAppHeader
 	{ name: ROUTES.MINIAPPS, component: MiniApps, options: getHeaderOptions(t('navigation.headers.miniApps')) },
-	{ name: ROUTES.MINIAPP_HOST, component: MiniAppHost, options: { headerShown: false, animation: 'slide_from_bottom', gestureEnabled: false } },
+	{
+		name: ROUTES.MINIAPP_HOST,
+		component: MiniAppHost,
+		options: {
+			headerShown: supportsLiquidGlass,
+			...(supportsLiquidGlass && { headerTitle: '', headerBackVisible: false }),
+			animation: 'slide_from_bottom',
+			gestureEnabled: false,
+		},
+	},
 
 	// Savings Screen
 	{ name: ROUTES.SAVINGS_SCREEN, component: Savings, options: getHeaderOptions(t('navigation.headers.savings')) },

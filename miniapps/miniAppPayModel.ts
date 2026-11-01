@@ -27,7 +27,8 @@ export type PayOutcome =
 /**
  * Traduce el fallo del backend al código estable del SDK. El mensaje en
  * prosa NO viaja a la mini-app (puede ser español del backend o datos de la
- * cuenta): solo el código y una frase genérica.
+ * cuenta): solo el código y una frase genérica en el idioma del usuario
+ * (`payFailureError` de `screens/miniapps/bridgeErrors.ts`).
  *
  * @param status - HTTP status del fallo (undefined = sin respuesta).
  * @param backendCode - `details.code` del backend, si vino.
