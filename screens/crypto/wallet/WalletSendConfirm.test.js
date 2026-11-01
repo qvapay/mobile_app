@@ -182,9 +182,10 @@ test('el veredicto cambia con el PIN abierto: al autorizar se vuelve a mirar y n
 })
 
 test('lo marcado vale para ESE aviso: si el aviso pasa a señalar otra dirección, hay que volver a revisar', async () => {
-	// BOB2 se parece más al destino que Bob, pero solo es "de confianza" mientras su entrada no sea polvo
+	// Las dos solo MANDARON algo (ninguna pasa por delante por haberle pagado). BOB2 se parece más
+	// al destino, pero solo es "de confianza" mientras su entrada no sea polvo
 	const BOB2 = `${FAKE_BOB.slice(0, 14)}${'1'.repeat(23)}${FAKE_BOB.slice(-5)}`
-	caches[USDT_BSC.id] = cache([tx({ to: BOB })])
+	caches[USDT_BSC.id] = cache([tx({ direction: 'in', from: BOB, to: ME, amount: '50' })])
 	caches[BNB.id] = cache([tx({ direction: 'in', from: BOB2, to: ME, amount: '0.00001', symbol: 'BNB' })])
 	await render(FAKE_BOB)
 	expect(hasText(BOB2.slice(14, 37))).toBe(true)

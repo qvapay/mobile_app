@@ -143,6 +143,19 @@ describe('checkRecipient: solo se dice cuál es la buena si se le envió dinero'
 		expect(isCertainLookalike(verdict)).toBe(false)
 	})
 
+	test('se parece a Bob (pagado) y a otra MÁS parecida que solo mandó $0.50: se compara con Bob, y el aviso es seguro', () => {
+		// La segunda imitación comparte aún más con el destino; el atacante no elige qué dirección enseña el aviso
+		const closer = `${FAKE_BOB_TRON.slice(0, 12)}${'1'.repeat(15)}${FAKE_BOB_TRON.slice(-7)}`
+		expect(closer).toHaveLength(FAKE_BOB_TRON.length)
+		const history = [
+			tx({ to: BOB_TRON }),
+			tx({ direction: 'in', from: closer, to: ME_TRON, amount: '0.5' }),
+		]
+		const verdict = tron(FAKE_BOB_TRON, history)
+		expect(verdict).toEqual({ kind: 'lookalike', of: BOB_TRON, known: false, ofSent: true })
+		expect(isCertainLookalike(verdict)).toBe(true)
+	})
+
 	test('isCertainLookalike: solo cuando a `of` se le envió (o es propia) y al destino nunca', () => {
 		expect(isCertainLookalike({ kind: 'lookalike', of: BOB_TRON, known: false, ofSent: true })).toBe(true)
 		expect(isCertainLookalike({ kind: 'lookalike', of: BOB_TRON, known: false, ofSent: false })).toBe(false)

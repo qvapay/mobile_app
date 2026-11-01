@@ -139,15 +139,17 @@ export const checkRecipient = ({ kind, to, own, histories }: {
 
 	const target = key(to)
 	// `lookalikeScore` descarta el propio destino: se compara con las DEMÁS de confianza
-	let best: { of: string, score: number } | null = null
+	const ownKeys = new Set(own.map(key))
+	let best: { of: string, score: number, sent: boolean } | null = null
 	for (const [candidate, original] of trusted) {
 		const score = lookalikeScore(kind, target, candidate)
-		if (score > 0 && (!best || score > best.score)) best = { of: original, score }
+		if (score === 0) continue
+		const sent = sentTo.has(candidate) || ownKeys.has(candidate)
+		// Antes una a la que se envió (o propia) que otra más parecida que solo MANDÓ algo: así el
+		// aviso puede decir cuál es la buena, y el atacante no elige qué dirección enseña
+		if (!best || (sent && !best.sent) || (sent === best.sent && score > best.score)) best = { of: original, score, sent }
 	}
-	if (best) {
-		const ofKey = key(best.of)
-		return { kind: 'lookalike', of: best.of, known: sentTo.has(target), ofSent: sentTo.has(ofKey) || own.some(address => key(address) === ofKey) }
-	}
+	if (best) return { kind: 'lookalike', of: best.of, known: sentTo.has(target), ofSent: best.sent }
 
 	if (sentTo.has(target)) return { kind: 'known' }
 	if (suspicious.has(target) && !trusted.has(target)) return { kind: 'poisoner' }
