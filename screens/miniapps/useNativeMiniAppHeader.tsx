@@ -27,13 +27,22 @@ type Options<K extends string> = {
 	onMenu: (key: K) => void
 }
 
-// Medidas aproximadas de la barra de iOS 26 para dar al título un ANCHO FIJO: los items `custom`
-// se colocan con Auto Layout a partir del tamaño que llega de Yoga, y uno que cambia de ancho
-// (al llegar el subtítulo, por ejemplo) hace que UIKit recoloque la barra con un brinco
-const BAR_MARGIN = 16
+// Medidas de la barra de iOS 26/27 para dar al título un ANCHO FIJO: los items `custom` se
+// colocan con Auto Layout a partir del tamaño que llega de Yoga, y uno que cambia de ancho (al
+// llegar el subtítulo, por ejemplo) hace que UIKit recoloque la barra con un brinco.
+//
+// El ancho tiene que quedar POR DEBAJO de lo que cabe: react-native-screens le pone al item
+// custom resistencia a la compresión `required`, y en iOS 27, si no cabe, UIKit no lo encoge:
+// TIRA el grupo entero de la izquierda (cerrar incluido; la mini-app se quedaba solo con el ⋯),
+// y si sobra ancho a costa de la derecha, tira las acciones de la mini-app. Medido el 2026-11-01
+// con una app UIKit de prueba en un iPhone de 440 pt: con cerrar + ⋯ el máximo que cabe son
+// 288 pt = 440 − 2·20 − 2·(44 + 12); cada botón cuesta 44 + 12 de hueco.
+const BAR_MARGIN = 20
 const BAR_BUTTON = 44
-const GROUP_GAP = 12
-const MIN_TITLE = 96
+const ITEM_GAP = 12
+const SAFETY = 8
+// Antes que perder el botón de cerrar, el nombre se trunca
+const MIN_TITLE = 60
 
 /**
  * Barra de la mini-app con los items nativos del header en iOS 26+, los de liquid glass: el
@@ -66,7 +75,8 @@ export function useNativeMiniAppHeader<K extends string>(
 		const actions: HeaderAction[] = JSON.parse(actionsKey)
 		const menu: NativeMenuEntry<K>[] = JSON.parse(menuKey)
 		const isClose = backMode === 'close'
-		const titleWidth = Math.max(MIN_TITLE, windowWidth - 2 * BAR_MARGIN - (actions.length + 2) * BAR_BUTTON - 2 * GROUP_GAP)
+		const buttons = actions.length + 2 // cerrar/atrás + acciones + ⋯
+		const titleWidth = Math.max(MIN_TITLE, windowWidth - 2 * BAR_MARGIN - buttons * (BAR_BUTTON + ITEM_GAP) - SAFETY)
 
 		const left: NativeStackHeaderItem[] = [
 			{
