@@ -299,9 +299,9 @@
 				"sendingTo": "Você vai enviar para",
 				"checked": "Conferi o endereço caractere por caractere",
 				"twinTitle": "Cuidado: há outro endereço quase igual no seu histórico",
-				"twin": "Você já enviou para este endereço, mas no seu histórico há outro que começa e termina igual. Um dos dois pode ser uma imitação: confirme com quem você vai pagar qual é o endereço certo antes de enviar.",
+				"twin": "Você já enviou para este endereço, mas no seu histórico há outro que começa e termina igual. É assim que funciona um golpe conhecido: alguém coloca ali um endereço quase igual a outro que você usa, com um valor pequeno ou uma transferência de 0, para você copiá-lo sem perceber. Um dos dois pode ser uma imitação: confirme com quem você vai pagar qual é o endereço certo antes de enviar.",
 				"otherSimilar": "O outro, quase igual",
-				"similar": "No seu histórico há outro endereço que começa e termina igual a este. Um dos dois pode ser uma imitação: confirme com quem você vai pagar qual é o endereço certo antes de enviar.",
+				"similar": "No seu histórico há outro endereço que começa e termina igual a este. É assim que funciona um golpe conhecido: alguém coloca ali um endereço quase igual a outro que você usa, com um valor pequeno ou uma transferência de 0, para você copiá-lo sem perceber. Um dos dois pode ser uma imitação: confirme com quem você vai pagar qual é o endereço certo antes de enviar.",
 				"ownTitle": "Cuidado: este endereço imita o seu",
 				"own": "Começa e termina como o seu próprio endereço, mas NÃO é seu. É um golpe conhecido: imitam o seu endereço para você copiá-lo do histórico achando que é o seu.",
 				"ownLabel": "Seu endereço"

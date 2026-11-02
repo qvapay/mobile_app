@@ -81,6 +81,8 @@ const authModal = () => tree.root.find(node => node.type === 'WalletAuthModal')
 const confirmButton = () => tree.root.find(node => node.type === 'QPButton' && node.props.title === 'Confirmar y firmar')
 const texts = () => tree.root.findAllByType(Text).map(node => [].concat(node.props.children).filter(c => typeof c === 'string').join(''))
 const hasText = (text) => texts().some(value => value.includes(text))
+/** El aviso neutral explica la estafa sin señalar cuál de las dos es la falsa */
+const SCAM = 'Así funciona una estafa conocida'
 const checkbox = () => tree.root.find(node => node.props.testID === 'recipient-checked' && typeof node.type === 'string')
 
 beforeEach(() => {
@@ -106,6 +108,7 @@ test('imitación de Bob sacada del historial → aviso, y no se firma hasta marc
 	await render(FAKE_BOB)
 
 	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(true)
+	expect(hasText(SCAM)).toBe(true)
 	// Las dos direcciones, con el medio que cambia aparte
 	expect(hasText('d41F0b9C7e2A5d8E1f3B6c9a0D2e4')).toBe(true)
 	expect(hasText('1cB57D9a0C4e6F1b2D3c4E5f6A7b8')).toBe(true)
@@ -208,6 +211,7 @@ test('ya pagó una vez a la imitación (o fue el envío de prueba): el siguiente
 
 	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(true)
 	expect(hasText('La otra, casi igual')).toBe(true)
+	expect(hasText(SCAM)).toBe(true)
 	// No dice "la que ya usaste": las dos se usaron y no se sabe cuál es la de verdad
 	expect(hasText('La que ya usaste')).toBe(false)
 	expect(confirmButton().props.disabled).toBe(true)
@@ -240,6 +244,7 @@ test('Bob pagó, una imitación mandó $0.50 y el usuario le paga a Bob por prim
 
 	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(true)
 	expect(hasText('En tu historial hay otra dirección que empieza y termina igual que esta')).toBe(true)
+	expect(hasText(SCAM)).toBe(true)
 	expect(hasText('La otra, casi igual')).toBe(true)
 	expect(hasText('Cuidado: esta dirección imita a otra')).toBe(false)
 	expect(hasText('La que ya usaste')).toBe(false)
@@ -270,5 +275,7 @@ test('imita a la dirección PROPIA: la única comparación en la que el aviso pu
 	expect(hasText('Cuidado: esta dirección imita a la tuya')).toBe(true)
 	expect(hasText('Tu dirección')).toBe(true)
 	expect(hasText('Cuidado: hay otra dirección casi igual en tu historial')).toBe(false)
+	// Ya explica la estafa con su propio texto
+	expect(hasText(SCAM)).toBe(false)
 	expect(confirmButton().props.disabled).toBe(true)
 })
