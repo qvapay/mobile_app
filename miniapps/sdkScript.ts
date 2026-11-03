@@ -93,6 +93,7 @@ export function buildSdkScript(initialTheme: unknown, launchParams: { slug: stri
 			header: { set: function (state) { return post('ui.header.set', state || {}); } },
 			mainButton: { set: function (state) { return post('ui.mainButton.set', state || {}); } },
 			backButton: { set: function (state) { return post('ui.backButton.set', state || {}); } },
+			colors: { set: function (state) { return post('ui.colors.set', state || {}); } },
 			haptic: function (type) { return post('ui.haptic', { type: type || 'light' }); },
 			toast: function (message, opts) { return post('ui.toast', { message: message, type: (opts && opts.type) || 'info' }); }
 		}

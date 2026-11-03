@@ -17,6 +17,8 @@
  * de `screens/miniapps/bridgeErrors.ts`, en el idioma del usuario.
  */
 
+import { parseHexColor } from './colors'
+
 export const PROTOCOL_VERSION = 1
 
 /** Códigos de error estables del contrato público del SDK (los ve el desarrollador). */
@@ -94,6 +96,7 @@ export type BridgeRequest =
 	| { id: string, method: 'ui.mainButton.set', params: MainButtonPatch }
 	| { id: string, method: 'ui.backButton.set', params: { visible: boolean } }
 	| { id: string, method: 'ui.header.set', params: HeaderPatch }
+	| { id: string, method: 'ui.colors.set', params: UiColorsPatch }
 	| { id: string, method: 'ui.haptic', params: { type: HapticType } }
 	| { id: string, method: 'ui.toast', params: { message: string, type: ToastType } }
 	| { id: string, method: 'openLink', params: { url: string } }
@@ -111,6 +114,17 @@ export type HeaderAction = { id: string, icon: HeaderIcon, label: string, badge:
 export type HeaderState = { subtitle: string, actions: HeaderAction[] }
 /** `ui.header.set` también es PARCIAL, como el botón principal. */
 export type HeaderPatch = Partial<HeaderState>
+
+/**
+ * Colores del host que la mini-app puede teñir (`ui.colors.set`): `header` = barra
+ * superior + status bar, `background` = fondo detrás del WebView, pie del botón
+ * principal y zona del gesto inferior. `null` = el color del tema de QvaPay. La
+ * tinta (texto, iconos, status bar) la elige la app por contraste (`colors.ts`).
+ */
+export type UiColorsState = { header: string | null, background: string | null }
+/** `ui.colors.set` es PARCIAL: solo cambia lo que la mini-app manda. */
+export type UiColorsPatch = Partial<UiColorsState>
+const UI_COLOR_KEYS = ['header', 'background'] as const
 
 export type BridgeError = { code: BridgeErrorCode, message: string }
 
@@ -205,6 +219,21 @@ export function parseBridgeMessage(raw: unknown): ParseResult {
 				const actions = parseHeaderActions(params.actions)
 				if (typeof actions === 'string') return fail(id, BRIDGE_ERRORS.INVALID_PARAMS, actions)
 				patch.actions = actions
+			}
+			return { ok: true, request: { id, method, params: patch } }
+		}
+
+		case 'ui.colors.set': {
+			// ESTRICTO como `ui.header.set`: `null` devuelve esa superficie al tema; un color
+			// solo vale como hex opaco (#RGB o #RRGGBB). Claves desconocidas se ignoran
+			const patch: UiColorsPatch = {}
+			for (const key of UI_COLOR_KEYS) {
+				const value = params[key]
+				if (value === undefined) continue
+				if (value === null) { patch[key] = null; continue }
+				const hex = parseHexColor(value)
+				if (!hex) return fail(id, BRIDGE_ERRORS.INVALID_PARAMS, `${key} must be a #RRGGBB color or null`)
+				patch[key] = hex
 			}
 			return { ok: true, request: { id, method, params: patch } }
 		}
@@ -316,6 +345,14 @@ export const EMPTY_HEADER: HeaderState = { subtitle: '', actions: [] }
 
 /** Aplica un `ui.header.set` sobre el estado anterior del encabezado. */
 export function applyHeaderPatch(prev: HeaderState, patch: HeaderPatch): HeaderState {
+	return { ...prev, ...patch }
+}
+
+/** Sin colores propios: todo sale del tema de QvaPay. */
+export const EMPTY_COLORS: UiColorsState = { header: null, background: null }
+
+/** Aplica un `ui.colors.set` sobre los colores anteriores. */
+export function applyColorsPatch(prev: UiColorsState, patch: UiColorsPatch): UiColorsState {
 	return { ...prev, ...patch }
 }
 

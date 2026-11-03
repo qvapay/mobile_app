@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, StyleSheet, Pressable, Modal, BackHandler, Linking, ActivityIndicator, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SystemBars } from 'react-native-edge-to-edge'
 import { useTranslation } from 'react-i18next'
 import WebView from 'react-native-webview'
 import type { WebViewNavigation, ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes'
@@ -15,7 +16,8 @@ import { useTextStyles, useContainerStyles } from '../../theme/themeUtils'
 import i18n from '../../i18n'
 
 import { miniappsApi } from '../../api/miniappsApi'
-import { headerBadgeText, isAllowedOrigin, isBenignInternalUrl } from '../../miniapps/protocol'
+import { EMPTY_COLORS, headerBadgeText, isAllowedOrigin, isBenignInternalUrl } from '../../miniapps/protocol'
+import { INK_COLORS, inkFor } from '../../miniapps/colors'
 import { buildSdkScript } from '../../miniapps/sdkScript'
 import { useMiniAppDetail, forgetGrant } from './miniappsQueries'
 import { useMiniAppBridge, type MiniAppThemePayload } from './useMiniAppBridge'
@@ -102,7 +104,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 		return shareMiniApp(current, t, text)
 	}, [t])
 
-	const { onMessage, emit, modal, resolveModal, rejectModal, mainButton, backButtonVisible, header, resetUi } = useMiniAppBridge({
+	const { onMessage, emit, modal, resolveModal, rejectModal, mainButton, backButtonVisible, header, colors: bridgeColors, resetUi } = useMiniAppBridge({
 		app, webViewRef, theme: themePayload, onReady, onClose: close, requireKyc: requireMiniAppKyc, share: shareFromSdk,
 	})
 
@@ -213,11 +215,18 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	const icon = app?.icon ?? previewIcon ?? null
 	const subtitle = ready ? header.subtitle : ''
 	const actions = ready ? header.actions : []
+	// Colores de la mini-app (`ui.colors.set`), con la misma puerta que el encabezado. La
+	// tinta la decide la app por contraste: la mini-app no puede dejar la barra ilegible
+	const colors = ready ? bridgeColors : EMPTY_COLORS
+	const headerColor = colors.header
+	const headerInk = headerColor ? INK_COLORS[inkFor(headerColor)] : null
+	const barInk = headerInk ?? theme.colors.primaryText
+	const bgColor = colors.background ?? theme.colors.background
 
 	// iOS 26+: la barra es el header nativo (botones de liquid glass y ⋯ como UIMenu)
 	useNativeMiniAppHeader(navigation, {
 		enabled: supportsLiquidGlass,
-		backMode, title, icon, subtitle, actions,
+		backMode, title, icon, subtitle, actions, headerColor, headerInk,
 		menu: menuItems,
 		menuDisabled: !app,
 		onBack: handleBack,
@@ -226,13 +235,18 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	})
 
 	return (
-		<View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+		<View style={[styles.flex, { backgroundColor: bgColor }]}>
+			{/* Iconos de la status bar (y de la barra de gestos en Android) a juego con los colores de
+			    la mini-app; sin colores no se toca nada y al salir la pila de SystemBars restaura lo anterior */}
+			{colors.header || colors.background ? (
+				<SystemBars style={{ statusBar: colors.header ? inkFor(colors.header) : 'auto', navigationBar: colors.background ? inkFor(colors.background) : 'auto' }} />
+			) : null}
 
 			{/* Barra superior propia (Android, iOS < 26; en iOS 26+ es el header nativo): QvaPay
 			    manda aquí, la mini-app no puede taparla. La mini-app solo aporta subtítulo y
 			    acciones; nombre y logo son los registrados */}
 			{supportsLiquidGlass ? null : (
-			<View style={[styles.topBar, { paddingTop: insets.top + 6, borderBottomColor: theme.colors.border }]}>
+			<View style={[styles.topBar, { paddingTop: insets.top + 6, backgroundColor: headerColor ?? undefined, borderBottomColor: headerColor ? 'transparent' : theme.colors.border }]}>
 				{/* Lados asimétricos a propósito: con acciones, el nombre usa el espacio que queda
 				    en vez de reservar a la izquierda un hueco igual al de la derecha */}
 				<View style={styles.side}>
@@ -245,26 +259,26 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 						accessibilityLabel={backMode === 'close' ? t('common.actions.close') : t('common.actions.back')}
 						accessibilityHint={backMode === 'close' ? undefined : t('miniapps.host.backHint')}
 					>
-						<FontAwesome6 name={backMode === 'close' ? 'xmark' : 'chevron-left'} size={18} color={theme.colors.primaryText} iconStyle="solid" />
+						<FontAwesome6 name={backMode === 'close' ? 'xmark' : 'chevron-left'} size={18} color={barInk} iconStyle="solid" />
 					</Pressable>
 				</View>
-				<MiniAppHeaderTitle name={title} icon={icon} subtitle={subtitle} style={styles.titleWrap} />
+				<MiniAppHeaderTitle name={title} icon={icon} subtitle={subtitle} ink={headerInk} style={styles.titleWrap} />
 				<View style={[styles.side, styles.sideRight]}>
 					{actions.map(action => {
 						const badge = headerBadgeText(action.badge)
 						return (
 							<Pressable key={action.id} onPress={() => emit('headerAction', { id: action.id })} hitSlop={6} style={styles.topButton} accessibilityRole="button" accessibilityLabel={badge ? `${action.label} (${badge})` : action.label}>
-								<FontAwesome6 name={HEADER_ICON_GLYPHS[action.icon]} size={18} color={theme.colors.primaryText} iconStyle="solid" />
+								<FontAwesome6 name={HEADER_ICON_GLYPHS[action.icon]} size={18} color={barInk} iconStyle="solid" />
 								{badge ? (
-									<View style={[styles.badge, { backgroundColor: theme.colors.primary, borderColor: theme.colors.background }]}>
-										<Text style={styles.badgeText}>{badge}</Text>
+									<View style={[styles.badge, headerColor && headerInk ? { backgroundColor: headerInk, borderColor: headerColor } : { backgroundColor: theme.colors.primary, borderColor: theme.colors.background }]}>
+										<Text style={[styles.badgeText, headerColor ? { color: headerColor } : null]}>{badge}</Text>
 									</View>
 								) : null}
 							</Pressable>
 						)
 					})}
 					<Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={styles.topButton} disabled={!app} accessibilityRole="button" accessibilityLabel={t('miniapps.host.menu')}>
-						<FontAwesome6 name="ellipsis" size={18} color={theme.colors.primaryText} iconStyle="solid" />
+						<FontAwesome6 name="ellipsis" size={18} color={barInk} iconStyle="solid" />
 					</Pressable>
 				</View>
 			</View>
@@ -279,7 +293,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 						key={webViewKey}
 						ref={webViewRef}
 						source={{ uri: app.entry_url }}
-						style={[styles.flex, { backgroundColor: theme.colors.background }]}
+						style={[styles.flex, { backgroundColor: bgColor }]}
 						injectedJavaScriptBeforeContentLoaded={sdkScript}
 						injectedJavaScriptBeforeContentLoadedForMainFrameOnly
 						onMessage={onMessage}
@@ -328,7 +342,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 
 			{/* Botón principal nativo: lo controla la mini-app, lo pinta QvaPay */}
 			{mainButton.visible && ready && !loadError ? (
-				<View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12), borderTopColor: theme.colors.border }]}>
+				<View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12), backgroundColor: bgColor, borderTopColor: colors.background ? 'transparent' : theme.colors.border }]}>
 					<QPButton
 						title={mainButton.text}
 						onPress={() => emit('mainButton')}

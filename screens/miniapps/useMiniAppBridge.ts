@@ -7,8 +7,10 @@ import { toast } from 'sonner-native'
 
 import { miniappsApi } from '../../api/miniappsApi'
 import {
+	EMPTY_COLORS,
 	EMPTY_HEADER,
 	MODAL_METHODS,
+	applyColorsPatch,
 	applyHeaderPatch,
 	applyMainButtonPatch,
 	bridgeErrorResponse,
@@ -24,6 +26,7 @@ import {
 	type HeaderState,
 	type MainButtonState,
 	type MiniAppScope,
+	type UiColorsState,
 } from '../../miniapps/protocol'
 import { buildDeliveryScript } from '../../miniapps/sdkScript'
 import { authorizeFailureError, bridgeErrors } from './bridgeErrors'
@@ -102,6 +105,8 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 	const [backButtonVisible, setBackButtonVisible] = useState(false)
 	// Subtítulo y acciones del encabezado nativo (nombre y logo salen del registro)
 	const [header, setHeader] = useState<HeaderState>(EMPTY_HEADER)
+	// Colores del host que tiñe la mini-app (barra + status bar, fondo); null = tema
+	const [colors, setColors] = useState<UiColorsState>(EMPTY_COLORS)
 
 	// Refs espejo: el dispatcher es estable y lee siempre lo último
 	const appRef = useRef(app)
@@ -193,6 +198,10 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 				setHeader(prev => applyHeaderPatch(prev, request.params))
 				respond(request.id)
 				return
+			case 'ui.colors.set':
+				setColors(prev => applyColorsPatch(prev, request.params))
+				respond(request.id)
+				return
 			case 'ui.haptic':
 				ReactNativeHapticFeedback.trigger(HAPTICS[request.params.type], { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
 				respond(request.id)
@@ -276,6 +285,7 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 		setMainButton(HIDDEN_MAIN_BUTTON)
 		setBackButtonVisible(false)
 		setHeader(EMPTY_HEADER)
+		setColors(EMPTY_COLORS)
 	}, [])
 
 	// Lo que la pantalla pinta: `visible` ya cuenta con la regla "sin texto no hay botón"
@@ -283,5 +293,5 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 	// `set({ visible: true })` lo muestre)
 	const shownMainButton = useMemo(() => ({ ...mainButton, visible: isMainButtonShown(mainButton) }), [mainButton])
 
-	return { onMessage, emit, modal, resolveModal, rejectModal, mainButton: shownMainButton, backButtonVisible, header, resetUi }
+	return { onMessage, emit, modal, resolveModal, rejectModal, mainButton: shownMainButton, backButtonVisible, header, colors, resetUi }
 }

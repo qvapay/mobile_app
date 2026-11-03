@@ -11,6 +11,8 @@ type Props = {
 	icon: string | null
 	/** El que pone la mini-app con `ui.header.set`; vacío = una sola línea. */
 	subtitle?: string | null
+	/** Tinta sobre una barra teñida por la mini-app (`ui.colors.set`); sin ella, los colores del tema. */
+	ink?: string | null
 	style?: StyleProp<ViewStyle>
 }
 
@@ -19,7 +21,7 @@ type Props = {
  * subtítulo de la mini-app. La comparten la barra propia (Android, iOS < 26) y la nativa de
  * iOS 26+, donde va como item `custom` junto al botón de cerrar/atrás.
  */
-const MiniAppHeaderTitle = ({ name, icon, subtitle, style }: Props) => {
+const MiniAppHeaderTitle = ({ name, icon, subtitle, ink, style }: Props) => {
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	return (
@@ -27,11 +29,11 @@ const MiniAppHeaderTitle = ({ name, icon, subtitle, style }: Props) => {
 			<MiniAppIcon app={{ name, icon }} size={22} />
 			<View style={styles.text}>
 				<View style={styles.row}>
-					<Text style={[textStyles.h5, styles.name, { color: theme.colors.primaryText }]} numberOfLines={1}>{name}</Text>
-					<FontAwesome6 name="circle-check" size={12} color={theme.colors.primary} iconStyle="solid" style={styles.verified} />
+					<Text style={[textStyles.h5, styles.name, { color: ink ?? theme.colors.primaryText }]} numberOfLines={1}>{name}</Text>
+					<FontAwesome6 name="circle-check" size={12} color={ink ?? theme.colors.primary} iconStyle="solid" style={styles.verified} />
 				</View>
 				{subtitle ? (
-					<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]} numberOfLines={1}>{subtitle}</Text>
+					<Text style={[textStyles.h7, ink ? { color: ink, opacity: 0.7 } : { color: theme.colors.secondaryText }]} numberOfLines={1}>{subtitle}</Text>
 				) : null}
 			</View>
 		</View>

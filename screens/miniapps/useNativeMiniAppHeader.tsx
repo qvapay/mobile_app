@@ -20,6 +20,9 @@ type Options<K extends string> = {
 	icon: string | null
 	subtitle: string
 	actions: HeaderAction[]
+	/** Color de la barra puesto por la mini-app (`ui.colors.set`) y su tinta; null = tema. */
+	headerColor: string | null
+	headerInk: string | null
 	menu: NativeMenuEntry<K>[]
 	menuDisabled: boolean
 	onBack: () => void
@@ -61,14 +64,21 @@ export function useNativeMiniAppHeader<K extends string>(
 	const { theme } = useTheme()
 	const { width: windowWidth } = useWindowDimensions()
 
-	const { enabled, backMode, title, icon, subtitle, menuDisabled, onBack, onAction, onMenu } = options
+	const { enabled, backMode, title, icon, subtitle, headerColor, headerInk, menuDisabled, onBack, onAction, onMenu } = options
 	const handlers = useRef({ onBack, onAction, onMenu })
 	useLayoutEffect(() => { handlers.current = { onBack, onAction, onMenu } })
 
 	// Claves estables: el padre recrea los arrays en cada render
 	const actionsKey = JSON.stringify(options.actions)
 	const menuKey = JSON.stringify(options.menu)
-	const badgeColor = theme.colors.primary
+	// La barra nativa ya es opaca con el fondo del tema (stackScreenOptions de App.tsx);
+	// teñirla es cambiar ese color. `headerTintColor` pinta los SF Symbols de los items
+	const barColor = headerColor ?? theme.colors.background
+	const tintColor = headerInk ?? theme.colors.primaryText
+	const badgeStyle = headerColor && headerInk
+		? { backgroundColor: headerInk, color: headerColor }
+		: { backgroundColor: theme.colors.primary, color: '#FFFFFF' }
+	const badgeKey = JSON.stringify(badgeStyle)
 
 	useLayoutEffect(() => {
 		if (!enabled) return
@@ -87,7 +97,7 @@ export function useNativeMiniAppHeader<K extends string>(
 			},
 			{
 				type: 'custom',
-				element: <MiniAppHeaderTitle name={title} icon={icon} subtitle={subtitle} style={{ width: titleWidth }} />,
+				element: <MiniAppHeaderTitle name={title} icon={icon} subtitle={subtitle} ink={headerInk} style={{ width: titleWidth }} />,
 				hidesSharedBackground: true,
 			},
 		]
@@ -101,7 +111,7 @@ export function useNativeMiniAppHeader<K extends string>(
 					icon: { type: 'sfSymbol', name: HEADER_ICON_SF_SYMBOLS[action.icon] },
 					onPress: () => handlers.current.onAction(action.id),
 					accessibilityLabel: badge ? `${action.label} (${badge})` : action.label,
-					...(badge ? { badge: { value: badge, style: { backgroundColor: badgeColor, color: '#FFFFFF' } } } : null),
+					...(badge ? { badge: { value: badge, style: JSON.parse(badgeKey) } } : null),
 				}
 			}),
 			{
@@ -121,6 +131,11 @@ export function useNativeMiniAppHeader<K extends string>(
 			},
 		]
 
-		navigation.setOptions({ unstable_headerLeftItems: () => left, unstable_headerRightItems: () => right })
-	}, [enabled, navigation, backMode, title, icon, subtitle, actionsKey, menuKey, menuDisabled, windowWidth, badgeColor, t])
+		navigation.setOptions({
+			headerStyle: { backgroundColor: barColor },
+			headerTintColor: tintColor,
+			unstable_headerLeftItems: () => left,
+			unstable_headerRightItems: () => right,
+		})
+	}, [enabled, navigation, backMode, title, icon, subtitle, headerInk, barColor, tintColor, badgeKey, actionsKey, menuKey, menuDisabled, windowWidth, t])
 }
