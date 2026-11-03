@@ -3,41 +3,34 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
 
-import QPAddress from '../../ui/particles/QPAddress'
-import { isWalletFieldName } from '../../helpers/addressHighlight'
-import type { Theme } from '../../theme/ThemeContext'
-import type { TextStyles } from '../../theme/themeUtils'
+import QPAddress from './particles/QPAddress'
+import { isWalletFieldName } from '../helpers/addressHighlight'
+import { normalizeMethodDetails } from '../screens/withdraw/paymentMethodDetails'
+import type { SavedPaymentMethod } from '../screens/withdraw/paymentMethodDetails'
+import type { Theme } from '../theme/ThemeContext'
+import type { TextStyles } from '../theme/themeUtils'
 
-/**
- * Método de pago guardado (`GET /user/payment-methods`). Los detalles llegan en
- * `details` o `Details`, como array de pares o como mapa plano — ambos se pintan.
- */
-export type SavedPaymentMethod = {
-	id?: number | string
-	uuid?: string
-	name?: string
-	coin?: { tick?: string, name?: string } | string
-	tick?: string
-	ticker?: string
-	details?: SavedMethodDetail[] | Record<string, unknown> | null
-	Details?: SavedMethodDetail[] | Record<string, unknown> | null
-}
-
-/** Par etiqueta/valor de un método guardado: el backend ha usado los cuatro nombres. */
-export type SavedMethodDetail = { name?: string, key?: string, value?: string, val?: string }
+// El tipo vive en el módulo puro; se re-exporta para quien importe del modal
+export type { SavedPaymentMethod, SavedMethodDetail } from '../screens/withdraw/paymentMethodDetails'
 
 type SavedMethodsModalProps = {
 	visible: boolean
 	onClose: () => void
 	loading?: boolean
+	/** Ya filtrados a la moneda en curso (`methodsForCoin`). */
 	methods?: SavedPaymentMethod[]
 	onSelect: (method: SavedPaymentMethod) => void
+	/** Con ella, el estado vacío enlaza a Ajustes → Métodos de pago. */
+	onManage?: () => void
 	theme: Theme
 	textStyles: TextStyles
 }
 
-// Picker for the user's saved payment methods (filtered to the selected coin).
-const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme, textStyles }: SavedMethodsModalProps) => {
+/**
+ * El «librito»: los métodos de pago guardados del usuario para la moneda elegida
+ * (retiro y creación de oferta P2P). Tocar uno vuelca sus detalles en el formulario.
+ */
+const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, onManage, theme, textStyles }: SavedMethodsModalProps) => {
 
 	const { t } = useTranslation()
 
@@ -45,7 +38,7 @@ const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme
 		<Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
 			<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
 				<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-					<Text style={textStyles.h4}>{t('p2p.savedMethods.title')}</Text>
+					<Text style={textStyles.h4}>{t('ui.savedMethods.title')}</Text>
 					<Pressable onPress={onClose} style={styles.closeButton}>
 						<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 					</Pressable>
@@ -54,14 +47,13 @@ const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme
 				<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
 					{loading ? (
 						<View style={styles.loadingContainer}>
-							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>{t('p2p.savedMethods.loading')}</Text>
+							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>{t('ui.savedMethods.loading')}</Text>
 						</View>
 					) : (methods || []).length > 0 ? (
 						(methods || []).map((method) => {
 							// `coin` puede venir como objeto o como tick suelto — solo el objeto tiene `name`
-							const name = method?.name || (method?.coin as { name?: string } | undefined)?.name || t('p2p.savedMethods.fallbackName')
-							const rawDetails = (method && (method.details || method.Details)) || null
-							const methodDetails: SavedMethodDetail[] = Array.isArray(rawDetails) ? rawDetails : rawDetails && typeof rawDetails === 'object' ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? '') })) : []
+							const name = method?.name || (method?.coin as { name?: string } | undefined)?.name || t('ui.savedMethods.fallbackName')
+							const methodDetails = normalizeMethodDetails(method?.details ?? method?.Details)
 							return (
 								<Pressable key={method.id || method.uuid || JSON.stringify(method)} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => onSelect(method)}>
 									<View style={{ flex: 1 }}>
@@ -69,11 +61,11 @@ const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme
 										{methodDetails.length > 0 && (
 											<View style={{ marginTop: 6, gap: 4 }}>
 												{methodDetails.slice(0, 4).map((d) => (
-													<View key={d.name || d.key} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-														<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
-														{isWalletFieldName(d.name || d.key)
-															? <QPAddress address={(d.value || d.val) as string} visible={{ head: 8, tail: 8 }} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle" />
-															: <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>}
+													<View key={d.name} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+														<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name}</Text>
+														{isWalletFieldName(d.name)
+															? <QPAddress address={d.value} visible={{ head: 8, tail: 8 }} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle" />
+															: <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value}</Text>}
 													</View>
 												))}
 											</View>
@@ -84,7 +76,12 @@ const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme
 						})
 					) : (
 						<View style={styles.loadingContainer}>
-							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>{t('p2p.savedMethods.empty')}</Text>
+							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText, textAlign: 'center' }]}>{t('ui.savedMethods.empty')}</Text>
+							{onManage && (
+								<Pressable onPress={onManage} hitSlop={8} accessibilityRole="button" testID="saved-methods-manage" style={{ marginTop: 12 }}>
+									<Text style={[textStyles.h6, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('ui.savedMethods.manage')}</Text>
+								</Pressable>
+							)}
 						</View>
 					)}
 				</ScrollView>

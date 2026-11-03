@@ -17,10 +17,13 @@ import { isCryptoCoin } from './withdrawDestination'
 import type { WithdrawDestination } from './withdrawDestination'
 import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, keyFromFieldName } from './withdrawFees'
 import type { WorkingForm } from './withdrawFees'
-import { calculateCashFee, cashZoneModeFor, findZone, grossFromNetCash, hasCashZoneFields, meetsZoneMinimum } from './cashZones'
+import { calculateCashFee, cashZoneModeFor, findZone, grossFromNetCash, hasCashZoneFields, meetsZoneMinimum, savedCashPlace } from './cashZones'
 import type { CashFeeBreakdown } from './cashZones'
 import { useCashZonesQuery } from './withdrawQueries'
+import { detailsToForm, methodsForCoin } from './paymentMethodDetails'
+import type { SavedPaymentMethod } from './paymentMethodDetails'
 import useCoins from '../../hooks/useCoins'
+import { usePaymentMethodsQuery } from '../../hooks/usePaymentMethodsQuery'
 
 // API
 import { withdrawApi } from '../../api/withdrawApi'
@@ -285,6 +288,25 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	const receiveUsd = feeBreakdown ? Math.round((Number(amountQUSD) - feeBreakdown.total) * 100) / 100 : 0
 	const belowZoneMin = !!cashZone && !!feeBreakdown && !meetsZoneMinimum(cashZone, receiveUsd)
 
+	// El «librito»: los métodos de pago guardados de la moneda elegida (paridad con el
+	// retiro de la web). Solo rellenan el formulario — `POST /withdraw` no sabe de ids
+	// de método — así que un fallo de la petición es silencio: se teclea a mano como antes
+	const { data: savedMethods } = usePaymentMethodsQuery(!!selectedCoin)
+	const savedForCoin = useMemo(() => methodsForCoin(savedMethods, selectedCoin?.tick), [savedMethods, selectedCoin])
+
+	/** Vuelca un método guardado en los campos (sustituye lo tecleado). */
+	const applySavedMethod = (method: SavedPaymentMethod) => {
+		const form = detailsToForm(method?.details ?? method?.Details, workingFields)
+		if (cashMode && provinceKey && municipalityKey) {
+			// Un método del formulario viejo trae el código de provincia o una ciudad: se traduce al tarifario
+			const place = savedCashPlace(cashMode.zones, { province: form[provinceKey], municipality: form[municipalityKey] })
+			form[provinceKey] = place.province
+			form[municipalityKey] = place.municipality
+		}
+		setWorkingForm(form)
+		if (isCrypto) setDestination('personal')
+	}
+
 	// Mínimo y máximo de la moneda sobre el bruto: el servidor los mira después del PIN
 	const amountLimit = useMemo(() => (sourceSats ? null : amountLimitIssue(amountQUSD, selectedCoin)), [sourceSats, amountQUSD, selectedCoin])
 
@@ -359,6 +381,8 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		workingFields, workingForm, setWorkingForm, selectFeePct, previewFee,
 		// Entrega de efectivo por zonas
 		cashMode, cashZone, provinceKey, municipalityKey, feeBreakdown, receiveUsd, belowZoneMin, cashZonesStatus, retryCashZones,
+		// Métodos de pago guardados
+		savedForCoin, applySavedMethod,
 		// Validación y limpieza
 		isFormValid, resetAmounts,
 	}

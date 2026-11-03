@@ -10,7 +10,7 @@ import QPKeyboardView from "../../ui/QPKeyboardView"
 import QPButton from "../../ui/particles/QPButton"
 import QPCoinPicker from "../../ui/QPCoinPicker"
 import P2PCreateForm from "./P2PCreateForm"
-import SavedMethodsModal from "./SavedMethodsModal"
+import SavedMethodsModal from "../../ui/SavedMethodsModal"
 import P2PRequirementsGate from "./P2PRequirementsGate"
 import { missingP2PRequirements } from "./p2pRequirements"
 import { checkCreateRange } from "./p2pFlexible"
@@ -38,8 +38,8 @@ import { ROUTES } from "../../routes"
 import type { NativeStackScreenProps } from "@react-navigation/native-stack"
 import type { RootStackParamList } from "../../types/navigation"
 import type { Coin, CoinWorkingField, P2POffer } from "../../types/domain"
-import type { SavedPaymentMethod } from "./SavedMethodsModal"
-import { detailsToForm } from "../withdraw/paymentMethodDetails"
+import { detailsToForm, methodsForCoin, unwrapMethodsPayload } from "../withdraw/paymentMethodDetails"
+import type { SavedPaymentMethod } from "../withdraw/paymentMethodDetails"
 
 /** Estado del formulario de creación (montos como string: son inputs). */
 export type P2PCreateFormState = {
@@ -278,14 +278,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 		userApi.getPaymentMethods()
 			.then((res) => {
 				if (res.success) {
-					// userApi.getPaymentMethods tipa `data` genérico: el array llega pelado
-					// o envuelto en `{ methods }` según la versión del backend
-					const raw: SavedPaymentMethod[] = Array.isArray(res.data) ? res.data as SavedPaymentMethod[] : ((res.data as { methods?: SavedPaymentMethod[] } | undefined)?.methods || [])
-					const filtered = raw.filter((m) => {
-						const tick = (m?.coin as { tick?: string } | undefined)?.tick || m?.tick || m?.coin || m?.ticker
-						return String(tick || "").toLowerCase() === String(selectedCoin?.tick || "").toLowerCase()
-					})
-					setSavedMethods(filtered)
+					setSavedMethods(methodsForCoin(unwrapMethodsPayload(res.data), selectedCoin.tick))
 					setShowSavedMethods(true)
 				} else { toast.error(res.error || t('p2p.create.toasts.methodsLoadFailed')) }
 			})
@@ -362,6 +355,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 				loading={savedMethodsLoading}
 				methods={savedMethods}
 				onSelect={handleSelectSavedMethod}
+				onManage={() => { setShowSavedMethods(false); navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.PAYMENT_METHODS, initial: false }) }}
 				theme={theme}
 				textStyles={textStyles}
 			/>

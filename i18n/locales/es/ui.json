@@ -172,5 +172,12 @@
 		"languageLabel": "Idioma del texto legal",
 		"cancel": "Cancelar",
 		"confirm": "Certificar y continuar"
+	},
+	"savedMethods": {
+		"title": "Seleccionar método guardado",
+		"loading": "Cargando métodos...",
+		"fallbackName": "Método",
+		"empty": "No hay métodos guardados para esta moneda",
+		"manage": "Gestionar métodos de pago"
 	}
 }

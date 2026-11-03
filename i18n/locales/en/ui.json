@@ -172,5 +172,12 @@
 		"languageLabel": "Legal text language",
 		"cancel": "Cancel",
 		"confirm": "Certify and continue"
+	},
+	"savedMethods": {
+		"title": "Select a saved method",
+		"loading": "Loading methods...",
+		"fallbackName": "Method",
+		"empty": "No saved methods for this coin",
+		"manage": "Manage payment methods"
 	}
 }

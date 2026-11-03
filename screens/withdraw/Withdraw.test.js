@@ -32,6 +32,8 @@ jest.mock('../../api/client', () => ({
 jest.mock('../../api/withdrawApi', () => ({
 	withdrawApi: { requestPin: jest.fn(), withdraw: jest.fn(), decodeLightning: jest.fn(), cashZones: jest.fn() },
 }))
+jest.mock('../../api/userApi', () => ({ userApi: { getPaymentMethods: jest.fn() } }))
+jest.mock('../../ui/SavedMethodsModal', () => 'SavedMethodsModal')
 let mockCoinCatalog = []
 jest.mock('../../hooks/useCoins', () => ({
 	__esModule: true,
@@ -54,6 +56,7 @@ import { QueryClient, QueryClientProvider, defaultScheduler, notifyManager } fro
 import { useAuth } from '../../auth/AuthContext'
 import apiClient from '../../api/client'
 import { withdrawApi } from '../../api/withdrawApi'
+import { userApi } from '../../api/userApi'
 import { toast } from 'sonner-native'
 import Withdraw from './Withdraw'
 
@@ -184,6 +187,7 @@ beforeEach(() => {
 	withdrawApi.withdraw.mockResolvedValue({ success: true, data: {} })
 	withdrawApi.decodeLightning.mockResolvedValue({ success: true, data: { kind: 'bolt11', amount_sat: 150000, description: 'test', expires_at: null } })
 	withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'USDCASH', margin_pct: 1, zones: [] } })
+	userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [] })
 })
 afterEach(() => {
 	for (const client of clients) {
@@ -784,5 +788,102 @@ describe('cash delivery zones', () => {
 		await pickZone(tree)
 		await typeCoinAmount(tree, '190')
 		expect(amountCard(tree).props.amountQUSD).toBe('200')
+	})
+})
+
+describe('saved payment methods (el librito)', () => {
+	const CUP_METHOD = { id: '7', name: 'Mi CUP', coin: { tick: 'bank_cup', name: 'Banco CUP' }, details: { 'Card Number': '9224061799991234', 'Full Name': 'Ana Pérez' } }
+	const USDT_METHOD = { id: '8', name: 'Mi USDT', coin: { tick: 'USDT' }, details: [{ name: 'Wallet Address', value: 'TXYZ' }] }
+	const savedModal = (tree) => tree.root.findByType('SavedMethodsModal')
+	const openBook = (tree) => act(async () => { tree.root.findByType('WithdrawAccountFields').props.onOpenSaved() })
+
+	test('sin moneda no se piden; con moneda, el libro abre la hoja con SOLO los de esa moneda', async () => {
+		userApi.getPaymentMethods.mockResolvedValue({ success: true, data: { methods: [CUP_METHOD, USDT_METHOD, { id: '9', coin: null, details: {} }] } })
+		const tree = await renderWithdraw()
+		expect(userApi.getPaymentMethods).not.toHaveBeenCalled()
+		expect(savedModal(tree).props.visible).toBe(false)
+		await selectCoin(tree, CUP)
+		expect(userApi.getPaymentMethods).toHaveBeenCalledTimes(1)
+		await openBook(tree)
+		expect(savedModal(tree).props.visible).toBe(true)
+		expect(savedModal(tree).props.methods).toEqual([CUP_METHOD])
+	})
+
+	test('elegir un método rellena los campos, cierra la hoja y el retiro sale con esos details', async () => {
+		userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [CUP_METHOD] })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CUP)
+		await typeQUSD(tree, '100')
+		await openBook(tree)
+		await act(async () => { savedModal(tree).props.onSelect(CUP_METHOD) })
+		expect(savedModal(tree).props.visible).toBe(false)
+		expect(tree.root.findByType('WithdrawAccountFields').props.workingForm).toEqual({ card_number: '9224061799991234', full_name: 'Ana Pérez' })
+		expect(footerButton(tree).props.disabled).toBe(false)
+		await pressFooter(tree)
+		await attest(tree)
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith(expect.objectContaining({
+			coin: 'BANK_CUP',
+			details: { 'Card Number': '9224061799991234', 'Full Name': 'Ana Pérez' },
+		}))
+	})
+
+	test('un fallo al cargar los métodos no molesta: la hoja sale vacía y se teclea a mano', async () => {
+		userApi.getPaymentMethods.mockResolvedValue({ success: false, error: 'No autorizado', status: 500 })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CUP)
+		await openBook(tree)
+		expect(toast.error).not.toHaveBeenCalled()
+		expect(savedModal(tree).props.methods).toEqual([])
+		expect(tree.root.findAllByProps({ testID: 'cash-zones-error' })).toHaveLength(0)
+	})
+
+	test('«Gestionar» cierra la hoja y lleva a Ajustes → Métodos de pago', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CUP)
+		await openBook(tree)
+		await act(async () => { savedModal(tree).props.onManage() })
+		expect(savedModal(tree).props.visible).toBe(false)
+		expect(navigation.navigate).toHaveBeenCalledWith('SettingsStack', { screen: 'PaymentMethods', initial: false })
+	})
+
+	test('en efectivo por zonas, el lugar guardado con el formulario viejo se traduce al tarifario', async () => {
+		const CASH_ZONED = {
+			tick: 'CASHZ', name: 'Cash zones', price: '1', stable: true, fee_out: '1', fee_out_fixed: null, decimals: 2, logo: 'usdcash',
+			working_data: [
+				{ name: 'Nombre y Apellidos', type: 'text' },
+				{ name: 'Provincia', type: 'select', options: [{ value: 'Villa Clara', fee_pct: 5 }] },
+				{ name: 'Municipio', type: 'text' },
+			],
+		}
+		const SANTA_CLARA = {
+			id: '1', coin_tick: 'CASHZ', province_code: 'VCL', province_name: 'Villa Clara', municipality: 'Santa Clara',
+			is_capital: true, provider_pct: 3, margin_pct: null, min_usd: 50, small_flat_usd: 4,
+			eta_min_hours: 24, eta_max_hours: 48, home_delivery: true, route: 'p2p', enabled: true,
+		}
+		mockCoinCatalog = [CASH_ZONED]
+		withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'CASHZ', margin_pct: 1, zones: [SANTA_CLARA] } })
+		// Guardado cuando "Provincia" era un select de ciudades y el municipio iba en código
+		const OLD_PLACE = { id: '3', name: 'Casa', coin: { tick: 'CASHZ' }, details: { 'Nombre y Apellidos': 'Juan', Provincia: 'Santa Clara', Municipio: 'santa clara' } }
+		userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [OLD_PLACE] })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_ZONED)
+		await openBook(tree)
+		await act(async () => { savedModal(tree).props.onSelect(OLD_PLACE) })
+		const zoneNode = tree.root.findByType('WithdrawAccountFields').props.slot.node
+		expect(zoneNode.props.province).toBe('Villa Clara')
+		expect(zoneNode.props.municipality).toBe('Santa Clara')
+		expect(zoneNode.props.zone.id).toBe('1')
+	})
+
+	test('con una moneda cripto, elegir un método marca el destino como wallet propia', async () => {
+		userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [USDT_METHOD] })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, USDT)
+		await act(async () => { tree.root.findByType('WithdrawDestinationSelector').props.onSelect('personal') })
+		await openBook(tree)
+		await act(async () => { savedModal(tree).props.onSelect(USDT_METHOD) })
+		expect(tree.root.findByType('WithdrawAccountFields').props.workingForm).toEqual({ wallet_address: 'TXYZ' })
+		expect(tree.root.findByType('WithdrawDestinationSelector').props.destination).toBe('personal')
 	})
 })

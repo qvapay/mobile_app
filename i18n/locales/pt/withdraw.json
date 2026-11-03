@@ -54,6 +54,9 @@
 	"accountFields": {
 		"title": "Dados da sua conta:"
 	},
+	"savedMethods": {
+		"open": "Usar um método salvo"
+	},
 	"destination": {
 		"question": "Para onde você vai enviar os fundos?",
 		"personalTitle": "Saque para wallet pessoal",
