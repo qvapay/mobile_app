@@ -299,9 +299,9 @@
 				"sendingTo": "You’re sending to",
 				"checked": "I’ve checked the address character by character",
 				"twinTitle": "Careful: there’s a near-identical address in your history",
-				"twin": "You’ve sent to this address before, but your history has another one that starts and ends the same. One of them may be an imitation: check with the person you’re paying which one is theirs before you send.",
+				"twin": "You’ve sent to this address before, but your history has another one that starts and ends the same. This is how a known scam works: someone gets a lookalike of an address you use into your history, through a small amount or a 0-value transfer, so you copy it from there without noticing. One of them may be an imitation: check with the person you’re paying which one is theirs before you send.",
 				"otherSimilar": "The other, near-identical one",
-				"similar": "Your history has another address that starts and ends the same as this one. One of them may be an imitation: check with the person you’re paying which one is theirs before you send.",
+				"similar": "Your history has another address that starts and ends the same as this one. This is how a known scam works: someone gets a lookalike of an address you use into your history, through a small amount or a 0-value transfer, so you copy it from there without noticing. One of them may be an imitation: check with the person you’re paying which one is theirs before you send.",
 				"ownTitle": "Careful: this address imitates yours",
 				"own": "It starts and ends like your own address, but it is NOT yours. This is a known scam: someone imitates your address so you copy it from your history thinking it’s yours.",
 				"ownLabel": "Your address"
