@@ -23,6 +23,8 @@ type P2PChatSheetProps = {
 	containerStyles: ContainerStyles
 	/** Todo el estado del chat lo sigue poseyendo la PANTALLA (badge de no leídos). */
 	chatPanelProps: Omit<P2PChatPanelProps, 'theme' | 'textStyles' | 'containerStyles' | 'show_header' | 'wrapStyle'>
+	/** Menú ⋯ de la contraparte (reportar · bloquear), como el menú del chat de la web. */
+	onMoreCounterparty?: () => void
 }
 
 /**
@@ -42,7 +44,7 @@ type P2PChatSheetProps = {
  * (window Dialog + edge-to-edge) nunca llegan. Inline + insets del window es lo
  * que hace funcionar la caja de escritura en ambas plataformas.
  */
-const P2PChatSheet = ({ visible, onClose, insets, theme, textStyles, containerStyles, chatPanelProps }: P2PChatSheetProps) => {
+const P2PChatSheet = ({ visible, onClose, insets, theme, textStyles, containerStyles, chatPanelProps, onMoreCounterparty }: P2PChatSheetProps) => {
 
 	// Altura del teclado movida a la UI thread: sin re-renders y con seguimiento
 	// del frame a frame (OPENING/CLOSING incluidos). Las dos opciones van a true
@@ -108,6 +110,11 @@ const P2PChatSheet = ({ visible, onClose, insets, theme, textStyles, containerSt
 								theme={theme}
 								textStyles={textStyles}
 							/>
+							{onMoreCounterparty ? (
+								<Pressable onPress={onMoreCounterparty} hitSlop={8} style={styles.closeButton} accessibilityRole="button" testID="chat-more">
+									<FontAwesome6 name="ellipsis" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
+								</Pressable>
+							) : null}
 							<Pressable onPress={onClose} hitSlop={8} style={styles.closeButton}>
 								<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
 							</Pressable>
@@ -172,6 +179,7 @@ const styles = StyleSheet.create({
 	},
 	closeButton: {
 		padding: 5,
+		marginLeft: 6,
 	},
 	// El sheet ya pone el chrome (fondo surface, radios): el panel va plano
 	flatPanel: {

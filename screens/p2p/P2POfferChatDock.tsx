@@ -21,6 +21,8 @@ type P2POfferChatDockProps = {
 	/** Todo el estado del chat lo sigue poseyendo la PANTALLA (SSE/polling siguen vivos). */
 	chat: ReturnType<typeof useP2PChat>
 	chatPanelProps: ChatSheetProps['chatPanelProps']
+	/** Menú ⋯ de la contraparte en la cabecera de la hoja (reportar · bloquear). */
+	onMoreCounterparty?: ChatSheetProps['onMoreCounterparty']
 	insets: EdgeInsets
 	theme: Theme
 	textStyles: TextStyles
@@ -35,7 +37,7 @@ type P2POfferChatDockProps = {
  * Vive fuera de `P2POffer` porque el contador de no leídos es estado
  * puramente presentacional: la pantalla no lo lee para nada más.
  */
-const P2POfferChatDock = ({ enabled, chat, chatPanelProps, insets, theme, textStyles, containerStyles }: P2POfferChatDockProps) => {
+const P2POfferChatDock = ({ enabled, chat, chatPanelProps, onMoreCounterparty, insets, theme, textStyles, containerStyles }: P2POfferChatDockProps) => {
 
 	const [chatOpen, setChatOpen] = useState(false)
 	const [chatSeenCount, setChatSeenCount] = useState<number | null>(null)
@@ -93,6 +95,7 @@ const P2POfferChatDock = ({ enabled, chat, chatPanelProps, insets, theme, textSt
 				textStyles={textStyles}
 				containerStyles={containerStyles}
 				chatPanelProps={chatPanelProps}
+				onMoreCounterparty={onMoreCounterparty}
 			/>
 		</>
 	)
