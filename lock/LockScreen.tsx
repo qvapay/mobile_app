@@ -24,6 +24,7 @@ import type { PinDotsHandle } from './PinDots'
 import QPAvatar from '../ui/particles/QPAvatar'
 import QPKeypad from '../ui/QPKeypad'
 import type { KeypadExtraKey } from '../ui/QPKeypad'
+import { useModalGate } from '../ui/useModalGate'
 
 const PIN_LENGTH = 4
 
@@ -50,6 +51,12 @@ const COMPACT_BELOW = 640
  * cortina (`isCovered`): solo el fondo y la marca, sin teclado ni biometría. Al
  * volver, la app no se ve ni recibe toques hasta que AppLockContext decide; si
  * toca bloquear, la cortina se convierte en el bloqueo sin cerrar el Modal.
+ *
+ * El Modal pasa por `useModalGate`: en iOS NUNCA se oculta antes de que termine
+ * de presentarse. Face ID desbloquea más rápido que el fade de entrada (y la
+ * cortina se presenta con la app yéndose al fondo), y un dismiss a medio
+ * present deja el controlador presentado para siempre e invisible: desde ahí
+ * ningún otro `<Modal>` de la app vuelve a salir hasta reiniciar (2026-11-02).
  */
 const LockScreen = () => {
 
@@ -121,13 +128,17 @@ const LockScreen = () => {
 		? { icon: <LockHeroIcon biometryType={biometryType} biometricsAvailable color={theme.colors.primary} size={26} />, label: biometryLabel, onPress: handleBiometricUnlock }
 		: null, [biometricsAvailable, biometryType, biometryLabel, handleBiometricUnlock, theme.colors.primary])
 
-	if (!isLocked && !isCovered) return null
+	const gate = useModalGate(isLocked || isCovered)
+
+	if (!gate.mounted) return null
 
 	const name = user ? displayName(user) : ''
 
 	return (
 		<Modal
-			visible
+			visible={gate.visible}
+			onShow={gate.onShow}
+			onDismiss={gate.onDismiss}
 			animationType="fade"
 			transparent={false}
 			statusBarTranslucent

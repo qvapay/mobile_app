@@ -14,6 +14,8 @@ jest.mock('./AppLockContext', () => ({ useAppLock: jest.fn() }))
 jest.mock('./useLockBiometrics', () => ({ useLockBiometrics: jest.fn(), getBiometryLabelKey: () => 'misc.lock.unlock.faceId' }))
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }))
 jest.mock('react-native-edge-to-edge', () => ({ SystemBars: () => null }))
+// El Modal de RN como host plano: el mock del preset no pinta nada con visible=false y la puerta necesita verlo
+jest.mock('react-native/Libraries/Modal/Modal', () => ({ __esModule: true, default: 'Modal' }))
 jest.mock('../ui/particles/QPAvatar', () => 'QPAvatar')
 jest.mock('../ui/particles/FaceIDIcon', () => 'FaceIDIcon')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
@@ -208,5 +210,37 @@ describe('cortina', () => {
 		expect(tree.root.findAll(n => n.props.testID === 'lock-screen').length).toBeGreaterThan(0)
 		expect(tree.root.findAll(n => n.props.testID === 'lock-cover')).toHaveLength(0)
 		expect(key(tree, '1')).toBeTruthy()
+	})
+})
+
+describe('puerta del Modal (iOS)', () => {
+	const modal = (tree) => tree.root.findByType('Modal')
+
+	test('Face ID desbloquea antes de terminar la presentación: el Modal espera a onShow y solo entonces se oculta', () => {
+		const tree = render()
+		expect(modal(tree).props.visible).toBe(true)
+		// Desbloqueo antes de que el fade de entrada termine (sin onShow todavía)
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, unlockWithPin })
+		act(() => { tree.update(<LockScreen />) })
+		expect(modal(tree).props.visible).toBe(true)
+		// Presentación terminada: ahora sí se pide el dismiss...
+		act(() => { modal(tree).props.onShow() })
+		expect(modal(tree).props.visible).toBe(false)
+		// ...y el Modal se desmonta cuando UIKit confirma el dismiss
+		act(() => { modal(tree).props.onDismiss() })
+		expect(tree.toJSON()).toBeNull()
+	})
+
+	test('volver a bloquear mientras se cierra: espera a onDismiss y vuelve a presentarse', () => {
+		const tree = render()
+		act(() => { modal(tree).props.onShow() })
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, unlockWithPin })
+		act(() => { tree.update(<LockScreen />) })
+		expect(modal(tree).props.visible).toBe(false)
+		useAppLock.mockReturnValue({ isLocked: true, isCovered: false, unlockWithPin })
+		act(() => { tree.update(<LockScreen />) })
+		expect(modal(tree).props.visible).toBe(false)
+		act(() => { modal(tree).props.onDismiss() })
+		expect(modal(tree).props.visible).toBe(true)
 	})
 })
