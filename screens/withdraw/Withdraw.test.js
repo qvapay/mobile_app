@@ -771,6 +771,19 @@ describe('cash delivery zones', () => {
 		}))
 	})
 
+	test('con zonas, la provincia sale de la zona aunque el select no la tenga entre sus opciones', async () => {
+		const PLAZA = { ...SANTA_CLARA, id: '2', province_code: 'LHA', province_name: 'La Habana', municipality: 'Plaza', is_capital: false }
+		withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'CASHZ', margin_pct: 1, zones: [SANTA_CLARA, PLAZA] } })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_ZONED)
+		await typeQUSD(tree, '200')
+		await fillField(tree, 'nombre_y_apellidos', 'Juan Pérez')
+		await act(async () => { zoneNode(tree).props.onChangeProvince('La Habana') })
+		await act(async () => { zoneNode(tree).props.onChangeMunicipality('Plaza') })
+		expect(zoneNode(tree).props.zone.id).toBe('2')
+		expect(footerButton(tree).props.disabled).toBe(false)
+	})
+
 	test('por debajo del mínimo entregado el envío queda bloqueado', async () => {
 		const tree = await renderWithdraw()
 		await selectCoin(tree, CASH_ZONED)
@@ -874,6 +887,34 @@ describe('saved payment methods (el librito)', () => {
 		expect(zoneNode.props.province).toBe('Villa Clara')
 		expect(zoneNode.props.municipality).toBe('Santa Clara')
 		expect(zoneNode.props.zone.id).toBe('1')
+	})
+
+	test('sin zonas, un lugar guardado que no es ninguno de los chips no deja continuar hasta elegir uno', async () => {
+		const CASH = {
+			tick: 'CASHZ', name: 'Cash zones', price: '1', stable: true, fee_out: '1', fee_out_fixed: null, decimals: 2, logo: 'usdcash',
+			working_data: [
+				{ name: 'Nombre y Apellidos', type: 'text' },
+				{ name: 'Provincia', type: 'select', options: [{ value: 'Villa Clara', fee_pct: 5 }] },
+				{ name: 'Municipio', type: 'text' },
+			],
+		}
+		mockCoinCatalog = [CASH]
+		// Sin zonas en el servidor, la provincia es el select de siempre: nada traduce el lugar viejo
+		withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'CASHZ', margin_pct: 1, zones: [] } })
+		const OLD_PLACE = { id: '4', name: 'Casa', coin: { tick: 'CASHZ' }, details: { 'Nombre y Apellidos': 'Juan', Provincia: 'Santa Clara', Municipio: 'Santa Clara' } }
+		userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [OLD_PLACE] })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH)
+		await typeQUSD(tree, '100')
+		await openBook(tree)
+		await act(async () => { savedModal(tree).props.onSelect(OLD_PLACE) })
+		// «Santa Clara» no es ningún chip: ni cotiza el 5 % de la provincia ni puede llegar al servidor
+		expect(tree.root.findByType('WithdrawAccountFields').props.workingForm.provincia).toBe('Santa Clara')
+		expect(footerButton(tree).props.disabled).toBe(true)
+		await fillField(tree, 'provincia', 'Villa Clara')
+		// base 1 % + provincia 5 % ⇒ recibe 94
+		expect(amountCard(tree).props.amountCoin).toBe('94.00')
+		expect(footerButton(tree).props.disabled).toBe(false)
 	})
 
 	test('con una moneda cripto, elegir un método marca el destino como wallet propia', async () => {

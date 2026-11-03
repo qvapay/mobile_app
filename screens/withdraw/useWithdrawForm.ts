@@ -15,7 +15,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, useReducer } from
 
 import { isCryptoCoin } from './withdrawDestination'
 import type { WithdrawDestination } from './withdrawDestination'
-import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, keyFromFieldName } from './withdrawFees'
+import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, isAllowedFieldValue, keyFromFieldName } from './withdrawFees'
 import type { WorkingForm } from './withdrawFees'
 import { calculateCashFee, cashZoneModeFor, findZone, grossFromNetCash, hasCashZoneFields, meetsZoneMinimum, savedCashPlace } from './cashZones'
 import type { CashFeeBreakdown } from './cashZones'
@@ -337,9 +337,11 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		return workingFields.every((field) => {
 			const key = keyFromFieldName(field.name)
 			const value = (workingForm[key] ?? '').toString().trim()
-			return value.length > 0
+			// Provincia y municipio del modo zonas no son chips: los valida `cashZone`
+			const zoneField = key === provinceKey || key === municipalityKey
+			return value.length > 0 && (zoneField || isAllowedFieldValue(field, workingForm[key]))
 		})
-	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, amountLimit, workingFields, workingForm, cashZonesPending, cashMode, cashZone, belowZoneMin])
+	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, amountLimit, workingFields, workingForm, cashZonesPending, cashMode, cashZone, belowZoneMin, provinceKey, municipalityKey])
 
 	const handleCoinSelect = (coin: Coin) => {
 		setSelectedCoin(coin)
