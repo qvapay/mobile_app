@@ -54,6 +54,8 @@ export type SettingsStackParamList = {
 	AppLock: undefined
 	Passkeys: undefined
 	Roundup: undefined
+	/** Lightning Address (`name@qvpay.me`): activar, QR, USD/sats, pausar, renombrar y cobros. */
+	LightningAddress: undefined
 	/** Oculta: solo con flag self-custody o en dev (plan crypto). */
 	RpcNodes: undefined
 	/** Oculta como RpcNodes: direcciones, ver frase y eliminar wallet (gate PIN). */
@@ -67,6 +69,8 @@ export type RootStackParamList = {
 
 	// ── Arranque / onboarding ──────────────────────────────────────────────
 	Onboard: undefined
+	/** Novedades de una versión (manifiesto en `whatsnew/releases.ts`); la presenta la reconciliación tras actualizar. */
+	WhatsNew: { version: string }
 	Welcome: undefined
 	MainStack: NavigatorScreenParams<MainTabParamList> | undefined
 
@@ -94,7 +98,7 @@ export type RootStackParamList = {
 
 	// ── Transacciones ─────────────────────────────────────────────────────
 	Transactions: { showSearch?: boolean } | undefined
-	/** `uuid` solo lo manda el toque de una push y la pantalla no lo lee (bug documentado). */
+	/** La lista manda `transaction`; el toque de una push (o un cobro Lightning) solo `uuid`, y la pantalla lo carga. */
 	Transaction: { transaction?: Transaction, uuid?: string }
 
 	// ── Depósito / retiro ─────────────────────────────────────────────────

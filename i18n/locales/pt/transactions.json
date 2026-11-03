@@ -68,7 +68,16 @@
 	"receive": {
 		"shareWithAmount": "Me pague ${{amount}} no QvaPay: {{url}}",
 		"share": "Me pague no QvaPay: {{url}}",
-		"tapToCopy": "Toque no QR para copiar o link"
+		"tapToCopy": "Toque no QR para copiar o link",
+		"segmentQvapay": "QvaPay",
+		"segmentLightning": "⚡ Lightning",
+		"lnTapToCopy": "Toque para copiar sua Lightning Address",
+		"lnShare": "Me pague pela Lightning em {{address}} ⚡",
+		"lnPaused": "Seu endereço está pausado e não recebe pagamentos. Toque para retomar.",
+		"lnBlocked": "Seu endereço está bloqueado. Toque para ver mais.",
+		"activateTitle": "Ative sua Lightning Address",
+		"activateText": "Receba sats de qualquer carteira Lightning do mundo com um endereço como seunome@qvpay.me.",
+		"activateButton": "Ativar"
 	},
 	"detail": {
 		"detailsTitle": "Detalhes da transação:",
@@ -105,7 +114,9 @@
 			"tracking": "Rastreio:",
 			"description": "Descrição:",
 			"appId": "App ID:"
-		}
+		},
+		"satsCreditNote": "Creditado no seu saldo em sats; o saldo em USD não mudou.",
+		"loadFailed": "Não foi possível carregar a transação."
 	},
 	"list": {
 		"searchPlaceholder": "Buscar por descrição ou UUID",

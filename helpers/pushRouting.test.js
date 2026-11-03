@@ -19,6 +19,13 @@ describe('isMoneyInPush', () => {
 		expect(isMoneyInPush({ type: 'p2p_partial_completed' })).toBe(true)
 	})
 
+	test('un cobro en la Lightning Address suena a moneda y abre la transacción', () => {
+		expect(isMoneyInPush({ type: 'ln_address_received' })).toBe(true)
+		expect(isMoneySoundPush({ type: 'ln_address_received' })).toBe(true)
+		expect(resolvePushTarget({ type: 'ln_address_received', transaction_uuid: 't-ln', unit: 'sats' }))
+			.toEqual({ screen: 'Transaction', params: { uuid: 't-ln' } })
+	})
+
 	test('lo que sale de la cuenta, o no es dinero, no', () => {
 		expect(isMoneyInPush({ type: 'transfer_sent' })).toBe(false)
 		expect(isMoneyInPush({ type: 'p2p_chat' })).toBe(false)

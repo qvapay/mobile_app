@@ -102,7 +102,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 	const {
 		availableCoins, selectedCoin, showCoinPicker, setShowCoinPicker, handleCoinSelect, loadingCoins,
 		amountQUSD, amountCoin, handleChangeQUSD, handleChangeAmountCoin, balance, amountLocked, amountLimit,
-		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, isBTCLN, lnInfo,
+		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, isBTCLN, lnInfo, lnError,
 		isCrypto, destination, setDestination,
 		workingFields, workingForm, setWorkingForm, selectFeePct, previewFee,
 		cashMode, cashZone, provinceKey, municipalityKey, feeBreakdown, receiveUsd, belowZoneMin, cashZonesStatus, retryCashZones,
@@ -332,6 +332,25 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 							    pero la resta lo trata como epoch ms — se preserva el cálculo tal cual */}
 							{lnInfo.expires_at ? t('withdraw.index.lightningExpires', { minutes: Math.max(0, Math.round(((lnInfo.expires_at as unknown as number) - Date.now()) / 60000)) }) : ''}
 						</Text>
+					)}
+
+					{/* Lightning Address ajena: a quién se paga y entre qué montos acepta */}
+					{isBTCLN && lnInfo?.kind === 'lnaddress' && (
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 6 }]}>
+							{t('withdraw.index.lnAddressPreview', { address: lnInfo.address ?? '', min: Number(lnInfo.min_sat || 0).toLocaleString(), max: Number(lnInfo.max_sat || 0).toLocaleString() })}
+						</Text>
+					)}
+
+					{/* Destino rechazado por el decode; una dirección de QvaPay se TRANSFIERE (gratis e instantáneo) */}
+					{isBTCLN && lnError && (
+						<View style={{ marginTop: 8, gap: 10 }}>
+							<Text style={[textStyles.caption, { color: theme.colors.danger }]}>
+								{lnError.code === 'LN_SELF_PAY' ? t('withdraw.index.lnSelfPay') : lnError.message}
+							</Text>
+							{lnError.code === 'LN_SELF_PAY' && (
+								<QPButton title={t('withdraw.index.transferInstead')} icon="paper-plane" onPress={() => navigation.navigate(ROUTES.SEND)} outlined />
+							)}
+						</View>
 					)}
 
 					{/* PIN/OTP Step — mismo card de confirmación que SendConfirm */}

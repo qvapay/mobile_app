@@ -35,6 +35,9 @@ export type Me = {
 	bio?: string | null
 	balance?: Decimal
 	satoshis?: number
+	/** Valor en USD del saldo de sats al precio del momento (`/user` y `/user/extended`); null sin precio. */
+	satoshis_usd?: number | null
+	btc_price?: number | null
 	phone?: string | null
 	phone_verified?: boolean | BoolInt
 	kyc?: boolean | BoolInt
@@ -70,6 +73,9 @@ export type User = {
 	bio?: string | null
 	balance?: Decimal
 	satoshis?: number
+	/** Valor en USD del saldo de sats al precio del momento (`/user/extended`); null sin precio. */
+	satoshis_usd?: number | null
+	btc_price?: number | null
 	phone?: string | null
 	phone_verified?: boolean | BoolInt
 	kyc?: boolean | BoolInt
@@ -89,6 +95,77 @@ export type User = {
 	/** Flags de features servidos por el backend (rollout remoto). */
 	features?: Record<string, unknown>
 } & Record<string, unknown>
+
+// ---------------------------------------------------------------------------
+// Lightning Address (`GET|POST /user/lightning-address`, LUD-16 `name@qvpay.me`)
+// ---------------------------------------------------------------------------
+
+export type LnAddressStatus = 'active' | 'paused' | 'blocked'
+/** En qué entra un cobro: al saldo en USD (con comisión) o al saldo de sats (sin ella). */
+export type LnReceiveUnit = 'usd' | 'sats'
+
+export type LightningAddress = {
+	uuid: string
+	/** La parte antes de la `@`, fija: no se deriva del username. */
+	name: string
+	/** `name@domain`, lo que se copia y comparte. */
+	address: string
+	/** La misma dirección como LNURL (LUD-01) en mayúsculas. */
+	lnurl: string
+	/** Valor recomendado para el QR (`lightning:` + LNURL). */
+	qr: string
+	status: LnAddressStatus
+	receive_as: LnReceiveUnit
+	created_at: string
+}
+
+export type LightningPayment = {
+	uuid: string
+	address: string
+	sats: number
+	/** En USD lo acreditado tras la comisión; en sats, solo el equivalente. Decimal como string. */
+	credit_usd: string
+	credit_unit: LnReceiveUnit
+	/** Lo escribió quien pagó: NO está verificado. */
+	comment: string | null
+	paid_at: string
+	transaction_uuid: string | null
+}
+
+/** Estado completo que devuelven el GET y todo POST de `/user/lightning-address`. */
+export type LightningAddressState = {
+	/** La función está abierta para esta cuenta (modo `on`, o beta y en la lista). */
+	visible: boolean
+	/** La cuenta cumple los requisitos para recibir. */
+	available: boolean
+	/** Hay una dirección activa recibiendo pagos. */
+	receiving: boolean
+	/** Por qué no recibe (`KYC`, `ROLE`, `PAUSED`, `BLOCKED`, `MODE_OFF`…), o null. */
+	reason_code: string | null
+	/** Explicación del motivo, en español (la app traduce por `reason_code`). */
+	message: string | null
+	address: LightningAddress | null
+	/** Dominio de las direcciones, para pintarlo junto al campo del nombre. */
+	domain: string
+	/** Nombre propuesto para activar (el username si está libre). */
+	suggested_name: string | null
+	renames_left: number
+	limits: { min_usd: number, max_usd: number, daily_usd: number, used_24h_usd: number, remaining_usd: number }
+	/** `effective` es `usd` aunque se eligiera `sats` si la opción no está disponible. */
+	receive: { as: LnReceiveUnit, effective: LnReceiveUnit, sats_available: boolean }
+	fees: { usd_pct: number, sats_pct: number }
+	/** Saldo de satoshis del usuario. */
+	satoshis: number
+	/** Cobros acreditados, más recientes primero (20 por página). */
+	payments: LightningPayment[]
+}
+
+export type LightningAddressAction =
+	| { action: 'activate', name?: string }
+	| { action: 'rename', name: string }
+	| { action: 'pause' }
+	| { action: 'resume' }
+	| { action: 'receive', receive_as: LnReceiveUnit }
 
 // ---------------------------------------------------------------------------
 // Coins (`GET /coins/v2`)

@@ -40,6 +40,10 @@ import TransactionSticker from '../../ui/particles/TransactionSticker'
 // Stickers
 import { parseTransactionDescription } from '../../helpers/stickers'
 
+// Lightning Address: cobros que entraron al saldo de sats
+import { isSatsCreditDescription } from '../../helpers/lightningAddress'
+import TransactionSkeleton from '../../ui/TransactionSkeleton'
+
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
@@ -81,21 +85,23 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Transaction'>
 
 /**
  * Transaction detail / receipt screen.
- * Expects `route.params.transaction` (list-item shape, normalized from PascalCase) and
- * renders it instantly, then hydrates from the AsyncStorage cache and finally from
- * `GET /transaction/{uuid}`. Can download the PDF receipt via
+ * Accepts `route.params.transaction` (list-item shape, normalized from PascalCase),
+ * rendered instantly, or just `uuid` (push tap / Lightning Address payment), shown
+ * as a skeleton until the AsyncStorage cache or `GET /transaction/{uuid}` answers. Can download the PDF receipt via
  * `GET /transaction/{uuid}/pdf` (blob-util with the Keychain bearer token).
  * The header goes transparent when the counterparty's cover image is shown;
  * sticker descriptions (`:sticker:<name>`) render their animation.
  */
 const Transaction = ({ route, navigation }: Props) => {
 
-	// Discrepancia documentada en types/navigation.ts: el tap de una push
-	// manda `{ uuid }` sin `transaction` y esta pantalla solo lee `transaction`.
-	// Se tipa lo que hay (el camino roto se conserva tal cual).
-	const { transaction } = route.params as { transaction: TransactionModel }
-	const [transactionDetails, setTransactionDetails] = useState(() => normalizeTransaction(transaction))
+	// Dos entradas: la lista manda la transacción entera (se pinta al instante);
+	// el toque de una push (o un cobro de la Lightning Address) manda solo `uuid`
+	// y la pantalla la carga de la caché/servidor enseñando un esqueleto mientras
+	const { transaction, uuid: uuidParam } = route.params ?? {}
+	const uuid = transaction?.uuid ?? uuidParam ?? ''
+	const [transactionDetails, setTransactionDetails] = useState<TransactionModel | null>(() => (transaction ? normalizeTransaction(transaction) : null))
 	const [loading, setLoading] = useState(false)
+	const [loadFailed, setLoadFailed] = useState(false)
 
 	// Contexts
 	const { t } = useTranslation()
@@ -107,8 +113,8 @@ const Transaction = ({ route, navigation }: Props) => {
 
 	// Determine the other user early so we can configure the header
 	const user_uuid_early = user?.uuid || ''
-	const paid_by_uuid_early = transactionDetails.paid_by?.uuid || ''
-	const otherUserEarly = (user_uuid_early === paid_by_uuid_early) ? transactionDetails.user : transactionDetails.paid_by
+	const paid_by_uuid_early = transactionDetails?.paid_by?.uuid || ''
+	const otherUserEarly = transactionDetails ? ((user_uuid_early === paid_by_uuid_early) ? transactionDetails.user : transactionDetails.paid_by) : null
 
 	// Make header transparent when the profile header is shown (otherUser
 	// exists). The route options in App.tsx already predict this from the nav
@@ -129,34 +135,39 @@ const Transaction = ({ route, navigation }: Props) => {
 
 	// Fetch transaction details from API and update cache
 	const fetchTransaction = useCallback(async () => {
-		const cacheKey = `${TRANSACTION_CACHE_KEY}${transaction.uuid}`
+		if (!uuid) { setLoadFailed(true); return }
+		const cacheKey = `${TRANSACTION_CACHE_KEY}${uuid}`
 		setLoading(true)
+		setLoadFailed(false)
 		try {
-			const response = await transferApi.getTransactionDetails(transaction.uuid)
+			const response = await transferApi.getTransactionDetails(uuid)
 			if (response.success) {
 				// El endpoint envuelve la transacción en otro `data` (`{ data: {...} }`);
 				// `transferApi` tipa el cuerpo como la transacción pelada
 				const freshData = (response.data as unknown as { data: TransactionModel }).data
-				setTransactionDetails(freshData)
-				try {
-					await AsyncStorage.setItem(cacheKey, JSON.stringify(freshData))
-				} catch (cacheError) {
-					// error caching transaction
-				}
-			}
+				if (freshData) {
+					setTransactionDetails(normalizeTransaction(freshData))
+					try {
+						await AsyncStorage.setItem(cacheKey, JSON.stringify(freshData))
+					} catch (cacheError) {
+						// error caching transaction
+					}
+				} else { setLoadFailed(true) }
+			} else { setLoadFailed(true) }
 		} catch (error) {
+			setLoadFailed(true)
 		} finally { setLoading(false) }
-	}, [transaction.uuid])
+	}, [uuid])
 
 	// Load cached data first, then fetch fresh data from server
 	useEffect(() => {
 		let cancelled = false
 		const loadCachedThenFetch = async () => {
-			const cacheKey = `${TRANSACTION_CACHE_KEY}${transaction.uuid}`
+			const cacheKey = `${TRANSACTION_CACHE_KEY}${uuid}`
 			try {
 				const cachedData = await AsyncStorage.getItem(cacheKey)
 				if (cancelled) return
-				if (cachedData) { setTransactionDetails(JSON.parse(cachedData)) }
+				if (cachedData) { setTransactionDetails(normalizeTransaction(JSON.parse(cachedData))) }
 			} catch (error) {
 				// error loading cached transaction
 			}
@@ -164,7 +175,30 @@ const Transaction = ({ route, navigation }: Props) => {
 		}
 		loadCachedThenFetch()
 		return () => { cancelled = true }
-	}, [transaction.uuid, fetchTransaction])
+	}, [uuid, fetchTransaction])
+
+	// Guarda de reentrada de la descarga del PDF (declarada antes del primer return: orden de hooks)
+	const downloadingRef = useRef(false)
+
+	// Sin transacción aún (llegada por `uuid`): esqueleto, o el error con reintento
+	if (!transactionDetails) {
+		return (
+			<View style={[containerStyles.container, { paddingHorizontal: theme.spacing.md, paddingTop: 12 }]}>
+				{loadFailed && !loading ? (
+					<View style={styles.loadFailed}>
+						<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center' }]}>{t('transactions.detail.loadFailed')}</Text>
+						<QPButton title={t('common.actions.retry')} onPress={fetchTransaction} outlined />
+					</View>
+				) : (
+					<>
+						<TransactionSkeleton index={0} totalItems={3} />
+						<TransactionSkeleton index={1} totalItems={3} />
+						<TransactionSkeleton index={2} totalItems={3} />
+					</>
+				)}
+			</View>
+		)
+	}
 
 	// Determine transaction type and colors
 	const user_uuid = user?.uuid || ''
@@ -183,7 +217,6 @@ const Transaction = ({ route, navigation }: Props) => {
 
 	// Handle PDF download — `downloading` is a re-entrancy guard only (never shown in
 	// the UI), so a ref prevents the whole detail screen re-rendering on each toggle.
-	const downloadingRef = useRef(false)
 	const handleDownloadPDF = async () => {
 		if (downloadingRef.current) return
 		downloadingRef.current = true
@@ -276,6 +309,13 @@ const Transaction = ({ route, navigation }: Props) => {
 						)
 					})()}
 
+					{isSatsCreditDescription(transactionDetails.description) && (
+						<View style={[styles.satsNote, { backgroundColor: '#F7931A' + '14' }]}>
+							<FontAwesome6 name="bolt" size={12} color="#F7931A" iconStyle="solid" />
+							<Text style={[textStyles.h7, { color: theme.colors.primaryText, flex: 1 }]}>{t('transactions.detail.satsCreditNote')}</Text>
+						</View>
+					)}
+
 					<DetailRow label={t('transactions.detail.date')} value={getShortDateTime(transactionDetails.created_at)} last />
 
 				</View>
@@ -305,6 +345,8 @@ const Transaction = ({ route, navigation }: Props) => {
 }
 
 const styles = StyleSheet.create({
+	loadFailed: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 24 },
+	satsNote: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 10, marginVertical: 6 },
 	scrollView: {
 		flex: 1,
 	},

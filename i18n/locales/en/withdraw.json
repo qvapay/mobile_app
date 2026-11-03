@@ -35,7 +35,10 @@
 			"processError": "Error processing the withdrawal",
 			"attestationRequired": "You must complete the certification for this withdrawal",
 			"formIncomplete": "Complete the withdrawal details before confirming"
-		}
+		},
+		"lnAddressPreview": "Pay {{address}} · between {{min}} and {{max}} sats",
+		"lnSelfPay": "That's a QvaPay Lightning Address. To send money to a QvaPay user use Transfer: it's free and instant.",
+		"transferInstead": "Transfer"
 	},
 	"amountCard": {
 		"withdraw": "Withdraw",

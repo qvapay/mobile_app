@@ -16,6 +16,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, useReducer } from
 import { isCryptoCoin } from './withdrawDestination'
 import type { WithdrawDestination } from './withdrawDestination'
 import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, isAllowedFieldValue, keyFromFieldName } from './withdrawFees'
+import { classifyLightningInput, stripLightningScheme } from '../../helpers/lightningAddress'
 import type { WorkingForm } from './withdrawFees'
 import { calculateCashFee, cashZoneModeFor, findZone, grossFromNetCash, hasCashZoneFields, meetsZoneMinimum, savedCashPlace } from './cashZones'
 import type { CashFeeBreakdown } from './cashZones'
@@ -120,6 +121,10 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	const [source, setSource] = useState<'balance' | 'satoshis'>('balance')
 	const [amountSats, setAmountSats] = useState(lnAmountSats > 0 ? String(lnAmountSats) : '')
 	const [lnInfo, setLnInfo] = useState<LightningDecodePayload | null>(null)
+	/** Fallo del decode de lo escrito en el campo (`code: 'LN_SELF_PAY'` = dirección de QvaPay). */
+	const [lnError, setLnError] = useState<{ code?: string, message: string } | null>(null)
+	// Último destino decodificado: el mismo valor nunca se vuelve a pedir (5 decodes/min por usuario)
+	const lastDecodedRef = useRef<string | null>(null)
 
 	// Crypto destination gate (own wallet vs third parties)
 	const [destination, setDestination] = useState<WithdrawDestination | null>(null)
@@ -194,11 +199,13 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		const walletField = workingFields.find((field) => (field.name || '').toLowerCase() === 'wallet')
 		if (walletField) { setWorkingForm((prev) => ({ ...prev, [keyFromFieldName(walletField.name)]: lnInvoice as string })) }
 		if (lnAmountSats > 0) { handleChangeAmountCoin((lnAmountSats / 1e8).toFixed(8)) }
+		lastDecodedRef.current = stripLightningScheme(lnInvoice)
 		withdrawApi.decodeLightning(lnInvoice as string).then((res) => { if (res.success) { setLnInfo(res.data as LightningDecodePayload) } }).catch(() => { })
 	})
 	useEffect(() => {
 		if (lnInvoice && selectedCoin?.tick === 'BTCLN') { applyLnPrefill() }
 	}, [lnInvoice, selectedCoin])
+
 
 
 	// QUSD bruto -> cantidad en coin (descontando fee)
@@ -321,7 +328,38 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	})
 	useEffect(() => { resyncReceiveAmount() }, [selectFeePct, selectedCoin, cashZone, cashMode])
 
+	// Lo que se ESCRIBE o pega en el campo de destino BTCLN (Lightning Address,
+	// factura o LNURL) se decodifica para enseñar a quién se paga y entre qué
+	// montos, y para cazar una dirección de QvaPay (`LN_SELF_PAY`: se transfiere,
+	// no se retira). Solo cuando el patrón casa entero, tras 500 ms de reposo y
+	// nunca dos veces el mismo valor: el decode tiene cupo de 5 por minuto
+	const walletFieldKey = useMemo(() => {
+		const walletField = workingFields.find((field) => (field.name || '').toLowerCase() === 'wallet')
+		return walletField ? keyFromFieldName(walletField.name) : null
+	}, [workingFields])
+	const walletValue = walletFieldKey ? String(workingForm[walletFieldKey] ?? '') : ''
+	useEffect(() => {
+		if (!isBTCLN) return
+		const normalized = stripLightningScheme(walletValue)
+		if (normalized === lastDecodedRef.current) return
+		setLnInfo(null)
+		setLnError(null)
+		if (!classifyLightningInput(normalized)) return
+		let cancelled = false
+		const timer = setTimeout(() => {
+			lastDecodedRef.current = normalized
+			withdrawApi.decodeLightning(normalized).then((res) => {
+				if (cancelled) return
+				if (res.success) { setLnInfo(res.data as LightningDecodePayload) }
+				else { setLnError({ code: (res.details as { code?: string } | undefined)?.code, message: res.error || '' }) }
+			}).catch(() => { })
+		}, 500)
+		return () => { cancelled = true; clearTimeout(timer) }
+	}, [isBTCLN, walletValue])
+
 	const isFormValid = useMemo(() => {
+		// Una Lightning Address de QvaPay no se retira: se transfiere (el backend la rechaza con LN_SELF_PAY)
+		if (lnError?.code === 'LN_SELF_PAY') return false
 		if (!selectedCoin) { return false }
 		if (isCrypto && destination !== 'personal') { return false }
 		if (sourceSats) {
@@ -341,7 +379,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 			const zoneField = key === provinceKey || key === municipalityKey
 			return value.length > 0 && (zoneField || isAllowedFieldValue(field, workingForm[key]))
 		})
-	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, amountLimit, workingFields, workingForm, cashZonesPending, cashMode, cashZone, belowZoneMin, provinceKey, municipalityKey])
+	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, amountLimit, workingFields, workingForm, cashZonesPending, cashMode, cashZone, belowZoneMin, provinceKey, municipalityKey, lnError])
 
 	const handleCoinSelect = (coin: Coin) => {
 		setSelectedCoin(coin)
@@ -376,7 +414,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		// Montos
 		amountQUSD, amountCoin, handleChangeQUSD, handleChangeAmountCoin, balance, amountLocked, amountLimit,
 		// Origen de fondos (BTCLN)
-		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, isBTCLN, lnInfo,
+		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, isBTCLN, lnInfo, lnError,
 		// Destino crypto
 		isCrypto, destination, setDestination,
 		// Campos dinámicos y fees
