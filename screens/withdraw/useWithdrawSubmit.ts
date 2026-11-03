@@ -66,6 +66,11 @@ type WithdrawSubmitArgs = {
 	selectedCoin: Coin | null
 	workingFields: CoinWorkingField[]
 	workingForm: WorkingForm
+	/**
+	 * El formulario sigue editable con el paso de PIN abierto, y el autoenvío al completar
+	 * el PIN no pasa por el botón: el envío vuelve a mirarlo.
+	 */
+	isFormValid: boolean
 	/** Scroll del form: el paso de PIN aparece bajo el fold y hay que llevarlo a la vista. */
 	scrollViewRef: React.RefObject<ScrollViewInstance | null>
 	/** Atestación firmada en el gate de Continuar (null si la moneda no la exige). */
@@ -80,7 +85,7 @@ type WithdrawSubmitArgs = {
  * @param args - Datos del formulario ya validado y callback de éxito.
  * @returns Estado del paso de PIN y sus handlers.
  */
-export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, scrollViewRef, attestationRef, onSuccess }: WithdrawSubmitArgs) {
+export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, isFormValid, scrollViewRef, attestationRef, onSuccess }: WithdrawSubmitArgs) {
 
 	const { t } = useTranslation()
 	const { user, updateUser } = useAuth()
@@ -132,6 +137,13 @@ export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, 
 			setShowPinStep(false)
 			setPin('')
 			toast.error(t('withdraw.index.toasts.attestationRequired'))
+			return
+		}
+
+		// Algo del formulario cambió con el PIN abierto (p. ej. un método guardado con una
+		// opción que ya no existe): no se envía hasta que vuelva a ser válido
+		if (!isFormValid) {
+			toast.error(t('withdraw.index.toasts.formIncomplete'))
 			return
 		}
 

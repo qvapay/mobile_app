@@ -40,6 +40,17 @@ export const parseFeeOutFixed = (raw: Coin['fee_out_fixed']): FeeOutFixed => {
 	return raw ?? null
 }
 
+/**
+ * ¿Admite el campo este valor? Un `select` con opciones (los chips de
+ * `WithdrawAccountFields`) solo admite una de ellas: el servidor valida contra
+ * `field.options` y la comisión sale de la elegida. Un método guardado puede traer
+ * una que ya no existe (formulario viejo, opción renombrada). El resto, cualquier valor.
+ */
+export const isAllowedFieldValue = (field: CoinWorkingField, value: string | null | undefined): boolean => {
+	if (field.type !== 'select' || !Array.isArray(field.options) || field.options.length === 0) return true
+	return field.options.some((opt) => String(opt.value) === String(value ?? ''))
+}
+
 // Percent rate for the user tier (GOLD gets fee_out_gold, like the server)
 export const feeOutRate = (coin: FeeCoin | null | undefined, isGold = false): number => {
 	const rate = isGold ? Number(coin?.fee_out_gold) : Number(coin?.fee_out)

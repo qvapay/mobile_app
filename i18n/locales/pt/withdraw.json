@@ -33,7 +33,8 @@
 			"networkErrorTitle": "Erro de rede",
 			"withdrawFailed": "Não foi possível concluir o saque",
 			"processError": "Erro ao processar o saque",
-			"attestationRequired": "Você precisa concluir a certificação para este saque"
+			"attestationRequired": "Você precisa concluir a certificação para este saque",
+			"formIncomplete": "Complete os dados do saque antes de confirmar"
 		}
 	},
 	"amountCard": {

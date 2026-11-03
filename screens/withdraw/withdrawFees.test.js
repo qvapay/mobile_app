@@ -5,7 +5,7 @@
  * and `type: select` options can add a `fee_pct` surcharge on the gross.
  * @jest-environment node
  */
-import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, parseFeeOutFixed, keyFromFieldName } from './withdrawFees'
+import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, isAllowedFieldValue, parseFeeOutFixed, keyFromFieldName } from './withdrawFees'
 
 // 5% + threshold config: at/below $50 a flat $2, strictly above it 5%
 const THRESHOLD_COIN = { fee_out: '5', fee_out_gold: '2', fee_out_fixed: ['50', '2'] }
@@ -128,6 +128,30 @@ describe('getSelectFeePct', () => {
 		expect(getSelectFeePct(PROVINCE_FIELDS, { provincia: 'Marte' })).toBe(0)
 		expect(getSelectFeePct(PROVINCE_FIELDS, { provincia: 'La Habana' })).toBe(0)
 		expect(getSelectFeePct(null, { provincia: 'Holguín' })).toBe(0)
+	})
+})
+
+describe('isAllowedFieldValue', () => {
+	const PROVINCE = PROVINCE_FIELDS.find((field) => field.type === 'select')
+
+	test('a select only takes one of its options, exactly as the chip sends it', () => {
+		expect(isAllowedFieldValue(PROVINCE, 'Holguín')).toBe(true)
+		// A saved method from an older form: no chip matches, so no fee_pct either
+		expect(isAllowedFieldValue(PROVINCE, 'HOL')).toBe(false)
+		expect(isAllowedFieldValue(PROVINCE, 'holguín')).toBe(false)
+		expect(isAllowedFieldValue(PROVINCE, '')).toBe(false)
+		expect(isAllowedFieldValue(PROVINCE, undefined)).toBe(false)
+	})
+
+	test('numeric option values match their text', () => {
+		expect(isAllowedFieldValue({ name: 'Plazo', type: 'select', options: [{ value: 30 }] }, '30')).toBe(true)
+	})
+
+	test('text fields and selects without options (rendered as inputs) take anything', () => {
+		expect(isAllowedFieldValue({ name: 'Nombre', type: 'text' }, 'John')).toBe(true)
+		expect(isAllowedFieldValue({ name: 'Nombre' }, 'John')).toBe(true)
+		expect(isAllowedFieldValue({ name: 'Provincia', type: 'select', options: [] }, 'HOL')).toBe(true)
+		expect(isAllowedFieldValue({ name: 'Provincia', type: 'select' }, 'HOL')).toBe(true)
 	})
 })
 

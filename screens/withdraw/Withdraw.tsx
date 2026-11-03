@@ -144,7 +144,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		showPinStep, setShowPinStep, sendingPin, sendingWithdraw,
 		handleRequestPin, handleWithdraw, handlePinBoxFocus,
 	} = useWithdrawSubmit({
-		amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, scrollViewRef, attestationRef,
+		amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, isFormValid, scrollViewRef, attestationRef,
 		onSuccess: () => { resetAmounts(); navigation.goBack() },
 	})
 

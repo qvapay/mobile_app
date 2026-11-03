@@ -33,7 +33,8 @@
 			"networkErrorTitle": "Network error",
 			"withdrawFailed": "Couldn't complete the withdrawal",
 			"processError": "Error processing the withdrawal",
-			"attestationRequired": "You must complete the certification for this withdrawal"
+			"attestationRequired": "You must complete the certification for this withdrawal",
+			"formIncomplete": "Complete the withdrawal details before confirming"
 		}
 	},
 	"amountCard": {
