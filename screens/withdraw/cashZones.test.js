@@ -6,7 +6,7 @@
 import {
 	cashFieldNames, cashZoneModeFor, hasCashZoneFields, findZone, provinceOptions, municipalitiesOf,
 	zoneMarginPct, zoneSurchargePct, zoneCharge, calculateCashFee, grossFromNetCash, meetsZoneMinimum,
-	etaLabel, etaParts, normalizePlace, provinceSummaries, sortedMunicipalities,
+	etaLabel, etaParts, normalizePlace, provinceSummaries, sortedMunicipalities, savedCashPlace,
 } from './cashZones'
 import { getSelectFeePct } from './withdrawFees'
 
@@ -63,6 +63,19 @@ describe('búsqueda de zonas', () => {
 		expect(findZone(ZONES, { province: 'Villa Clara', municipality: 'Remedios' })).toBeNull()
 		expect(findZone(ZONES, { province: '', municipality: 'Santa Clara' })).toBeNull()
 		expect(normalizePlace('  Güira   de Melena ')).toBe('guira de melena')
+	})
+
+	test('savedCashPlace traduce el lugar de un método guardado al tarifario (espejo de qpweb)', () => {
+		// Exacto (por nombre o código de provincia): nombres canónicos de la zona
+		expect(savedCashPlace(ZONES, { province: 'vcl', municipality: 'santa clara' })).toEqual({ province: 'Villa Clara', municipality: 'Santa Clara' })
+		// Provincia conocida, municipio que no está: se conserva la provincia y el municipio queda por elegir
+		expect(savedCashPlace(ZONES, { province: 'Villa Clara', municipality: 'Remedios' })).toEqual({ province: 'Villa Clara', municipality: '' })
+		// "Santa Clara" del select viejo era una ciudad: su provincia es la de esa zona
+		expect(savedCashPlace(ZONES, { province: 'Santa Clara', municipality: '' })).toEqual({ province: 'Villa Clara', municipality: 'Santa Clara' })
+		expect(savedCashPlace(ZONES, { province: 'Santa Clara', municipality: 'Santa Clara' })).toEqual({ province: 'Villa Clara', municipality: 'Santa Clara' })
+		// Nada casa: todo por elegir
+		expect(savedCashPlace(ZONES, { province: 'Marte', municipality: 'x' })).toEqual({ province: '', municipality: '' })
+		expect(savedCashPlace(ZONES, { province: '', municipality: 'Santa Clara' })).toEqual({ province: '', municipality: '' })
 	})
 
 	test('provincias únicas y municipios de una provincia (solo habilitadas)', () => {

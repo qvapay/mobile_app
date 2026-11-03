@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { View, Text, Pressable, StyleSheet, type ScrollViewInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
@@ -19,6 +19,7 @@ import WithdrawSatsCard from './WithdrawSatsCard'
 import WithdrawAccountFields from './WithdrawAccountFields'
 import CashZoneFields from './CashZoneFields'
 import WithdrawDestinationSelector from './WithdrawDestinationSelector'
+import SavedMethodsModal from '../../ui/SavedMethodsModal'
 import PinConfirmStep from '../transaction/PinConfirmStep'
 
 // Formulario (monedas, montos, campos dinámicos, fees) y paso de PIN/OTP
@@ -34,6 +35,9 @@ import useOfacGate from '../../hooks/useOfacGate'
 import OfacAttestationModal from '../../ui/OfacAttestationModal'
 import { withdrawAttestationScope } from '../../helpers/ofacCompliance'
 import type { WithdrawAttestation } from './useWithdrawSubmit'
+
+// Routes
+import { ROUTES } from '../../routes'
 
 // Types
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -102,6 +106,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		isCrypto, destination, setDestination,
 		workingFields, workingForm, setWorkingForm, selectFeePct, previewFee,
 		cashMode, cashZone, provinceKey, municipalityKey, feeBreakdown, receiveUsd, belowZoneMin, cashZonesStatus, retryCashZones,
+		savedForCoin, applySavedMethod,
 		isFormValid, resetAmounts,
 	} = useWithdrawForm({
 		preselectedCoin: route?.params?.preselectedCoin,
@@ -110,6 +115,13 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		lnAmountSats,
 		prefillAmount: route?.params?.amount,
 	})
+
+	// El «librito» de métodos guardados (misma hoja que P2PCreate)
+	const [showSavedMethods, setShowSavedMethods] = useState(false)
+	const openPaymentMethodsSettings = () => {
+		setShowSavedMethods(false)
+		navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.PAYMENT_METHODS, initial: false })
+	}
 
 
 	/**
@@ -260,6 +272,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 							workingForm={workingForm}
 							onChangeField={(key, text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
 							multilineKeys={isBTCLN ? ['wallet'] : []}
+							onOpenSaved={() => setShowSavedMethods(true)}
 							slot={cashMode && provinceKey && municipalityKey ? {
 								keys: [provinceKey, municipalityKey],
 								node: (
@@ -355,6 +368,16 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 				direction="out"
 				recentKey={RECENT_WITHDRAW_KEY}
 				defaultCoins={DEFAULT_WITHDRAW_COINS}
+			/>
+
+			<SavedMethodsModal
+				visible={showSavedMethods}
+				onClose={() => setShowSavedMethods(false)}
+				methods={savedForCoin}
+				onSelect={(method) => { applySavedMethod(method); setShowSavedMethods(false) }}
+				onManage={openPaymentMethodsSettings}
+				theme={theme}
+				textStyles={textStyles}
 			/>
 
 			{/* useKycGate expone `string | null` y el modal declara `string | undefined` */}

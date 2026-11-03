@@ -1,5 +1,6 @@
 import { View, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import QPInput from '../../ui/particles/QPInput'
 import QPPressable from '../../ui/particles/QPPressable'
@@ -24,6 +25,8 @@ type WithdrawAccountFieldsProps = {
 	slot?: { keys: string[], node: React.ReactNode } | null
 	/** Encabezado de la sección (por defecto, el del retiro). */
 	title?: string
+	/** Con él, un «librito» junto al título abre los métodos de pago guardados. */
+	onOpenSaved?: () => void
 	theme: Theme
 	textStyles: TextStyles
 }
@@ -36,12 +39,19 @@ type WithdrawAccountFieldsProps = {
 // payloads — e.g. the BTCLN wallet field with a BOLT11 invoice — so they wrap
 // instead of scrolling, and disable autocapitalize/autocorrect that would
 // corrupt them.
-const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, multilineKeys = [], slot = null, title, theme, textStyles }: WithdrawAccountFieldsProps) => {
+const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, multilineKeys = [], slot = null, title, onOpenSaved, theme, textStyles }: WithdrawAccountFieldsProps) => {
 	const { t } = useTranslation()
 	const slotAt = slot ? workingFields.findIndex((field) => slot.keys.includes(keyFromFieldName(field.name))) : -1
 	return (
 	<View style={{ marginTop: 20 }}>
-		<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>{title ?? t('withdraw.accountFields.title')}</Text>
+		<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+			<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{title ?? t('withdraw.accountFields.title')}</Text>
+			{onOpenSaved && (
+				<QPPressable onPress={onOpenSaved} hitSlop={10} accessibilityLabel={t('withdraw.savedMethods.open')} testID="withdraw-saved-methods" style={{ padding: 4 }}>
+					<FontAwesome6 name="book" size={16} color={theme.colors.primary} iconStyle="solid" />
+				</QPPressable>
+			)}
+		</View>
 		{workingFields.map((field, index) => {
 			const key = keyFromFieldName(field.name)
 

@@ -54,6 +54,9 @@
 	"accountFields": {
 		"title": "Datos de su cuenta:"
 	},
+	"savedMethods": {
+		"open": "Usar un método guardado"
+	},
 	"destination": {
 		"question": "¿A dónde envías los fondos?",
 		"personalTitle": "Extracción a wallet personal",

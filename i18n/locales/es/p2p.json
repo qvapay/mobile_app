@@ -119,12 +119,6 @@
 			}
 		}
 	},
-	"savedMethods": {
-		"title": "Seleccionar método guardado",
-		"loading": "Cargando métodos...",
-		"fallbackName": "Método",
-		"empty": "No hay métodos guardados para esta moneda"
-	},
 	"offer": {
 		"loadFailed": "No se pudo cargar la oferta",
 		"searchingPeer": "Estamos buscando un peer interesado en tu oferta.",

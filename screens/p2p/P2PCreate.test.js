@@ -27,7 +27,7 @@ jest.mock('../../ui/QPKeyboardView', () => {
 	return ({ children, actions }) => React.createElement(View, null, children, actions)
 })
 jest.mock('./P2PCreateForm', () => 'P2PCreateForm')
-jest.mock('./SavedMethodsModal', () => 'SavedMethodsModal')
+jest.mock('../../ui/SavedMethodsModal', () => 'SavedMethodsModal')
 jest.mock('./P2PRequirementsGate', () => 'P2PRequirementsGate')
 jest.mock('sonner-native', () => ({ toast: { error: jest.fn(), success: jest.fn() } }))
 

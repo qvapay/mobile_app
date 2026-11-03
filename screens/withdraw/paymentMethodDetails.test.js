@@ -3,7 +3,7 @@
  * key/val, casado sin mayúsculas y payload por el nombre original del campo.
  * @jest-environment node
  */
-import { normalizeMethodDetails, detailsToForm, formToDetails } from './paymentMethodDetails'
+import { normalizeMethodDetails, detailsToForm, formToDetails, unwrapMethodsPayload, methodTick, methodsForCoin } from './paymentMethodDetails'
 
 const FIELDS = [{ name: 'Card Number' }, { name: 'Nombre y Apellidos' }]
 
@@ -28,4 +28,29 @@ test('formToDetails devuelve el payload por el nombre original, sin bordes', () 
 test('ida y vuelta: lo que se guarda se puede volver a cargar', () => {
 	const saved = formToDetails({ card_number: '1', nombre_y_apellidos: 'Ana' }, FIELDS)
 	expect(detailsToForm(saved, FIELDS)).toEqual({ card_number: '1', nombre_y_apellidos: 'Ana' })
+})
+
+test('unwrapMethodsPayload acepta la lista pelada o envuelta en { methods }', () => {
+	const a = { id: 1 }
+	expect(unwrapMethodsPayload([a, null])).toEqual([a])
+	expect(unwrapMethodsPayload({ methods: [a] })).toEqual([a])
+	expect(unwrapMethodsPayload({ methods: 'nope' })).toEqual([])
+	expect(unwrapMethodsPayload(undefined)).toEqual([])
+})
+
+test('methodTick lee el tick del objeto coin, del tick suelto o de coin como string', () => {
+	expect(methodTick({ coin: { tick: 'BANK_CUP' } })).toBe('bank_cup')
+	expect(methodTick({ tick: 'USDT' })).toBe('usdt')
+	expect(methodTick({ coin: 'TropiPay' })).toBe('tropipay')
+	expect(methodTick({ ticker: 'BTC' })).toBe('btc')
+	// Moneda retirada del catálogo
+	expect(methodTick({ coin: null })).toBe('')
+})
+
+test('methodsForCoin filtra por tick sin distinguir mayúsculas y deja fuera las monedas retiradas', () => {
+	const cup = { id: 1, coin: { tick: 'bank_cup' } }
+	const methods = [cup, { id: 2, coin: { tick: 'USDT' } }, { id: 3, coin: null }]
+	expect(methodsForCoin(methods, 'BANK_CUP')).toEqual([cup])
+	expect(methodsForCoin(methods, '')).toEqual([])
+	expect(methodsForCoin(undefined, 'BANK_CUP')).toEqual([])
 })

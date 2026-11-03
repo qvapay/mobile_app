@@ -231,3 +231,26 @@ export const sortedMunicipalities = (zones: CashZone[] | null | undefined, provi
 	const list = municipalitiesOf(zones, province)
 	return [...list.filter(z => z.is_capital), ...list.filter(z => !z.is_capital)]
 }
+
+/**
+ * Provincia y municipio de un método de pago GUARDADO traducidos al tarifario vigente
+ * (espejo de `savedCashPlace` en qpweb). Un método creado con el formulario viejo puede
+ * traer el código de provincia, o una ciudad («Santa Clara») en el hueco de la provincia;
+ * lo que no case queda en '' para que el usuario lo elija en los selects.
+ */
+export function savedCashPlace(zones: CashZone[] | null | undefined, { province, municipality }: { province?: string | null, municipality?: string | null }): { province: string, municipality: string } {
+	const list = zones || []
+	const exact = findZone(list, { province, municipality })
+	if (exact) return { province: exact.province_name, municipality: exact.municipality }
+	const p = normalizePlace(province)
+	const m = normalizePlace(municipality)
+	if (!p) return { province: '', municipality: '' }
+	const inProvince = list.filter(z => normalizePlace(z.province_code) === p || normalizePlace(z.province_name) === p)
+	// "Santa Clara" del select viejo es una ciudad: su provincia es la de esa zona
+	const asCity = inProvince.length ? [] : list.filter(z => normalizePlace(z.municipality) === p)
+	const provinceName = inProvince[0]?.province_name ?? (asCity.length === 1 ? asCity[0].province_name : null)
+	if (!provinceName) return { province: '', municipality: '' }
+	const zone = list.find(z => z.province_name === provinceName && normalizePlace(z.municipality) === m)
+		?? (asCity.length === 1 && (!m || m === p) ? asCity[0] : null)
+	return { province: provinceName, municipality: zone?.municipality ?? '' }
+}

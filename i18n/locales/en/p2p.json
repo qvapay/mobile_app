@@ -119,12 +119,6 @@
 			}
 		}
 	},
-	"savedMethods": {
-		"title": "Select a saved method",
-		"loading": "Loading methods...",
-		"fallbackName": "Method",
-		"empty": "No saved methods for this coin"
-	},
 	"offer": {
 		"loadFailed": "Couldn't load the offer",
 		"searchingPeer": "We're looking for a peer interested in your offer.",

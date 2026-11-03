@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useReducer } from 'react'
 import type { ReactNode } from 'react'
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -27,6 +28,7 @@ import { toast } from 'sonner-native'
 import useCoins from '../../../hooks/useCoins'
 import { userApi } from '../../../api/userApi'
 import { useCashZonesQuery } from '../../withdraw/withdrawQueries'
+import { PAYMENT_METHODS_KEY } from '../../../hooks/usePaymentMethodsQuery'
 
 // Helpers
 import { keyFromFieldName } from '../../withdraw/withdrawFees'
@@ -148,6 +150,9 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 
 	// i18n
 	const { t } = useTranslation()
+	// El librito del retiro y del P2P lee esta clave: cada cambio aquí lo invalida
+	const queryClient = useQueryClient()
+	const invalidateSaved = () => { queryClient.invalidateQueries({ queryKey: PAYMENT_METHODS_KEY }) }
 
 	// Theme
 	const { theme } = useTheme()
@@ -294,6 +299,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 
 			if (res.success) {
 				toast.success(t('settings.paymentMethods.toasts.created'))
+				invalidateSaved()
 				await refresh()
 				closeCreate()
 				// `PaymentMethodCreateResult` calcula `success` como boolean, no como literal:
@@ -327,6 +333,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 			if (res.success) {
 				dispatchData({ type: 'set', field: 'methods', value: methods.map((m: PaymentMethod) => methodId(m) === id ? { ...m, name: paymentMethodName, ...(details ? { details } : {}) } : m) })
 				toast.success(t('settings.paymentMethods.toasts.updated'))
+				invalidateSaved()
 				closeCreate()
 				return
 			}
@@ -354,7 +361,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 						dispatchData({ type: 'set', field: 'methods', value: methods.filter((m: PaymentMethod) => methodId(m) !== id) })
 						try {
 							const res = await userApi.deletePaymentMethod(id)
-							if (res.success) { toast.success(t('settings.paymentMethods.toasts.deleted')) }
+							if (res.success) { toast.success(t('settings.paymentMethods.toasts.deleted')); invalidateSaved() }
 							else { toast.error(res.error || t('settings.paymentMethods.toasts.deleteFailed')); refresh() }
 						} catch (e) { toast.error((e as Error).message || t('settings.paymentMethods.toasts.networkError')); refresh() }
 					}
