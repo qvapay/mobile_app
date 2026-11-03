@@ -40,7 +40,9 @@
 		"blockStatusFailed": "No se pudo consultar el bloqueo",
 		"blockFailed": "No se pudo bloquear al usuario",
 		"unblockFailed": "No se pudo desbloquear al usuario",
-		"reportFailed": "No se pudo enviar el reporte"
+		"reportFailed": "No se pudo enviar el reporte",
+		"lightningAddressLoadFailed": "No se pudo cargar la Lightning Address",
+		"lightningAddressActionFailed": "No se pudo actualizar la Lightning Address"
 	},
 	"p2p": {
 		"offersLoadFailed": "No se pudieron obtener las ofertas P2P",

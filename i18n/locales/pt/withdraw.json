@@ -35,7 +35,10 @@
 			"processError": "Erro ao processar o saque",
 			"attestationRequired": "Você precisa concluir a certificação para este saque",
 			"formIncomplete": "Complete os dados do saque antes de confirmar"
-		}
+		},
+		"lnAddressPreview": "Pagar a {{address}} · entre {{min}} e {{max}} sats",
+		"lnSelfPay": "Essa é uma Lightning Address da QvaPay. Para enviar dinheiro a um usuário da QvaPay use Transferir: é grátis e instantâneo.",
+		"transferInstead": "Transferir"
 	},
 	"amountCard": {
 		"withdraw": "Sacar",

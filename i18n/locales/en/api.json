@@ -40,7 +40,9 @@
 		"blockStatusFailed": "Couldn't check the block status",
 		"blockFailed": "Couldn't block the user",
 		"unblockFailed": "Couldn't unblock the user",
-		"reportFailed": "Couldn't send the report"
+		"reportFailed": "Couldn't send the report",
+		"lightningAddressLoadFailed": "Could not load the Lightning Address",
+		"lightningAddressActionFailed": "Could not update the Lightning Address"
 	},
 	"p2p": {
 		"offersLoadFailed": "Couldn't load P2P offers",

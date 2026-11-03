@@ -12,7 +12,7 @@ import type { P2PRequirementKey } from './p2pRequirements'
 import type { NavigationProp } from '@react-navigation/native'
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles, ContainerStyles } from '../../theme/themeUtils'
-import type { RootStackParamList, SettingsStackParamList } from '../../types/navigation'
+import type { RootStackParamList } from '../../types/navigation'
 import type { User } from '../../types/domain'
 
 type P2PRequirementsGateProps = {
@@ -37,7 +37,9 @@ const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerSty
 
 	const isPending = (key: P2PRequirementKey, localPassed: boolean) => !localPassed || serverMissing === key
 
-	const requirements: { key: string, label: string, description: string, icon: string, iconStyle?: 'solid' | 'regular' | 'brand', passed: boolean, route: keyof SettingsStackParamList }[] = [
+	// `route` acotada a los tres subpaneles que usa: con más de 25 pantallas en SettingsStackParamList
+	// TypeScript deja de casar `keyof` contra la unión discriminada de `navigate` (límite de 25)
+	const requirements: { key: string, label: string, description: string, icon: string, iconStyle?: 'solid' | 'regular' | 'brand', passed: boolean, route: 'KYC' | 'Phone' | 'Telegram' }[] = [
 		{ key: 'kyc', label: t('p2p.requirements.kyc.label'), description: t('p2p.requirements.kyc.description'), icon: 'shield-halved', passed: !isPending('kyc', !!user.kyc), route: ROUTES.KYC },
 		{ key: 'phone', label: t('p2p.requirements.phone.label'), description: t('p2p.requirements.phone.description'), icon: 'phone', passed: !isPending('phone', !!user.phone_verified), route: ROUTES.PHONE },
 		{ key: 'telegram', label: t('p2p.requirements.telegram.label'), description: t('p2p.requirements.telegram.description'), icon: 'telegram', iconStyle: 'brand' as const, passed: !isPending('telegram', !!user.telegram_id), route: ROUTES.TELEGRAM },

@@ -10,6 +10,7 @@ export const ROUTES = {
 
 	// Onboard Screens
 	ONBOARD_SCREEN: "Onboard",
+	WHATS_NEW: "WhatsNew",
 
 	// Initial Screens
 	SPLASH_SCREEN: "Splash",
@@ -90,6 +91,7 @@ export const ROUTES = {
 	APP_LOCK: "AppLock",
 	PASSKEYS: "Passkeys",
 	ROUNDUP: "Roundup",
+	LIGHTNING_ADDRESS: "LightningAddress",
 	RPC_NODES: "RpcNodes",
 	WALLET_SETTINGS: "WalletSettings",
 	ENTERPRISE: "Enterprise",

@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { User } from '../types/domain'
+import type { LightningAddressAction, LightningAddressState, User } from '../types/domain'
 
 /**
  * Resultado de `userApi.requestKYCSession`: el éxito trae `sessionToken` extra
@@ -671,6 +671,47 @@ export const userApi = {
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.blockStatusFailed'), details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Estado de la Lightning Address del usuario y sus cobros (`GET /user/lightning-address?page=`).
+	 * Silenciosa: la piden Recibir y el subpanel al montar, y el GET no tiene rate limit.
+	 * El sobre `{ data }` se abre aquí: la query recibe el State directamente.
+	 *
+	 * @param page - Página de `payments` (20 por página).
+	 */
+	getLightningAddress: async (page = 1): Promise<ApiResult<LightningAddressState>> => {
+		try {
+			const response = await apiClient.get('/user/lightning-address', { params: { page }, silent: true })
+			return { success: true, data: response.data?.data ?? response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.lightningAddressLoadFailed'), details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Activa, renombra, pausa, reanuda o elige la unidad de cobro (`POST /user/lightning-address`).
+	 * Responde el MISMO State que el GET. Los errores llevan `code` (`LN_NAME_INVALID` +
+	 * `problem`, `LN_NAME_TAKEN`, `LN_RENAME_LIMIT`, `LN_ADDRESS_UNAVAILABLE` + `reason_code`,
+	 * `KYC_REQUIRED`…) en `details`; el 429 llega sin código. Rate limit 10/min por usuario.
+	 */
+	postLightningAddress: async (body: LightningAddressAction): Promise<ApiResult<LightningAddressState>> => {
+		try {
+			const response = await apiClient.post('/user/lightning-address', body)
+			return { success: true, data: response.data?.data ?? response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.lightningAddressActionFailed'), details: errorData, status: error.response.status }
 			}
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}

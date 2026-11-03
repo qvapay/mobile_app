@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { View, Text, StyleSheet, Share, ScrollView, Pressable, useWindowDimensions } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -18,6 +19,13 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // UI
 import ProfileContainer from '../../ui/ProfileContainer'
+import QPSwitch from '../../ui/particles/QPSwitch'
+import QPButton from '../../ui/particles/QPButton'
+import LnQrCard, { SATS_COLOR } from '../settings/subpanels/lightning/LnQrCard'
+
+// Lightning Address (compartida con Ajustes: misma clave, una petición)
+import { selectLightningAddress, useLightningAddressQuery } from '../../hooks/useLightningAddressQuery'
+import { ROUTES } from '../../routes'
 
 // Helpers
 import { copyTextToClipboard } from '../../helpers'
@@ -55,6 +63,16 @@ const Receive = ({ navigation, route }: Props) => {
 	// El QR se escanea mejor a plena luz; se restaura al salir
 	useMaxBrightness()
 
+	// Pestaña: enlace de pago de QvaPay o Lightning Address (`name@qvpay.me`).
+	// La query está persistida: con la dirección ya activada pinta al instante
+	const [segment, setSegment] = useState<'qvapay' | 'lightning'>('qvapay')
+	const lnQuery = useLightningAddressQuery()
+	const { state: lnState } = selectLightningAddress(lnQuery.data)
+	const lnAddress = lnState?.address ?? null
+	// Sin `visible` (función apagada para esta cuenta) no se ofrece la pestaña
+	const showLightning = lnState ? lnState.visible : false
+	const lightning = segment === 'lightning' && showLightning
+
 	// Build QR URL: https://www.qvapay.com/payme/{username}/{amount}
 	const identifier = user?.username || user?.uuid || ''
 	// `receive_amount` es opcional: sin él, parseFloat(undefined) da NaN y el `|| 0`
@@ -62,9 +80,14 @@ const Receive = ({ navigation, route }: Props) => {
 	const amount = parseFloat(receive_amount as string) || 0
 	const qrUrl = amount > 0 ? `https://www.qvapay.com/payme/${identifier}/${amount}` : `https://www.qvapay.com/payme/${identifier}`
 
-	// Share link
+	// Share link (o la Lightning Address, según la pestaña)
 	const handleShare = async () => {
 		try {
+			if (lightning) {
+				if (!lnAddress) return
+				await Share.share({ message: t('transactions.receive.lnShare', { address: lnAddress.address }) })
+				return
+			}
 			await Share.share({
 				message: amount > 0
 					? t('transactions.receive.shareWithAmount', { amount, url: qrUrl })
@@ -73,6 +96,8 @@ const Receive = ({ navigation, route }: Props) => {
 			})
 		} catch (e) { /* user cancelled */ }
 	}
+
+	const openLightningSettings = () => navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.LIGHTNING_ADDRESS, initial: false })
 
 	return (
 		<View style={containerStyles.container}>
@@ -83,6 +108,42 @@ const Receive = ({ navigation, route }: Props) => {
 					<ProfileContainer user={user || {}} />
 				</View>
 
+				{showLightning && (
+					<View style={styles.segment}>
+						<QPSwitch
+							value={segment === 'lightning' ? 'right' : 'left'}
+							leftText={t('transactions.receive.segmentQvapay')}
+							rightText={t('transactions.receive.segmentLightning')}
+							rightColor={SATS_COLOR}
+							onChange={(v) => setSegment(v === 'right' ? 'lightning' : 'qvapay')}
+						/>
+					</View>
+				)}
+
+				{lightning ? (
+					lnAddress ? (
+						<View style={styles.qrSection}>
+							<LnQrCard address={lnAddress} hint={t('transactions.receive.lnTapToCopy')} maxSize={qrSize} />
+							{lnAddress.status !== 'active' && (
+								<Pressable onPress={openLightningSettings}>
+									<Text style={[textStyles.caption, { color: theme.colors.warning, textAlign: 'center', marginTop: 4 }]}>
+										{t(lnAddress.status === 'paused' ? 'transactions.receive.lnPaused' : 'transactions.receive.lnBlocked')}
+									</Text>
+								</Pressable>
+							)}
+						</View>
+					) : (
+						<View style={[styles.activateCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
+							<View style={[styles.activateIcon, { backgroundColor: SATS_COLOR + '1A' }]}>
+								<FontAwesome6 name="bolt" size={22} color={SATS_COLOR} iconStyle="solid" />
+							</View>
+							<Text style={[textStyles.h4, { color: theme.colors.primaryText, textAlign: 'center' }]}>{t('transactions.receive.activateTitle')}</Text>
+							<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center' }]}>{t('transactions.receive.activateText')}</Text>
+							<QPButton title={t('transactions.receive.activateButton')} icon="bolt" onPress={openLightningSettings} />
+						</View>
+					)
+				) : (
+					<>
 				{/* Amount */}
 				{amount > 0 && (
 					<View style={styles.amountSection}>
@@ -117,6 +178,8 @@ const Receive = ({ navigation, route }: Props) => {
 						{t('transactions.receive.tapToCopy')}
 					</Text>
 				</View>
+				</>
+			)}
 			</ScrollView>
 
 			{/* Floating top bar — back + share, sit over the cover (like the Scan screen) */}
@@ -152,6 +215,29 @@ const styles = StyleSheet.create({
 	qrSection: {
 		alignItems: 'center',
 		marginTop: 10,
+	},
+	segment: {
+		paddingHorizontal: 16,
+		marginTop: 12,
+		marginBottom: 4,
+	},
+	activateCard: {
+		marginHorizontal: 16,
+		marginTop: 12,
+		padding: 20,
+		borderRadius: 16,
+		borderCurve: 'continuous',
+		alignItems: 'center',
+		gap: 8,
+	},
+	activateIcon: {
+		width: 48,
+		height: 48,
+		borderRadius: 16,
+		borderCurve: 'continuous',
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginBottom: 4,
 	},
 	qrCard: {
 		borderRadius: 16,

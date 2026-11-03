@@ -167,18 +167,21 @@ const MainStack = ({ navigation }: MainStackProps) => {
 	// OJO: los `unstable_header*Items` (iOS 26 liquid glass) no están en
 	// `BottomTabNavigationOptions`, y los spreads condicionales los dejan como
 	// props opcionales extra — de ahí el cast en cada `options={…}` del JSX.
-	const homeOptions = useMemo(() => ({
+	const homeOptions = useMemo(() => {
+		// La píldora de sats abre la Lightning Address (donde se ven, se cobran y se retiran los sats)
+		const openLightningAddress = () => navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.LIGHTNING_ADDRESS, initial: false })
+		return ({
 		tabBarLabel: showLabels ? t('navigation.tabs.home') : '',
 		tabBarIcon: getTabIcon(ROUTES.HOME_SCREEN),
 		// Android fallback
 		headerRight: () => (
 			<View style={containerStyles.headerRight}>
-				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 16 }}>
+				<Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 16 }} hitSlop={8} onPress={openLightningAddress} accessibilityRole="button">
 					<FontAwesome6 name="bolt" size={14} color="#F7931A" iconStyle="solid" />
 					<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
 						{showBalance ? (user!.satoshis || 0).toLocaleString() : '***'}
 					</Text>
-				</View>
+				</Pressable>
 				{!user!.golden_check && (
 					<Pressable style={{ marginRight: 16 }} onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
 						<FontAwesome6 name="crown" size={20} color={theme.colors.gold} iconStyle="solid" />
@@ -195,12 +198,12 @@ const MainStack = ({ navigation }: MainStackProps) => {
 				{
 					type: 'custom',
 					element: (
-						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+						<Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} hitSlop={8} onPress={openLightningAddress} accessibilityRole="button">
 							<FontAwesome6 name="bolt" size={14} color="#F7931A" iconStyle="solid" />
 							<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
 								{showBalance ? (user!.satoshis || 0).toLocaleString() : '***'}
 							</Text>
-						</View>
+						</Pressable>
 					),
 					hidesSharedBackground: true,
 				},
@@ -221,7 +224,8 @@ const MainStack = ({ navigation }: MainStackProps) => {
 				},
 			],
 		}),
-	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation, t])
+	})
+	}, [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation, t])
 
 	// Mismo header derecho que Home menos los sats: invitación a GOLD (solo sin
 	// golden_check) + escáner QR.

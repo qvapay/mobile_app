@@ -50,6 +50,8 @@ const MONEY_IN_TYPES = [
 	'transfer_received',
 	'p2p_completed',
 	'p2p_partial_completed',
+	// Cobro en la Lightning Address (`name@qvpay.me`): entra en USD o en sats
+	'ln_address_received',
 	// Legacy (pushes emitidas antes de que el backend tipara el evento)
 	'transaction',
 	'transfer',
@@ -63,7 +65,7 @@ const MONEY_OUT_TYPES = ['transfer_sent', 'invite_sent']
  * `MONEY_IN_TYPES`: un P2P completado también es dinero entrante, pero su
  * pantalla es la oferta, no la transacción.
  */
-const TRANSACTION_TYPES = ['transfer_received', 'transfer_sent', 'invite_sent', 'transaction_comment', 'transaction', 'transfer']
+const TRANSACTION_TYPES = ['transfer_received', 'transfer_sent', 'invite_sent', 'transaction_comment', 'ln_address_received', 'transaction', 'transfer']
 
 /** ¿Esta push anuncia dinero entrante? */
 export const isMoneyInPush = (data: PushData): boolean => !!data?.type && MONEY_IN_TYPES.includes(data.type)

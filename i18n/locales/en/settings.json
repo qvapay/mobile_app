@@ -58,7 +58,8 @@
 			"nodes": "Nodes",
 			"walletSettings": "My wallet",
 			"walletSettingsHint": "Addresses, secret phrase and delete",
-			"connectedApps": "Connected apps"
+			"connectedApps": "Connected apps",
+			"lightningAddress": "Lightning Address"
 		},
 		"status": {
 			"active": "Active"
@@ -85,7 +86,8 @@
 			"failed": "Couldn't log out. Please try again."
 		},
 		"reviewUnavailable": "Rating isn't available right now",
-		"allRightsReserved": "All rights reserved"
+		"allRightsReserved": "All rights reserved",
+		"whatsNew": "What's new in this version"
 	},
 	"contributors": {
 		"title": "Thank you",
@@ -862,6 +864,123 @@
 			"invalidCountry": "The country code must be 2 characters (e.g. US, ES)",
 			"updated": "Details updated successfully",
 			"updateFailed": "Couldn't update"
+		}
+	},
+	"lightningAddress": {
+		"title": "Lightning Address",
+		"subtitle": "Receive sats from any Lightning wallet in the world. They land in your balance instantly.",
+		"loadFailed": "Your Lightning Address could not be loaded.",
+		"retry": "Retry",
+		"verifyIdentity": "Verify my identity",
+		"reasons": {
+			"MODE_OFF": "Lightning Address is not available yet.",
+			"ROLE": "Lightning Address is not available for this type of account.",
+			"UNCLAIMED": "Activate your account to use Lightning Address.",
+			"KYC": "Verify your identity to activate your Lightning Address.",
+			"DEPOSITS_DISABLED": "Deposits are disabled on your account. Contact support.",
+			"PAUSED": "Your Lightning Address is paused: it won't receive payments until you resume it.",
+			"BLOCKED": "Your Lightning Address is blocked. Contact support.",
+			"default": "Lightning Address is not available for your account. Contact support."
+		},
+		"activate": {
+			"title": "Activate your address",
+			"text": "Choose the name you'll share. It stays fixed even if you change your username.",
+			"nameLabel": "Your address name",
+			"placeholder": "yourname",
+			"button": "Activate",
+			"benefits": {
+				"anyWallet": {
+					"title": "From any wallet",
+					"text": "Phoenix, Wallet of Satoshi, Blink, Alby… anyone can pay your address, just like an email."
+				},
+				"instant": {
+					"title": "Lands instantly",
+					"text": "The payment reaches your QvaPay balance in seconds and we notify you."
+				},
+				"unit": {
+					"title": "In USD or in sats",
+					"text": "You choose: dollars at the current price, or sats as they come with no fee."
+				}
+			}
+		},
+		"nameProblems": {
+			"length": "The name must be between 3 and 32 characters.",
+			"format": "Use only lowercase letters, numbers and . _ - (no separators at the start, at the end or in a row).",
+			"reserved": "That name is reserved.",
+			"taken": "That name is not available."
+		},
+		"errors": {
+			"generic": "Could not complete. Please try again.",
+			"tooMany": "Too many requests, wait a minute.",
+			"temp": "Not available right now, try again.",
+			"renameLimit": "You've used all your name changes.",
+			"stateChanged": "Your Lightning Address changed state. It has been reloaded.",
+			"satsDisabled": "Receiving in sats is not available yet."
+		},
+		"card": {
+			"tapToCopy": "Tap to copy",
+			"receiving": "Receiving payments",
+			"paused": "Paused: not receiving payments",
+			"blocked": "Blocked",
+			"notReceiving": "Not receiving payments right now",
+			"blockedHelp": "Your address is blocked. Contact support.",
+			"copy": "Copy",
+			"copyLnurl": "Copy LNURL",
+			"share": "Share",
+			"shareMessage": "Pay me over Lightning at {{address}} ⚡",
+			"pause": "Pause",
+			"resume": "Resume"
+		},
+		"receive": {
+			"title": "How you want to receive",
+			"subtitle": "Applies to new payments.",
+			"satsBalance": "Your sats balance: {{sats}} sats.",
+			"usd": {
+				"title": "Dollars (USD)",
+				"text": "Converted at the current price and credited to your USD balance. {{fee}}"
+			},
+			"sats": {
+				"title": "Satoshis",
+				"text": "Credited as they come, no conversion, to your sats balance. Spend them in the store or withdraw them over Lightning. {{fee}}"
+			},
+			"fee": "Fee: {{pct}}.",
+			"noFee": "No fee.",
+			"unavailableNow": "Receiving in sats is not available right now: your payments land in USD until it's back."
+		},
+		"limits": {
+			"perPayment": "Per payment",
+			"today": "Available today",
+			"of": "{{remaining}} of {{daily}}",
+			"fee": "Fee"
+		},
+		"rename": {
+			"title": "Change name",
+			"left_one": "You have {{count}} change left.",
+			"left_other": "You have {{count}} changes left.",
+			"warning": "Your current address will stop working: anyone who saved it won't be able to pay you with it. It stays reserved for you and nobody else can use it.",
+			"newName": "New name",
+			"confirm": "Change name"
+		},
+		"payments": {
+			"title": "Payments received",
+			"empty": "You haven't received payments on your Lightning Address yet.",
+			"sats": "{{sats}} sats",
+			"unverified": "(unverified message)",
+			"satsCredit": "sats balance"
+		},
+		"withdrawSats": "Withdraw sats over Lightning",
+		"celebrate": {
+			"title": "Your Lightning Address is ready! ⚡",
+			"text": "Share it and receive sats from any wallet in the world.",
+			"share": "Share my address"
+		},
+		"toasts": {
+			"activated": "Lightning Address activated",
+			"paused": "Address paused",
+			"resumed": "Your address is receiving payments again",
+			"renamed": "Name changed",
+			"receiveUsd": "Your next payments will land in USD",
+			"receiveSats": "Your next payments will land in sats"
 		}
 	}
 }

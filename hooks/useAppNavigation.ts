@@ -25,6 +25,10 @@ import { resolveRootRoute } from './rootRoute'
 import playSound from '../helpers/playSound'
 import { markIncomingSoundPlayed } from './useIncomingMoneySound'
 import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushNavigation } from '../helpers/pushRouting'
+import { LIGHTNING_ADDRESS_KEY } from '../helpers/lightningAddress'
+import { RELEASES } from '../whatsnew/releases'
+import { pickRelease } from '../whatsnew/whatsNewGate'
+import appJson from '../app.json'
 import { resolveDeepLinkTarget } from '../helpers/deepLinkTarget'
 import { maybePromptUpdate } from '../helpers/versionCheck'
 import { consumeInstallReferrer } from '../helpers/installReferrer'
@@ -100,6 +104,12 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 	const { user, isAuthenticated, isLoading: authLoading } = useAuth()
 	const { appearance, sounds, isLoading: settingsLoading } = useSettings()
 	const firstTime = appearance.firstTime
+	// Novedades: la última versión vista va en un ref (NO en las deps de la
+	// reconciliación: verla la cambia, y re-ejecutar el efecto resetearía el stack)
+	// y se ofrece como mucho una vez por proceso
+	const lastSeenWhatsNewRef = useRef<string | null | undefined>(appearance.lastSeenWhatsNew)
+	lastSeenWhatsNewRef.current = appearance.lastSeenWhatsNew
+	const whatsNewOfferedRef = useRef(false)
 	const { isReady: walletReady, hasWallet } = useWallet()
 
 	// hasWallet por ref y NO en deps: crear la wallet desde Welcome la flipea a
@@ -186,6 +196,14 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 					return
 				}
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK }] })
+				// Novedades de la versión recién instalada: solo en este camino limpio (sin
+				// deep link ni push que atender), encima de MainStack y al tick siguiente para
+				// que la presentación se vea (un reset con dos rutas no anima)
+				const release = whatsNewOfferedRef.current ? null : pickRelease({ current: appJson.version, lastSeen: lastSeenWhatsNewRef.current, releases: RELEASES })
+				if (release) {
+					whatsNewOfferedRef.current = true
+					setTimeout(() => navigation.navigate(ROUTES.WHATS_NEW, { version: release.version }), 0)
+				}
 			} else if (!isAuthenticated && !firstTime) {
 				// Sin sesión: Welcome, o el modo wallet si la seed vive en el teléfono
 				const target = resolveRootRoute({ firstTime, isAuthenticated, hasWallet: hasWalletRef.current })
@@ -280,6 +298,12 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 				queryClient.invalidateQueries({ queryKey: ['home'] })
 				queryClient.setQueriesData({ queryKey: ['transactions'] }, trimToFirstPage)
 				queryClient.invalidateQueries({ queryKey: ['transactions'] })
+			}
+			// Cobro en la Lightning Address: la lista de cobros y el saldo de sats
+			// (los sats del perfil ya vienen con el refresco de `['home']`)
+			if (data?.type === 'ln_address_received') {
+				queryClient.setQueriesData({ queryKey: LIGHTNING_ADDRESS_KEY }, trimToFirstPage)
+				queryClient.invalidateQueries({ queryKey: LIGHTNING_ADDRESS_KEY })
 			}
 			// Con la app delante la push NO va a la bandeja (ni en Android, donde
 			// FCM no la pinta en primer plano, ni en iOS, donde QPPush no la

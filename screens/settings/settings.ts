@@ -256,6 +256,15 @@ const settings: Record<SettingsGroupKey, SettingsMenuGroup> = {
                 enabled: true,
                 notifications: 0,
             },
+            {
+                title: 'settings.menu.items.lightningAddress',
+                screen: ROUTES.LIGHTNING_ADDRESS,
+                icon: 'bolt',
+                color: '#F7931A',
+                keywords: ['lightning', 'sats', 'satoshis', 'bitcoin', 'btc', 'ln', 'recibir', 'receive', 'dirección', 'address', 'qvpay'],
+                enabled: true,
+                notifications: 0,
+            },
         ],
     },
     wallet: {

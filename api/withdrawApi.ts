@@ -31,6 +31,8 @@ export type WithdrawInput = {
 /** Payload decodificado de `POST /lightning/decode` (BOLT11 o Lightning Address). */
 export type LightningDecodePayload = {
 	kind: string
+	/** `lnaddress`: la dirección normalizada (`nombre@dominio`). */
+	address?: string
 	amount_sat?: number
 	description?: string
 	expires_at?: string
@@ -159,7 +161,9 @@ export const withdrawApi = {
 		} catch (err) {
 			const error = err as ApiClientError
 			if (error.response?.data) {
-				return { success: false, error: error.response.data.error || i18n.t('api.withdraw.lightningInvalid'), status: error.response.status }
+				// `details` conserva el cuerpo: `code: 'LN_SELF_PAY'` cuando el destino es una
+				// Lightning Address de QvaPay (la UI ofrece Transferir en vez de retirar)
+				return { success: false, error: error.response.data.error || i18n.t('api.withdraw.lightningInvalid'), details: error.response.data, status: error.response.status }
 			}
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}

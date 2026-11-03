@@ -81,7 +81,9 @@ export const DEFAULT_SETTINGS = {
 		highContrast: false,
 		boldText: false,
 		firstTime: true,
-		bottomBarLabels: false
+		bottomBarLabels: false,
+		// Última versión cuyas Novedades se vieron (null = instalación anterior a la pantalla: la verá al actualizar)
+		lastSeenWhatsNew: null as string | null,
 	},
 
 	// Language and localization — currentLanguage: 'auto' | 'es' | 'en' | 'pt'

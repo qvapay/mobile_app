@@ -45,6 +45,9 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 
 // Routes
 import { ROUTES } from '../../routes'
+import appJson from '../../app.json'
+import { RELEASES } from '../../whatsnew/releases'
+import { releaseForVersion } from '../../whatsnew/whatsNewGate'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -55,6 +58,8 @@ import { toast } from 'sonner-native'
 // Constants
 import DeviceInfo from 'react-native-device-info'
 const version = DeviceInfo.getVersion()
+// Novedades de la versión instalada (la de app.json es la misma que la nativa tras version:sync)
+const whatsNewRelease = releaseForVersion(appJson.version, RELEASES)
 const buildNumber = DeviceInfo.getBuildNumber()
 
 // Tipos
@@ -314,13 +319,20 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 					</Pressable>
 				</View>}
 
-				{!searching && <Pressable onPress={onFooterPress} hitSlop={12} style={{ marginTop: 20, marginBottom: insets.bottom }}>
+				{!searching && <Pressable onPress={onFooterPress} hitSlop={12} style={{ marginTop: 20 }}>
 					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center' }]}>
 						{`QvaPay © ${new Date().getFullYear()} \n`}
 						{`v ${version} build ${buildNumber}\n`}
 						{t('settings.menu.allRightsReserved')}
 					</Text>
 				</Pressable>}
+
+				{/* Repetir las Novedades de esta versión (solo si la versión trae manifiesto) */}
+				{!searching && whatsNewRelease && (
+					<Pressable onPress={() => navigation.navigate(ROUTES.WHATS_NEW, { version: whatsNewRelease.version })} hitSlop={12} style={{ marginTop: 10, marginBottom: insets.bottom, alignSelf: 'center' }}>
+						<Text style={[textStyles.h6, { color: theme.colors.primary, textAlign: 'center' }]}>{t('settings.menu.whatsNew')}</Text>
+					</Pressable>
+				)}
 
 			</ScrollView>
 

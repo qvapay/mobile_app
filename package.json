@@ -1,6 +1,6 @@
 {
 	"name": "QvaPay",
-	"version": "3.7.4",
+	"version": "3.8.0",
 	"private": true,
 	"scripts": {
 		"android": "react-native run-android --main-activity .MainActivity",

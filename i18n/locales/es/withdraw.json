@@ -35,7 +35,10 @@
 			"processError": "Error al procesar la extracción",
 			"attestationRequired": "Debes completar la certificación para este retiro",
 			"formIncomplete": "Completa los datos del retiro antes de confirmar"
-		}
+		},
+		"lnAddressPreview": "Pagar a {{address}} · entre {{min}} y {{max}} sats",
+		"lnSelfPay": "Esa es una Lightning Address de QvaPay. Para enviarle dinero a un usuario de QvaPay usa Transferir: es gratis e instantáneo.",
+		"transferInstead": "Transferir"
 	},
 	"amountCard": {
 		"withdraw": "Extraer",
