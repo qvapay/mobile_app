@@ -106,7 +106,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		isCrypto, destination, setDestination,
 		workingFields, workingForm, setWorkingForm, selectFeePct, previewFee,
 		cashMode, cashZone, provinceKey, municipalityKey, feeBreakdown, receiveUsd, belowZoneMin, cashZonesStatus, retryCashZones,
-		savedForCoin, applySavedMethod,
+		savedForCoin, applySavedMethod, loadingSavedMethods,
 		isFormValid, resetAmounts,
 	} = useWithdrawForm({
 		preselectedCoin: route?.params?.preselectedCoin,
@@ -370,15 +370,16 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 				defaultCoins={DEFAULT_WITHDRAW_COINS}
 			/>
 
-			<SavedMethodsModal
-				visible={showSavedMethods}
-				onClose={() => setShowSavedMethods(false)}
-				methods={savedForCoin}
-				onSelect={(method) => { applySavedMethod(method); setShowSavedMethods(false) }}
-				onManage={openPaymentMethodsSettings}
-				theme={theme}
-				textStyles={textStyles}
-			/>
+		<SavedMethodsModal
+			visible={showSavedMethods}
+			onClose={() => setShowSavedMethods(false)}
+			loading={loadingSavedMethods}
+			methods={savedForCoin}
+			onSelect={(method) => { applySavedMethod(method); setShowSavedMethods(false) }}
+			onManage={openPaymentMethodsSettings}
+			theme={theme}
+			textStyles={textStyles}
+		/>
 
 			{/* useKycGate expone `string | null` y el modal declara `string | undefined` */}
 			<KycGateModal visible={gateVisible} message={gateMessage as string} onClose={closeGate} />

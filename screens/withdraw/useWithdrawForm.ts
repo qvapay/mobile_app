@@ -291,8 +291,11 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	// El «librito»: los métodos de pago guardados de la moneda elegida (paridad con el
 	// retiro de la web). Solo rellenan el formulario — `POST /withdraw` no sabe de ids
 	// de método — así que un fallo de la petición es silencio: se teclea a mano como antes
-	const { data: savedMethods } = usePaymentMethodsQuery(!!selectedCoin)
+	const { data: savedMethods, isLoading: loadingSavedMethods } = usePaymentMethodsQuery(!!selectedCoin)
 	const savedForCoin = useMemo(() => methodsForCoin(savedMethods, selectedCoin?.tick), [savedMethods, selectedCoin])
+
+	// Seguimiento de método aplicado sin cashMode, para traducirlo cuando las zonas lleguen
+	const pendingCashPlaceRef = useRef<{ provinceKey: string, municipalityKey: string, rawProvince: string, rawMunicipality: string } | null>(null)
 
 	/** Vuelca un método guardado en los campos (sustituye lo tecleado). */
 	const applySavedMethod = (method: SavedPaymentMethod) => {
@@ -302,6 +305,15 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 			const place = savedCashPlace(cashMode.zones, { province: form[provinceKey], municipality: form[municipalityKey] })
 			form[provinceKey] = place.province
 			form[municipalityKey] = place.municipality
+			pendingCashPlaceRef.current = null
+		} else if (hasCashZoneFields(workingFields) && provinceKey && municipalityKey) {
+			// Zonas aún no listas: guardar los valores crudos para traducirlos después
+			pendingCashPlaceRef.current = {
+				provinceKey,
+				municipalityKey,
+				rawProvince: form[provinceKey] || '',
+				rawMunicipality: form[municipalityKey] || '',
+			}
 		}
 		setWorkingForm(form)
 		if (isCrypto) setDestination('personal')
@@ -320,6 +332,19 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		setAmountCoin(netInCoin > 0 ? netInCoin.toFixed(coinDecimals) : '')
 	})
 	useEffect(() => { resyncReceiveAmount() }, [selectFeePct, selectedCoin, cashZone, cashMode])
+
+	// Traducir valores crudos de un método guardado cuando cashMode se vuelve disponible
+	useEffect(() => {
+		if (!cashMode || !pendingCashPlaceRef.current) return
+		const pending = pendingCashPlaceRef.current
+		pendingCashPlaceRef.current = null
+		const place = savedCashPlace(cashMode.zones, { province: pending.rawProvince, municipality: pending.rawMunicipality })
+		setWorkingForm((prev) => ({
+			...prev,
+			[pending.provinceKey]: place.province,
+			[pending.municipalityKey]: place.municipality,
+		}))
+	}, [cashMode])
 
 	const isFormValid = useMemo(() => {
 		if (!selectedCoin) { return false }
@@ -382,7 +407,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		// Entrega de efectivo por zonas
 		cashMode, cashZone, provinceKey, municipalityKey, feeBreakdown, receiveUsd, belowZoneMin, cashZonesStatus, retryCashZones,
 		// Métodos de pago guardados
-		savedForCoin, applySavedMethod,
+		savedForCoin, applySavedMethod, loadingSavedMethods,
 		// Validación y limpieza
 		isFormValid, resetAmounts,
 	}
