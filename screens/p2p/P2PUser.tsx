@@ -11,6 +11,8 @@ import { createTextStyles, createContainerStyles } from "../../theme/themeUtils"
 
 // API
 import usePeerProfile from "./usePeerProfile"
+import useUserModeration from "./useUserModeration"
+import P2PUserModerationSheet from "./P2PUserModerationSheet"
 
 // UI
 import QPAvatar from "../../ui/particles/QPAvatar"
@@ -114,6 +116,9 @@ const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamLis
 	const [activeTab, setActiveTab] = useState(initialTab === "reviews" || initialTab === "stats" ? initialTab : "offers")
 	const [reviewMode, setReviewMode] = useState<'received' | 'sent'>("received")
 
+	// Reportar · bloquear desde el ⋯ de la portada y el banner de bloqueo (nunca en el perfil propio)
+	const moderation = useUserModeration(user, { enabled: !!user && !isSelf })
+
 
 	// Share the profile — used by both Android header button and iOS native item
 	const handleShare = useCallback(async () => {
@@ -185,6 +190,22 @@ const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamLis
 
 				<PeerIdentity theme={theme} textStyles={textStyles} user={user} stats={stats} domain={domain} />
 
+				{/* Bloqueo en cualquier sentido: el servidor ya oculta las ofertas del uno al otro;
+				    aquí se dice por qué y, si fui yo, se puede deshacer */}
+				{(moderation.blocked || moderation.blockedBy) && (
+					<View style={[styles.blockBanner, { backgroundColor: theme.colors.danger + "1A" }]} testID="block-banner">
+						<FontAwesome6 name="user-slash" size={14} color={theme.colors.danger} iconStyle="solid" />
+						<Text style={[textStyles.h7, { color: theme.colors.danger, flex: 1 }]}>
+							{moderation.blocked ? t('p2p.moderation.blockedBanner') : t('p2p.moderation.blockedByBanner')}
+						</Text>
+						{moderation.blocked && (
+							<Pressable onPress={() => moderation.open("unblock")} hitSlop={8} accessibilityRole="button">
+								<Text style={[textStyles.h7, { color: theme.colors.danger, fontFamily: "Rubik-Medium" }]}>{t('p2p.moderation.unblockShort')}</Text>
+							</Pressable>
+						)}
+					</View>
+				)}
+
 				<PeerStatCards
 					theme={theme}
 					textStyles={textStyles}
@@ -255,7 +276,27 @@ const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamLis
 				</View>
 			</ScrollView>
 
-			<FloatingTopBar insets={insets} theme={theme} onBack={() => navigation.goBack()} onShare={user ? handleShare : undefined} />
+			<FloatingTopBar
+				insets={insets}
+				theme={theme}
+				onBack={() => navigation.goBack()}
+				onShare={user ? handleShare : undefined}
+				onMore={user && !isSelf ? () => moderation.open("menu") : undefined}
+				moreLabel={t('p2p.moderation.more')}
+			/>
+
+			<P2PUserModerationSheet
+				target={moderation.sheet}
+				blocked={moderation.blocked}
+				busy={moderation.busy}
+				onClose={moderation.close}
+				onReport={moderation.report}
+				onBlock={moderation.block}
+				onUnblock={moderation.unblock}
+				theme={theme}
+				textStyles={textStyles}
+				containerStyles={containerStyles}
+			/>
 		</View>
 	)
 }
@@ -422,17 +463,24 @@ const PeerStatCards = ({ theme, textStyles, stats, viewerGold, onPressUnlock }: 
 }
 
 
-// Floating back + share buttons overlaid on the cover (Scan-style top controls)
-const FloatingTopBar = ({ insets, theme: _theme, onBack, onShare }: { insets: EdgeInsets, theme: Theme, onBack: () => void, onShare?: () => void }) => (
+// Floating back + share + ⋯ (reportar · bloquear) buttons overlaid on the cover (Scan-style top controls)
+const FloatingTopBar = ({ insets, theme: _theme, onBack, onShare, onMore, moreLabel }: { insets: EdgeInsets, theme: Theme, onBack: () => void, onShare?: () => void, onMore?: () => void, moreLabel?: string }) => (
 	<View style={[styles.floatingTopBar, { top: insets.top + 6 }]} pointerEvents="box-none">
 		<Pressable onPress={onBack} style={styles.floatingBtn} hitSlop={10}>
 			<FontAwesome6 name="arrow-left" size={18} color="white" iconStyle="solid" />
 		</Pressable>
-		{onShare ? (
-			<Pressable onPress={onShare} style={styles.floatingBtn} hitSlop={10}>
-				<FontAwesome6 name="share-nodes" size={18} color="white" iconStyle="solid" />
-			</Pressable>
-		) : <View style={{ width: 40 }} />}
+		<View style={styles.floatingRight}>
+			{onShare ? (
+				<Pressable onPress={onShare} style={styles.floatingBtn} hitSlop={10}>
+					<FontAwesome6 name="share-nodes" size={18} color="white" iconStyle="solid" />
+				</Pressable>
+			) : null}
+			{onMore ? (
+				<Pressable onPress={onMore} style={styles.floatingBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel={moreLabel} testID="profile-more">
+					<FontAwesome6 name="ellipsis" size={18} color="white" iconStyle="solid" />
+				</Pressable>
+			) : null}
+		</View>
 	</View>
 )
 
@@ -919,6 +967,21 @@ const styles = StyleSheet.create({
 		backgroundColor: "rgba(0,0,0,0.4)",
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	floatingRight: {
+		flexDirection: "row",
+		gap: 8,
+	},
+	blockBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		marginHorizontal: 16,
+		marginTop: 10,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderRadius: 12,
+		borderCurve: 'continuous',
 	},
 })
 

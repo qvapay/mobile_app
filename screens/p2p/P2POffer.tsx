@@ -43,6 +43,9 @@ import P2PTradeProgress from "./P2PTradeProgress"
 import P2PActionBar from "./P2PActionBar"
 import P2PFlexibleOrders from "./P2PFlexibleOrders"
 import P2PRateSheet from "./P2PRateSheet"
+import P2PUserModerationSheet from "./P2PUserModerationSheet"
+import useUserModeration from "./useUserModeration"
+import { isBlockRestrictionError } from "./userModeration"
 
 import type { ReactElement } from "react"
 import type { RefreshControlProps } from "react-native"
@@ -126,6 +129,10 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 		handleApply, handleApplyConfirm, handleShareIntent, openEditModal, handleEdit,
 	} = offer
 
+	// Reportar · bloquear a la contraparte desde el menú ⋯ del chat (como el chat de la web).
+	// El estado de bloqueo solo se pide con un trato en marcha (hay contraparte)
+	const moderation = useUserModeration(counterparty ?? null, { enabled: !!counterparty && !!user })
+
 	// Keyboard height tracking
 	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
 
@@ -149,7 +156,9 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					<Text style={[textStyles.h5, { color: theme.colors.danger }]}>{t('p2p.offer.loadFailed')}</Text>
 					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{/* OJO: el hook solo guarda strings en `error` — los accesos .error/.message
 						    son restos defensivos que nunca disparan; el cast preserva el runtime */}
-						{String((error as { error?: string, message?: string }).error || (error as { error?: string, message?: string }).message || error)}</Text>
+						{isBlockRestrictionError(error)
+							? t('p2p.moderation.offerBlocked')
+							: String((error as { error?: string, message?: string }).error || (error as { error?: string, message?: string }).message || error)}</Text>
 				</View>
 			</View>
 		)
@@ -336,10 +345,25 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					containerStyles={containerStyles}
 				/>
 
+				{/* Reportar · bloquear/desbloquear a la contraparte (desde el ⋯ de la hoja del chat) */}
+				<P2PUserModerationSheet
+					target={moderation.sheet}
+					blocked={moderation.blocked}
+					busy={moderation.busy}
+					onClose={moderation.close}
+					onReport={moderation.report}
+					onBlock={moderation.block}
+					onUnblock={moderation.unblock}
+					theme={theme}
+					textStyles={textStyles}
+					containerStyles={containerStyles}
+				/>
+
 				{/* Burbuja flotante del chat + hoja del chat (badge de no leídos incluido) */}
 				<P2POfferChatDock
 					enabled={!!p2p && status !== "open" && !isFlexibleOverview}
 					chat={chat}
+					onMoreCounterparty={counterparty ? () => moderation.open("menu") : undefined}
 					insets={insets}
 					theme={theme}
 					textStyles={textStyles}

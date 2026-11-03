@@ -19,6 +19,12 @@ export type KYCSessionResult = | (ApiSuccess<string> & { sessionToken: string | 
  */
 export type UserCip = { us_person: boolean }
 
+/** `GET /user/block?uuid=`: `blocked` = yo lo bloqueé, `blocked_by` = él me bloqueó. */
+export type UserBlockStatusPayload = { blocked: boolean, blocked_by: boolean }
+
+/** Body de `POST /user/report`; `reason` viaja como texto (el literal del selector de la web). */
+export type UserReportInput = { reported_user_uuid: string, reason: string, description?: string }
+
 /** Por qué el servidor retiene una verificación: bloqueo de compliance o tope de intentos. */
 export type KYCHoldReason = 'compliance' | 'limit'
 
@@ -647,6 +653,72 @@ export const userApi = {
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.contactDeleteFailed'), details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Estado de bloqueo con otro usuario (`GET /user/block?uuid=`): `{ blocked, blocked_by }`
+	 * (yo lo bloqueé / él me bloqueó). Silenciosa: es un flag de fondo, no una carga.
+	 */
+	getBlockStatus: async (uuid: string): Promise<ApiResult<UserBlockStatusPayload>> => {
+		try {
+			const response = await apiClient.get('/user/block', { params: { uuid }, silent: true })
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.blockStatusFailed'), details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/** Bloquea a un usuario (`POST /user/block`). 400 si ya estaba bloqueado (prosa, sin código). */
+	blockUser: async (uuid: string): Promise<ApiResult<unknown>> => {
+		try {
+			const response = await apiClient.post('/user/block', { blocked_user_uuid: uuid })
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.blockFailed'), details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/** Desbloquea a un usuario (`DELETE /user/block?uuid=`). 404 si no estaba bloqueado. */
+	unblockUser: async (uuid: string): Promise<ApiResult<unknown>> => {
+		try {
+			const response = await apiClient.delete('/user/block', { params: { uuid } })
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.unblockFailed'), details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Reporta a un usuario (`POST /user/report`). `reason` es el literal en español que
+	 * guarda la web (`REPORT_REASON_TEXT` de `screens/p2p/userModeration.ts`).
+	 */
+	reportUser: async (payload: UserReportInput): Promise<ApiResult<unknown>> => {
+		try {
+			const response = await apiClient.post('/user/report', payload)
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.reportFailed'), details: errorData, status: error.response.status }
 			}
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}

@@ -482,5 +482,47 @@
 			"free": "El puesto promocionado de {{coin}} · {{side}} está libre.",
 			"freeCta": "Promociónate por ${{price}}"
 		}
+	},
+	"moderation": {
+		"more": "Más opciones",
+		"report": "Reportar usuario",
+		"block": "Bloquear usuario",
+		"unblock": "Desbloquear usuario",
+		"unblockShort": "Desbloquear",
+		"blockedBanner": "Has bloqueado a este usuario",
+		"blockedByBanner": "Este usuario te ha bloqueado",
+		"offerBlocked": "No puedes ver esta oferta: hay un bloqueo entre tú y su dueño.",
+		"reportSheet": {
+			"title": "Reportar a @{{username}}",
+			"subtitle": "Cuéntanos qué pasó. El equipo de QvaPay lo revisará y el usuario no sabrá quién lo reportó.",
+			"reasonLabel": "Motivo",
+			"descriptionLabel": "Detalles (opcional)",
+			"descriptionPlaceholder": "Qué pasó, cuándo, en qué oferta…",
+			"submit": "Enviar reporte",
+			"reasons": {
+				"inappropriate": "Comportamiento inapropiado",
+				"spam": "Spam o publicidad no deseada",
+				"scam": "Estafa o fraude",
+				"harassment": "Acoso o intimidación",
+				"offensive": "Contenido ofensivo",
+				"fake": "Cuenta falsa o suplantación",
+				"other": "Otro"
+			}
+		},
+		"blockSheet": {
+			"title": "¿Bloquear a @{{username}}?",
+			"body": "Ninguno de los dos verá ni podrá tomar las ofertas P2P del otro. Los tratos ya abiertos siguen su curso. Puedes desbloquearlo cuando quieras.",
+			"confirm": "Bloquear"
+		},
+		"unblockSheet": {
+			"title": "¿Desbloquear a @{{username}}?",
+			"body": "Volverán a ver y poder tomar las ofertas P2P del otro.",
+			"confirm": "Desbloquear"
+		},
+		"toasts": {
+			"reported": "Reporte enviado. Gracias por avisar.",
+			"blocked": "Usuario bloqueado",
+			"unblocked": "Usuario desbloqueado"
+		}
 	}
 }
