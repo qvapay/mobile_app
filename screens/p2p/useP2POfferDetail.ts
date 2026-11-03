@@ -436,6 +436,14 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		promptTimerRef.current = setTimeout(() => setRateSheet({ order, mode: "create" }), RATE_PROMPT_DELAY_MS)
 	}, [p2p_uuid])
 
+	// Cancela cualquier prompt de valoración pendiente (usado cuando otra modal se abre)
+	const cancelRatePrompt = useCallback(() => {
+		if (promptTimerRef.current) {
+			clearTimeout(promptTimerRef.current)
+			promptTimerRef.current = null
+		}
+	}, [])
+
 	// Push de un trato cerrado (`rate`): en cuanto llega el detalle y se puede valorar
 	const promptOrder = selectedOrder?.uuid ?? null
 	useEffect(() => {
@@ -794,7 +802,7 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		// edit modal
 		edit, setEdit,
 		// rating sheet
-		rateTarget, openRateSheet, closeRateSheet, submitRate,
+		rateTarget, openRateSheet, closeRateSheet, submitRate, cancelRatePrompt,
 		// actions
 		onRefresh, openPeerProfile, handleCancel, handleDispute, handleMarkPaid, handleConfirmReceived,
 		handleApply, handleApplyConfirm, handleShareIntent, openEditModal, handleEdit,

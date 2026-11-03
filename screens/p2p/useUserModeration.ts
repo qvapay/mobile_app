@@ -45,9 +45,11 @@ const useUserModeration = (target: P2PUser | null | undefined, { enabled = true 
 
 	const close = useCallback(() => setSheet(null), [])
 
-	const writeBlocked = useCallback((blocked: boolean) => {
+	const writeBlocked = useCallback(async (blocked: boolean) => {
 		if (!uuid) return
+		await queryClient.cancelQueries({ queryKey: userBlockKey(uuid) })
 		queryClient.setQueryData<BlockStatus>(userBlockKey(uuid), prev => ({ blocked, blockedBy: prev?.blockedBy ?? false }))
+		await queryClient.invalidateQueries({ queryKey: ['p2p', 'user', uuid] })
 	}, [queryClient, uuid])
 
 	const run = useCallback(async (job: () => Promise<boolean>) => {
@@ -67,7 +69,7 @@ const useUserModeration = (target: P2PUser | null | undefined, { enabled = true 
 		if (!uuid) return false
 		const result = await userApi.blockUser(uuid)
 		if (!result.success && blockOutcome('blocked', result) === 'failed') { toast.error(result.error ?? i18n.t('api.user.blockFailed')); return false }
-		writeBlocked(true)
+		await writeBlocked(true)
 		toast.success(i18n.t('p2p.moderation.toasts.blocked'))
 		return true
 	}), [run, uuid, writeBlocked])
@@ -76,7 +78,7 @@ const useUserModeration = (target: P2PUser | null | undefined, { enabled = true 
 		if (!uuid) return false
 		const result = await userApi.unblockUser(uuid)
 		if (!result.success && blockOutcome('unblocked', result) === 'failed') { toast.error(result.error ?? i18n.t('api.user.unblockFailed')); return false }
-		writeBlocked(false)
+		await writeBlocked(false)
 		toast.success(i18n.t('p2p.moderation.toasts.unblocked'))
 		return true
 	}), [run, uuid, writeBlocked])

@@ -124,7 +124,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 		canApply, statusMessage, peerStats, peerReviewsCount, isUserOnline,
 		loading, txIdInput, setTxIdInput, showApplyConfirm, setShowApplyConfirm, edit, setEdit,
 		confirmModal, closeConfirmModal, confirmModalAction,
-		rateTarget, openRateSheet, closeRateSheet, submitRate,
+		rateTarget, openRateSheet, closeRateSheet, submitRate, cancelRatePrompt,
 		onRefresh, openPeerProfile, handleCancel, handleDispute, handleMarkPaid, handleConfirmReceived,
 		handleApply, handleApplyConfirm, handleShareIntent, openEditModal, handleEdit,
 	} = offer
@@ -132,6 +132,12 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 	// Reportar · bloquear a la contraparte desde el menú ⋯ del chat (como el chat de la web).
 	// El estado de bloqueo solo se pide con un trato en marcha (hay contraparte)
 	const moderation = useUserModeration(counterparty ?? null, { enabled: !!counterparty && !!user })
+
+	// Prevenir que dos modales se presenten a la vez en iOS: si se abre la hoja de moderación,
+	// cancelar cualquier prompt de valoración pendiente
+	useEffect(() => {
+		if (moderation.sheet) cancelRatePrompt()
+	}, [moderation.sheet, cancelRatePrompt])
 
 	// Keyboard height tracking
 	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
@@ -334,9 +340,10 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 				/>
 
 				{/* Valoración del trato cerrado (oferta fija u orden por rango): crear se oculta si ya está
-				    valorado (p. ej. lo trajo el refetch); editar abre precargada con mi valoración */}
+				    valorado (p. ej. lo trajo el refetch); editar abre precargada con mi valoración.
+				    No presentar si la hoja de moderación está abierta (iOS no tolera dos modales a la vez) */}
 				<P2PRateSheet
-					target={rateTarget && (rateTarget.mode === "edit" || !rateTarget.rated) ? rateTarget : null}
+					target={rateTarget && !moderation.sheet && (rateTarget.mode === "edit" || !rateTarget.rated) ? rateTarget : null}
 					loading={loading.rate}
 					onClose={closeRateSheet}
 					onSubmit={submitRate}
