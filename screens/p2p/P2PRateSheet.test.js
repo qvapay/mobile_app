@@ -10,6 +10,8 @@ jest.mock('../../ui/particles/QPPressable', () => 'QPPressable')
 jest.mock('../../ui/particles/QPRate', () => 'QPRate')
 jest.mock('../../ui/QPKeyboardAvoidingView', () => 'QPKeyboardAvoidingView')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
+// El Modal de RN como host plano: el mock del preset no pinta nada con visible=false y la puerta necesita verlo
+jest.mock('react-native/Libraries/Modal/Modal', () => ({ __esModule: true, default: 'Modal' }))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
@@ -66,4 +68,33 @@ test('editar: precargada con mi valoración, con el plazo y "Guardar cambios" so
 
 test('sin trato no pinta nada', () => {
 	expect(render(null).toJSON()).toBeNull()
+})
+
+describe('puerta del Modal (iOS)', () => {
+	const modal = (tree) => tree.root.findByType('Modal')
+	const update = (tree, target) => act(() => {
+		tree.update(<P2PRateSheet target={target} loading={false} onClose={jest.fn()} onSubmit={jest.fn()} theme={theme} textStyles={createTextStyles(theme)} containerStyles={createContainerStyles(theme)} />)
+	})
+
+	test('cerrar antes de onShow mantiene la tarjeta hasta que la presentación termina y UIKit confirma el dismiss', () => {
+		const tree = render({ ...base, mode: 'create', mine: null })
+		update(tree, null)
+		expect(modal(tree).props.visible).toBe(true)
+		act(() => { modal(tree).props.onShow() })
+		expect(modal(tree).props.visible).toBe(false)
+		expect(text(tree)).toContain('Operación completada')
+		act(() => { modal(tree).props.onDismiss() })
+		expect(tree.toJSON()).toBeNull()
+	})
+
+	test('cada apertura nueva arranca en blanco', () => {
+		const tree = render({ ...base, mode: 'create', mine: null })
+		act(() => { modal(tree).props.onShow() })
+		act(() => { tree.root.findByType('QPRate').props.onRate(3) })
+		update(tree, null)
+		act(() => { modal(tree).props.onDismiss() })
+		update(tree, { ...base, mode: 'create', mine: null })
+		expect(modal(tree).props.visible).toBe(true)
+		expect(tree.root.findByType('QPRate').props.value).toBe(0)
+	})
 })

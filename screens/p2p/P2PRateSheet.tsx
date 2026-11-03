@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
@@ -9,6 +9,8 @@ import QPInput from "../../ui/particles/QPInput"
 import QPPressable from "../../ui/particles/QPPressable"
 import QPRate from "../../ui/particles/QPRate"
 import QPKeyboardAvoidingView from "../../ui/QPKeyboardAvoidingView"
+import { useModalGate } from "../../ui/useModalGate"
+import type { ModalGate } from "../../ui/useModalGate"
 import { displayName } from "../../helpers/displayName"
 import { getDateLocale } from "../../i18n"
 import { formatCents, toCents } from "./p2pFlexible"
@@ -46,10 +48,21 @@ const TAG_ICONS: Record<P2PRatingTag, "bolt" | "handshake" | "comments"> = {
  *
  * En modo `edit` arranca con mi valoración, dice hasta cuándo se puede cambiar y
  * "Guardar cambios" solo se activa si algo cambió (el PATCH sin cambios es un 400).
+ *
+ * El `<Modal>` pasa por `useModalGate` (ver `ui/modalGate.ts`): en iOS un cierre
+ * antes de terminar la presentación deja un modal zombi que bloquea los demás.
+ * Mientras se cierra, la tarjeta sigue montada con el último trato; cada
+ * presentación nueva remonta la tarjeta (`key`) para que arranque en blanco.
  */
-const P2PRateSheet = ({ target, ...rest }: P2PRateSheetProps) => (target ? <RateSheetCard target={target} {...rest} /> : null)
+const P2PRateSheet = ({ target, ...rest }: P2PRateSheetProps) => {
+	const gate = useModalGate(!!target)
+	const lastTargetRef = useRef<RateTarget | null>(null)
+	if (target) lastTargetRef.current = target
+	const shown = target ?? lastTargetRef.current
+	return gate.mounted && shown ? <RateSheetCard key={gate.generation} target={shown} gate={gate} {...rest} /> : null
+}
 
-const RateSheetCard = ({ target, loading, onClose, onSubmit, theme, textStyles, containerStyles }: P2PRateSheetProps & { target: RateTarget }) => {
+const RateSheetCard = ({ target, gate, loading, onClose, onSubmit, theme, textStyles, containerStyles }: P2PRateSheetProps & { target: RateTarget, gate: ModalGate }) => {
 
 	const { t } = useTranslation()
 	const mine = target.mode === "edit" ? target.mine : null
@@ -70,7 +83,7 @@ const RateSheetCard = ({ target, loading, onClose, onSubmit, theme, textStyles, 
 	const deal = t('p2p.rating.deal', { amount: formatCents(toCents(target.amount)), receive: target.receive, coin: target.coinName })
 
 	return (
-		<Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
+		<Modal visible={gate.visible} onShow={gate.onShow} onDismiss={gate.onDismiss} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
 			{/* El comentario abre el teclado: en Android edge-to-edge hay que reservarlo a mano */}
 			<QPKeyboardAvoidingView style={styles.fill}>
 				<Pressable style={containerStyles.modalOverlay} onPress={close}>
