@@ -889,25 +889,29 @@ describe('saved payment methods (el librito)', () => {
 		expect(zoneNode.props.zone.id).toBe('1')
 	})
 
-	test('sin zonas, un lugar guardado que no es ninguno de los chips no deja continuar hasta elegir uno', async () => {
-		const CASH = {
-			tick: 'CASHZ', name: 'Cash zones', price: '1', stable: true, fee_out: '1', fee_out_fixed: null, decimals: 2, logo: 'usdcash',
-			working_data: [
-				{ name: 'Nombre y Apellidos', type: 'text' },
-				{ name: 'Provincia', type: 'select', options: [{ value: 'Villa Clara', fee_pct: 5 }] },
-				{ name: 'Municipio', type: 'text' },
-			],
-		}
-		mockCoinCatalog = [CASH]
-		// Sin zonas en el servidor, la provincia es el select de siempre: nada traduce el lugar viejo
+	// Sin zonas en el servidor, la provincia es el select de siempre: nada traduce un lugar viejo
+	const CASH_NO_ZONES = {
+		tick: 'CASHZ', name: 'Cash zones', price: '1', stable: true, fee_out: '1', fee_out_fixed: null, decimals: 2, logo: 'usdcash',
+		working_data: [
+			{ name: 'Nombre y Apellidos', type: 'text' },
+			{ name: 'Provincia', type: 'select', options: [{ value: 'Villa Clara', fee_pct: 5 }] },
+			{ name: 'Municipio', type: 'text' },
+		],
+	}
+	const OLD_CITY_PLACE = { id: '4', name: 'Casa', coin: { tick: 'CASHZ' }, details: { 'Nombre y Apellidos': 'Juan', Provincia: 'Santa Clara', Municipio: 'Santa Clara' } }
+	const withoutZones = () => {
+		mockCoinCatalog = [CASH_NO_ZONES]
 		withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'CASHZ', margin_pct: 1, zones: [] } })
-		const OLD_PLACE = { id: '4', name: 'Casa', coin: { tick: 'CASHZ' }, details: { 'Nombre y Apellidos': 'Juan', Provincia: 'Santa Clara', Municipio: 'Santa Clara' } }
-		userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [OLD_PLACE] })
+		userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [OLD_CITY_PLACE] })
+	}
+
+	test('sin zonas, un lugar guardado que no es ninguno de los chips no deja continuar hasta elegir uno', async () => {
+		withoutZones()
 		const tree = await renderWithdraw()
-		await selectCoin(tree, CASH)
+		await selectCoin(tree, CASH_NO_ZONES)
 		await typeQUSD(tree, '100')
 		await openBook(tree)
-		await act(async () => { savedModal(tree).props.onSelect(OLD_PLACE) })
+		await act(async () => { savedModal(tree).props.onSelect(OLD_CITY_PLACE) })
 		// «Santa Clara» no es ningún chip: ni cotiza el 5 % de la provincia ni puede llegar al servidor
 		expect(tree.root.findByType('WithdrawAccountFields').props.workingForm.provincia).toBe('Santa Clara')
 		expect(footerButton(tree).props.disabled).toBe(true)
@@ -915,6 +919,33 @@ describe('saved payment methods (el librito)', () => {
 		// base 1 % + provincia 5 % ⇒ recibe 94
 		expect(amountCard(tree).props.amountCoin).toBe('94.00')
 		expect(footerButton(tree).props.disabled).toBe(false)
+	})
+
+	test('con el PIN abierto, elegir un método con una opción vieja no deja que el autoenvío del PIN lo mande', async () => {
+		withoutZones()
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_NO_ZONES)
+		await typeQUSD(tree, '100')
+		await fillField(tree, 'nombre_y_apellidos', 'Juan')
+		await fillField(tree, 'provincia', 'Villa Clara')
+		await fillField(tree, 'municipio', 'Santa Clara')
+		await pressFooter(tree)
+		// El formulario sigue editable bajo el paso de PIN
+		await openBook(tree)
+		await act(async () => { savedModal(tree).props.onSelect(OLD_CITY_PLACE) })
+		expect(footerButton(tree).props.disabled).toBe(true)
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).not.toHaveBeenCalled()
+		expect(toast.error).toHaveBeenCalledWith('Completa los datos del retiro antes de confirmar')
+		// Elegido el chip, el botón manda la opción buena con el PIN ya tecleado
+		await fillField(tree, 'provincia', 'Villa Clara')
+		expect(footerButton(tree).props.disabled).toBe(false)
+		await pressFooter(tree)
+		expect(withdrawApi.withdraw).toHaveBeenCalledTimes(1)
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith(expect.objectContaining({
+			pin: '1234',
+			details: { 'Nombre y Apellidos': 'Juan', Provincia: 'Villa Clara', Municipio: 'Santa Clara' },
+		}))
 	})
 
 	test('con una moneda cripto, elegir un método marca el destino como wallet propia', async () => {

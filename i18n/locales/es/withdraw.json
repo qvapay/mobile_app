@@ -33,7 +33,8 @@
 			"networkErrorTitle": "Error de red",
 			"withdrawFailed": "No se pudo completar la extracción",
 			"processError": "Error al procesar la extracción",
-			"attestationRequired": "Debes completar la certificación para este retiro"
+			"attestationRequired": "Debes completar la certificación para este retiro",
+			"formIncomplete": "Completa los datos del retiro antes de confirmar"
 		}
 	},
 	"amountCard": {
