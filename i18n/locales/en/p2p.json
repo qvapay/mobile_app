@@ -482,5 +482,47 @@
 			"free": "The featured spot for {{coin}} · {{side}} is free.",
 			"freeCta": "Get featured for ${{price}}"
 		}
+	},
+	"moderation": {
+		"more": "More options",
+		"report": "Report user",
+		"block": "Block user",
+		"unblock": "Unblock user",
+		"unblockShort": "Unblock",
+		"blockedBanner": "You've blocked this user",
+		"blockedByBanner": "This user has blocked you",
+		"offerBlocked": "You can't view this offer: there's a block between you and its owner.",
+		"reportSheet": {
+			"title": "Report @{{username}}",
+			"subtitle": "Tell us what happened. The QvaPay team will review it and the user won't know who reported them.",
+			"reasonLabel": "Reason",
+			"descriptionLabel": "Details (optional)",
+			"descriptionPlaceholder": "What happened, when, in which offer…",
+			"submit": "Send report",
+			"reasons": {
+				"inappropriate": "Inappropriate behavior",
+				"spam": "Spam or unwanted advertising",
+				"scam": "Scam or fraud",
+				"harassment": "Harassment or intimidation",
+				"offensive": "Offensive content",
+				"fake": "Fake account or impersonation",
+				"other": "Other"
+			}
+		},
+		"blockSheet": {
+			"title": "Block @{{username}}?",
+			"body": "Neither of you will see or be able to take the other's P2P offers. Trades already open continue as usual. You can unblock them anytime.",
+			"confirm": "Block"
+		},
+		"unblockSheet": {
+			"title": "Unblock @{{username}}?",
+			"body": "You'll both see and be able to take each other's P2P offers again.",
+			"confirm": "Unblock"
+		},
+		"toasts": {
+			"reported": "Report sent. Thanks for letting us know.",
+			"blocked": "User blocked",
+			"unblocked": "User unblocked"
+		}
 	}
 }

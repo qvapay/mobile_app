@@ -36,7 +36,11 @@
 		"twoFactorGenerateFailed": "Não foi possível gerar o código 2FA",
 		"twoFactorActivateFailed": "Não foi possível ativar o 2FA",
 		"twoFactorDeactivateFailed": "Não foi possível desativar o 2FA",
-		"imageUploadFailed": "Não foi possível enviar a imagem"
+		"imageUploadFailed": "Não foi possível enviar a imagem",
+		"blockStatusFailed": "Não foi possível consultar o bloqueio",
+		"blockFailed": "Não foi possível bloquear o usuário",
+		"unblockFailed": "Não foi possível desbloquear o usuário",
+		"reportFailed": "Não foi possível enviar a denúncia"
 	},
 	"p2p": {
 		"offersLoadFailed": "Não foi possível obter as ofertas P2P",
