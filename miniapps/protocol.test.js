@@ -118,6 +118,20 @@ describe('parseBridgeMessage', () => {
 		expect(parseBridgeMessage(msg('ui.header.set', { subtitle: 42 })).error.code).toBe('INVALID_PARAMS')
 	})
 
+	test('colors: hex opaco normalizado, null vuelve al tema, parcial', () => {
+		expect(parseBridgeMessage(msg('ui.colors.set', { header: '#0A84FF', background: '#fff' })).request.params).toEqual({ header: '#0a84ff', background: '#ffffff' })
+		expect(parseBridgeMessage(msg('ui.colors.set', { header: null })).request.params).toEqual({ header: null })
+		expect(parseBridgeMessage(msg('ui.colors.set', { background: '#000', other: '#fff' })).request.params).toEqual({ background: '#000000' })
+		expect(parseBridgeMessage(msg('ui.colors.set', {})).request.params).toEqual({})
+		for (const bad of ['#ffffff80', 'rgb(0,0,0)', 'red', '', 42, true]) {
+			const r = parseBridgeMessage(msg('ui.colors.set', { header: bad }))
+			expect(r.ok).toBe(false)
+			expect(r.error.code).toBe('INVALID_PARAMS')
+			expect(r.error.message).toMatch(/header must be a #RRGGBB color or null/)
+		}
+		expect(parseBridgeMessage(msg('ui.colors.set', { background: 'transparent' })).error.message).toMatch(/^background must be/)
+	})
+
 	test('header: acciones del catálogo, con etiqueta, máximo 2 e ids únicos', () => {
 		const ok = parseBridgeMessage(msg('ui.header.set', { actions: [
 			{ id: 'cart', icon: 'cart', label: ' Carrito ', badge: 3.7 },
@@ -244,6 +258,9 @@ describe('SDK inyectado', () => {
 		window.QvaPay.ui.header.set({ subtitle: 'Carrito', actions: [{ id: 'cart', icon: 'cart', label: 'Carrito', badge: 2 }] })
 		window.QvaPay.ui.header.set()
 		expect(posted.at(-2)).toMatchObject({ method: 'ui.header.set', params: { subtitle: 'Carrito' } })
+		window.QvaPay.ui.colors.set({ header: '#0A84FF', background: null })
+		window.QvaPay.ui.colors.set()
+		expect(posted.at(-2)).toMatchObject({ method: 'ui.colors.set', params: { header: '#0A84FF', background: null } })
 		for (const m of posted) {
 			expect(parseBridgeMessage(JSON.stringify(m)).ok).toBe(true)
 		}

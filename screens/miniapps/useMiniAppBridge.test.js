@@ -328,3 +328,31 @@ describe('useMiniAppBridge — encabezado', () => {
 		await bridge.unmount()
 	})
 })
+
+describe('useMiniAppBridge — colores', () => {
+
+	afterEach(() => { jest.clearAllMocks() })
+
+	test('colors.set es parcial, null vuelve al tema y resetUi lo vacía', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		expect(bridge.state.colors).toEqual({ header: null, background: null })
+		await bridge.send('ui.colors.set', { header: '#0A84FF' })
+		await bridge.send('ui.colors.set', { background: '#000' })
+		expect(bridge.state.colors).toEqual({ header: '#0a84ff', background: '#000000' })
+		await bridge.send('ui.colors.set', { header: null })
+		expect(bridge.state.colors).toEqual({ header: null, background: '#000000' })
+		expect(bridge.deliveries().every(d => d.ok)).toBe(true)
+		await act(async () => { bridge.state.resetUi() })
+		expect(bridge.state.colors).toEqual({ header: null, background: null })
+		await bridge.unmount()
+	})
+
+	test('un color inválido se rechaza y no toca nada', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		await bridge.send('ui.colors.set', { header: '#0A84FF' })
+		await bridge.send('ui.colors.set', { header: '#ffffff', background: 'rgba(0,0,0,0.5)' })
+		expect(bridge.state.colors).toEqual({ header: '#0a84ff', background: null })
+		expect(bridge.deliveries()[1]).toMatchObject({ ok: false, error: { code: 'INVALID_PARAMS' } })
+		await bridge.unmount()
+	})
+})
