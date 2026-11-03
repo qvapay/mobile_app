@@ -1,0 +1,22 @@
+{
+	"common": {
+		"skip": "Skip",
+		"next": "Next",
+		"gotIt": "Got it"
+	},
+	"v3_8_0": {
+		"lightningAddress": {
+			"title": "Your Lightning Address",
+			"body": "Receive sats from any Lightning wallet in the world at an address as simple as yourname@qvpay.me. They land in your balance instantly."
+		},
+		"receiveAnywhere": {
+			"title": "Share it like an email",
+			"body": "Copy it, share it or show the QR from Receive. Phoenix, Wallet of Satoshi, Blink, Alby… anyone can pay you, no QvaPay account needed."
+		},
+		"satsOrUsd": {
+			"title": "In USD or in sats, you choose",
+			"body": "Dollars at the current price, or sats as they come with no fee, to spend in the store or withdraw over Lightning.",
+			"cta": "Activate mine"
+		}
+	}
+}

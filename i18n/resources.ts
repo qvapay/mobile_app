@@ -31,6 +31,7 @@ import esUi from './locales/es/ui.json'
 import esWelcome from './locales/es/welcome.json'
 import esWithdraw from './locales/es/withdraw.json'
 import esMiniapps from './locales/es/miniapps.json'
+import esWhatsnew from './locales/es/whatsnew.json'
 
 // English
 import enAdd from './locales/en/add.json'
@@ -55,6 +56,7 @@ import enUi from './locales/en/ui.json'
 import enWelcome from './locales/en/welcome.json'
 import enWithdraw from './locales/en/withdraw.json'
 import enMiniapps from './locales/en/miniapps.json'
+import enWhatsnew from './locales/en/whatsnew.json'
 
 // Português (Brasil)
 import ptAdd from './locales/pt/add.json'
@@ -79,6 +81,7 @@ import ptUi from './locales/pt/ui.json'
 import ptWelcome from './locales/pt/welcome.json'
 import ptWithdraw from './locales/pt/withdraw.json'
 import ptMiniapps from './locales/pt/miniapps.json'
+import ptWhatsnew from './locales/pt/whatsnew.json'
 
 const resources = {
 	es: {
@@ -105,6 +108,7 @@ const resources = {
 			welcome: esWelcome,
 			withdraw: esWithdraw,
 			miniapps: esMiniapps,
+			whatsnew: esWhatsnew,
 		},
 	},
 	en: {
@@ -131,6 +135,7 @@ const resources = {
 			welcome: enWelcome,
 			withdraw: enWithdraw,
 			miniapps: enMiniapps,
+			whatsnew: enWhatsnew,
 		},
 	},
 	pt: {
@@ -157,6 +162,7 @@ const resources = {
 			welcome: ptWelcome,
 			withdraw: ptWithdraw,
 			miniapps: ptMiniapps,
+			whatsnew: ptWhatsnew,
 		},
 	},
 }

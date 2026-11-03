@@ -30,6 +30,8 @@ jest.mock('../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
 jest.mock('../helpers/playSound', () => jest.fn())
 jest.mock('../helpers/installReferrer', () => ({ consumeInstallReferrer: jest.fn() }))
 jest.mock('../helpers/versionCheck', () => ({ maybePromptUpdate: jest.fn() }))
+jest.mock('../app.json', () => ({ version: '3.8.0' }))
+jest.mock('../whatsnew/releases', () => ({ RELEASES: [{ version: '3.8.0', slides: [{ key: 'x', hero: { kind: 'icon', icon: 'star' }, titleKey: 't', bodyKey: 'b' }] }] }))
 // El cliente de queries real arrastra el persister (AsyncStorage) a este entorno node
 jest.mock('../api/queryClient', () => ({
 	queryClient: { invalidateQueries: jest.fn(), setQueriesData: jest.fn() },
@@ -125,6 +127,40 @@ describe('auth ↔ navigation reconciliation', () => {
 		await renderAppNav()
 		await passSplash()
 		expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'MainStack' }] })
+	})
+
+	// Novedades: solo en el camino limpio (reset a MainStack sin destino), al tick siguiente
+	test('an updated install (lastSeen null) gets WhatsNew on top of MainStack', async () => {
+		await renderAppNav()
+		await passSplash()
+		expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'MainStack' }] })
+		expect(navigation.navigate).not.toHaveBeenCalled()
+		await act(async () => { jest.advanceTimersByTime(1) })
+		expect(navigation.navigate).toHaveBeenCalledWith('WhatsNew', { version: '3.8.0' })
+	})
+
+	test('WhatsNew already seen for this version stays silent', async () => {
+		useSettings.mockReturnValue({ appearance: { firstTime: false, lastSeenWhatsNew: '3.8.0' }, sounds: { enabled: true, transactionSound: true }, isLoading: false })
+		await renderAppNav()
+		await passSplash()
+		await act(async () => { jest.advanceTimersByTime(1) })
+		expect(navigation.navigate).not.toHaveBeenCalledWith('WhatsNew', expect.anything())
+	})
+
+	test('a pending deep link wins over WhatsNew', async () => {
+		const pendingRef = { current: `https://qvapay.com/pay/${P2P_UUID}` }
+		await renderAppNav(pendingRef)
+		await passSplash()
+		await act(async () => { jest.advanceTimersByTime(1) })
+		expect(navigation.navigate).not.toHaveBeenCalledWith('WhatsNew', expect.anything())
+	})
+
+	test('a cold start on a deep-link screen skips WhatsNew', async () => {
+		navigation.getState.mockReturnValue({ index: 0, routes: [{ name: 'Pay', params: { uuid: P2P_UUID } }] })
+		await renderAppNav()
+		await passSplash()
+		await act(async () => { jest.advanceTimersByTime(1) })
+		expect(navigation.navigate).not.toHaveBeenCalledWith('WhatsNew', expect.anything())
 	})
 
 	test('already on MainStack means no reset', async () => {
@@ -315,6 +351,17 @@ describe('push listeners', () => {
 		expect(playSound).toHaveBeenCalledWith('money_in')
 		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['home'] })
 		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactions'] })
+	})
+
+	test('a Lightning Address payment push refreshes the address state too', async () => {
+		await renderAppNav()
+		const message = makeMessage('⚡️ Recibiste 300 sats', '$0.30 USD en erich@qvpay.me', {
+			type: 'ln_address_received', transaction_uuid: 't-ln', unit: 'usd',
+		})
+		await act(async () => { pushListeners.foreground(message) })
+		expect(playSound).toHaveBeenCalledWith('money_in')
+		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['home'] })
+		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['user', 'lightning-address'] })
 	})
 
 	test('a foreground push reports its delivery as received', async () => {

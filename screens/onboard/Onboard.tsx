@@ -16,6 +16,7 @@ import type { ImageSourcePropType } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 import { ROUTES } from '../../routes'
+import appJson from '../../app.json'
 import { useSettings } from '../../settings/SettingsContext'
 import type { RootStackParamList } from '../../types/navigation'
 
@@ -117,6 +118,8 @@ const Onboard = ({ navigation }: Props) => {
 	const { updateSetting } = useSettings()
 	const handleCompleteOnboarding = async () => {
 		await updateSetting('appearance', 'firstTime', false)
+		// Instalación nueva: la versión actual queda como «vista» para que Novedades solo salga al ACTUALIZAR
+		await updateSetting('appearance', 'lastSeenWhatsNew', appJson.version)
 		if (shouldShowOnboardPrompt) {
 			setShowPushModal(true)
 		} else {

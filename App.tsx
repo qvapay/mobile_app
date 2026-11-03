@@ -73,6 +73,7 @@ import RecoverPasswordScreen from './auth/screens/RecoverPassword'
 
 // Screens with auth
 import Onboard from './screens/onboard/Onboard'
+import WhatsNew from './screens/whatsnew/WhatsNew'
 import MainStack from './screens/MainStack'
 import { supportsLiquidGlass } from './helpers/liquidGlass'
 import Send from './screens/transaction/Send'
@@ -196,6 +197,8 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	// Onboard lleva header nativo para hospedar los QPStepDots como título
 	// (los dots + Saltar los inyecta la pantalla vía setOptions)
 	{ name: ROUTES.ONBOARD_SCREEN, component: Onboard, options: getHeaderOptions('') },
+	// Novedades tras actualizar: modal a pantalla completa con header nativo (dots + Saltar vía setOptions)
+	{ name: ROUTES.WHATS_NEW, component: WhatsNew, options: { ...getHeaderOptions('', { animation: 'slide_from_bottom' }), presentation: 'fullScreenModal', gestureEnabled: false, headerBackVisible: false } },
 	{ name: ROUTES.WELCOME_SCREEN, component: WelcomeScreen, options: { animation: 'none' } },
 	// Modo wallet (sin sesión, con wallet self-custody): raíz alternativa a Welcome
 	{ name: ROUTES.WALLET_ONLY, component: WalletOnly, options: { animation: 'none' } },
