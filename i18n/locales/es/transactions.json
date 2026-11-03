@@ -70,7 +70,7 @@
 		"share": "Págame en QvaPay: {{url}}",
 		"tapToCopy": "Toca el QR para copiar el enlace",
 		"segmentQvapay": "QvaPay",
-		"segmentLightning": "⚡ Lightning",
+		"segmentLightning": "Lightning",
 		"lnTapToCopy": "Toca para copiar tu Lightning Address",
 		"lnShare": "Págame por Lightning a {{address}} ⚡",
 		"lnPaused": "Tu dirección está pausada y no recibe pagos. Toca para reanudarla.",

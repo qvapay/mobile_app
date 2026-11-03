@@ -114,6 +114,7 @@ const Receive = ({ navigation, route }: Props) => {
 							value={segment === 'lightning' ? 'right' : 'left'}
 							leftText={t('transactions.receive.segmentQvapay')}
 							rightText={t('transactions.receive.segmentLightning')}
+							rightIcon="bolt"
 							rightColor={SATS_COLOR}
 							onChange={(v) => setSegment(v === 'right' ? 'lightning' : 'qvapay')}
 						/>

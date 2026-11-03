@@ -102,7 +102,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 	const {
 		availableCoins, selectedCoin, showCoinPicker, setShowCoinPicker, handleCoinSelect, loadingCoins,
 		amountQUSD, amountCoin, handleChangeQUSD, handleChangeAmountCoin, balance, amountLocked, amountLimit,
-		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, isBTCLN, lnInfo, lnError,
+		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, canRedeemSats, isBTCLN, lnInfo, lnError,
 		isCrypto, destination, setDestination,
 		workingFields, workingForm, setWorkingForm, selectFeePct, previewFee,
 		cashMode, cashZone, provinceKey, municipalityKey, feeBreakdown, receiveUsd, belowZoneMin, cashZonesStatus, retryCashZones,
@@ -195,12 +195,13 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 			>
 				<View style={{ flex: 1 }}>
 
-					{/* Origen de fondos (solo BTCLN): balance USD o redención de sats */}
-					{isBTCLN && availableSats > 0 && (
+					{/* Origen de fondos: balance USD o redención de sats. Con cualquier moneda si hay sats redimibles; elegir sats fija BTCLN */}
+					{canRedeemSats && (
 						<QPSwitch
 							value={source === 'satoshis' ? 'right' : 'left'}
 							leftText={t('withdraw.index.sourceBalance')}
 							rightText={t('withdraw.index.sourceSats', { sats: availableSats.toLocaleString() })}
+							rightIcon="bolt"
 							leftColor={theme.colors.primary}
 							rightColor="#F7931A"
 							onChange={(side) => setSource(side === 'right' ? 'satoshis' : 'balance')}

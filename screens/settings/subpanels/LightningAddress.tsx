@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Share, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Share, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import type { NavigationProp } from '@react-navigation/native'
@@ -285,7 +285,7 @@ const LightningAddress = ({ navigation }: Props) => {
 				renderItem={({ item, index }) => <LnPaymentRow payment={item} onPress={openPayment} last={index === payments.length - 1} />}
 				ListHeaderComponent={header}
 				ListEmptyComponent={<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>{t('settings.lightningAddress.payments.empty')}</Text>}
-				ListFooterComponent={query.isFetchingNextPage ? <View style={styles.footerLoader}><QPLoader /></View> : null}
+				ListFooterComponent={query.isFetchingNextPage ? <View style={styles.footerLoader}><ActivityIndicator size="small" color={theme.colors.primary} /></View> : null}
 				onEndReached={() => { if (query.hasNextPage && !query.isFetchingNextPage) query.fetchNextPage() }}
 				onEndReachedThreshold={0.4}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
@@ -370,19 +370,18 @@ const ActivateView = ({ state, busy, onActivate }: { state: LightningAddressStat
 	const normalized = normalizeLnName(name)
 	const invalid = !normalized || !!lnNameProblem(normalized)
 
+	// QPKeyboardView ya es el subContainer (padding horizontal incluido): no envolverlo en otro
 	return (
-		<View style={containerStyles.subContainer}>
-			<QPKeyboardView actions={<QPButton title={t('settings.lightningAddress.activate.button')} icon="bolt" onPress={() => onActivate(normalized)} loading={busy} disabled={busy || invalid} />}>
-				<Header t={t} textStyles={textStyles} theme={theme} />
-				<HeroIcon color={SATS_COLOR} background={SATS_COLOR + '1A'} />
-				<Benefits t={t} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
-				<View style={[containerStyles.card, styles.activateCard]}>
-					<Text style={textStyles.h4}>{t('settings.lightningAddress.activate.title')}</Text>
-					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('settings.lightningAddress.activate.text')}</Text>
-					<LnNameField value={name} onChange={setName} domain={state.domain} label={t('settings.lightningAddress.activate.nameLabel')} />
-				</View>
-			</QPKeyboardView>
-		</View>
+		<QPKeyboardView actions={<QPButton title={t('settings.lightningAddress.activate.button')} icon="bolt" onPress={() => onActivate(normalized)} loading={busy} disabled={busy || invalid} />}>
+			<Header t={t} textStyles={textStyles} theme={theme} />
+			<HeroIcon color={SATS_COLOR} background={SATS_COLOR + '1A'} />
+			<Benefits t={t} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
+			<View style={[containerStyles.card, styles.activateCard]}>
+				<Text style={textStyles.h4}>{t('settings.lightningAddress.activate.title')}</Text>
+				<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('settings.lightningAddress.activate.text')}</Text>
+				<LnNameField value={name} onChange={setName} domain={state.domain} label={t('settings.lightningAddress.activate.nameLabel')} />
+			</View>
+		</QPKeyboardView>
 	)
 }
 
@@ -418,7 +417,8 @@ const ActionRow = ({ icon, tint, title, subtitle, loading, onPress, theme, textS
 			<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>{title}</Text>
 			{!!subtitle && <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{subtitle}</Text>}
 		</View>
-		{loading ? <QPLoader /> : <FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />}
+		{/* QPLoader es el Lottie de pantalla completa (200×200 con fondo): en una fila va el spinner pequeño */}
+		{loading ? <ActivityIndicator size="small" color={theme.colors.primary} /> : <FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />}
 	</QPPressable>
 )
 

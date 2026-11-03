@@ -70,7 +70,7 @@
 		"share": "Pay me on QvaPay: {{url}}",
 		"tapToCopy": "Tap the QR to copy the link",
 		"segmentQvapay": "QvaPay",
-		"segmentLightning": "⚡ Lightning",
+		"segmentLightning": "Lightning",
 		"lnTapToCopy": "Tap to copy your Lightning Address",
 		"lnShare": "Pay me over Lightning at {{address}} ⚡",
 		"lnPaused": "Your address is paused and not receiving payments. Tap to resume it.",

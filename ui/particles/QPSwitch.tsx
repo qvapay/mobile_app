@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
+import type { ComponentType } from 'react'
 import { View, Text, Pressable, Animated, Easing, StyleSheet } from 'react-native'
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native'
+import FontAwesome6Icon from '@react-native-vector-icons/fontawesome6'
+
+// Mismo recorte de tipos que QPButton: los de FontAwesome6 exigen uniones literales por iconStyle
+const FontAwesome6 = FontAwesome6Icon as ComponentType<{ name?: string, size?: number, color?: string, iconStyle?: 'solid' | 'regular' | 'brand' }>
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -35,6 +40,9 @@ type Props = {
 	defaultValue?: SwitchSide
 	leftText: string
 	rightText: string
+	/** Icono FontAwesome6 (solid) delante de cada etiqueta, del mismo color que el texto. Sustituye a los emojis en el copy. */
+	leftIcon?: string
+	rightIcon?: string
 	leftColor?: string
 	rightColor?: string
 	leftTextColor?: string
@@ -56,6 +64,8 @@ const QPSwitch = ({
 	// Labels and colors for each side
 	leftText,
 	rightText,
+	leftIcon,
+	rightIcon,
 	leftColor,
 	rightColor,
 	leftTextColor,
@@ -134,9 +144,11 @@ const QPSwitch = ({
 				}]}
 			/>
 			<Pressable style={styles.segmentedOption} onPress={() => handlePress('left')} disabled={disabled}>
+				{!!leftIcon && <FontAwesome6 name={leftIcon} size={13} color={currentValue === 'left' ? (leftTextColor || theme.colors.almostWhite) : theme.colors.primaryText} iconStyle="solid" />}
 				<Text style={[textStyles.h6, { color: currentValue === 'left' ? (leftTextColor || theme.colors.almostWhite) : theme.colors.primaryText }]}>{leftText}</Text>
 			</Pressable>
 			<Pressable style={styles.segmentedOption} onPress={() => handlePress('right')} disabled={disabled}>
+				{!!rightIcon && <FontAwesome6 name={rightIcon} size={13} color={currentValue === 'right' ? (rightTextColor || theme.colors.almostWhite) : theme.colors.primaryText} iconStyle="solid" />}
 				<Text style={[textStyles.h6, { color: currentValue === 'right' ? (rightTextColor || theme.colors.almostWhite) : theme.colors.primaryText }]}>{rightText}</Text>
 			</Pressable>
 		</View>
@@ -161,6 +173,8 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 	},
 	segmentedOption: {
+		flexDirection: 'row',
+		gap: 6,
 		flex: 1,
 		height: '100%',
 		alignItems: 'center',

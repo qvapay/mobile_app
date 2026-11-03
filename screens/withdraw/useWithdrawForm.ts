@@ -15,7 +15,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, useReducer } from
 
 import { isCryptoCoin } from './withdrawDestination'
 import type { WithdrawDestination } from './withdrawDestination'
-import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, isAllowedFieldValue, keyFromFieldName } from './withdrawFees'
+import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, isAllowedFieldValue, keyFromFieldName, satsRedeemable } from './withdrawFees'
 import { classifyLightningInput, stripLightningScheme } from '../../helpers/lightningAddress'
 import type { WorkingForm } from './withdrawFees'
 import { calculateCashFee, cashZoneModeFor, findZone, grossFromNetCash, hasCashZoneFields, meetsZoneMinimum, savedCashPlace } from './cashZones'
@@ -133,6 +133,11 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	const isBTCLN = selectedCoin?.tick === 'BTCLN'
 	const sourceSats = isBTCLN && source === 'satoshis'
 	const availableSats = Number(user?.satoshis) || 0
+	// Los sats solo salen por Lightning: el selector «Saldo | sats» se enseña con CUALQUIER moneda
+	// si hay sats redimibles, y elegir sats fija BTCLN él solo (volver a Saldo recupera la moneda)
+	const btclnCoin = useMemo(() => coinCatalog.find(c => c.tick === 'BTCLN') ?? null, [coinCatalog])
+	const canRedeemSats = satsRedeemable(availableSats, btclnCoin, MIN_SATS_REDEEM)
+	const coinBeforeSatsRef = useRef<Coin | null>(null)
 	// Una factura con monto fijo manda: ambos modos quedan bloqueados en ese monto
 	const amountLocked = isBTCLN && lnAmountSats > 0
 
@@ -385,7 +390,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		setSelectedCoin(coin)
 		setShowCoinPicker(false)
 		setDestination(null)
-		if (coin?.tick !== 'BTCLN') { setSource('balance') }
+		if (coin?.tick !== 'BTCLN') { setSource('balance'); coinBeforeSatsRef.current = null }
 		if (amountQUSD) {
 			const num = Number(amountQUSD)
 			if (!isNaN(num) && num > 0) {
@@ -408,13 +413,27 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		setWorkingForm({})
 	}
 
+	/** Origen de fondos: «sats» fuerza BTCLN (recordando la moneda anterior); «Saldo» la devuelve si fue el selector quien la cambió. */
+	const chooseSource = (next: 'balance' | 'satoshis') => {
+		if (next === 'satoshis') {
+			if (!btclnCoin) return
+			if (selectedCoin?.tick !== 'BTCLN') { coinBeforeSatsRef.current = selectedCoin; handleCoinSelect(btclnCoin) }
+			setSource('satoshis')
+			return
+		}
+		setSource('balance')
+		const previous = coinBeforeSatsRef.current
+		coinBeforeSatsRef.current = null
+		if (previous) handleCoinSelect(previous)
+	}
+
 	return {
 		// Catálogo y selección
 		availableCoins, selectedCoin, showCoinPicker, setShowCoinPicker, handleCoinSelect, loadingCoins,
 		// Montos
 		amountQUSD, amountCoin, handleChangeQUSD, handleChangeAmountCoin, balance, amountLocked, amountLimit,
 		// Origen de fondos (BTCLN)
-		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, isBTCLN, lnInfo, lnError,
+		source, setSource: chooseSource, amountSats, setAmountSats, sourceSats, availableSats, canRedeemSats, isBTCLN, lnInfo, lnError,
 		// Destino crypto
 		isCrypto, destination, setDestination,
 		// Campos dinámicos y fees

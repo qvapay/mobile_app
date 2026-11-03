@@ -28,6 +28,8 @@ type QPInputProps = TextInputProps & {
 	prelabel?: string
 	prefixIconName?: string
 	suffixIconName?: string
+	/** Texto fijo pegado al final del campo, a la altura del texto tecleado (p. ej. `@qvpay.me`); con `textAlign="right"` el texto se lee seguido. */
+	suffixText?: string
 	iconStyle?: 'solid' | 'regular' | 'brand'
 	/** Campo de dirección de wallet: resalta sus extremos y apaga autocorrección/mayúsculas. */
 	highlightAddress?: boolean
@@ -56,6 +58,7 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 	const style = props.style as TextStyle | undefined
 	const hasPrefix = !!props.prefixIconName
 	const hasSuffix = !!props.suffixIconName
+	const hasSuffixText = !!props.suffixText
 
 	// Ocultar/mostrar es estado PROPIO del campo: se toma de la prop una sola vez
 	const [isSecure, setIsSecure] = useState(props.secureTextEntry)
@@ -114,12 +117,18 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 							color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: highlightAddress ? theme.typography.fontFamily.mono : theme.typography.fontFamily.regular,
 							height: multiline ? 100 : 50,
 							paddingLeft: hasPrefix ? 0 : 15,
-							paddingRight: hasSuffix ? 0 : 15,
+							paddingRight: hasSuffix || hasSuffixText ? 0 : 15,
 						}
 					]}
 				>
 					{highlightAddress ? <Text>{addressParts ? <AddressSpans parts={addressParts} color={theme.colors.primary} /> : props.value}</Text> : null}
 				</TextInput>
+
+				{hasSuffixText && (
+					<Text style={[styles.suffixText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.medium }]}>
+						{props.suffixText}
+					</Text>
+				)}
 
 				{hasSuffix && (
 					<Pressable onPress={handleSuffixPress}>
@@ -169,6 +178,9 @@ const styles = StyleSheet.create({
 	},
 	icon: {
 		marginHorizontal: 10
+	},
+	suffixText: {
+		paddingRight: 15,
 	},
 	input: {
 		flex: 1,

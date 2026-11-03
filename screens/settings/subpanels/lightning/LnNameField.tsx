@@ -37,28 +37,24 @@ const LnNameField = ({ value, onChange, domain, label, serverError, autoFocus }:
 
 	return (
 		<View style={styles.wrap}>
-			<View style={styles.row}>
-				<View style={styles.input}>
-					<QPInput
-						prelabel={label}
-						value={value}
-						onChangeText={onChange}
-						placeholder={t('settings.lightningAddress.activate.placeholder')}
-						autoCapitalize="none"
-						autoCorrect={false}
-						autoComplete="off"
-						spellCheck={false}
-						keyboardType="email-address"
-						maxLength={LN_NAME_MAX}
-						autoFocus={autoFocus}
-						prefixIconName="bolt"
-						returnKeyType="done"
-					/>
-				</View>
-				<Text style={[styles.domain, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }]}>
-					@{domain}
-				</Text>
-			</View>
+			{/* El dominio va DENTRO del campo (suffixText) y el nombre se alinea a la derecha, pegado al @: se lee como una sola dirección */}
+			<QPInput
+				prelabel={label}
+				value={value}
+				onChangeText={onChange}
+				placeholder={t('settings.lightningAddress.activate.placeholder')}
+				autoCapitalize="none"
+				autoCorrect={false}
+				autoComplete="off"
+				spellCheck={false}
+				keyboardType="email-address"
+				maxLength={LN_NAME_MAX}
+				autoFocus={autoFocus}
+				prefixIconName="bolt"
+				suffixText={`@${domain}`}
+				textAlign="right"
+				returnKeyType="done"
+			/>
 			{!!error && (
 				<Text style={{ color: theme.colors.danger, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>
 					{error}
@@ -70,9 +66,6 @@ const LnNameField = ({ value, onChange, domain, label, serverError, autoFocus }:
 
 const styles = StyleSheet.create({
 	wrap: { gap: 6 },
-	row: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-	input: { flex: 1 },
-	domain: { paddingBottom: 14 },
 })
 
 export default LnNameField

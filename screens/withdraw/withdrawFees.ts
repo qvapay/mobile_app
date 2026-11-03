@@ -156,3 +156,16 @@ export const amountLimitIssue = (amount: Decimal | null | undefined, coin: Pick<
 	if (max > 0 && value > max) return { kind: 'aboveMax', limit: max }
 	return null
 }
+
+/**
+ * ¿Se pueden redimir los sats de cashback? Hace falta BTCLN en el catálogo de salida,
+ * llegar al mínimo de la redención y que lo que valen esos sats cubra el `min_out` de
+ * BTCLN (el servidor rechaza por debajo). Decide si Retirar enseña el selector
+ * «Saldo | sats» con CUALQUIER moneda elegida.
+ */
+export const satsRedeemable = (sats: number, coin: Pick<Coin, 'price' | 'min_out'> | null | undefined, minSats: number): boolean => {
+	if (!coin || !Number.isFinite(sats) || sats < minSats) return false
+	const usd = sats * (Number(coin.price) || 0) / 1e8
+	const min = Number(coin.min_out) || 0
+	return usd >= min
+}
