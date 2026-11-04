@@ -87,5 +87,27 @@
 			},
 			"payFromWalletButton": "Pay from My Wallet"
 		}
+	},
+	"viaP2P": {
+		"pill": "Via P2P",
+		"title": "{{name}} balance isn't deposited: it's sold on the P2P",
+		"bodyTreasury": "Turn your {{name}} balance into QUSD by taking an open offer from QvaPay's treasury (@skymind): {{howToPay}} and the amount lands in your account.",
+		"bodyMarket": "Turn your {{name}} balance into QUSD by taking an open offer from the P2P market: {{howToPay}} and the amount lands in your account. Right now QvaPay's treasury has no open offers in {{name}}; these are the best on the market.",
+		"howToPay": {
+			"ETECSA": "you top up the number the offer indicates",
+			"BANK_CUP": "you transfer to the CUP card the offer indicates",
+			"BANK_MLC": "you transfer to the MLC card the offer indicates",
+			"CLASICA": "you transfer to the Clásica card the offer indicates",
+			"BANDECPREPAGO": "you transfer to the prepaid card the offer indicates",
+			"default": "you pay as the offer indicates"
+		},
+		"requirementsTitle": "Requirements to take these offers:",
+		"met": "you meet it",
+		"notMetShort": "you don't meet it",
+		"notMet": "You don't meet yet: {{list}}. You can see them, but not take them for now.",
+		"empty": "There are no open offers in {{name}} right now, neither from the treasury nor on the market. Come back in a few minutes.",
+		"needsP2P": "To see and take these offers you need P2P access: verify your identity, your phone and your Telegram.",
+		"needsP2PLink": "Complete the P2P requirements",
+		"seeAll": "See all offers on the P2P"
 	}
 }

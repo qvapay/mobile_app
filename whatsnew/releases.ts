@@ -28,6 +28,18 @@ export type WhatsNewRelease = { version: string, slides: WhatsNewSlide[] }
 
 export const RELEASES: WhatsNewRelease[] = [
 	{
+		version: '3.9.0',
+		slides: [
+			{
+				key: 'viaP2P',
+				hero: { kind: 'icon', icon: 'arrow-right-arrow-left' },
+				titleKey: 'whatsnew.v3_9_0.viaP2P.title',
+				bodyKey: 'whatsnew.v3_9_0.viaP2P.body',
+				cta: { labelKey: 'whatsnew.v3_9_0.viaP2P.cta', target: { route: ROUTES.ADD, params: { preselectedCoin: 'ETECSA' } } },
+			},
+		],
+	},
+	{
 		version: '3.8.0',
 		slides: [
 			{

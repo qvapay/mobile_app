@@ -75,6 +75,11 @@ test('el precio solo aparece cuando NO va 1:1 con el dólar', async () => {
 	expect(options()[2].valueCaption).toBeUndefined()
 })
 
+test('badges: una etiqueta por tick junto al nombre («Vía P2P» en el depósito)', async () => {
+	await renderPicker({ badges: { TRX: 'Vía P2P' } })
+	expect(options().map(o => o.badge)).toEqual([undefined, 'Vía P2P', undefined])
+})
+
 test('showFees=false deja solo la identidad (modo P2P)', async () => {
 	await renderPicker({ amount: '120', showFees: false, direction: 'out' })
 	expect(options()[0].value).toBeUndefined()

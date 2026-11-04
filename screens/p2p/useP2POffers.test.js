@@ -19,6 +19,7 @@ import coinsApi from '../../api/coinsApi'
 import { updateWidgetP2POffers, reloadWidgets } from '../../helpers/widgetBridge'
 import { toast } from 'sonner-native'
 import useP2POffers from './useP2POffers'
+import { P2P_OFFERS_SNAPSHOT_KEY } from './p2pQueries'
 
 const PAGE_SIZE = 30
 const offers = (count, prefix = 'o') => Array.from({ length: count }, (_, i) => ({ uuid: `${prefix}${i}` }))
@@ -54,7 +55,7 @@ const renderOffers = async (props = {}) => {
 	}
 	await act(async () => { create(<QueryClientProvider client={client}><Harness /></QueryClientProvider>) })
 	await settle()
-	return { result, setProps: (patch) => act(async () => { setProps(patch) }) }
+	return { result, client, setProps: (patch) => act(async () => { setProps(patch) }) }
 }
 
 afterEach(() => {
@@ -270,5 +271,17 @@ describe('puesto promocionado', () => {
 		await settle()
 		expect(result.current.p2pOffers).toHaveLength(PAGE_SIZE + 5)
 		expect(result.current.promoted).toBe(promoted)
+	})
+})
+
+describe('snapshot de arranque en frío', () => {
+	test('la página 1 del mercado se guarda; la vista de un comerciante (peer) y "mis ofertas" no', async () => {
+		p2pApi.index.mockResolvedValue({ success: true, offers: offers(2) })
+		const market = await renderOffers()
+		expect(market.client.getQueryData(P2P_OFFERS_SNAPSHOT_KEY)).toHaveLength(2)
+		const byPeer = await renderOffers({ apiFilters: { take: PAGE_SIZE, order: 'desc', orderBy: 'best_rate', type: 'sell', coin: 'ETECSA', peer: 'skymind' } })
+		expect(byPeer.client.getQueryData(P2P_OFFERS_SNAPSHOT_KEY)).toBeUndefined()
+		const mine = await renderOffers({ apiFilters: { take: PAGE_SIZE, order: 'desc', orderBy: 'updated_at', type: null, my: true } })
+		expect(mine.client.getQueryData(P2P_OFFERS_SNAPSHOT_KEY)).toBeUndefined()
 	})
 })

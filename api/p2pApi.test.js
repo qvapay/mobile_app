@@ -83,10 +83,11 @@ describe('p2pApi.index', () => {
 			ratio_max: 1.2,
 			coin: 'BANK_CUP',
 			orderBy: 'amount',
+			peer: 'skymind',
 		})
 
 		expect(apiClient.get).toHaveBeenCalledWith(
-			'/p2p/index?page=2&order=desc&take=25&type=sell&my=true&only_kyc=1&only_vip=1&min=100&max=5000&ratio_min=0.9&ratio_max=1.2&coin=BANK_CUP&orderBy=amount'
+			'/p2p/index?page=2&order=desc&take=25&type=sell&my=true&only_kyc=1&only_vip=1&min=100&max=5000&ratio_min=0.9&ratio_max=1.2&coin=BANK_CUP&orderBy=amount&peer=skymind'
 		)
 	})
 

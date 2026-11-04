@@ -5,9 +5,11 @@
  * @jest-environment node
  */
 let mockCoinCatalog = []
+// Catálogo completo (`useCoins('all')`): de ahí salen las monedas «Vía P2P»
+let mockAllCoins = []
 jest.mock('../../hooks/useCoins', () => ({
 	__esModule: true,
-	default: () => ({ coins: mockCoinCatalog, isLoading: false }),
+	default: (kind) => ({ coins: kind === 'all' ? mockAllCoins : mockCoinCatalog, isLoading: false }),
 }))
 jest.mock('../../theme/ThemeContext', () => {
 	const { createTheme } = jest.requireActual('../../theme/themeTokens')
@@ -35,6 +37,7 @@ jest.mock('../../ui/WalletPickerSheet', () => 'WalletPickerSheet')
 jest.mock('./DepositDetailsModal', () => 'DepositDetailsModal')
 jest.mock('./cardPaymentSheet', () => ({ presentCardDeposit: jest.fn() }))
 jest.mock('./CardFeeModeSelector', () => 'CardFeeModeSelector')
+jest.mock('./DepositViaP2PBlock', () => 'DepositViaP2PBlock')
 jest.mock('../../api/client', () => {
 	// userApi (GET /user/cip) importa el export nombrado: mismo objeto que el default
 	const client = { get: jest.fn(), post: jest.fn() }
@@ -62,6 +65,7 @@ import Add from './Add'
 
 const updateUser = jest.fn()
 const USDT = { tick: 'USDT', name: 'Tether', min_in: '10', network: 'TRC20' }
+const ETECSA = { tick: 'ETECSA', name: 'Saldo ETECSA', enabled_in: 0 }
 
 // The SSE hook is mocked; capture its status callback so tests can emit updates
 let sseCallback = null
@@ -94,6 +98,7 @@ const pressGenerate = (tree) => act(async () => { tree.root.findByType('QPButton
 
 beforeEach(() => {
 	jest.clearAllMocks()
+	mockAllCoins = []
 	jest.useFakeTimers()
 	jest.spyOn(Linking, 'openURL').mockResolvedValue()
 	useAuth.mockReturnValue({ user: { balance: '100.00' }, updateUser })
@@ -436,5 +441,54 @@ describe('OFAC funding attestation', () => {
 		await pressGenerate(tree)
 		expect(ofacModal(tree).props.visible).toBe(true)
 		expect(apiClient.post).not.toHaveBeenCalled()
+	})
+})
+
+describe('monedas «Vía P2P» (ETECSA y tarjetas cubanas)', () => {
+	beforeEach(() => {
+		mockCoinCatalog = [USDT]
+		mockAllCoins = [{ ...USDT, enabled_in: 1 }, ETECSA, { tick: 'BANK_CUP', name: 'CUP', enabled_in: 1 }]
+	})
+
+	test('salen al final del selector con su etiqueta; una habilitada para depósito no cuenta', async () => {
+		const tree = await renderAdd()
+		const picker = tree.root.findByType('QPCoinPicker')
+		expect(picker.props.coins.map(c => c.tick)).toEqual(['USDT', 'ETECSA'])
+		expect(picker.props.badges).toEqual({ ETECSA: 'Vía P2P' })
+	})
+
+	test('sin ninguna, el catálogo conserva su identidad y no hay etiquetas', async () => {
+		mockAllCoins = []
+		const tree = await renderAdd()
+		const picker = tree.root.findByType('QPCoinPicker')
+		expect(picker.props.coins).toBe(mockCoinCatalog)
+		expect(picker.props.badges).toBeUndefined()
+	})
+
+	test('elegirla apaga el importe (y lo vacía), apaga el botón y enseña el bloque de ofertas; nunca POST /topup', async () => {
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree, USDT, '50')
+		await act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect(ETECSA) })
+		const amountCard = tree.root.findAllByType('QPAmountCard')[0]
+		expect(amountCard.props.amount).toBe('')
+		expect(amountCard.props.disabled).toBe(true)
+		expect(tree.root.findByType('QPButton').props.disabled).toBe(true)
+		expect(tree.root.findByType('DepositViaP2PBlock').props.coin).toBe(ETECSA)
+		await pressGenerate(tree)
+		expect(apiClient.post).not.toHaveBeenCalled()
+		expect(toast.error).not.toHaveBeenCalled()
+	})
+
+	test('volver a una moneda normal retira el bloque y reactiva el formulario', async () => {
+		const tree = await renderAdd()
+		await act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect(ETECSA) })
+		await pickCoinAndAmount(tree, USDT, '50')
+		expect(tree.root.findAllByType('DepositViaP2PBlock')).toHaveLength(0)
+		expect(tree.root.findByType('QPButton').props.disabled).toBe(false)
+	})
+
+	test('el deep link qvapay://add?coin=ETECSA la preselecciona (param `coin`)', async () => {
+		const tree = await renderAdd({ coin: 'ETECSA' })
+		expect(tree.root.findByType('DepositViaP2PBlock').props.coin).toBe(ETECSA)
 	})
 })

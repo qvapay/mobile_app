@@ -35,6 +35,8 @@ export type P2PFiltersState = {
 	ratioMin: string
 	ratioMax: string
 	onlyVip: boolean
+	/** Username (sin `@`) de un comerciante: solo sus ofertas («Ver todas» del depósito Vía P2P → `skymind`). */
+	peer: string | null
 }
 
 /** Campo de `P2PFiltersState` con su valor: mantiene `setFilter` honesto por clave. */
@@ -85,6 +87,7 @@ const initialFilters: P2PFiltersState = {
 	ratioMin: "",
 	ratioMax: "",
 	onlyVip: false,
+	peer: null,
 }
 
 function filtersReducer(state: P2PFiltersState, action: P2PFilterAction): P2PFiltersState {
@@ -135,7 +138,7 @@ export default function useP2PFilters(initialCoin: FilterCoin | null) {
 	const setFilter = useCallback(<K extends keyof P2PFiltersState>(field: K, value: P2PFiltersState[K]) => dispatch({ type: "set", field, value } as P2PFilterAction), [])
 	const resetFilters = useCallback(() => dispatch({ type: "reset" }), [])
 
-	const { typeFilter, selectedCoin, sortIndex, showMine, opAmount, ratioMin, ratioMax, onlyVip } = filters
+	const { typeFilter, selectedCoin, sortIndex, showMine, opAmount, ratioMin, ratioMax, onlyVip, peer } = filters
 
 	// Orden efectivo: `best_rate` se degrada al de por defecto cuando no es
 	// aplicable — sin moneda, o en "Mis ofertas" (mide la conveniencia de QUIEN
@@ -158,8 +161,9 @@ export default function useP2PFilters(initialCoin: FilterCoin | null) {
 		opAmount !== "" ||
 		ratioMin !== "" ||
 		ratioMax !== "" ||
-		onlyVip
-	), [showMine, selectedCoin?.tick, opAmount, ratioMin, ratioMax, onlyVip])
+		onlyVip ||
+		!!peer
+	), [showMine, selectedCoin?.tick, opAmount, ratioMin, ratioMax, onlyVip, peer])
 
 	// Todos los filtros viajan al servidor: filtrarlos en el cliente solo
 	// alcanzaba a la página cargada, así que una lista podía salir vacía
@@ -181,8 +185,9 @@ export default function useP2PFilters(initialCoin: FilterCoin | null) {
 		const rMax = num(ratioMax)
 		if (rMax != null) { out.ratio_max = rMax }
 		if (onlyVip) { out.only_vip = true }
+		if (peer) { out.peer = peer }
 		return out
-	}, [typeFilter, selectedCoin?.tick, opAmount, ratioMin, ratioMax, onlyVip, showMine, orderBy, orderType])
+	}, [typeFilter, selectedCoin?.tick, opAmount, ratioMin, ratioMax, onlyVip, peer, showMine, orderBy, orderType])
 
 	// Active filter badges (modal filters only) — onRemove clears that field
 	const activeFilterBadges = useMemo<P2PFilterBadge[]>(() => {
@@ -192,8 +197,9 @@ export default function useP2PFilters(initialCoin: FilterCoin | null) {
 		if (ratioMin !== "") badges.push({ key: "ratioMin", label: t('p2p.filters.badges.rateMin', { value: ratioMin }), onRemove: () => setFilter("ratioMin", "") })
 		if (ratioMax !== "") badges.push({ key: "ratioMax", label: t('p2p.filters.badges.rateMax', { value: ratioMax }), onRemove: () => setFilter("ratioMax", "") })
 		if (onlyVip) badges.push({ key: "onlyVip", label: t('p2p.filters.onlyVip'), onRemove: () => setFilter("onlyVip", false) })
+		if (peer) badges.push({ key: "peer", label: t('p2p.filters.badges.peer', { peer }), onRemove: () => setFilter("peer", null) })
 		return badges
-	}, [showMine, opAmount, ratioMin, ratioMax, onlyVip, setFilter, t])
+	}, [showMine, opAmount, ratioMin, ratioMax, onlyVip, peer, setFilter, t])
 
 	return { filters, setFilter, resetFilters, orderBy, orderType, hasActiveFilters, apiFilters, activeFilterBadges }
 }

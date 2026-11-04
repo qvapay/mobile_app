@@ -168,6 +168,19 @@ describe('derived roles and permissions (buy offer: creator pays)', () => {
 		expect(result.current.canCancel).toBe(false)
 	})
 
+	test('con requisitos del maker que el servidor dice que NO cumplo, se ve la oferta pero no «Aplicar»', async () => {
+		const missing = [{ key: 'min_completed', required: 10, actual: 3 }]
+		const offer = makeOffer({ requirements: { min_completed: 10 }, requirements_met: false, requirements_missing: missing })
+		const { result } = await renderDetail({ offer, viewer: { uuid: 'stranger' } })
+		expect(result.current.canApply).toBe(false)
+		expect(result.current.requirementsLocked).toBe(true)
+		expect(result.current.requirementsMissing).toEqual(missing)
+		// Cumplidos (o sin requisitos): nada cambia
+		const ok = await renderDetail({ offer: makeOffer({ requirements: { min_completed: 10 }, requirements_met: true, requirements_missing: [] }), viewer: { uuid: 'stranger' } })
+		expect(ok.result.current.canApply).toBe(true)
+		expect(ok.result.current.requirementsLocked).toBe(false)
+	})
+
 	test('rating unlocks only on completed offers', async () => {
 		const { result } = await renderDetail({
 			offer: makeOffer({ status: 'completed', Peer: PEER }),

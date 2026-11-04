@@ -21,6 +21,10 @@ import WalletPickerSheet from '../../ui/WalletPickerSheet'
 import DepositDetailsModal from './DepositDetailsModal'
 import DepositReceiveCard from './DepositReceiveCard'
 
+// «Vía P2P»: saldo ETECSA y tarjetas cubanas no se depositan, se venden en el P2P
+import DepositViaP2PBlock from './DepositViaP2PBlock'
+import { isViaP2PCoin, viaP2PCoinsFrom } from './depositViaP2P'
+
 // Depósito con tarjeta (Stripe PaymentSheet)
 import CardFeeModeSelector from './CardFeeModeSelector'
 import { isCardDepositEligible, filterCardFromCatalog } from '../../helpers/cardDepositEligibility'
@@ -89,6 +93,10 @@ const Add = ({ navigation, route }: AddProps) => {
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const { coins: coinCatalog, isLoading: loadingCoins } = useCoins('in')
+	// Las monedas «Vía P2P» tienen `enabled_in = 0` y no vienen en el catálogo depositable:
+	// salen del catálogo completo (caché compartida) y se añaden al final del selector
+	const { coins: allCoins } = useCoins('all')
+	const viaP2PCoins = useMemo(() => viaP2PCoinsFrom(allCoins, coinCatalog), [allCoins, coinCatalog])
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	// Coin/amount form (same-named setters keep every call site unchanged)
@@ -100,10 +108,11 @@ const Add = ({ navigation, route }: AddProps) => {
 
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 
-	// Moneda e importe prellenados por quien navegó hasta aquí (hoy, la pantalla de
-	// intercambio cuando el destino es el saldo). Una sola vez cada uno: después manda
-	// lo que el usuario elija.
-	const preselectedCoin = route.params?.preselectedCoin
+	// Moneda e importe prellenados por quien navegó hasta aquí (la pantalla de
+	// intercambio cuando el destino es el saldo; `coin` es el mismo dato con el nombre
+	// del deep link `qvapay://add?coin=`). Una sola vez cada uno: después manda lo que
+	// el usuario elija.
+	const preselectedCoin = route.params?.preselectedCoin ?? route.params?.coin
 	const prefillAmount = route.params?.amount
 	const preselected = useRef(false)
 	useEffect(() => {
@@ -141,6 +150,14 @@ const Add = ({ navigation, route }: AddProps) => {
 
 	const isCardCoin = selectedCoin?.tick === 'CARD'
 	const cardFeeRate = isCardCoin ? cardFeeRateFor(selectedCoin, user) : 0
+	// Moneda que se vende en el P2P en vez de depositarse: importe apagado, botón apagado
+	// y el bloque de ofertas debajo
+	const isViaP2P = isViaP2PCoin(selectedCoin)
+	const viaP2PBadges = useMemo(() => {
+		if (!viaP2PCoins.length) return undefined
+		const label = t('ui.coinPicker.viaP2P')
+		return Object.fromEntries(viaP2PCoins.map(coin => [coin.tick, label]))
+	}, [viaP2PCoins, t])
 
 	// Orden de depósito: creación, modal en vivo, cuenta atrás y hoja de tarjeta
 	const {
@@ -148,7 +165,7 @@ const Add = ({ navigation, route }: AddProps) => {
 		installedWallets, showWalletPicker, setShowWalletPicker,
 		handleTopup, launchCardSheet, ofacModalProps,
 		isLoading, error, setError,
-	} = useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode })
+	} = useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode, isViaP2P })
 
 	// Puente con la wallet self-custody: "pagar desde mi wallet" en el modal del depósito
 	const closeDepositModal = useCallback(() => setShowDepositModal(false), [setShowDepositModal])
@@ -163,18 +180,23 @@ const Add = ({ navigation, route }: AddProps) => {
 			// (`{ name, coins }`), así que hoy no filtra nada — la moneda CARD la
 			// sigue ocultando el gate real del backend. Casts locales, sin cambiar
 			// el comportamiento
-			setAvailableCoins(filterCardFromCatalog(coinCatalog as unknown as { coins?: { tick?: string }[] }[], cardEligible) as unknown as Coin[])
+			const depositable = filterCardFromCatalog(coinCatalog as unknown as { coins?: { tick?: string }[] }[], cardEligible) as unknown as Coin[]
+			// Sin monedas «Vía P2P» se conserva la identidad del catálogo (nada que fusionar)
+			setAvailableCoins(viaP2PCoins.length ? [...depositable, ...viaP2PCoins] : depositable)
 			setError(null)
 		} else if (!loadingCoins) {
 			// Sin catálogo y sin carga en curso: la red falló y no había copia
 			setError(t('add.index.errors.loadCoins'))
 		}
-	}, [coinCatalog, loadingCoins, cardEligible, t, setError])
+	}, [coinCatalog, viaP2PCoins, loadingCoins, cardEligible, t, setError])
 
 	// Handle coin selection
 	const handleCoinSelect = (coin: Coin) => {
 		setSelectedCoin(coin)
 		setFeeMode('on_top')
+		// Una moneda «Vía P2P» no tiene importe que depositar: lo tecleado para otra moneda
+		// se enseñaría convertido bajo un campo apagado
+		if (isViaP2PCoin(coin)) setAmount('')
 		setShowCoinPicker(false)
 	}
 
@@ -199,18 +221,22 @@ const Add = ({ navigation, route }: AddProps) => {
 				{/* Las dos tarjetas: las MISMAS del swap, el retiro y el P2P. Un depósito es una
 				    conversión más — entregas dólares y recibes moneda. */}
 				<View style={styles.cards}>
-					<QPAmountCard
-						label={t('add.index.amountPlaceholder')}
-						token={{
-							symbol: 'USD',
-							icon: { kind: 'balance' },
-						}}
-						amount={amount}
-						onChangeAmount={(text: string) => setAmount(sanitizeAmountInput(text))}
-						fiatLabel=""
-						balanceLabel={`$${user!.balance ?? 0}`}
-						accessibilityLabel={t('add.index.amountPlaceholder')}
-					/>
+					{/* Con una moneda «Vía P2P» el importe se apaga: no hay nada que depositar */}
+					<View style={isViaP2P && styles.dimmed} pointerEvents={isViaP2P ? 'none' : 'auto'}>
+						<QPAmountCard
+							label={t('add.index.amountPlaceholder')}
+							token={{
+								symbol: 'USD',
+								icon: { kind: 'balance' },
+							}}
+							amount={amount}
+							onChangeAmount={(text: string) => setAmount(sanitizeAmountInput(text))}
+							fiatLabel=""
+							balanceLabel={`$${user!.balance ?? 0}`}
+							accessibilityLabel={t('add.index.amountPlaceholder')}
+							disabled={isViaP2P}
+						/>
+					</View>
 
 					{/* En flujo con márgenes negativos: monta sobre la junta sin medir las tarjetas */}
 					<View style={styles.flipWrap} pointerEvents="box-none">
@@ -224,6 +250,11 @@ const Add = ({ navigation, route }: AddProps) => {
 						onPickCoin={() => setShowCoinPicker(true)}
 					/>
 				</View>
+
+				{/* El saldo en esta moneda se vende en el P2P: ofertas abiertas en vez de depósito */}
+				{isViaP2P && selectedCoin && (
+					<DepositViaP2PBlock coin={selectedCoin} navigation={navigation} />
+				)}
 
 				{/* Fee mode selector — solo para depósitos con tarjeta y fee > 0 */}
 				{isCardCoin && cardFeeRate > 0 && (
@@ -275,6 +306,7 @@ const Add = ({ navigation, route }: AddProps) => {
 				direction="in"
 				recentKey={RECENT_DEPOSIT_KEY}
 				defaultCoins={defaultDepositCoins}
+				badges={viaP2PBadges}
 			/>
 
 			{/* Wallet Picker Sheet — opens installed wallet pre-filled */}
@@ -302,6 +334,7 @@ const Add = ({ navigation, route }: AddProps) => {
 
 const styles = StyleSheet.create({
 	cards: { marginTop: 4, marginBottom: 16 },
+	dimmed: { opacity: 0.4 },
 	// Deja 6 px de junta entre las dos tarjetas, igual que en el swap, el retiro y el P2P
 	flipWrap: { alignItems: 'center', marginVertical: -(FLIP_BUTTON_SIZE / 2) + 3, zIndex: 2, elevation: 2 },
 })

@@ -85,6 +85,8 @@ type DepositOrderArgs = {
 	/** La moneda elegida es CARD (el `fee_mode` solo viaja en ese caso). */
 	isCardCoin: boolean
 	feeMode: CardFeeMode
+	/** La moneda elegida se vende en el P2P (ETECSA, tarjetas cubanas): nunca se crea una orden. */
+	isViaP2P?: boolean
 }
 
 /**
@@ -93,7 +95,7 @@ type DepositOrderArgs = {
  * @param args - Moneda y monto del formulario más el modo de fee de CARD.
  * @returns Estado del modal de depósito y sus acciones.
  */
-export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode }: DepositOrderArgs) {
+export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode, isViaP2P = false }: DepositOrderArgs) {
 
 	const { user } = useAuth()
 	const { sounds } = useSettings()
@@ -190,6 +192,9 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 
 	// Handle topup request
 	const handleTopup = async () => {
+		// Las monedas «Vía P2P» no se depositan: el botón va apagado, y aunque no lo
+		// estuviera, `POST /topup` solo respondería 400 «Método de pago inválido»
+		if (isViaP2P) return
 		const amountValue = parseFloat(amount)
 		if (isNaN(amountValue) || amountValue <= 0) { toast.error(t('add.index.toasts.invalidAmount')); return }
 		if (!selectedCoin || !amount) { toast.error(t('add.index.toasts.missingCoinOrAmount')); return }

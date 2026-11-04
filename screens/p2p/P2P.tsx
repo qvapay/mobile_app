@@ -172,7 +172,8 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	// repite en el ranking. Sin titular, si el puesto está libre se ofrece en una línea (eso
 	// sale de GET /p2p/promo, que solo se pide con moneda elegida y sin "Mis ofertas")
 	const listedOffers = useMemo(() => withoutPromoted(p2pOffers, promoted), [p2pOffers, promoted])
-	const promoCoin = apiFilters.coin && !apiFilters.my ? apiFilters.coin : null
+	// Con `peer` el backend no manda `promoted`: ofrecer ahí el puesto libre sería un error
+	const promoCoin = apiFilters.coin && !apiFilters.my && !apiFilters.peer ? apiFilters.coin : null
 	const promoQuery = useP2PPromoQuery(promoCoin, p2pEnabled && !promoted)
 	const freeSlot = !promoted && promoCoin ? freeSlotFor(promoQuery.data, typeFilter) : null
 
@@ -234,13 +235,21 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 		return () => { if (unique.length) untrackUsers(unique) }
 	}, [p2pOffers, trackUsers, untrackUsers])
 
-	// Update coin filter when navigating back with different params
+	// Preselección por params (CoinDetail, «Ver todas» del depósito Vía P2P, deep link
+	// `/p2p?coin=&offer_type=&peer=`): moneda, lado, comerciante y orden. `key` cambia en
+	// cada enlace para que repetirlo con los mismos params vuelva a aplicarlos
+	const paramType = route?.params?.type ?? route?.params?.offer_type
+	const paramPeer = route?.params?.peer
+	const paramSort = route?.params?.sort
+	const paramKey = route?.params?.key
 	useEffect(() => {
-		if (route?.params?.coin) {
-			const tick = route.params.coin
-			setFilter("selectedCoin", { tick, name: route.params.coinName || tick, logo: tick })
-		}
-	}, [route?.params?.coin, route?.params?.coinName, setFilter])
+		const tick = route?.params?.coin
+		if (tick) setFilter("selectedCoin", { tick, name: route?.params?.coinName || tick, logo: tick })
+		if (paramType === "buy" || paramType === "sell") setFilter("typeFilter", paramType)
+		if (paramPeer !== undefined) setFilter("peer", paramPeer || null)
+		// "Mejor tasa" exige moneda: sin ella el hook degradaría al orden por defecto
+		if (paramSort === "best_rate" && tick) setFilter("sortIndex", Math.max(0, SORT_OPTIONS.findIndex(o => o.orderBy === "best_rate")))
+	}, [route?.params?.coin, route?.params?.coinName, paramType, paramPeer, paramSort, paramKey, setFilter])
 
 	// Scroll-hide filter bar (Twitter-style)
 	const lastScrollY = useSharedValue(0)

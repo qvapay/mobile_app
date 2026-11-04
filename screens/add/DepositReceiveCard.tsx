@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import QPAmountCard from '../../ui/QPAmountCard'
 import { coinConverted, coinTerms, formatCoinAmount } from '../../helpers/coinFormat'
+import { isViaP2PCoin } from './depositViaP2P'
 
 import type { Coin } from '../../types/domain'
 
@@ -50,7 +51,8 @@ const DepositReceiveCard = ({ selectedCoin, amount, loadingCoins, onPickCoin }: 
 			}}
 			amount={converted > 0 ? formatCoinAmount(converted) : ''}
 			fiatLabel=""
-			balanceLabel={coinTerms(t, selectedCoin, 'in').join(' · ')}
+			// Una moneda «Vía P2P» no tiene condiciones de depósito: se dice lo que es
+			balanceLabel={isViaP2PCoin(selectedCoin) ? t('add.viaP2P.pill') : coinTerms(t, selectedCoin, 'in').join(' · ')}
 		/>
 	)
 }

@@ -19,9 +19,9 @@ describe('requirementsPayload', () => {
 
 	it('espejo de los valores de qpweb', () => {
 		expect(REQUIREMENT_OPTIONS).toEqual({
-			min_completed: [5, 10, 25, 50, 100],
+			min_completed: [5, 10, 20, 25, 50, 100],
 			min_rating: [4, 4.5],
-			min_account_days: [7, 30, 90, 180],
+			min_account_days: [7, 30, 45, 90, 180, 365],
 			min_trustscore: [50, 85],
 		})
 	})

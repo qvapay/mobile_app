@@ -390,9 +390,13 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 	// Por rango: además tiene que poder tomarlas (VIP), quedar al menos el mínimo
 	// por orden y no tener ya una orden viva (con una, la pantalla ya está en ella)
 	const flexibleTakeable = !!rawP2p && isFlexible && (() => { const b = takeBounds(rawP2p); return b.maxCents > 0 && b.maxCents >= b.minCents })()
-	const canApply = isFlexible
+	// Requisitos del maker que el servidor dice que NO cumplo (`requirements_met`, solo
+	// llega con requisitos y sin ser el dueño): se ve la oferta, no el botón
+	const requirementsLocked = status === "open" && !isOwner && !isPeer && (!isFlexible || isFlexibleOverview) && rawP2p?.requirements_met === false
+	const requirementsMissing = useMemo(() => rawP2p?.requirements_missing ?? [], [rawP2p?.requirements_missing])
+	const canApply = !requirementsLocked && (isFlexible
 		? isFlexibleOverview && status === "open" && !isOwner && rawP2p?.can_take_flexible !== false && flexibleTakeable && !myActiveOrder
-		: status === "open" && !isOwner && !isPeer
+		: status === "open" && !isOwner && !isPeer)
 	// Por rango sin permiso: en vez del botón, "disponible para cuentas VIP"
 	const flexibleLocked = isFlexibleOverview && status === "open" && !isOwner && rawP2p?.can_take_flexible === false
 	// Taker mirando una orden ya cerrada: puede volver a la oferta (y tomar otra parte)
@@ -779,6 +783,8 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		// range offers
 		isFlexible, isFlexibleOverview, selectedOrder, flexibleLocked, canBackToOffer,
 		applyAmount, setApplyAmount, openOrder, backToOffer,
+		// maker requirements the viewer doesn't meet (server-evaluated)
+		requirementsLocked, requirementsMissing,
 		// derived
 		isOwner, isPeer, isPayer, isReceiver, status, counterparty,
 		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating, canEditMyRating, markedAsPaid,

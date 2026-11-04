@@ -27,8 +27,13 @@ export type MainTabParamList = {
 	Home: undefined
 	Crypto: undefined
 	Keypad: undefined
-	/** Preselección de moneda al saltar desde Crypto/CoinDetail. */
-	P2P: { coin?: string, coinName?: string } | undefined
+	/**
+	 * Preselección al saltar desde Crypto/CoinDetail o desde el depósito «Vía P2P»:
+	 * moneda, lado (`offer_type` es el nombre de la web, tal cual llega en un universal
+	 * link en frío), comerciante (`peer`, p. ej. `skymind`) y orden. `key` cambia en cada
+	 * enlace para que repetirlo con los mismos params vuelva a aplicarlos.
+	 */
+	P2P: { coin?: string, coinName?: string, type?: 'buy' | 'sell', offer_type?: 'buy' | 'sell', peer?: string, sort?: 'best_rate', key?: number } | undefined
 	Store: undefined
 }
 
@@ -105,8 +110,9 @@ export type RootStackParamList = {
 	/**
 	 * `preselectedCoin`: tick del catálogo, para llegar con la moneda ya elegida.
 	 * `amount`: importe EN USD, para llegar con el cálculo hecho (lo manda el intercambio).
+	 * `coin`: lo mismo que `preselectedCoin`, con el nombre del deep link (`qvapay://add?coin=`).
 	 */
-	Add: { preselectedCoin?: string, amount?: string } | undefined
+	Add: { preselectedCoin?: string, amount?: string, coin?: string } | undefined
 	/** `prefillAddress`: destino ya escrito (retiro hacia la propia wallet self-custody, destino 'personal'). */
 	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string, prefillAddress?: string, amount?: string } | undefined
 

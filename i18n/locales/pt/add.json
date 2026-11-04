@@ -87,5 +87,27 @@
 			},
 			"payFromWalletButton": "Pagar da Minha Carteira"
 		}
+	},
+	"viaP2P": {
+		"pill": "Via P2P",
+		"title": "O saldo em {{name}} não se deposita: vende-se no P2P",
+		"bodyTreasury": "Converta seu saldo em {{name}} em QUSD aceitando uma oferta aberta da tesouraria da QvaPay (@skymind): {{howToPay}} e o valor cai na sua conta.",
+		"bodyMarket": "Converta seu saldo em {{name}} em QUSD aceitando uma oferta aberta do mercado P2P: {{howToPay}} e o valor cai na sua conta. Agora a tesouraria da QvaPay não tem ofertas abertas em {{name}}; estas são as melhores do mercado.",
+		"howToPay": {
+			"ETECSA": "você recarrega o número indicado na oferta",
+			"BANK_CUP": "você transfere para o cartão em CUP indicado na oferta",
+			"BANK_MLC": "você transfere para o cartão em MLC indicado na oferta",
+			"CLASICA": "você transfere para o cartão Clásica indicado na oferta",
+			"BANDECPREPAGO": "você transfere para o cartão pré-pago indicado na oferta",
+			"default": "você paga como indica a oferta"
+		},
+		"requirementsTitle": "Requisitos para aceitar estas ofertas:",
+		"met": "você cumpre",
+		"notMetShort": "você não cumpre",
+		"notMet": "Ainda não cumpre: {{list}}. Pode vê-las, mas ainda não aceitá-las.",
+		"empty": "Agora não há ofertas abertas em {{name}}, nem da tesouraria nem no mercado. Volte em alguns minutos.",
+		"needsP2P": "Para ver e aceitar estas ofertas você precisa de acesso ao P2P: verifique sua identidade, seu telefone e seu Telegram.",
+		"needsP2PLink": "Completar os requisitos do P2P",
+		"seeAll": "Ver todas as ofertas no P2P"
 	}
 }

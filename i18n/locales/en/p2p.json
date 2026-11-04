@@ -41,7 +41,8 @@
 		"badges": {
 			"operate": "Trading ${{amount}}",
 			"rateMin": "Rate ≥ {{value}}",
-			"rateMax": "Rate ≤ {{value}}"
+			"rateMax": "Rate ≤ {{value}}",
+			"peer": "Offers by @{{peer}}"
 		}
 	},
 	"requirements": {
@@ -182,7 +183,8 @@
 		"apply": "Apply",
 		"markPaid": "I've paid",
 		"paymentReceived": "Payment received",
-		"offerCancelled": "Offer cancelled"
+		"offerCancelled": "Offer cancelled",
+		"requirementsNotMet": "You don't meet yet: {{list}}"
 	},
 	"applyModal": {
 		"title": "Apply to the offer",

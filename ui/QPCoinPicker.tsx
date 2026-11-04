@@ -28,6 +28,8 @@ type QPCoinPickerProps = {
 	recentKey?: string | null
 	defaultCoins?: QuickPillDefault[]
 	showFees?: boolean
+	/** Etiqueta corta junto al nombre, por tick («Vía P2P» en el depósito). */
+	badges?: Record<string, string>
 }
 
 /**
@@ -52,6 +54,7 @@ type QPCoinPickerProps = {
  * @param [props.recentKey] - Clave de AsyncStorage para las recientes; sin ella no se persisten.
  * @param [props.defaultCoins] - Accesos rápidos de relleno.
  * @param [props.showFees=true] - Oculta condiciones y conversión (modo P2P: solo identidad).
+ * @param [props.badges] - Etiqueta por tick que la fila pinta junto al nombre.
  */
 // Defaults a nivel de módulo: un `[]` en la firma es un array nuevo por render e invalida
 // los useMemo que dependen de él cuando el llamador no pasa la prop
@@ -70,6 +73,7 @@ const QPCoinPicker = ({
 	recentKey = null,
 	defaultCoins = NO_DEFAULT_COINS,
 	showFees = true,
+	badges,
 }: QPCoinPickerProps) => {
 
 	const { t } = useTranslation()
@@ -101,8 +105,9 @@ const QPCoinPicker = ({
 			// La búsqueda mira también el tick y la red: quien escribe "trc20" o "tron"
 			// espera encontrar el USDT correcto
 			keywords: `${coin.tick} ${coin.network ?? ''}`,
+			badge: badges?.[coin.tick],
 		}
-	}, [t, amount, direction, showFees])
+	}, [t, amount, direction, showFees, badges])
 
 	const options = useMemo(() => coins.map(optionFor), [coins, optionFor])
 
