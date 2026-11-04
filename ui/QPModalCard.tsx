@@ -28,7 +28,7 @@ const QPModalCard = ({ style, children, onPress = () => { }, ...rest }: QPModalC
 	const containerStyles = useContainerStyles(theme)
 
 	return (
-		<Pressable style={[containerStyles.modalCard, style]} onPress={onPress} {...rest}>
+		<Pressable style={[containerStyles.modalCard, style]} onPress={onPress} accessible={false} {...rest}>
 			<SurfaceHost tone="surface">{children}</SurfaceHost>
 		</Pressable>
 	)
