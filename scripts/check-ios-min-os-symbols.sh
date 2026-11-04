@@ -32,10 +32,19 @@ for f in "$APP"/*.debug.dylib "$APP"/Frameworks/*.framework; do
   [ -f "$b" ] && bins+=("$b")
 done
 
+if [ ${#bins[@]} -eq 0 ]; then
+  echo "✗ No se encontraron binarios en $APP" >&2
+  exit 1
+fi
+
 bad=0
 for b in "${bins[@]}"; do
   # dyld_info -fixups marca los enlaces débiles con [weak-import]; los demás son en firme.
-  hits=$(dyld_info -fixups "$b" 2>/dev/null | grep -E "$REGEX" | grep -v '\[weak-import\]' | awk '{print $NF}' | sort -u || true)
+  fixups=$(dyld_info -fixups "$b" 2>&1) || {
+    echo "✗ dyld_info falló al inspeccionar $(basename "$b")" >&2
+    exit 1
+  }
+  hits=$(echo "$fixups" | grep -E "$REGEX" | grep -v '\[weak-import\]' | awk '{print $NF}' | sort -u || true)
   if [ -n "$hits" ]; then
     bad=1
     echo "✗ $(basename "$b") enlaza en firme símbolos de iOS 18+ (crash al arrancar en iOS 15-17):"
