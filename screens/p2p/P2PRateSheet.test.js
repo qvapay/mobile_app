@@ -3,6 +3,7 @@
  * cambios" solo si algo cambió).
  * @jest-environment node
  */
+jest.mock('../../ui/QPModalCard', () => 'QPModalCard')
 jest.mock('../../ui/particles/QPAvatar', () => 'QPAvatar')
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../../ui/particles/QPInput', () => 'QPInput')

@@ -3,6 +3,7 @@
  * split-button solo se abre cuando hay al menos un filtro puesto.
  * @jest-environment node
  */
+jest.mock('../../ui/QPModalCard', () => 'QPModalCard')
 jest.mock('../../ui/particles/QPAssetPill', () => 'QPAssetPill')
 jest.mock('../../ui/particles/QPInput', () => 'QPInput')
 jest.mock('../../ui/particles/QPSwitch', () => 'QPSwitch')

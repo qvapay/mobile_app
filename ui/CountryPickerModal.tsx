@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { Text, View, Modal, StyleSheet } from 'react-native'
+import QPModalCard from './QPModalCard'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import QPPressable from './particles/QPPressable'
@@ -73,7 +74,7 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 	return (
 		<Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
 			<View style={containerStyles.modalOverlay}>
-				<View style={[containerStyles.modalCard, styles.modalContent]}>
+				<QPModalCard style={styles.modalContent}>
 					<View style={styles.modalHeader}>
 						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('ui.countryPickerModal.title')}</Text>
 						<QPPressable onPress={onClose}>
@@ -95,7 +96,7 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 							keyboardShouldPersistTaps="handled"
 						/>
 					</View>
-				</View>
+				</QPModalCard>
 			</View>
 		</Modal>
 	)

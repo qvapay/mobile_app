@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from "react-native"
+import QPModalCard from "../../ui/QPModalCard"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
@@ -68,7 +69,7 @@ const SheetCard = ({ target, gate, blocked, busy, onClose, onReport, onBlock, on
 			{/* El formulario de reporte abre el teclado: en Android edge-to-edge hay que reservarlo a mano */}
 			<QPKeyboardAvoidingView style={styles.fill}>
 				<Pressable style={containerStyles.modalOverlay} onPress={close}>
-					<Pressable onPress={() => { }} style={[containerStyles.modalCard, styles.card]} testID="moderation-sheet">
+					<QPModalCard style={styles.card} testID="moderation-sheet">
 
 						{view === "menu" && (
 							<>
@@ -125,7 +126,6 @@ const SheetCard = ({ target, gate, blocked, busy, onClose, onReport, onBlock, on
 									multiline
 									editable={!busy}
 									textAlignVertical="top"
-									style={{ backgroundColor: theme.colors.background }}
 								/>
 								<Text style={[textStyles.h7, styles.counter, { color: theme.colors.tertiaryText }]}>{description.length}/{REPORT_DESCRIPTION_MAX}</Text>
 
@@ -162,7 +162,7 @@ const SheetCard = ({ target, gate, blocked, busy, onClose, onReport, onBlock, on
 							</View>
 						)}
 
-					</Pressable>
+					</QPModalCard>
 				</Pressable>
 			</QPKeyboardAvoidingView>
 		</Modal>

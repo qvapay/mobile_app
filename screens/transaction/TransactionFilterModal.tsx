@@ -1,4 +1,5 @@
 import { View, Text, Modal, Pressable, ScrollView, StyleSheet } from 'react-native'
+import QPModalCard from '../../ui/QPModalCard'
 import { useTranslation } from 'react-i18next'
 
 import QPInput from '../../ui/particles/QPInput'
@@ -131,7 +132,7 @@ const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDr
 	return (
 	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 		<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
-			<Pressable style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
+			<QPModalCard style={{ maxHeight: windowHeight * 0.75 }}>
 
 				{/* Header */}
 				<View style={styles.modalHeader}>
@@ -254,7 +255,7 @@ const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDr
 					/>
 				</View>
 
-			</Pressable>
+			</QPModalCard>
 		</Pressable>
 	</Modal>
 	)

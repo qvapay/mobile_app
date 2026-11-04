@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Modal, View, Text, ScrollView, Pressable, StyleSheet, KeyboardAvoidingView, Platform, useWindowDimensions } from 'react-native'
+import QPModalCard from './QPModalCard'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -87,7 +88,7 @@ const OfacAttestationModal = ({ visible, scope, context, tick, onConfirm, onClos
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 			<KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 				<Pressable style={themeStyles.container.modalOverlay} onPress={onClose}>
-					<Pressable onPress={() => { }} style={[themeStyles.container.modalCard, styles.card, { maxHeight: height * 0.85 }]}>
+					<QPModalCard style={[styles.card, { maxHeight: height * 0.85 }]}>
 
 						{/* Cabecera: escudo + título + selector de idioma del texto legal */}
 						<View style={styles.header}>
@@ -199,7 +200,7 @@ const OfacAttestationModal = ({ visible, scope, context, tick, onConfirm, onClos
 							/>
 						</View>
 
-					</Pressable>
+					</QPModalCard>
 				</Pressable>
 			</KeyboardAvoidingView>
 		</Modal>

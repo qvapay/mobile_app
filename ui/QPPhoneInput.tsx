@@ -7,6 +7,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Theme
 import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
+import { useFieldFill } from './SurfaceContext'
 
 // UI
 import QPInput from './particles/QPInput'
@@ -54,19 +55,22 @@ const QPPhoneInput = ({ country, onChangeCountry, lockedCountry, valid, ...input
 	const locked = !!lockedCountry
 	const countryData = countries.find(c => c.code === country)
 	const chipTextStyle = { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.medium }
-	const chipBorder = !theme.isDark && { borderWidth: 0.3, borderColor: theme.colors.primary }
+	// A juego con el QPInput de al lado: mismo relleno según el anfitrión y el mismo borde
+	// en reposo (1 pt constante: transparente en dark, `border` en light); la chip no se enfoca
+	const chipFill = useFieldFill()
+	const chipBorder = { borderWidth: 1, borderColor: theme.isDark ? 'transparent' : theme.colors.border }
 
 	return (
 		<>
 			<View style={styles.row}>
 				{locked ? (
-					<View style={[styles.chip, { backgroundColor: theme.colors.surface }, chipBorder]}>
+					<View style={[styles.chip, { backgroundColor: chipFill }, chipBorder]}>
 						{!!lockedCountry.flag && <Text style={chipTextStyle}>{lockedCountry.flag}</Text>}
 						<Text style={chipTextStyle}>{lockedCountry.dial}</Text>
 					</View>
 				) : (
 					<QPPressable
-						style={[styles.chip, { backgroundColor: theme.colors.surface }, chipBorder]}
+						style={[styles.chip, { backgroundColor: chipFill }, chipBorder]}
 						onPress={() => setShowPicker(true)}
 					>
 						<Text style={chipTextStyle}>{countryData?.dial_code || '+53'}</Text>
@@ -117,7 +121,8 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 6,
-		height: 50,
+		// 50 del campo + el borde de 1 pt a cada lado del contenedor de QPInput
+		height: 52,
 		paddingHorizontal: 14,
 		borderRadius: 10,
 	},

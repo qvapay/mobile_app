@@ -6,6 +6,7 @@ import { useTheme } from '../theme/ThemeContext'
 import { scaleType, useTextStyles } from '../theme/themeUtils'
 
 // UI
+import { SurfaceHost, fieldFillTone, useSurfaceTone } from './SurfaceContext'
 import QPFitText from './particles/QPFitText'
 import QPAssetPill from './particles/QPAssetPill'
 import type { QPAssetIconKind } from './particles/QPAssetBadge'
@@ -50,11 +51,13 @@ const QPAmountCard = forwardRef<TextInputInstance, Props>(({ label, hint, token,
 	const amountStyle = { color: amount ? theme.colors.primaryText : theme.colors.placeholder, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.displaySm }
 	// El hueco del importe crece con la escala de texto o el número se recortaría
 	const boxHeight = scaleType(theme, 52)
-
-
+	// La tarjeta ES el campo: el otro neutro de su anfitrión (surface en pantalla, background
+	// dentro de un modal), y declara ese tono hacia dentro para que su píldora vuelva a invertir
+	const cardTone = fieldFillTone(useSurfaceTone())
 
 	return (
-		<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
+		<SurfaceHost tone={cardTone}>
+		<View style={[styles.card, { backgroundColor: theme.colors[cardTone] }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 			<View style={styles.top}>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{label}</Text>
 				{chips?.length ? (
@@ -101,6 +104,7 @@ const QPAmountCard = forwardRef<TextInputInstance, Props>(({ label, hint, token,
 				<Text style={[textStyles.h6, styles.balance, { color: theme.colors.secondaryText }]} numberOfLines={1}>{balanceLabel}</Text>
 			</View>
 		</View>
+		</SurfaceHost>
 	)
 })
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import QPModalCard from '../../../../ui/QPModalCard'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useNavigation } from '@react-navigation/native'
@@ -151,7 +152,7 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 			{/* accessible={false}: un Pressable accesible funde a sus hijos en UN
 			    elemento (iOS) y VoiceOver/E2E no llegarían al PIN ni a los botones */}
 			<Pressable style={styles.overlay} onPress={onClose} accessible={false}>
-				<Pressable testID="wallet-auth-modal" style={[styles.card, { backgroundColor: theme.colors.surface }]} onPress={() => {}} accessible={false}>
+				<QPModalCard testID="wallet-auth-modal" style={styles.card} accessible={false}>
 					<View style={styles.header}>
 						<View style={[styles.icon, { backgroundColor: theme.colors.primary + '15' }]}>
 							<FontAwesome6 name="lock" size={18} color={theme.colors.primary} iconStyle="solid" />
@@ -161,7 +162,7 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 					</View>
 
 					{hasPin === false && !isAuthenticated ? (
-						<WalletPinSetup onDone={onAuthorized} boxColor={theme.colors.background} />
+						<WalletPinSetup onDone={onAuthorized} />
 					) : hasPin === false ? (
 						<View style={styles.noPin}>
 							<Text style={[textStyles.h5, styles.subtitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.auth.noPin')}</Text>
@@ -170,7 +171,7 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 					) : hasPin === true ? (
 						<>
 							{/* Sin biometría armada el PIN se enfoca solo; con ella, el prompt va primero y el foco llega si falla */}
-							<QPCodeInput ref={codeInputRef} testID="wallet-auth-pin" length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={verifyPin} secure autoFocus={!bioArmed} boxColor={theme.colors.background} />
+							<QPCodeInput ref={codeInputRef} testID="wallet-auth-pin" length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={verifyPin} secure autoFocus={!bioArmed} />
 							<Text style={[textStyles.h6, styles.error, { color: theme.colors.danger }]}>{error || ' '}</Text>
 							{biometryType && bioArmed && !prompting && (
 								<Pressable onPress={authorizeWithBiometrics} style={styles.biometric} hitSlop={8} accessibilityRole="button">
@@ -188,7 +189,7 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 					<Pressable onPress={onClose} style={styles.cancel} hitSlop={8} accessibilityRole="button">
 						<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.auth.cancel')}</Text>
 					</Pressable>
-				</Pressable>
+				</QPModalCard>
 			</Pressable>
 		</Modal>
 	)

@@ -3,6 +3,7 @@
  * particles mocked (see keypadAmount.test.js for why).
  * @jest-environment node
  */
+jest.mock('./QPModalCard', () => 'QPModalCard')
 jest.mock('./particles/QPPressable', () => 'QPPressable')
 jest.mock('./particles/QPInput', () => 'QPInput')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')

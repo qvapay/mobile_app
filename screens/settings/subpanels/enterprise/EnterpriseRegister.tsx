@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, Modal } from 'react-native'
+import QPModalCard from '../../../../ui/QPModalCard'
 import Animated from 'react-native-reanimated'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
@@ -450,7 +451,7 @@ const OptionPickerModal = ({ visible, title, options, selected, onSelect, onClos
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
 			<QPPressable style={containerStyles.modalOverlay} onPress={close}>
-				<QPPressable style={[containerStyles.modalCard, styles.pickerCard]} onPress={() => {}}>
+				<QPModalCard style={styles.pickerCard}>
 					<Text style={[textStyles.h3, { color: theme.colors.primaryText, marginBottom: 10 }]}>{title}</Text>
 					{searchable && (
 						<QPInput value={search} onChangeText={setSearch} placeholder={t('settings.enterprise.register.searchPlaceholder')} prefixIconName="magnifying-glass" style={{ marginVertical: 0, marginBottom: 8 }} />
@@ -463,7 +464,7 @@ const OptionPickerModal = ({ visible, title, options, selected, onSelect, onClos
 							keyboardShouldPersistTaps="handled"
 						/>
 					</View>
-				</QPPressable>
+				</QPModalCard>
 			</QPPressable>
 		</Modal>
 	)

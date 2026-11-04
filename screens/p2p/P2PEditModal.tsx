@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, Pressable, Modal, Switch } from "react-native"
+import QPModalCard from "../../ui/QPModalCard"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
@@ -42,7 +43,7 @@ const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, wi
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
-				<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]}>
+				<QPModalCard style={{ maxHeight: windowHeight * 0.75 }}>
 					<ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
 						{/* Header */}
@@ -157,7 +158,7 @@ const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, wi
 						/>
 
 					</ScrollView>
-				</Pressable>
+				</QPModalCard>
 			</Pressable>
 		</Modal>
 	)

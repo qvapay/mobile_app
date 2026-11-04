@@ -78,7 +78,10 @@ const colors = {
 		tertiaryText: "#6C757D",
 		border: "#4B4B4B",
 		placeholder: "#B4B7BD",
-		elevation: "#1E2039",
+		// Escalón REAL por encima de surface (era el mismo #1E2039 y todo lo pintado con
+		// elevation sobre una tarjeta desaparecía). En light va más oscuro que surface, en
+		// dark más claro: en los dos modos "un paso más lejos del fondo"
+		elevation: "#282B4A",
 		elevationLight: "#9DA3B4",
 		almostBlack: "#0E0E1C",
 		almostWhite: "#F7F7F7",

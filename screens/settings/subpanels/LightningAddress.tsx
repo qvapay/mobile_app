@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Share, StyleSheet, Text, View } from 'react-native'
+import { SurfaceHost } from '../../../ui/SurfaceContext'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import type { NavigationProp } from '@react-navigation/native'
@@ -377,9 +378,11 @@ const ActivateView = ({ state, busy, onActivate }: { state: LightningAddressStat
 			<HeroIcon color={SATS_COLOR} background={SATS_COLOR + '1A'} />
 			<Benefits t={t} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
 			<View style={[containerStyles.card, styles.activateCard]}>
-				<Text style={textStyles.h4}>{t('settings.lightningAddress.activate.title')}</Text>
-				<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('settings.lightningAddress.activate.text')}</Text>
-				<LnNameField value={name} onChange={setName} domain={state.domain} label={t('settings.lightningAddress.activate.nameLabel')} />
+				<SurfaceHost tone="surface">
+					<Text style={textStyles.h4}>{t('settings.lightningAddress.activate.title')}</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('settings.lightningAddress.activate.text')}</Text>
+					<LnNameField value={name} onChange={setName} domain={state.domain} label={t('settings.lightningAddress.activate.nameLabel')} />
+				</SurfaceHost>
 			</View>
 		</QPKeyboardView>
 	)

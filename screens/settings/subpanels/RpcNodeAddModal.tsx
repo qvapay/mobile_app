@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import QPModalCard from '../../../ui/QPModalCard'
 import { useTranslation } from 'react-i18next'
 
 // Theme
@@ -68,7 +69,7 @@ const RpcNodeAddModal = ({ target, customRpcs, onClose, onAdd }: RpcNodeAddModal
 	return (
 		<Modal visible={target !== null} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
-				<Pressable style={containerStyles.modalCard} onPress={() => { }}>
+				<QPModalCard>
 					<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{t('crypto.nodes.add.title', { chain: chainLabel })}</Text>
 					<Text style={[textStyles.h6, styles.subtitle, { color: theme.colors.secondaryText }]}>
 						{t('crypto.nodes.add.subtitle', { chain: chainLabel })}
@@ -106,7 +107,7 @@ const RpcNodeAddModal = ({ target, customRpcs, onClose, onAdd }: RpcNodeAddModal
 					<Pressable onPress={onClose} disabled={testing} style={styles.cancel} hitSlop={8}>
 						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.nodes.add.cancel')}</Text>
 					</Pressable>
-				</Pressable>
+				</QPModalCard>
 			</Pressable>
 		</Modal>
 	)
