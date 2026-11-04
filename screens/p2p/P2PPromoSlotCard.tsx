@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
+import { SurfaceHost } from '../../ui/SurfaceContext'
 import { useTranslation } from 'react-i18next'
 
 import { getDateLocale } from '../../i18n'
@@ -70,54 +71,55 @@ const P2PPromoSlotCard = ({ slot, userUuid, focused, bidText, onChangeBid, block
 				focused ? [styles.focused, { borderColor: theme.colors.gold }] : !theme.isDark && [styles.border, { borderColor: theme.colors.border }],
 			]}
 		>
-			<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>{t('p2p.promo.slot.title', { coin: slot.coin, side })}</Text>
-			<Text style={[textStyles.caption, styles.hint, { color: theme.colors.secondaryText }]}>{t(slot.offer_type === 'sell' ? 'p2p.promo.slot.hintSell' : 'p2p.promo.slot.hintBuy')}</Text>
+			<SurfaceHost tone="surface">
+				<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>{t('p2p.promo.slot.title', { coin: slot.coin, side })}</Text>
+				<Text style={[textStyles.caption, styles.hint, { color: theme.colors.secondaryText }]}>{t(slot.offer_type === 'sell' ? 'p2p.promo.slot.hintSell' : 'p2p.promo.slot.hintBuy')}</Text>
 
-			<View style={styles.rows}>
-				{rows.map(row => (
-					<View key={row.label} style={styles.row}>
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{row.label}</Text>
-						<Text style={[textStyles.caption, styles.rowValue, { color: theme.colors.primaryText }]}>{row.value}</Text>
-					</View>
-				))}
-			</View>
-
-			{status === 'mine' && (
-				<Text style={[textStyles.caption, styles.note, { color: theme.colors.secondaryText }]}>{t('p2p.promo.slot.mineNote')}</Text>
-			)}
-
-			{leadingMine && !isFree && (
-				<Text style={[textStyles.caption, styles.note, { color: theme.colors.successText }]}>{t('p2p.promo.slot.leadingNote')}</Text>
-			)}
-
-			{canAct && (
-				<View style={styles.action}>
-					{!isFree && (
-						<QPInput
-							testID={`promo-bid-${slot.offer_type}`}
-							prelabel={t('p2p.promo.slot.bidLabel', { min: promoUsd(slot.min_bid) })}
-							value={bidText}
-							onChangeText={(text) => onChangeBid(sanitizeAmountInput(text, 2))}
-							keyboardType="decimal-pad"
-							editable={!loading}
-							style={{ backgroundColor: theme.colors.background }}
-						/>
-					)}
-					<QPButton
-						testID={`promo-submit-${slot.offer_type}`}
-						title={isFree ? t('p2p.promo.slot.buy', { amount: promoUsd(slot.start_price) }) : t('p2p.promo.slot.bid')}
-						onPress={onPress}
-						disabled={!!block || loading}
-						loading={loading}
-					/>
-					{block === 'balance' && (
-						<Text style={[textStyles.caption, { color: theme.colors.dangerText }]}>{t('p2p.promo.slot.insufficient', { balance: balance.toFixed(2) })}</Text>
-					)}
-					{block === 'invalidBid' && !isFree && (
-						<Text style={[textStyles.caption, { color: theme.colors.dangerText }]}>{t('p2p.promo.slot.invalidBid', { min: promoUsd(slot.min_bid) })}</Text>
-					)}
+				<View style={styles.rows}>
+					{rows.map(row => (
+						<View key={row.label} style={styles.row}>
+							<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{row.label}</Text>
+							<Text style={[textStyles.caption, styles.rowValue, { color: theme.colors.primaryText }]}>{row.value}</Text>
+						</View>
+					))}
 				</View>
-			)}
+
+				{status === 'mine' && (
+					<Text style={[textStyles.caption, styles.note, { color: theme.colors.secondaryText }]}>{t('p2p.promo.slot.mineNote')}</Text>
+				)}
+
+				{leadingMine && !isFree && (
+					<Text style={[textStyles.caption, styles.note, { color: theme.colors.successText }]}>{t('p2p.promo.slot.leadingNote')}</Text>
+				)}
+
+				{canAct && (
+					<View style={styles.action}>
+						{!isFree && (
+							<QPInput
+								testID={`promo-bid-${slot.offer_type}`}
+								prelabel={t('p2p.promo.slot.bidLabel', { min: promoUsd(slot.min_bid) })}
+								value={bidText}
+								onChangeText={(text) => onChangeBid(sanitizeAmountInput(text, 2))}
+								keyboardType="decimal-pad"
+								editable={!loading}
+							/>
+						)}
+						<QPButton
+							testID={`promo-submit-${slot.offer_type}`}
+							title={isFree ? t('p2p.promo.slot.buy', { amount: promoUsd(slot.start_price) }) : t('p2p.promo.slot.bid')}
+							onPress={onPress}
+							disabled={!!block || loading}
+							loading={loading}
+						/>
+						{block === 'balance' && (
+							<Text style={[textStyles.caption, { color: theme.colors.dangerText }]}>{t('p2p.promo.slot.insufficient', { balance: balance.toFixed(2) })}</Text>
+						)}
+						{block === 'invalidBid' && !isFree && (
+							<Text style={[textStyles.caption, { color: theme.colors.dangerText }]}>{t('p2p.promo.slot.invalidBid', { min: promoUsd(slot.min_bid) })}</Text>
+						)}
+					</View>
+				)}
+			</SurfaceHost>
 		</View>
 	)
 }

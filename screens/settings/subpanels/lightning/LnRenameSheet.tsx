@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import QPModalCard from '../../../../ui/QPModalCard'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -64,7 +65,7 @@ const SheetCard = ({ gate, onClose, currentName, domain, renamesLeft, onRename }
 	return (
 		<Modal visible={gate.visible} onShow={gate.onShow} onDismiss={gate.onDismiss} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 			<Pressable style={containerStyles.modalOverlay} onPress={busy ? undefined : onClose}>
-				<Pressable style={[containerStyles.modalCard, styles.card]} onPress={() => {}}>
+				<QPModalCard style={styles.card}>
 					<View style={styles.header}>
 						<FontAwesome6 name="pen" size={16} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[textStyles.h3, { flex: 1 }]}>{t('settings.lightningAddress.rename.title')}</Text>
@@ -81,7 +82,7 @@ const SheetCard = ({ gate, onClose, currentName, domain, renamesLeft, onRename }
 						<View style={styles.button}><QPButton title={t('common.actions.cancel')} onPress={onClose} outlined disabled={busy} /></View>
 						<View style={styles.button}><QPButton title={t('settings.lightningAddress.rename.confirm')} onPress={confirm} loading={busy} disabled={busy || invalid} /></View>
 					</View>
-				</Pressable>
+				</QPModalCard>
 			</Pressable>
 		</Modal>
 	)

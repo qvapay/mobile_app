@@ -1,5 +1,6 @@
 import { useRef, useState } from "react"
 import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from "react-native"
+import QPModalCard from "../../ui/QPModalCard"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
@@ -87,7 +88,7 @@ const RateSheetCard = ({ target, gate, loading, onClose, onSubmit, theme, textSt
 			{/* El comentario abre el teclado: en Android edge-to-edge hay que reservarlo a mano */}
 			<QPKeyboardAvoidingView style={styles.fill}>
 				<Pressable style={containerStyles.modalOverlay} onPress={close}>
-					<Pressable onPress={() => { }} style={[containerStyles.modalCard, styles.card]}>
+					<QPModalCard style={styles.card}>
 						<ScrollView keyboardShouldPersistTaps="handled" bounces={false} showsVerticalScrollIndicator={false}>
 
 							<View style={styles.titleRow}>
@@ -142,7 +143,6 @@ const RateSheetCard = ({ target, gate, loading, onClose, onSubmit, theme, textSt
 								multiline
 								editable={!loading}
 								textAlignVertical="top"
-								style={{ backgroundColor: theme.colors.background }}
 							/>
 							<Text style={[textStyles.h7, styles.counter, { color: theme.colors.tertiaryText }]}>{comment.length}/{RATING_COMMENT_MAX}</Text>
 
@@ -158,7 +158,7 @@ const RateSheetCard = ({ target, gate, loading, onClose, onSubmit, theme, textSt
 							</QPPressable>
 
 						</ScrollView>
-					</Pressable>
+					</QPModalCard>
 				</Pressable>
 			</QPKeyboardAvoidingView>
 		</Modal>

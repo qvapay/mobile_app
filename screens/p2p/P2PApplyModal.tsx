@@ -1,4 +1,5 @@
 import { View, Text, Pressable, Modal } from "react-native"
+import QPModalCard from "../../ui/QPModalCard"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
@@ -48,7 +49,7 @@ const P2PApplyModal = ({ visible, onClose, onConfirm, loading, flexible = null, 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 			<Pressable style={containerStyles.modalOverlay} onPress={() => !loading && onClose()}>
-				<Pressable onPress={() => { }} style={containerStyles.modalCard}>
+				<QPModalCard>
 
 					<FontAwesome6 name="handshake" size={40} color={theme.colors.primary} iconStyle="solid" style={{ alignSelf: 'center', marginBottom: 16 }} />
 
@@ -111,7 +112,7 @@ const P2PApplyModal = ({ visible, onClose, onConfirm, loading, flexible = null, 
 						/>
 					</View>
 
-				</Pressable>
+				</QPModalCard>
 			</Pressable>
 		</Modal>
 	)

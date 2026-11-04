@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from "react-native"
+import { SurfaceHost } from "../../ui/SurfaceContext"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
@@ -76,81 +77,83 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdI
 
 	return (
 		<View style={[containerStyles.card, styles.card]}>
+			<SurfaceHost tone="surface">
 
-			{/* La ventana expiró: único aviso que la card conserva (el timer vive en el header) */}
-			{windowExpired && (
-				<View style={styles.bannerRow}>
-					<FontAwesome6 name="hourglass-end" size={16} color={theme.colors.danger} iconStyle="solid" />
-					<Text style={[textStyles.h6, { color: theme.colors.danger, flex: 1, fontWeight: "600" }]}>
-						{t('p2p.tradeProgress.windowExpired')}
+				{/* La ventana expiró: único aviso que la card conserva (el timer vive en el header) */}
+				{windowExpired && (
+					<View style={styles.bannerRow}>
+						<FontAwesome6 name="hourglass-end" size={16} color={theme.colors.danger} iconStyle="solid" />
+						<Text style={[textStyles.h6, { color: theme.colors.danger, flex: 1, fontWeight: "600" }]}>
+							{t('p2p.tradeProgress.windowExpired')}
+						</Text>
+					</View>
+				)}
+
+				{/* Hero: the amount the viewer acts on, not the rate */}
+				<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5 }]}>{heroVerb}</Text>
+				<View style={styles.heroRow}>
+					<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: "600" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+						{p2p.receive}
 					</Text>
+					<QPCoin coin={p2p.Coin?.logo} size={20} />
+					<Text style={[textStyles.h5, { color: theme.colors.secondaryText, flexShrink: 1 }]} numberOfLines={1}>{p2p.Coin?.name}</Text>
 				</View>
-			)}
+				<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{balanceLine}</Text>
 
-			{/* Hero: the amount the viewer acts on, not the rate */}
-			<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5 }]}>{heroVerb}</Text>
-			<View style={styles.heroRow}>
-				<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: "600" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
-					{p2p.receive}
-				</Text>
-				<QPCoin coin={p2p.Coin?.logo} size={20} />
-				<Text style={[textStyles.h5, { color: theme.colors.secondaryText, flexShrink: 1 }]} numberOfLines={1}>{p2p.Coin?.name}</Text>
-			</View>
-			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{balanceLine}</Text>
-
-			{/* 3-step progress */}
-			<View style={styles.stepsRow}>
-				{steps.map((label, i) => {
-					const done = i < doneCount
-					const active = i === activeIndex
-					return (
-						<View key={label} style={styles.stepItem}>
-							{i > 0 && <View style={[styles.connector, { backgroundColor: i <= doneCount ? theme.colors.successText : theme.colors.border }]} />}
-							<View style={[
-								styles.stepDot,
-								done && { backgroundColor: theme.colors.successFill },
-								active && { backgroundColor: theme.colors.primary },
-								!done && !active && { borderWidth: 1.5, borderColor: theme.colors.border },
-							]}>
-								{done ? (
-									<FontAwesome6 name="check" size={10} color={theme.colors.successFillText} iconStyle="solid" />
-								) : (
-									<Text style={[textStyles.h7, { color: active ? theme.colors.almostWhite : theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>{i + 1}</Text>
-								)}
+				{/* 3-step progress */}
+				<View style={styles.stepsRow}>
+					{steps.map((label, i) => {
+						const done = i < doneCount
+						const active = i === activeIndex
+						return (
+							<View key={label} style={styles.stepItem}>
+								{i > 0 && <View style={[styles.connector, { backgroundColor: i <= doneCount ? theme.colors.successText : theme.colors.border }]} />}
+								<View style={[
+									styles.stepDot,
+									done && { backgroundColor: theme.colors.successFill },
+									active && { backgroundColor: theme.colors.primary },
+									!done && !active && { borderWidth: 1.5, borderColor: theme.colors.border },
+								]}>
+									{done ? (
+										<FontAwesome6 name="check" size={10} color={theme.colors.successFillText} iconStyle="solid" />
+									) : (
+										<Text style={[textStyles.h7, { color: active ? theme.colors.almostWhite : theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>{i + 1}</Text>
+									)}
+								</View>
+								<Text style={[textStyles.h7, { fontSize: theme.typography.fontSize.xs, color: active ? theme.colors.primaryText : theme.colors.secondaryText, fontFamily: active ? theme.typography.fontFamily.medium : theme.typography.fontFamily.regular }]}>
+									{label}
+								</Text>
 							</View>
-							<Text style={[textStyles.h7, { fontSize: theme.typography.fontSize.xs, color: active ? theme.colors.primaryText : theme.colors.secondaryText, fontFamily: active ? theme.typography.fontFamily.medium : theme.typography.fontFamily.regular }]}>
-								{label}
-							</Text>
-						</View>
-					)
-				})}
-			</View>
-
-			{/* Safety line for the receiver while deciding to release */}
-			{status === "paid" && isReceiver && (
-				<View style={styles.safetyRow}>
-					<FontAwesome6 name="shield-halved" size={12} color={theme.colors.warning} iconStyle="solid" />
-					<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1 }]}>
-						{t('p2p.tradeProgress.safety')}
-					</Text>
+						)
+					})}
 				</View>
-			)}
 
-			{/* TX id — part of the payment step, gates "He pagado" */}
-			{canMarkPaid && (
-				<View style={styles.txIdBlock}>
-					<QPInput
-						value={txIdInput}
-						onChangeText={setTxIdInput}
-						placeholder={t('p2p.tradeProgress.txIdPlaceholder')}
-						prefixIconName="hashtag"
-					/>
-					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-						{t('p2p.tradeProgress.txIdHelper')}
-					</Text>
-				</View>
-			)}
+				{/* Safety line for the receiver while deciding to release */}
+				{status === "paid" && isReceiver && (
+					<View style={styles.safetyRow}>
+						<FontAwesome6 name="shield-halved" size={12} color={theme.colors.warning} iconStyle="solid" />
+						<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1 }]}>
+							{t('p2p.tradeProgress.safety')}
+						</Text>
+					</View>
+				)}
 
+				{/* TX id — part of the payment step, gates "He pagado" */}
+				{canMarkPaid && (
+					<View style={styles.txIdBlock}>
+						<QPInput
+							value={txIdInput}
+							onChangeText={setTxIdInput}
+							placeholder={t('p2p.tradeProgress.txIdPlaceholder')}
+							prefixIconName="hashtag"
+						/>
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
+							{t('p2p.tradeProgress.txIdHelper')}
+						</Text>
+					</View>
+				)}
+
+			</SurfaceHost>
 		</View>
 	)
 }

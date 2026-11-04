@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, Pressable, Modal, Switch, StyleSheet } from "react-native"
+import QPModalCard from "../../ui/QPModalCard"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
@@ -43,7 +44,7 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
-				<Pressable style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
+				<QPModalCard style={{ maxHeight: windowHeight * 0.75 }}>
 
 					{/* Header */}
 					<View style={styles.filterCardHeader}>
@@ -118,7 +119,7 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 						/>
 					</View>
 
-				</Pressable>
+				</QPModalCard>
 			</Pressable>
 		</Modal>
 	)

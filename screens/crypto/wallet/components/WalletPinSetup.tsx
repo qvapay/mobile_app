@@ -16,8 +16,6 @@ import type { QPCodeInputHandle } from '../../../../ui/particles/QPCodeInput'
 type Props = {
 	/** PIN guardado: el caller sigue su flujo (crear/importar, o firmar). */
 	onDone: () => void
-	/** Fondo de las cajas: `background` dentro de una card `surface` (ver QPCodeInput). */
-	boxColor?: string
 }
 
 /**
@@ -27,7 +25,7 @@ type Props = {
  * y `enableAppLock`, igual que el subpanel AppLock, así que el PIN protege a
  * la vez la app y la seed.
  */
-const WalletPinSetup = ({ onDone, boxColor }: Props) => {
+const WalletPinSetup = ({ onDone }: Props) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -79,9 +77,9 @@ const WalletPinSetup = ({ onDone, boxColor }: Props) => {
 
 			<View style={styles.input}>
 				{step === 'pin' ? (
-					<QPCodeInput key="pin" ref={pinRef} length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={onPinFilled} secure autoFocus boxColor={boxColor} />
+					<QPCodeInput key="pin" ref={pinRef} length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={onPinFilled} secure autoFocus />
 				) : (
-					<QPCodeInput key="confirm" ref={confirmRef} length={4} code={confirmPin} onChangeCode={code => { setConfirmPin(code); setError('') }} onFilled={onConfirmFilled} secure autoFocus disabled={saving} boxColor={boxColor} />
+					<QPCodeInput key="confirm" ref={confirmRef} length={4} code={confirmPin} onChangeCode={code => { setConfirmPin(code); setError('') }} onFilled={onConfirmFilled} secure autoFocus disabled={saving} />
 				)}
 			</View>
 

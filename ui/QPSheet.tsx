@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '../theme/ThemeContext'
 import { useTextStyles } from '../theme/themeUtils'
 import { SHEET_ENTERING, SHEET_MAX_RATIO } from './sheetConfig'
+import { SurfaceHost } from './SurfaceContext'
 
 /**
  * LA hoja inferior de la app: overlay que cierra al tocar fuera, tirador, cabecera con
@@ -56,7 +57,9 @@ const QPSheet = ({ visible, title, onClose, children, dismissable = true, avoidK
 						</View>
 					</View>
 				)}
-				{children}
+				{/* La hoja es `background`: lo declara aunque se abra desde una tarjeta surface
+				    (el contexto atraviesa <Modal>), para que sus campos sigan siendo surface */}
+				<SurfaceHost tone="background">{children}</SurfaceHost>
 			</Animated.View>
 		</Pressable>
 	)

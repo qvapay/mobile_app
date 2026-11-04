@@ -5,6 +5,7 @@ import type { StyleProp, TextInputProps, TextStyle } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
+import { useFieldFill } from '../SurfaceContext'
 
 import { splitAddress } from '../../helpers/addressHighlight'
 import { AddressSpans } from './QPAddress'
@@ -38,10 +39,13 @@ type QPInputProps = TextInputProps & {
 /**
  * Themed text input with optional prelabel and prefix/suffix FontAwesome6 icons.
  * Passing `suffixIconName` as 'eye'/'eye-slash' turns the suffix into a password
- * visibility toggle that flips `secureTextEntry`. Light mode adds a hairline
- * primary border; dark surfaces stay borderless per house style. React 19: `ref`
- * arrives as a regular prop and is forwarded straight to the TextInput (no
- * forwardRef). All unrecognized props pass through to the TextInput.
+ * visibility toggle that flips `secureTextEntry`. The fill comes from the host
+ * (`useFieldFill`: surface on a page, background inside a surface card/modal — the
+ * sunken-well rule of `ui/SurfaceContext`). The border is a constant 1pt so focusing
+ * never shifts layout: primary while focused (both modes), transparent at rest in
+ * dark (house style: no borders on dark surfaces), `border` at rest in light.
+ * React 19: `ref` arrives as a regular prop and is forwarded straight to the
+ * TextInput (no forwardRef). All unrecognized props pass through to the TextInput.
  *
  * @param props
  * @param [props.prelabel] - Small muted label rendered above the field.
@@ -62,6 +66,8 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 
 	// Ocultar/mostrar es estado PROPIO del campo: se toma de la prop una sola vez
 	const [isSecure, setIsSecure] = useState(props.secureTextEntry)
+	// Anillo de foco: el borde SIEMPRE mide 1 (cambiar el ancho al enfocar movería el layout)
+	const [focused, setFocused] = useState(false)
 	// El icono del ojo se DERIVA de isSecure (antes era un segundo estado que se
 	// actualizaba con el isSecure viejo y quedaba un toque desfasado). Cualquier otro
 	// sufijo se lee de la prop en cada render, así sigue sus cambios
@@ -70,6 +76,8 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
+	const fill = useFieldFill()
+	const borderColor = focused ? theme.colors.primary : theme.isDark ? 'transparent' : theme.colors.border
 
 	// Dirección resaltada: el TextInput acepta Text anidado en lugar de `value`.
 	// Un campo de dirección va SIEMPRE por children (resaltado o no): cambiar de
@@ -89,7 +97,7 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 
 			{prelabel && (<Text style={[styles.label, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{prelabel}</Text>)}
 
-			<View style={[styles.container, { backgroundColor: theme.colors.surface }, !theme.isDark ? { borderColor: theme.colors.primary, borderWidth: 0.3 } : {}, style]}>
+			<View style={[styles.container, { backgroundColor: fill, borderColor }, style]}>
 
 				{hasPrefix && (
 					<View style={[
@@ -107,6 +115,8 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 					{...props}
 					value={highlightAddress ? undefined : props.value}
 					secureTextEntry={isSecure}
+					onFocus={(e) => { setFocused(true); props.onFocus?.(e) }}
+					onBlur={(e) => { setFocused(false); props.onBlur?.(e) }}
 					// @ts-expect-error placeholderStyle no existe en TextInputProps (prop no estándar); se conserva tal cual
 					placeholderStyle={{ fontFamily: theme.typography.fontFamily.regular }}
 					placeholderTextColor={theme.colors.tertiaryText}
@@ -155,7 +165,7 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
-		// borderWidth: 0.5,
+		borderWidth: 1,
 	},
 	label: {
 		marginBottom: 5,

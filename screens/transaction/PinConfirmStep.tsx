@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native'
+import { SurfaceHost } from '../../ui/SurfaceContext'
 import { useTranslation } from 'react-i18next'
 import type { RefObject } from 'react'
 
@@ -49,41 +50,43 @@ const PinConfirmStep = ({ pin, onChangePin, codeLength, twoFactorMethod, hasOTP,
 
 	return (
 	<View style={[containerStyles.card, { marginTop: 0 }]}>
+		<SurfaceHost tone="surface">
 
-		<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-			<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-				{twoFactorMethod === 'pin' ? t('transactions.pinConfirm.enterPin') : t('transactions.pinConfirm.enterOtp')}
-			</Text>
-			{twoFactorMethod === 'pin' && (
-				<Text onPress={onRequestPin} style={[textStyles.h6, { color: theme.colors.primary, opacity: sendingPin ? 0.5 : 1 }]} disabled={sendingPin}>
-					{sendingPin ? t('transactions.pinConfirm.sending') : t('transactions.pinConfirm.requestPin')}
+			<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+				<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+					{twoFactorMethod === 'pin' ? t('transactions.pinConfirm.enterPin') : t('transactions.pinConfirm.enterOtp')}
 				</Text>
+				{twoFactorMethod === 'pin' && (
+					<Text onPress={onRequestPin} style={[textStyles.h6, { color: theme.colors.primary, opacity: sendingPin ? 0.5 : 1 }]} disabled={sendingPin}>
+						{sendingPin ? t('transactions.pinConfirm.sending') : t('transactions.pinConfirm.requestPin')}
+					</Text>
+				)}
+			</View>
+
+			{/* PIN/OTP Toggle - only show if user has OTP */}
+			{hasOTP && (
+				<QPSwitch
+					value={twoFactorMethod === 'pin' ? 'left' : 'right'}
+					leftText="PIN"
+					rightText="OTP"
+					leftColor={theme.colors.primary}
+					rightColor={theme.colors.primary}
+					onChange={onMethodToggle}
+				/>
 			)}
-		</View>
 
-		{/* PIN/OTP Toggle - only show if user has OTP */}
-		{hasOTP && (
-			<QPSwitch
-				value={twoFactorMethod === 'pin' ? 'left' : 'right'}
-				leftText="PIN"
-				rightText="OTP"
-				leftColor={theme.colors.primary}
-				rightColor={theme.colors.primary}
-				onChange={onMethodToggle}
-			/>
-		)}
-
-		<View style={{ marginVertical: 20 }}>
-			<QPCodeInput
-				key={twoFactorMethod}
-				ref={codeInputRef}
-				length={codeLength}
-				code={pin}
-				onChangeCode={onChangePin}
-				secure
-				onBoxFocus={onBoxFocus}
-			/>
-		</View>
+			<View style={{ marginVertical: 20 }}>
+				<QPCodeInput
+					key={twoFactorMethod}
+					ref={codeInputRef}
+					length={codeLength}
+					code={pin}
+					onChangeCode={onChangePin}
+					secure
+					onBoxFocus={onBoxFocus}
+				/>
+			</View>
+		</SurfaceHost>
 	</View>
 	)
 }

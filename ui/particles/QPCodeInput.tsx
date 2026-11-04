@@ -5,6 +5,7 @@ import type { TextInputInstance, TextInputKeyPressEvent } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
+import { useFieldFill } from '../SurfaceContext'
 
 /** Handle imperativo expuesto vía `ref` (React 19: ref como prop normal). */
 export type QPCodeInputHandle = {
@@ -21,8 +22,6 @@ type QPCodeInputProps = {
 	secure?: boolean
 	onBoxFocus?: (index: number) => void
 	onFilled?: (code: string) => void
-	/** Fondo de las cajas (por defecto `surface`). Sobre una card `surface` (modales) usar `background`: en oscuro `elevation` es el MISMO color que `surface` y no se distinguen. */
-	boxColor?: string
 	/** E2E: cada caja lleva `${testID}-${índice}` (tocar la primera la enfoca antes de teclear). */
 	testID?: string
 }
@@ -38,7 +37,9 @@ type QPCodeInputProps = {
  * single-use codes, where seeing them helps transcription.
  * `autoFocus` delays focus ~380ms so the keyboard doesn't fight the step's
  * entrance animation (it would slide up mid-transition). OS autofill is wired
- * via `textContentType="oneTimeCode"` / `autoComplete="sms-otp"`.
+ * via `textContentType="oneTimeCode"` / `autoComplete="sms-otp"`. The box fill
+ * follows the host (`useFieldFill`): surface on a page, background inside a surface
+ * card/modal — the host declares it (`QPModalCard` / `SurfaceHost`), not the caller.
  * React 19: `ref` arrives as a regular prop and exposes `{ focus(index = 0) }`
  * so parents can refocus without owning per-box refs.
  *
@@ -51,9 +52,10 @@ type QPCodeInputProps = {
  * @param [props.onBoxFocus] - Called with the box index on focus (e.g. scroll-into-view).
  * @param [props.onFilled] - Called with the full code the moment every box has a digit.
  */
-const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, disabled = false, secure = false, onBoxFocus, onFilled, boxColor, testID }: QPCodeInputProps) => {
+const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, disabled = false, secure = false, onBoxFocus, onFilled, testID }: QPCodeInputProps) => {
 
 	const { theme } = useTheme()
+	const fill = useFieldFill()
 	const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
 	const inputsRef = useRef<Array<TextInputInstance | null>>([])
 
@@ -141,7 +143,7 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 					style={[
 						length > 4 ? styles.boxSmall : styles.box,
 						{
-							backgroundColor: boxColor ?? theme.colors.surface,
+							backgroundColor: fill,
 							color: theme.colors.primaryText,
 							fontSize: length > 4 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl,
 							fontFamily: theme.typography.fontFamily.semiBold,

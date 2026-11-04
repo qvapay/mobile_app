@@ -14,6 +14,10 @@ jest.mock('../../theme/ThemeContext', () => {
 })
 
 import QPCodeInput from './QPCodeInput'
+import { SurfaceHost } from '../SurfaceContext'
+import { createTheme } from '../../theme/themeTokens'
+
+const theme = createTheme(true)
 
 const focusMock = TextInput.prototype.focus
 
@@ -152,6 +156,14 @@ describe('QPCodeInput', () => {
 		focusMock.mockClear()
 		await act(async () => { ref.current.focus(2) })
 		expect(focusedBoxes()).toContain(getBoxes(tree)[2].instance)
+	})
+
+	test('boxes are surface on a page and sink to background inside a surface host (modals, cards)', async () => {
+		const onPage = await render()
+		getBoxes(onPage).forEach(box => expect(StyleSheet.flatten(box.props.style).backgroundColor).toBe(theme.colors.surface))
+		let tree
+		await act(async () => { tree = create(<SurfaceHost tone="surface"><QPCodeInput code='' onChangeCode={() => {}} /></SurfaceHost>) })
+		getBoxes(tree).forEach(box => expect(StyleSheet.flatten(box.props.style).backgroundColor).toBe(theme.colors.background))
 	})
 
 	// Regresión: las cajas son `flex: 1`, cuya base es el contenido. Bajo un padre que

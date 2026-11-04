@@ -3,6 +3,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
+import { useFieldFill } from '../SurfaceContext'
 import { useTextStyles } from '../../theme/themeUtils'
 
 // UI
@@ -31,10 +32,12 @@ const QPAssetPill = ({ icon, symbol, placeholder, onPress, disabled = false }: {
 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
+	// El otro neutro del anfitrión: background sobre QPAmountCard/modal, surface si la tarjeta ya es background
+	const fill = useFieldFill()
 
 	const body = (
-		<View style={[styles.pill, { backgroundColor: theme.colors.background }]}>
-			{!!icon && <QPAssetBadge icon={icon} size={26} ringColor={theme.colors.background} />}
+		<View style={[styles.pill, { backgroundColor: fill }]}>
+			{!!icon && <QPAssetBadge icon={icon} size={26} ringColor={fill} />}
 			<Text style={[textStyles.h4, { color: symbol ? theme.colors.primaryText : theme.colors.tertiaryText }]} numberOfLines={1}>
 				{symbol || placeholder}
 			</Text>
