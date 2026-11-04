@@ -32,7 +32,8 @@
 		"title": "Select coin",
 		"searchPlaceholder": "Search coin...",
 		"loading": "Loading coins...",
-		"empty": "No coins available"
+		"empty": "No coins available",
+		"viaP2P": "Via P2P"
 	},
 	"coinRow": {
 		"feeTerm": "{{fee}}% fee",

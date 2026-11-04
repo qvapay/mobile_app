@@ -18,5 +18,12 @@
 			"body": "Dollars at the current price, or sats as they come with no fee, to spend in the store or withdraw over Lightning.",
 			"cta": "Activate mine"
 		}
+	},
+	"v3_9_0": {
+		"viaP2P": {
+			"title": "ETECSA balance and Cuban cards, via P2P",
+			"body": "In Deposit, ETECSA balance and CUP/MLC cards are no longer left out: pick the coin and you'll see the best open offers to sell it and get the amount in your account.",
+			"cta": "See the offers"
+		}
 	}
 }

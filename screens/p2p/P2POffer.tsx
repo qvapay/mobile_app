@@ -118,6 +118,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 	const {
 		p2p, rawP2p, isLoading, error, refreshing,
 		isFlexible, isFlexibleOverview, selectedOrder, flexibleLocked, canBackToOffer,
+		requirementsLocked, requirementsMissing,
 		applyAmount, setApplyAmount, openOrder, backToOffer,
 		isOwner, isPayer, isReceiver, status, counterparty,
 		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating, canEditMyRating,
@@ -417,6 +418,8 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					canDispute={canDispute}
 					canBackToOffer={canBackToOffer}
 					flexibleLocked={flexibleLocked}
+					requirementsLocked={requirementsLocked}
+					requirementsMissing={requirementsMissing}
 					isOrder={!!selectedOrder}
 					onDispute={handleDispute}
 					onBackToOffer={backToOffer}

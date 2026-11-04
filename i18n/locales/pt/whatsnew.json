@@ -18,5 +18,12 @@
 			"body": "Dólares ao preço do momento, ou sats como chegam e sem taxa, para gastar na loja ou sacar pela Lightning.",
 			"cta": "Ativar a minha"
 		}
+	},
+	"v3_9_0": {
+		"viaP2P": {
+			"title": "Saldo ETECSA e cartões cubanos, via P2P",
+			"body": "Em Depositar, o saldo ETECSA e os cartões em CUP e MLC já não ficam de fora: escolha a moeda e verá as melhores ofertas abertas para vendê-lo e receber o valor na sua conta.",
+			"cta": "Ver as ofertas"
+		}
 	}
 }

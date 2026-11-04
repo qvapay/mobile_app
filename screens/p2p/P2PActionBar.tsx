@@ -35,6 +35,10 @@ type P2PActionBarProps = {
 	canBackToOffer?: boolean
 	/** Por rango sin permiso para tomarla: aviso VIP en lugar del botón. */
 	flexibleLocked?: boolean
+	/** El servidor dice que no cumplo los requisitos del maker: aviso con lo que falta en lugar del botón. */
+	requirementsLocked?: boolean
+	/** Lo que falta (`requirements_missing` del detalle). */
+	requirementsMissing?: { key: string, required: number, actual: number }[]
 	/** La pantalla muestra una orden de una oferta por rango (no la oferta entera). */
 	isOrder?: boolean
 	loading: TradeActionLoading
@@ -63,7 +67,7 @@ type P2PActionBarProps = {
 const P2PActionBar = ({
 	p2p, isOwner, isPayer, isReceiver,
 	canApply, canCancel, canMarkPaid, canConfirmReceived, canRatePeer, myRating = null, canEditRating = false, rateUsername = null,
-	canDispute = false, canBackToOffer = false, flexibleLocked = false, isOrder = false,
+	canDispute = false, canBackToOffer = false, flexibleLocked = false, requirementsLocked = false, requirementsMissing = [], isOrder = false,
 	loading, txIdInput,
 	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onRate, onDispute, onBackToOffer,
 	keyboardVisible, insets, theme, textStyles, containerStyles,
@@ -106,6 +110,15 @@ const P2PActionBar = ({
 				<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 56 }}>
 					<FontAwesome6 name="gem" size={14} color={theme.colors.gold} iconStyle="solid" />
 					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', flexShrink: 1 }]}>{t('p2p.flexible.kycOnlyBody')}</Text>
+				</View>
+			)}
+
+			{!flexibleLocked && requirementsLocked && (
+				<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 56 }} testID="requirements-locked">
+					<FontAwesome6 name="lock" size={14} color={theme.colors.warning} iconStyle="solid" />
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', flexShrink: 1 }]}>
+						{t('p2p.actionBar.requirementsNotMet', { list: requirementsMissing.map(m => t(`ui.offerItem.requirement.${m.key}`, { value: m.key === 'min_rating' ? Number(m.required).toFixed(1) : m.required })).join(' · ') })}
+					</Text>
 				</View>
 			)}
 

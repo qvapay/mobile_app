@@ -28,21 +28,38 @@ const OWN_HOSTS = ['qvapay.com', 'www.qvapay.com']
  * El orden importa: el patrón de producto (2 segmentos) va antes que el de
  * tienda (1), igual que en `linking.js`.
  */
-const PATH_ROUTES: { match: RegExp, target: (m: RegExpMatchArray) => AnnouncementTarget }[] = [
+const PATH_ROUTES: { match: RegExp, target: (m: RegExpMatchArray, query: Record<string, string>) => AnnouncementTarget }[] = [
 	{ match: /^\/home$/, target: () => ({ kind: 'tab', screen: ROUTES.HOME_SCREEN }) },
 	{ match: /^\/p2p$/, target: () => ({ kind: 'tab', screen: ROUTES.P2P_SCREEN }) },
 	{ match: /^\/store$/, target: () => ({ kind: 'tab', screen: ROUTES.STORE_SCREEN }) },
 	{ match: /^\/p2p\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.P2P_OFFER_SCREEN, params: { p2p_uuid: m[1] } }) },
 	{ match: /^\/pay\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.PAY_SCREEN, params: { uuid: m[1] } }) },
 	{ match: /^\/topup$/, target: () => ({ kind: 'screen', route: ROUTES.TOPUP_SCREEN, params: {} }) },
+	// `?coin=` preselecciona la moneda del depósito (las «Vía P2P» abren su bloque de ofertas)
+	{ match: /^\/add$/, target: (_, query) => ({ kind: 'screen', route: ROUTES.ADD, params: pick(query, 'coin', 'preselectedCoin') }) },
 	{ match: /^\/store\/([^/]+)\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.MARKET_PRODUCT, params: { slug: m[1], uuid: m[2] } }) },
 	{ match: /^\/store\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.MARKET_STORE, params: { slug: m[1] } }) },
 	{ match: /^\/apps$/, target: () => ({ kind: 'screen', route: ROUTES.MINIAPPS, params: {} }) },
 	{ match: /^\/apps\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.MINIAPP_HOST, params: { slug: m[1] } }) },
 ]
 
+// `{ to: query[from] }` si viene, o `{}` (los params de una pantalla nunca llevan undefined)
+const pick = (query: Record<string, string>, from: string, to: string): Record<string, string> => (query[from] ? { [to]: query[from] } : {})
+
 // Separa el path de su query/hash: los patrones se comparan contra el path pelado
 const pathOf = (value: string) => value.split(/[?#]/)[0].replace(/\/+$/, '') || '/'
+
+// El query, para las rutas que leen algo de él (`/add?coin=`)
+const queryOf = (value: string): Record<string, string> => {
+	const query: Record<string, string> = {}
+	const raw = value.split('#')[0].split('?')[1] ?? ''
+	for (const pair of raw.split('&')) {
+		if (!pair) continue
+		const [key, v = ''] = pair.split('=')
+		try { query[decodeURIComponent(key)] = decodeURIComponent(v.replace(/\+/g, ' ')) } catch { /* par ilegible: se ignora */ }
+	}
+	return query
+}
 
 /**
  * Resuelve el `cta_url` de un aviso al destino que debe abrir la app.
@@ -67,9 +84,10 @@ export const resolveAnnouncementTarget = (ctaUrl?: string | null): AnnouncementT
 	// Ruta interna
 	if (url.startsWith('/')) {
 		const path = pathOf(url)
+		const query = queryOf(url)
 		for (const { match, target } of PATH_ROUTES) {
 			const found = path.match(match)
-			if (found) return target(found)
+			if (found) return target(found, query)
 		}
 		// Ruta que la app no tiene: se abre en la web
 		return { kind: 'external', url: `${WEB_ORIGIN}${url}` }
@@ -84,10 +102,12 @@ export const resolveAnnouncementTarget = (ctaUrl?: string | null): AnnouncementT
 	const host = (slash === -1 ? withoutScheme : withoutScheme.slice(0, slash)).toLowerCase()
 
 	if (OWN_HOSTS.includes(host)) {
-		const path = pathOf(slash === -1 ? '/' : withoutScheme.slice(slash))
+		const rest = slash === -1 ? '/' : withoutScheme.slice(slash)
+		const path = pathOf(rest)
+		const query = queryOf(rest)
 		for (const { match, target } of PATH_ROUTES) {
 			const found = path.match(match)
-			if (found) return target(found)
+			if (found) return target(found, query)
 		}
 	}
 

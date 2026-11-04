@@ -27,6 +27,10 @@ test('P2P: offer (with order), promote slot and the tab', () => {
 	expect(resolveDeepLinkTarget('https://www.qvapay.com/p2p/promote?coin=BANK_CUP&type=sell')).toEqual({ name: 'P2PPromote', params: { coin: 'BANK_CUP', type: 'sell' } })
 	expect(resolveDeepLinkTarget('https://www.qvapay.com/p2p/promote?type=weird')).toEqual({ name: 'P2PPromote', params: {} })
 	expect(resolveDeepLinkTarget('qvapay://p2p')).toEqual({ name: 'MainStack', params: { screen: 'P2P' } })
+	// Los enlaces de la web al mercado filtrado (nombres de qpweb: offer_type, peer con o sin @)
+	expect(resolveDeepLinkTarget('https://www.qvapay.com/p2p?coin=ETECSA&offer_type=sell&peer=@skymind&page=1')).toEqual({ name: 'MainStack', params: { screen: 'P2P', params: { coin: 'ETECSA', type: 'sell', peer: 'skymind' } } })
+	expect(resolveDeepLinkTarget('qvapay://p2p?type=buy')).toEqual({ name: 'MainStack', params: { screen: 'P2P', params: { type: 'buy' } } })
+	expect(resolveDeepLinkTarget('qvapay://p2p?offer_type=weird&utm=x')).toEqual({ name: 'MainStack', params: { screen: 'P2P' } })
 })
 
 test('store, mini-apps and widget shortcuts', () => {
@@ -36,6 +40,9 @@ test('store, mini-apps and widget shortcuts', () => {
 	expect(resolveDeepLinkTarget('https://www.qvapay.com/apps')).toEqual({ name: 'MiniApps' })
 	expect(resolveDeepLinkTarget('qvapay://savings')).toEqual({ name: 'Savings' })
 	expect(resolveDeepLinkTarget('qvapay://add')).toEqual({ name: 'Add' })
+	// `?coin=` preselecciona la moneda del depósito (las «Vía P2P» abren su bloque)
+	expect(resolveDeepLinkTarget('qvapay://add?coin=ETECSA')).toEqual({ name: 'Add', params: { preselectedCoin: 'ETECSA' } })
+	expect(resolveDeepLinkTarget('https://www.qvapay.com/add?coin=BANK_CUP')).toEqual({ name: 'Add', params: { preselectedCoin: 'BANK_CUP' } })
 	expect(resolveDeepLinkTarget('qvapay://withdraw')).toEqual({ name: 'Withdraw' })
 	expect(resolveDeepLinkTarget('qvapay://send')).toEqual({ name: 'Send' })
 	expect(resolveDeepLinkTarget('https://www.qvapay.com/topup')).toEqual({ name: 'Topup' })

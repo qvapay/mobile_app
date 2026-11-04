@@ -20,6 +20,11 @@ export type P2PIndexFilters = {
 	orderBy?: string
 	/** `fixed` | `flexible` (por rango); sin él llegan las dos, cada una con su `offer_kind`. */
 	offer_kind?: P2POfferKind
+	/**
+	 * Username (sin `@`) o uuid: ofertas donde ese usuario es dueño o contraparte
+	 * (`@skymind` = la tesorería). Con `peer` el backend no manda `promoted`.
+	 */
+	peer?: string
 }
 
 /**
@@ -158,6 +163,7 @@ export const p2pApi = {
 			if (filters.coin) params.append('coin', filters.coin)
 			if (filters.orderBy) params.append('orderBy', filters.orderBy)
 			if (filters.offer_kind) params.append('offer_kind', filters.offer_kind)
+			if (filters.peer) params.append('peer', filters.peer)
 
 			// Make the API request
 			const response = await apiClient.get(`/p2p/index?${params.toString()}`)

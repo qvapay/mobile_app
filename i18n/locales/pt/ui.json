@@ -32,7 +32,8 @@
 		"title": "Selecionar moeda",
 		"searchPlaceholder": "Buscar moeda...",
 		"loading": "Carregando moedas...",
-		"empty": "Nenhuma moeda disponível"
+		"empty": "Nenhuma moeda disponível",
+		"viaP2P": "Via P2P"
 	},
 	"coinRow": {
 		"feeTerm": "{{fee}}% tarifa",

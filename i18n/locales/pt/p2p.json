@@ -41,7 +41,8 @@
 		"badges": {
 			"operate": "Negociando ${{amount}}",
 			"rateMin": "Cotação ≥ {{value}}",
-			"rateMax": "Cotação ≤ {{value}}"
+			"rateMax": "Cotação ≤ {{value}}",
+			"peer": "Ofertas de @{{peer}}"
 		}
 	},
 	"requirements": {
@@ -182,7 +183,8 @@
 		"apply": "Aceitar",
 		"markPaid": "Já paguei",
 		"paymentReceived": "Pagamento recebido",
-		"offerCancelled": "Oferta cancelada"
+		"offerCancelled": "Oferta cancelada",
+		"requirementsNotMet": "Ainda não cumpre: {{list}}"
 	},
 	"applyModal": {
 		"title": "Aceitar a oferta",

@@ -19,6 +19,12 @@ describe('rutas internas que la app sabe pintar', () => {
 		expect(resolveAnnouncementTarget('/topup')).toEqual({ kind: 'screen', route: 'Topup', params: {} })
 	})
 
+	test('el depósito admite ?coin= (las monedas «Vía P2P» abren su bloque de ofertas)', () => {
+		expect(resolveAnnouncementTarget('/add')).toEqual({ kind: 'screen', route: 'Add', params: {} })
+		expect(resolveAnnouncementTarget('/add?coin=ETECSA')).toEqual({ kind: 'screen', route: 'Add', params: { preselectedCoin: 'ETECSA' } })
+		expect(resolveAnnouncementTarget('https://www.qvapay.com/add?coin=ETECSA&utm=aviso')).toEqual({ kind: 'screen', route: 'Add', params: { preselectedCoin: 'ETECSA' } })
+	})
+
 	test('el patrón de producto (2 segmentos) gana al de tienda (1), igual que en linking.js', () => {
 		expect(resolveAnnouncementTarget('/store/mi-tienda')).toEqual({ kind: 'screen', route: 'MarketStore', params: { slug: 'mi-tienda' } })
 		expect(resolveAnnouncementTarget('/store/mi-tienda/prod-7')).toEqual({ kind: 'screen', route: 'MarketProduct', params: { slug: 'mi-tienda', uuid: 'prod-7' } })

@@ -39,8 +39,22 @@ const splitLink = (url: string): { segments: string[], query: Record<string, str
 	return { segments, query }
 }
 
-/** Pestaña de MainStack como destino (`/home`, `/crypto`, `/p2p`). */
-const tab = (screen: string): DeepLinkTarget => ({ name: ROUTES.MAIN_STACK, params: { screen } })
+/** Pestaña de MainStack como destino (`/home`, `/crypto`, `/p2p`), con params de la pestaña si los hay. */
+const tab = (screen: string, params?: Record<string, unknown>): DeepLinkTarget => ({ name: ROUTES.MAIN_STACK, params: { screen, ...(params ? { params } : {}) } })
+
+/**
+ * Params del tab P2P desde el query de `/p2p?coin=&offer_type=&peer=` (los nombres
+ * que usa la web en sus enlaces al mercado; `type` se acepta como alias).
+ */
+const p2pTabParams = (query: Record<string, string>): Record<string, unknown> | undefined => {
+	const type = query.offer_type || query.type
+	const params = {
+		...(query.coin ? { coin: query.coin } : {}),
+		...(type === 'sell' || type === 'buy' ? { type } : {}),
+		...(query.peer ? { peer: query.peer.replace(/^@/, '') } : {}),
+	}
+	return Object.keys(params).length ? params : undefined
+}
 
 /**
  * Ruta que abre una URL de QvaPay.
@@ -57,7 +71,7 @@ export const resolveDeepLinkTarget = (url: string | null | undefined): DeepLinkT
 
 	switch (head) {
 		case 'p2p': {
-			if (segments.length === 1) return tab(ROUTES.P2P_SCREEN)
+			if (segments.length === 1) return tab(ROUTES.P2P_SCREEN, p2pTabParams(query))
 			if (second === 'promote') {
 				const coin = query.coin || undefined
 				const type = query.type === 'sell' || query.type === 'buy' ? query.type : undefined
@@ -81,7 +95,8 @@ export const resolveDeepLinkTarget = (url: string | null | undefined): DeepLinkT
 			return miniApp ? { name: ROUTES.MINIAPP_HOST, params: { slug: miniApp.slug } } : null
 		}
 		case 'topup': return segments.length === 1 ? { name: ROUTES.TOPUP_SCREEN } : null
-		case 'add': return segments.length === 1 ? { name: ROUTES.ADD } : null
+		// `?coin=` preselecciona la moneda (las «Vía P2P» abren su bloque de ofertas)
+		case 'add': return segments.length === 1 ? { name: ROUTES.ADD, ...(query.coin ? { params: { preselectedCoin: query.coin } } : {}) } : null
 		case 'withdraw': return segments.length === 1 ? { name: ROUTES.WITHDRAW } : null
 		case 'send': return segments.length === 1 ? { name: ROUTES.SEND } : null
 		case 'savings': return segments.length === 1 ? { name: ROUTES.SAVINGS_SCREEN } : null

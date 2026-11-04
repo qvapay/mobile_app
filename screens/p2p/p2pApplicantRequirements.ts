@@ -13,9 +13,9 @@ export type ApplicantRequirementKey = 'min_completed' | 'min_rating' | 'min_acco
 
 /** Valores permitidos por requisito (el orden es el de la pantalla). */
 export const REQUIREMENT_OPTIONS: Record<ApplicantRequirementKey, readonly number[]> = {
-	min_completed: [5, 10, 25, 50, 100],
+	min_completed: [5, 10, 20, 25, 50, 100],
 	min_rating: [4, 4.5],
-	min_account_days: [7, 30, 90, 180],
+	min_account_days: [7, 30, 45, 90, 180, 365],
 	min_trustscore: [50, 85],
 }
 

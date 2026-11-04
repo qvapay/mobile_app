@@ -41,7 +41,8 @@
 		"badges": {
 			"operate": "Opero ${{amount}}",
 			"rateMin": "Tasa ≥ {{value}}",
-			"rateMax": "Tasa ≤ {{value}}"
+			"rateMax": "Tasa ≤ {{value}}",
+			"peer": "Ofertas de @{{peer}}"
 		}
 	},
 	"requirements": {
@@ -182,7 +183,8 @@
 		"apply": "Aplicar",
 		"markPaid": "He pagado",
 		"paymentReceived": "Pago recibido",
-		"offerCancelled": "Oferta cancelada"
+		"offerCancelled": "Oferta cancelada",
+		"requirementsNotMet": "Aún no cumples: {{list}}"
 	},
 	"applyModal": {
 		"title": "Aplicar a la oferta",

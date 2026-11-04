@@ -168,7 +168,9 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }: {
 					// Persist the default marketplace view for instant cold-start
 					// rendering (snapshot en la caché de queries — el persister global
 					// lo escribe a disco)
-					if (!apiFilters.my && newData.length > 0) { queryClient.setQueryData(P2P_OFFERS_SNAPSHOT_KEY, newData) }
+					// Ni "Mis ofertas" ni la vista de un comerciante (`peer`): el arranque en frío
+					// pinta el mercado, no un filtro
+					if (!apiFilters.my && !apiFilters.peer && newData.length > 0) { queryClient.setQueryData(P2P_OFFERS_SNAPSHOT_KEY, newData) }
 					// Update widget with user's own active offers
 					if (apiFilters.my && newData.length > 0) {
 						updateWidgetP2POffers(newData)

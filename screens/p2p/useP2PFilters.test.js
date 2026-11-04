@@ -155,3 +155,24 @@ describe('activeFilterBadges', () => {
 		expect(f.current.filters.opAmount).toBe('')
 	})
 })
+
+describe('peer (solo las ofertas de un comerciante: «Ver todas» del depósito Vía P2P)', () => {
+	test('viaja al servidor, cuenta como filtro activo y su badge lo quita', () => {
+		const f = renderFilters()
+		set(f, 'peer', 'skymind')
+		expect(f.current.apiFilters.peer).toBe('skymind')
+		expect(f.current.hasActiveFilters).toBe(true)
+		const badge = f.current.activeFilterBadges.find(b => b.key === 'peer')
+		expect(badge.label).toBe('Ofertas de @skymind')
+		act(() => { badge.onRemove() })
+		expect(f.current.filters.peer).toBeNull()
+		expect(f.current.apiFilters.peer).toBeUndefined()
+	})
+
+	test('"Limpiar" también lo quita', () => {
+		const f = renderFilters()
+		set(f, 'peer', 'skymind')
+		act(() => { f.current.resetFilters() })
+		expect(f.current.filters.peer).toBeNull()
+	})
+})
