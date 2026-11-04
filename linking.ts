@@ -53,7 +53,12 @@ const linking: LinkingOptions<RootStackParamList> = {
 				screens: {
 					[ROUTES.HOME_SCREEN]: 'home',
 					[ROUTES.CRYPTO_SCREEN]: 'crypto',
-					[ROUTES.P2P_SCREEN]: 'p2p',
+					[ROUTES.P2P_SCREEN]: {
+						path: 'p2p',
+						parse: {
+							peer: (peer: string) => peer ? peer.replace(/^@/, '') : peer,
+						},
+					},
 				},
 			},
 		},
