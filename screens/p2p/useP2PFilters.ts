@@ -95,9 +95,10 @@ function filtersReducer(state: P2PFiltersState, action: P2PFilterAction): P2PFil
 		case "set":
 			return { ...state, [action.field]: action.value }
 		case "reset":
-			// El lado del mercado (typeFilter) NO se limpia: vive en el switch del
-			// TopBar y es el modo en el que estás, no un filtro más
-			return { ...initialFilters, typeFilter: state.typeFilter }
+			// Ni el lado del mercado (typeFilter) ni «Mis ofertas» (showMine) se
+			// limpian: viven en el TopBar (switch y botón propio) y son el modo en
+			// el que estás, no un filtro más
+			return { ...initialFilters, typeFilter: state.typeFilter, showMine: state.showMine }
 		default:
 			return state
 	}

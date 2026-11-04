@@ -9,7 +9,7 @@
 	"market": {
 		"empty": "No P2P offers available",
 		"headerFilters": "Filters",
-		"headerCreate": "Create",
+		"headerCreate": "Create offer",
 		"toasts": {
 			"loadFailed": "Couldn't load P2P offers",
 			"connectionError": "Connection error"
@@ -18,7 +18,8 @@
 		"modal": {
 			"subtitle": "Average buy and sell price per coin",
 			"close": "Close"
-		}
+		},
+		"headerMenu": "More options"
 	},
 	"filters": {
 		"title": "Filters",
@@ -43,7 +44,9 @@
 			"rateMin": "Rate ≥ {{value}}",
 			"rateMax": "Rate ≤ {{value}}",
 			"peer": "Offers by @{{peer}}"
-		}
+		},
+		"allCoins": "All",
+		"moreCoins": "More"
 	},
 	"requirements": {
 		"title": "P2P requirements",

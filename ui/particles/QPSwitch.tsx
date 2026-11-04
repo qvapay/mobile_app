@@ -12,6 +12,9 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 import { useAnimatedValue } from '../../hooks/useAnimatedValue'
 
+/** Inset de la píldora en modo `bare` (cápsula de cristal de 44 pt → segmento de 34). */
+const BARE_PILL_INSET = 5
+
 // Pill animation target per side; everything else sits at the neutral midpoint.
 const POSITION_OFFSET = { left: 0, right: 1 }
 const NEUTRAL_OFFSET = 0.5
@@ -51,6 +54,8 @@ type Props = {
 	onLeftPress?: () => void
 	onRightPress?: () => void
 	disabled?: boolean
+	/** Sin fondo ni borde: para vivir dentro de un cristal del header nativo de iOS 26, que ya pone la cápsula. */
+	bare?: boolean
 	style?: StyleProp<ViewStyle>
 }
 
@@ -76,6 +81,7 @@ const QPSwitch = ({
 	onRightPress,
 	// Misc
 	disabled = false,
+	bare = false,
 	style
 }: Props) => {
 
@@ -109,9 +115,12 @@ const QPSwitch = ({
 	}, [currentValue, translate])
 
 	const halfWidth = Math.max(0, containerWidth / 2)
-	const pillWidth = Math.max(0, halfWidth - 4) // 2px inset on each side within half
-	const leftStart = 2 // Starting position with 2px margin
-	const rightStart = halfWidth - 1 // Starting position for right side with 2px margin
+	// Dentro de un cristal del header (bare) la píldora va más metida: pegada al
+	// borde de la cápsula se veía como una mancha abombada, no como un segmento
+	const inset = bare ? BARE_PILL_INSET : 2
+	const pillWidth = Math.max(0, halfWidth - 2 * inset)
+	const leftStart = inset
+	const rightStart = bare ? halfWidth + inset : halfWidth - 1
 	const centerStart = halfWidth / 2 - pillWidth / 2 // Center position when no selection
 	const pillTranslateX = translate.interpolate({
 		inputRange: [0, 0.5, 1],
@@ -132,10 +141,10 @@ const QPSwitch = ({
 	}
 
 	return (
-		<View onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)} style={[styles.segmentedContainer, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, opacity: disabled ? 0.6 : 1 }, style]}>
+		<View onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)} style={[styles.segmentedContainer, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, opacity: disabled ? 0.6 : 1 }, bare && styles.bare, style]}>
 			<Animated.View
 				pointerEvents='none'
-				style={[styles.segmentedPill, {
+				style={[styles.segmentedPill, bare && styles.barePill, {
 					left: 0,
 					width: pillWidth,
 					backgroundColor: currentValue === 'left' ? leftColor : currentValue === 'right' ? rightColor : 'transparent',
@@ -164,6 +173,15 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 		flexDirection: 'row',
 		alignItems: 'center'
+	},
+	bare: {
+		backgroundColor: 'transparent',
+		borderWidth: 0,
+	},
+	barePill: {
+		top: BARE_PILL_INSET,
+		bottom: BARE_PILL_INSET,
+		borderRadius: (44 - 2 * BARE_PILL_INSET) / 2,
 	},
 	segmentedPill: {
 		position: 'absolute',
