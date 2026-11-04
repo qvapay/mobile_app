@@ -69,6 +69,12 @@ echo "▸ Compilando QvaPay (Debug) para el dispositivo ${DEVICE_UDID}"
 # falla y set -e aborta; el `|| true` solo evita que grep -v devuelva 1 cuando
 # filtra todas las líneas.
 
+# Guardarraíl: con Xcode 27 un pod puede enlazar en firme símbolos de iOS 18+ (Nitro lo
+# hizo: crash en el launch en iOS 15-17, builds 3.3.1/3.6.0 de TestFlight). Mejor
+# enterarse aquí que por el Crash Feedback de App Store Connect.
+echo "▸ Comprobando símbolos de iOS 18+ enlazados en firme"
+"$ROOT/scripts/check-ios-min-os-symbols.sh" "$APP"
+
 echo "▸ Instalando en el iPhone"
 xcrun devicectl device install app --device "$CORE_ID" "$APP" --quiet
 

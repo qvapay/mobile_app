@@ -1,0 +1,40 @@
+diff --git a/node_modules/react-native-nitro-modules/cpp/core/Promise.hpp b/node_modules/react-native-nitro-modules/cpp/core/Promise.hpp
+index 07eac11..36c1a03 100644
+--- a/node_modules/react-native-nitro-modules/cpp/core/Promise.hpp
++++ b/node_modules/react-native-nitro-modules/cpp/core/Promise.hpp
+@@ -36,7 +36,12 @@ public:
+   ~Promise() {
+     if (isPending()) [[unlikely]] {
+       auto message = std::string("Timeouted: Promise<") + TypeInfo::getFriendlyTypename<TResult>() + "> was destroyed!";
+-      reject(std::make_exception_ptr(std::runtime_error(message)));
++      // QvaPay patch (= upstream margelo/nitro#1824): ver ios/utils/RuntimeError.hpp
++      try {
++        throw std::runtime_error(message);
++      } catch (...) {
++        reject(std::current_exception());
++      }
+     }
+   }
+ 
+diff --git a/node_modules/react-native-nitro-modules/ios/utils/RuntimeError.hpp b/node_modules/react-native-nitro-modules/ios/utils/RuntimeError.hpp
+index 1b72115..fdf1ad8 100644
+--- a/node_modules/react-native-nitro-modules/ios/utils/RuntimeError.hpp
++++ b/node_modules/react-native-nitro-modules/ios/utils/RuntimeError.hpp
+@@ -14,7 +14,16 @@
+ namespace margelo::nitro {
+ 
+ static inline std::exception_ptr makeException(const std::string& message) {
+-  return std::make_exception_ptr(std::runtime_error(message));
++  // QvaPay patch (= upstream margelo/nitro#1824, nitro 0.37.2): este header lo compila
++  // Swift (C++ interop) contra el libc++ del SDK y no del deployment target, así que
++  // `std::make_exception_ptr` enlazaba `exception_ptr::__from_native_exception_pointer`,
++  // que solo existe en iOS 18+ -> dyld "Symbol missing" al arrancar en iOS 15-17.
++  // throw + current_exception() solo usa __cxa_* y enlaza en todas las versiones.
++  try {
++    throw std::runtime_error(message);
++  } catch (...) {
++    return std::current_exception();
++  }
+ }
+ 
+ static inline std::string getExceptionMessage(const std::exception_ptr& exception) {
