@@ -5,7 +5,7 @@
  * and `type: select` options can add a `fee_pct` surcharge on the gross.
  * @jest-environment node
  */
-import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, isAllowedFieldValue, parseFeeOutFixed, keyFromFieldName } from './withdrawFees'
+import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, isAllowedFieldValue, parseFeeOutFixed, keyFromFieldName, satsRedeemable } from './withdrawFees'
 
 // 5% + threshold config: at/below $50 a flat $2, strictly above it 5%
 const THRESHOLD_COIN = { fee_out: '5', fee_out_gold: '2', fee_out_fixed: ['50', '2'] }
@@ -190,5 +190,18 @@ describe('amountLimitIssue (min_out / max_out de la moneda)', () => {
 		expect(amountLimitIssue('30', null)).toBeNull()
 		expect(amountLimitIssue('1', {})).toBeNull()
 		expect(amountLimitIssue('1', { min_out: '0', max_out: null })).toBeNull()
+	})
+})
+
+describe('satsRedeemable', () => {
+	const BTCLN = { price: '60000', min_out: '1' } // 5000 sats = $3
+
+	test('needs BTCLN, the redeem minimum and enough value to cover min_out', () => {
+		expect(satsRedeemable(5000, BTCLN, 100)).toBe(true)
+		expect(satsRedeemable(5000, null, 100)).toBe(false)
+		expect(satsRedeemable(50, BTCLN, 100)).toBe(false) // por debajo del mínimo de redención
+		expect(satsRedeemable(1000, BTCLN, 100)).toBe(false) // $0.60 < min_out $1
+		expect(satsRedeemable(5000, { price: '60000' }, 100)).toBe(true) // sin min_out = 0
+		expect(satsRedeemable(NaN, BTCLN, 100)).toBe(false)
 	})
 })

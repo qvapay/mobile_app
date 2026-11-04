@@ -82,7 +82,8 @@ const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid',
             ]}>
             {loading ? (<ActivityIndicator size="small" color={loadingColor || (isDangerOutlined ? theme.colors.danger : theme.colors.almostWhite)} />) : (
                 <>
-                    {icon && <FontAwesome6 name={icon} size={18} color={iconColor || (isDangerOutlined ? theme.colors.danger : theme.colors.primaryText)} iconStyle={iconStyle} />}
+                    {/* El icono va del MISMO color que el texto (buttonText): primaryText es casi negro en claro y pintaba iconos negros sobre texto blanco */}
+                    {icon && <FontAwesome6 name={icon} size={18} color={iconColor || textColor} iconStyle={iconStyle} />}
                     {title && <Text style={[{ fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold, color: textColor }, textStyle, { marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
                 </>
             )}

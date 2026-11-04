@@ -110,7 +110,7 @@ const Courier = ({ routes, initialDelay, msPerPx, scaleX, accent }: CourierProps
 				{ translateY: interpolate(t, geom.input, geom.ys) - CHIP_SIZE / 2 },
 			],
 		}
-	}, [geom, scaleX])
+	}) // sin array de deps: Reanimated 4 los ignora en nativo y avisa por consola
 
 	// Order pin at the destination: pops in, holds, gone once delivered
 	const pinStyle = useAnimatedStyle(() => ({

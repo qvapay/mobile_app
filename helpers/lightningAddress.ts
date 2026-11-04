@@ -111,6 +111,7 @@ export const isSatsCreditDescription = (description: unknown): boolean =>
 const REASON_KEYS: Record<string, string> = {
 	MODE_OFF: 'MODE_OFF',
 	NOT_BETA: 'MODE_OFF',
+	// ROLE y OPERATIONAL ya no existen en qpweb (3 nov 2026: TODA cuenta con KYC recibe); se conservan por si llega de un qpweb viejo
 	OPERATIONAL: 'ROLE',
 	ROLE: 'ROLE',
 	UNCLAIMED: 'UNCLAIMED',

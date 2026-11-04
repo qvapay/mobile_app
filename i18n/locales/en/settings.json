@@ -970,7 +970,7 @@
 		},
 		"withdrawSats": "Withdraw sats over Lightning",
 		"celebrate": {
-			"title": "Your Lightning Address is ready! ⚡",
+			"title": "Your Lightning Address is ready!",
 			"text": "Share it and receive sats from any wallet in the world.",
 			"share": "Share my address"
 		},

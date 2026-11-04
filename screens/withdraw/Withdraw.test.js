@@ -620,6 +620,24 @@ describe('Lightning (BTCLN)', () => {
 		expect(withdrawApi.decodeLightning).toHaveBeenCalledWith('lnbc1500n1qqexample')
 	})
 
+	test('the source switch shows with any coin when sats are redeemable, and picking sats selects BTCLN', async () => {
+		const tree = await renderWithdraw({ preselectedCoin: 'USDT' })
+		expect(amountCard(tree).props.selectedCoin.tick).toBe('USDT')
+		const sourceSwitch = tree.root.findByType('QPSwitch')
+		await act(async () => { sourceSwitch.props.onChange('right') })
+		expect(satsCard(tree).props.availableSats).toBe(5000)
+		expect(satsCard(tree).props.btcPrice).toBe(60000) // la moneda pasó a BTCLN
+		// Volver a Saldo recupera la moneda que había
+		await act(async () => { tree.root.findByType('QPSwitch').props.onChange('left') })
+		expect(amountCard(tree).props.selectedCoin.tick).toBe('USDT')
+	})
+
+	test('no source switch when the sats do not cover BTCLN min_out', async () => {
+		mockCoinCatalog = [CUP, USDCASH, THRESHOLD, { ...BTCLN, min_out: '5' }, USDT] // 5000 sats = $3 < $5
+		const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+		expect(tree.root.findAllByType('QPSwitch')).toHaveLength(0)
+	})
+
 	test('the source switch appears for BTCLN and swaps the amount card for the sats card', async () => {
 		const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
 		const sourceSwitch = tree.root.findByType('QPSwitch')
