@@ -3,7 +3,7 @@
  * split-button solo se abre cuando hay al menos un filtro puesto.
  * @jest-environment node
  */
-jest.mock('../../ui/particles/QPCoin', () => 'QPCoin')
+jest.mock('../../ui/particles/QPAssetPill', () => 'QPAssetPill')
 jest.mock('../../ui/particles/QPInput', () => 'QPInput')
 jest.mock('../../ui/particles/QPSwitch', () => 'QPSwitch')
 jest.mock('../../ui/particles/QPSplitButton', () => 'QPSplitButton')
@@ -49,9 +49,12 @@ test('sin filtros el slot de "Limpiar" queda cerrado', () => {
 	expect(renderModal().props.showBack).toBe(false)
 })
 
+test('"mis ofertas" NO abre "Limpiar": es un modo del header, no un filtro del modal', () => {
+	expect(renderModal({ showMine: true }).props.showBack).toBe(false)
+})
+
 test.each([
 	['moneda', { selectedCoin: { tick: 'BTC' } }],
-	['mis ofertas', { showMine: true }],
 	['monto a operar', { opAmount: '500' }],
 	['tasa mínima', { ratioMin: '10' }],
 	['solo VIP', { onlyVip: true }],

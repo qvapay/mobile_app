@@ -131,9 +131,10 @@ describe('hasActiveFilters', () => {
 })
 
 describe('resetFilters', () => {
-	test('limpia todo pero respeta el lado del mercado elegido', () => {
+	test('limpia todo pero respeta el lado del mercado elegido y «Mis ofertas» (modos del TopBar)', () => {
 		const f = renderFilters({ tick: 'BANK_CUP' })
 		set(f, 'typeFilter', 'buy')
+		set(f, 'showMine', true)
 		set(f, 'onlyVip', true)
 		set(f, 'opAmount', '100')
 		act(() => { f.current.resetFilters() })
@@ -141,6 +142,7 @@ describe('resetFilters', () => {
 		expect(f.current.filters.opAmount).toBe('')
 		expect(f.current.filters.selectedCoin).toBe(null)
 		expect(f.current.filters.typeFilter).toBe('buy')
+		expect(f.current.filters.showMine).toBe(true)
 	})
 })
 

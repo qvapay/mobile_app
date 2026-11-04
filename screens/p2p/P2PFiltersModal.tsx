@@ -2,7 +2,7 @@ import { View, Text, ScrollView, Pressable, Modal, Switch, StyleSheet } from "re
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
-import QPCoin from "../../ui/particles/QPCoin"
+import QPAssetPill from "../../ui/particles/QPAssetPill"
 import QPInput from "../../ui/particles/QPInput"
 import QPSplitButton from "../../ui/particles/QPSplitButton"
 
@@ -26,17 +26,19 @@ type P2PFiltersModalProps = {
 	textStyles: TextStyles
 }
 
-// Modal de filtros: mis ofertas, moneda, "quiero operar $X", rango de tasa y VIP.
-// El lado del mercado (Comprar/Vender) NO está aquí: vive en el switch del TopBar.
+// Modal de filtros: moneda, "quiero operar $X", rango de tasa y VIP.
+// Ni el lado del mercado (Comprar/Vender) ni «Mis ofertas» están aquí: son modos
+// y viven en el TopBar (switch y botón propio).
 const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicker, onClear, onApply, windowHeight, theme, textStyles }: P2PFiltersModalProps) => {
 
 	const { t } = useTranslation()
-	const { selectedCoin, showMine, opAmount, ratioMin, ratioMax, onlyVip } = filters
+	const { selectedCoin, opAmount, ratioMin, ratioMax, onlyVip } = filters
 	const containerStyles = createContainerStyles(theme)
 
 	// "Limpiar" solo existe cuando hay algo que limpiar — el slot se abre y
-	// cierra animado (mismo split-button del onboarding/registro)
-	const hasActiveFilters = !!(selectedCoin || showMine || opAmount || ratioMin || ratioMax || onlyVip)
+	// cierra animado (mismo split-button del onboarding/registro). «Mis ofertas»
+	// no cuenta: es un modo con su botón en el header, no un filtro de aquí
+	const hasActiveFilters = !!(selectedCoin || opAmount || ratioMin || ratioMax || onlyVip)
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
@@ -53,34 +55,17 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 					</View>
 
 					<ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-						{/* Show My Offers */}
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>{t('p2p.filters.myOffers')}</Text>
-							<Switch
-								value={showMine}
-								onValueChange={(v) => setFilter("showMine", v)}
-								trackColor={{ true: theme.colors.primary }}
-								style={{ transform: [{ scale: 0.85 }] }}
-							/>
-						</View>
+						{/* «Mis ofertas» ya no vive aquí: es el botón propio del header */}
 
-						{/* Coin */}
+						{/* Coin: la MISMA píldora de activo de Retirar, Depositar y el swap */}
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>{t('p2p.common.coin')}</Text>
-							<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, width: 160 }]} onPress={onOpenCoinPicker}>
-								{selectedCoin ? (
-									<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-										<QPCoin coin={selectedCoin.logo} size={20} />
-										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600" }]}>{selectedCoin.tick}</Text>
-										<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-									</View>
-								) : (
-									<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('p2p.filters.select')}</Text>
-										<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-									</View>
-								)}
-							</Pressable>
+							<QPAssetPill
+								icon={selectedCoin ? { kind: 'wallet', logoTick: selectedCoin.logo ?? selectedCoin.tick, networkTick: selectedCoin.network ?? null } : null}
+								symbol={selectedCoin?.tick}
+								placeholder={t('p2p.filters.select')}
+								onPress={onOpenCoinPicker}
+							/>
 						</View>
 
 						{/* Min / Max */}
@@ -150,15 +135,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 		paddingVertical: 8,
-	},
-	coinSelector: {
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 20,
-		borderWidth: 0.5,
-		minWidth: 140,
-		alignItems: "center",
-		justifyContent: "center",
 	},
 	filterCardActions: {
 		marginTop: 16,
