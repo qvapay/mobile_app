@@ -207,24 +207,81 @@
 		"txId": "ID de transacción"
 	},
 	"tradeProgress": {
-		"steps": {
-			"payment": "Pago",
-			"confirmation": "Confirmación",
-			"release": "Liberación"
-		},
-		"hero": {
+		"summary": {
 			"send": "Envías",
 			"sent": "Enviaste",
 			"receive": "Recibirás",
-			"received": "Recibiste"
+			"received": "Recibiste",
+			"release": "Liberarás",
+			"released": "Liberaste",
+			"rate": "Tasa"
 		},
-		"balance": {
-			"payer": "recibirás ${{amount}} de saldo",
-			"payerDone": "recibiste ${{amount}} de saldo",
-			"receiver": "liberarás ${{amount}} de tu saldo",
-			"receiverDone": "liberaste ${{amount}} de tu saldo"
+		"timeline": {
+			"payer": {
+				"paymentActive": {
+					"title": "Realiza el pago",
+					"body": "Envía {{amount}} {{coin}} a {{counterparty}} con los datos de pago de la oferta."
+				},
+				"paymentDone": {
+					"title": "Pago realizado",
+					"body": "Enviaste {{amount}} {{coin}} a {{counterparty}}."
+				},
+				"confirmationPending": {
+					"title": "Avisa que pagaste",
+					"body": "Cuando la transferencia esté hecha, toca «He pagado»."
+				},
+				"confirmationDone": {
+					"title": "Pago avisado",
+					"body": "Le avisamos a {{counterparty}} que ya pagaste."
+				},
+				"releasePending": {
+					"title": "Liberación del saldo",
+					"body": "Cuando {{counterparty}} reciba el pago, liberará ${{balance}} a tu saldo."
+				},
+				"releaseActive": {
+					"title": "Esperando la liberación",
+					"body": "Estamos esperando que {{counterparty}} verifique el pago y libere tus ${{balance}}."
+				},
+				"releaseDone": {
+					"title": "Saldo recibido",
+					"body": "Recibiste ${{balance}} de {{counterparty}} en tu saldo."
+				}
+			},
+			"receiver": {
+				"paymentActive": {
+					"title": "Esperando el pago",
+					"body": "Recibirás {{amount}} {{coin}} de {{counterparty}}. Tus ${{balance}} quedan retenidos hasta que los liberes."
+				},
+				"paymentClaimed": {
+					"title": "Pago anunciado",
+					"body": "Según {{counterparty}}, ya te envió {{amount}} {{coin}}."
+				},
+				"paymentDone": {
+					"title": "Pago recibido",
+					"body": "Recibiste {{amount}} {{coin}} de {{counterparty}}."
+				},
+				"confirmationPending": {
+					"title": "Aviso de pago",
+					"body": "Aquí verás cuando {{counterparty}} marque que ya pagó."
+				},
+				"confirmationDone": {
+					"title": "Aviso recibido",
+					"body": "Ya tienes el aviso de pago de {{counterparty}}."
+				},
+				"releasePending": {
+					"title": "Libera el saldo",
+					"body": "Cuando el pago esté en tu cuenta, libera ${{balance}} a {{counterparty}}."
+				},
+				"releaseActive": {
+					"title": "Verifica y libera",
+					"body": "Comprueba que {{amount}} {{coin}} llegaron a tu cuenta y libera ${{balance}} a {{counterparty}}."
+				},
+				"releaseDone": {
+					"title": "Saldo liberado",
+					"body": "Liberaste ${{balance}} a {{counterparty}}."
+				}
+			}
 		},
-		"rateSuffix": "tasa {{rate}}",
 		"windowExpired": "Ventana de pago expirada; la oferta volverá a publicarse",
 		"safety": "Libera solo si el pago ya está en tu cuenta, no por capturas ni promesas.",
 		"txIdPlaceholder": "ID de la transferencia",

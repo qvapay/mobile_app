@@ -7,9 +7,9 @@ import { createTextStyles } from "../../theme/themeUtils"
 import usePaymentWindow from "./usePaymentWindow"
 
 /**
- * Payment-window countdown rendered as the P2POffer header title (the route's
- * own title is empty, so the center is free). Self-ticking: the screen sets it
- * ONCE per window via navigation.setOptions instead of re-setting every second.
+ * Payment-window countdown, the second line of the P2POffer header title
+ * (P2PHeaderTitle). Self-ticking: the screen sets the title ONCE per window via
+ * navigation.setOptions instead of re-setting it every second.
  * Urgency by color: green while comfortable, warning under 15 minutes, danger
  * under 5 and at zero.
  */
@@ -32,8 +32,8 @@ const P2PHeaderTimer = ({ expiresAt }: P2PHeaderTimerProps) => {
 
 	return (
 		<View style={styles.row}>
-			<FontAwesome6 name="stopwatch" size={14} color={color} iconStyle="solid" />
-			<Text style={[textStyles.h4, { color, fontVariant: ["tabular-nums"], fontFamily: theme.typography.fontFamily.medium }]}>
+			<FontAwesome6 name="stopwatch" size={10} color={color} iconStyle="solid" />
+			<Text style={[textStyles.h7, { color, fontVariant: ["tabular-nums"], fontFamily: theme.typography.fontFamily.medium }]}>
 				{label}
 			</Text>
 		</View>
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
 	row: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 6,
+		gap: 3,
 	},
 })
 
