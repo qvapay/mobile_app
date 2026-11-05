@@ -3,6 +3,7 @@ import type { ReactElement } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import type { ImageStyle, LayoutChangeEvent, RefreshControlProps, TextStyle, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 
 // Theme
@@ -20,6 +21,10 @@ import { RegionNotice, StockRow } from './stocks/components/StockParts'
 
 // Routes
 import { ROUTES } from '../../routes'
+
+// Barra inferior: nativa en iOS 26+, emulada (flotante) en el resto
+import { supportsLiquidGlass } from '../../helpers/liquidGlass'
+import useTabBarClearance from '../../hooks/useTabBarClearance'
 
 // Helpers
 
@@ -190,6 +195,15 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
+	// Fuera de iOS 26+ la barra inferior flota sobre el contenido: el final del
+	// scroll se calcula contra ella (en iOS 26+ sigue el hueco fijo del estilo)
+	const insets = useSafeAreaInsets()
+	const tabBarClearance = useTabBarClearance()
+	const scrollContent = useMemo(
+		() => (supportsLiquidGlass ? styles.scrollContent : [styles.scrollContent, { paddingBottom: insets.bottom + tabBarClearance + 24 }]),
+		[insets.bottom, tabBarClearance]
+	)
+
 	const { coins, isLoading, refreshing, onRefresh } = useCryptoDashboard()
 	const [market, setMarket] = useState<MarketKey>('crypto')
 
@@ -208,7 +222,7 @@ const Crypto = ({ navigation }: CryptoProps) => {
 		<View style={containerStyles.subContainer}>
 			<ScrollView
 				style={styles.scroll}
-				contentContainerStyle={styles.scrollContent}
+				contentContainerStyle={scrollContent}
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 			>

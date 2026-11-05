@@ -13,6 +13,7 @@ import QPButton from './particles/QPButton'
 
 // Helper
 import { openStore, markPromptShown } from '../helpers/versionCheck'
+import { useModalGate } from './useModalGate'
 
 type UpdatePromptModalProps = {
 	visible: boolean
@@ -59,8 +60,13 @@ const UpdatePromptModal = ({ visible, currentVersion, latestVersion, storeUrl, o
 		onDismiss()
 	}
 
+	// Por la puerta: cuenta en `modalPresence` hasta que termina de irse, y las
+	// Novedades (modal nativo en iOS) esperan a eso para presentarse
+	const gate = useModalGate(visible)
+	if (!gate.mounted) return null
+
 	return (
-		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={handleDismiss}>
+		<Modal visible={gate.visible} onShow={gate.onShow} onDismiss={gate.onDismiss} transparent animationType="fade" statusBarTranslucent onRequestClose={handleDismiss}>
 			<Pressable style={themeStyles.container.modalOverlay} onPress={handleDismiss}>
 				<Pressable style={[themeStyles.container.modalCard, { maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
 					<View style={[styles.iconWrap, { backgroundColor: theme.colors.primary + '20' }]}>

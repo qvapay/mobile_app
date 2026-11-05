@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useState } from 'react'
 import { Text, View, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
@@ -48,6 +48,17 @@ const WhatsNew = ({ navigation, route }: Props) => {
 	const containerStyles = useContainerStyles(theme)
 	const { updateSetting } = useSettings()
 
+	// Márgenes del proveedor RAÍZ, no un <SafeAreaView>: esta pantalla es un modal nativo
+	// (`fullScreenModal`), vive fuera del árbol de vistas del proveedor y el SafeAreaView
+	// nativo se mide a sí mismo al montarse, en plena animación de entrada, cuando su
+	// margen inferior aún es 0: el botón quedaba debajo de la barra de gestos
+	const insets = useSafeAreaInsets()
+	const safeArea = useMemo(() => ({
+		paddingBottom: Math.max(insets.bottom, MIN_BOTTOM_GAP),
+		paddingLeft: theme.spacing.md + insets.left,
+		paddingRight: theme.spacing.md + insets.right,
+	}), [insets.bottom, insets.left, insets.right, theme.spacing.md])
+
 	const isLast = step >= slides.length - 1
 	const slide = slides[step]
 
@@ -90,7 +101,7 @@ const WhatsNew = ({ navigation, route }: Props) => {
 	if (!slide) return null
 
 	return (
-		<SafeAreaView edges={['bottom', 'left', 'right']} style={[containerStyles.subContainer, styles.root]}>
+		<View style={[containerStyles.subContainer, styles.root, safeArea]}>
 			<View style={styles.stage}>
 				<Animated.View key={`${version}-${step}`} exiting={stepExit} style={styles.slide}>
 					<Animated.View entering={makeStepEnter(0)} style={styles.hero}>
@@ -112,9 +123,12 @@ const WhatsNew = ({ navigation, route }: Props) => {
 				onBack={back}
 				check={isLast && !slide.cta}
 			/>
-		</SafeAreaView>
+		</View>
 	)
 }
+
+/** Aire bajo el botón donde no hay barra de gestos (iPhone con botón de inicio). */
+const MIN_BOTTOM_GAP = 12
 
 const styles = StyleSheet.create({
 	root: { flex: 1, justifyContent: 'space-between', alignItems: 'center' },

@@ -112,6 +112,30 @@ describe('cold start', () => {
 		expect(lock.current.isLocked).toBe(false)
 	})
 
+	// Novedades espera a `isReady` para presentarse: nunca puede verse «listo» con
+	// el bloqueo aún sin poner (en iOS le quitaría el modal de delante)
+	test('isReady flips only once the lock decision is made, never ahead of isLocked', async () => {
+		let resolvePin
+		hasAppLockPin.mockReturnValue(new Promise((resolve) => { resolvePin = resolve }))
+		const seen = []
+		const Harness = () => {
+			const { isReady, isLocked } = useAppLock()
+			seen.push({ isReady, isLocked })
+			return null
+		}
+		await act(async () => { create(<AppLockProvider><Harness /></AppLockProvider>) })
+		expect(seen.at(-1)).toEqual({ isReady: false, isLocked: false })
+
+		await act(async () => { resolvePin(true) })
+		expect(seen.at(-1)).toEqual({ isReady: true, isLocked: true })
+		expect(seen.some(s => s.isReady && !s.isLocked)).toBe(false)
+	})
+
+	test('isReady also flips without a PIN', async () => {
+		const lock = await renderAppLock()
+		expect(lock.current.isReady).toBe(true)
+	})
+
 	test('isLocked is AND-ed with isAuthenticated — logging out dismisses the lock', async () => {
 		hasAppLockPin.mockResolvedValue(true)
 		useAuth.mockReturnValue({ isAuthenticated: false, isLoading: false })

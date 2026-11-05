@@ -28,6 +28,8 @@ import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushNaviga
 import { LIGHTNING_ADDRESS_KEY } from '../helpers/lightningAddress'
 import { RELEASES } from '../whatsnew/releases'
 import { pickRelease } from '../whatsnew/whatsNewGate'
+import { useAppLock } from '../lock/AppLockContext'
+import { useAnyModalPresented } from '../ui/modalPresence'
 import appJson from '../app.json'
 import { resolveDeepLinkTarget } from '../helpers/deepLinkTarget'
 import { maybePromptUpdate } from '../helpers/versionCheck'
@@ -110,6 +112,7 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 	const lastSeenWhatsNewRef = useRef<string | null | undefined>(appearance.lastSeenWhatsNew)
 	lastSeenWhatsNewRef.current = appearance.lastSeenWhatsNew
 	const whatsNewOfferedRef = useRef(false)
+	const { isLocked, isCovered, isReady: lockReady } = useAppLock()
 	const { isReady: walletReady, hasWallet } = useWallet()
 
 	// hasWallet por ref y NO en deps: crear la wallet desde Welcome la flipea a
@@ -223,6 +226,38 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 			}
 		}
 	}, [splashReady, authLoading, settingsLoading, walletReady, isAuthenticated, firstTime, navigation, pendingDeepLinkRef])
+
+	// Novedades al ACTUALIZAR: abrir la app con la sesión ya iniciada. Ahí el
+	// navigator NACE en MainStack (`initialRouteName`), la reconciliación de arriba
+	// no tiene nada que resetear y su rama de Novedades no corre nunca (hasta la
+	// 3.11.0 solo salían tras un login, y quien actualiza no vuelve a iniciar
+	// sesión). Este efecto va DESPUÉS de ella: en un login ya las ofreció.
+	//
+	// Se decide una vez por proceso y solo sin nada delante. En iOS la pantalla
+	// es un modal nativo, y react-native-screens CIERRA cualquier `<Modal>` ajeno
+	// presentado para poner el suyo: con el bloqueo en pantalla lo tiraría abajo.
+	// Por eso espera a que el bloqueo esté decidido y fuera, a que no haya aviso
+	// de actualización y a que ningún `<Modal>` siga en pantalla (`modalPresence`
+	// cuenta también su salida: «desbloqueado» llega antes de que termine de irse).
+	const modalPresented = useAnyModalPresented()
+	const modalInFront = !lockReady || isLocked || isCovered || !!updateInfo?.needsUpdate || modalPresented
+	useEffect(() => {
+		if (!splashReady || authLoading || settingsLoading || !walletReady) return
+		if (!isAuthenticated || firstTime || modalInFront || whatsNewOfferedRef.current) return
+		// Al tick siguiente, como en el login: el stack recién montado ya está asentado
+		const timer = setTimeout(() => {
+			if (whatsNewOfferedRef.current) return
+			whatsNewOfferedRef.current = true
+			// Solo sobre MainStack a secas: un deep link o una push ya abiertos ganan,
+			// y entonces las Novedades quedan para el próximo arranque
+			const routes = navigation.getState()?.routes
+			if (routes?.length !== 1 || routes[0].name !== ROUTES.MAIN_STACK) return
+			if (pendingDeepLinkRef.current || pendingPushRef.current) return
+			const release = pickRelease({ current: appJson.version, lastSeen: lastSeenWhatsNewRef.current, releases: RELEASES })
+			if (release) navigation.navigate(ROUTES.WHATS_NEW, { version: release.version })
+		}, 0)
+		return () => clearTimeout(timer)
+	}, [splashReady, authLoading, settingsLoading, walletReady, isAuthenticated, firstTime, modalInFront, navigation, pendingDeepLinkRef])
 
 	// Listen for foreground deep links while unauthenticated
 	useEffect(() => {

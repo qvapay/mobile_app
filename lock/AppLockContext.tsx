@@ -24,6 +24,12 @@ export type AppLockResult = { success: boolean, error?: string }
 export type AppLockContextValue = {
 	isLocked: boolean
 	/**
+	 * El arranque en frío ya decidió si toca bloquear (el PIN se lee del Keychain,
+	 * asíncrono). Hasta entonces `isLocked: false` todavía no significa nada: quien
+	 * presente algo encima de la app al arrancar (Novedades) espera a esto.
+	 */
+	isReady: boolean
+	/**
 	 * Cortina opaca mientras la app está en segundo plano con el bloqueo activo:
 	 * al volver, nada de la app se ve ni recibe toques (ni el botón atrás) hasta
 	 * decidir si toca bloquear. La pinta LockScreen, sin teclado ni biometría.
@@ -78,6 +84,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 
 	const [isLocked, setIsLocked] = useState(false)
 	const [isCovered, setIsCovered] = useState(false)
+	const [isReady, setIsReady] = useState(false)
 	const [appLockEnabled, setAppLockEnabled] = useState(false)
 
 	const isInitializedRef = useRef(false)
@@ -104,6 +111,8 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 			// reaparecía al crear después una wallet de invitado, en pleno backup
 			else if (!hasPIN || (!isAuthenticated && !hasWalletRef.current)) { setIsLocked(false) }
 			isInitializedRef.current = true
+			// Mismo lote que el `setIsLocked` de arriba: nadie ve «listo» sin el bloqueo ya puesto
+			setIsReady(true)
 		}
 		init()
 		return () => { cancelled = true }
@@ -247,6 +256,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	const value = useMemo<AppLockContextValue>(() => ({
 		isLocked: isLocked && lockable, // derived: logging out (sin wallet) clears the lock
 		isCovered: isCovered && lockable,
+		isReady,
 		appLockEnabled,
 		unlockWithBiometrics,
 		unlockWithPin,
@@ -256,7 +266,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 		changeAppLockPin,
 		updateAutoLockTimeout,
 		setAppLockBiometrics,
-	}), [isLocked, isCovered, lockable, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics])
+	}), [isLocked, isCovered, isReady, lockable, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics])
 
 	return (
 		<AppLockContext.Provider value={value}>

@@ -1,6 +1,6 @@
 {
 	"name": "QvaPay",
-	"version": "3.10.0",
+	"version": "3.11.2",
 	"private": true,
 	"scripts": {
 		"android": "react-native run-android --main-activity .MainActivity",
@@ -39,7 +39,8 @@
 		},
 		"ios": {
 			"componentProvider": {
-				"QPSecureView": "QPSecureView"
+				"QPSecureView": "QPSecureView",
+				"QPBlurView": "QPBlurView"
 			}
 		}
 	},

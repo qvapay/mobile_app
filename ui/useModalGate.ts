@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { Platform } from 'react-native'
 
 import { initialModalGate, isModalGateMounted, isModalGatePending, reduceModalGate, MODAL_GATE_TIMEOUT_MS } from './modalGate'
+import { acquireModalPresence } from './modalPresence'
 
 export type ModalGate = {
 	/** Para `<Modal visible>`. */
@@ -51,6 +52,11 @@ export function useModalGate(wanted: boolean): ModalGate {
 	const onShow = useCallback(() => dispatch({ type: 'shown' }), [])
 	const onDismiss = useCallback(() => dispatch({ type: 'dismissed' }), [])
 
-	if (!gated) return { visible: wanted, mounted: wanted, generation: state.generation, onShow, onDismiss }
-	return { visible: state.visible, mounted: isModalGateMounted(state), generation: state.generation, onShow, onDismiss }
+	// Android: un Dialog, show/dismiss síncronos; iOS: montado hasta `onDismiss`
+	const mounted = gated ? isModalGateMounted(state) : wanted
+
+	// Mientras esté en pantalla (salida incluida) cuenta en `modalPresence`
+	useEffect(() => (mounted ? acquireModalPresence() : undefined), [mounted])
+
+	return { visible: gated ? state.visible : wanted, mounted, generation: state.generation, onShow, onDismiss }
 }

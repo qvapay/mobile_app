@@ -5,6 +5,7 @@ import type { CompositeScreenProps } from '@react-navigation/native'
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import useContentPadding from '../../hooks/useContentPadding'
+import useTabBarClearance from '../../hooks/useTabBarClearance'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
@@ -53,7 +54,8 @@ const Store = ({ navigation }: StoreProps) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const contentPadding = useContentPadding(30)
+	// La barra inferior emulada flota sobre el contenido: su hueco se suma aquí (0 en iOS 26+)
+	const contentPadding = useContentPadding(30 + useTabBarClearance())
 	const { width } = useWindowDimensions()
 	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 

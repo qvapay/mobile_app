@@ -27,6 +27,7 @@ import P2PHeaderMenu from "./P2PHeaderMenu"
 import { DEFAULT_POPULAR_COINS, RECENT_COINS_KEY } from "./p2pQuickCoins"
 import HeaderIdentity from "../../ui/HeaderIdentity"
 import { supportsLiquidGlass } from "../../helpers/liquidGlass"
+import useTabBarClearance from "../../hooks/useTabBarClearance"
 import useP2PFilters, { SORT_OPTIONS } from "./useP2PFilters"
 import useP2POffers from "./useP2POffers"
 import P2PPromotedSlot from "./P2PPromotedSlot"
@@ -124,11 +125,12 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	const insets = useSafeAreaInsets()
 	const { height: windowHeight, width: windowWidth } = useWindowDimensions()
 
-	// No usa useContentPadding porque Android no suma el inset: ahí la barra
-	// inferior propia ya cubre esa zona y sumarlo dejaba un hueco doble
+	// En iOS 26+ el hueco va calibrado contra la barra nativa; en el resto la
+	// barra emulada flota sobre la lista y se le deja su sitio más un margen
+	const tabBarClearance = useTabBarClearance()
 	const contentPadding = useMemo(
-		() => ({ paddingBottom: Platform.OS === 'ios' ? 64 + insets.bottom : 24 }),
-		[insets.bottom]
+		() => ({ paddingBottom: supportsLiquidGlass ? 64 + insets.bottom : insets.bottom + tabBarClearance + 24 }),
+		[insets.bottom, tabBarClearance]
 	)
 
 	// Ancho del switch del header: lo más generoso que quepa sin acercarse al

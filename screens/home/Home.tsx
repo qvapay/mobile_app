@@ -3,6 +3,7 @@ import type { ComponentProps, ReactElement } from 'react'
 import { useSharedValue } from 'react-native-reanimated'
 import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../hooks/useContentPadding'
+import useTabBarClearance from '../../hooks/useTabBarClearance'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
 import type { RefreshControlProps } from 'react-native'
 
@@ -189,7 +190,8 @@ const Home = ({ navigation }: HomeProps) => {
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
-	const contentPadding = useContentPadding(20)
+	// La barra inferior emulada flota sobre el contenido: su hueco se suma aquí (0 en iOS 26+)
+	const contentPadding = useContentPadding(20 + useTabBarClearance())
 
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
