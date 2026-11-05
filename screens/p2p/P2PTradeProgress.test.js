@@ -1,9 +1,10 @@
 /**
- * Render tests for the trade-room progress card: which statuses render it, the
- * viewer-perspective hero verb (payer sends / receiver awaits), the completed
- * state, the receiver safety line, the expiry notice and the TX-id gate helper
- * — node environment with the icon/particle collaborators mocked (see
- * P2PCreate.test.js). The live countdown lives in P2PHeaderTimer (own tests).
+ * Render tests for the trade-room status card: which statuses render it, the
+ * viewer-perspective summary (payer sends / receiver awaits), the vertical
+ * timeline, the receiver safety line, the expiry notice and the TX-id gate
+ * helper — node environment with the icon/particle collaborators mocked (see
+ * P2PCreate.test.js). The live countdown lives in P2PHeaderTimer (own tests);
+ * the copy per role and status, in p2pTradeRoom.test.js.
  * @jest-environment node
  */
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
@@ -35,6 +36,7 @@ const renderProgress = (props) => {
 				p2p={OFFER}
 				isPayer={false}
 				isReceiver={false}
+				counterparty={{ username: 'peer' }}
 				canMarkPaid={false}
 				txIdInput=""
 				setTxIdInput={() => { }}
@@ -60,26 +62,59 @@ describe('render gating', () => {
 })
 
 describe('viewer perspective', () => {
-	test('the payer sees "Envías" with the rail amount and the balance they will get', () => {
+	test('the payer sees what they send, what they get and the rate', () => {
 		const tree = renderProgress({ status: 'processing', isPayer: true })
 		const out = dump(tree)
 		expect(out).toContain('Envías')
 		expect(out).toContain('3900')
-		expect(out).toContain('recibirás $10.00 de saldo')
+		expect(out).toContain('Recibirás')
+		expect(out).toContain('10.00')
+		expect(out).toContain('Tasa')
+		expect(out).toContain('390.00')
 	})
 
-	test('the receiver sees "Recibirás" and, once paid, the release safety line', () => {
-		const tree = renderProgress({ status: 'paid', isReceiver: true })
-		const out = dump(tree)
+	test('the receiver sees what they await, what they release and, once paid, the safety line', () => {
+		const out = dump(renderProgress({ status: 'paid', isReceiver: true }))
 		expect(out).toContain('Recibirás')
-		expect(out).toContain('liberarás $10.00 de tu saldo')
+		expect(out).toContain('Liberarás')
 		expect(out).toContain('Libera solo si el pago ya está en tu cuenta')
+	})
+
+	test('the safety line waits for the offer to be marked as paid', () => {
+		const out = dump(renderProgress({ status: 'processing', isReceiver: true }))
+		expect(out).not.toContain('Libera solo si el pago ya está en tu cuenta')
 	})
 
 	test('completed flips the verbs to past tense', () => {
 		const out = dump(renderProgress({ status: 'completed', isPayer: true }))
 		expect(out).toContain('Enviaste')
-		expect(out).toContain('recibiste $10.00 de saldo')
+		expect(out).toContain('Recibiste')
+		expect(out).not.toContain('Envías')
+	})
+
+	test('an offer without amount hides the rate instead of dividing by zero', () => {
+		const out = dump(renderProgress({ status: 'processing', isPayer: true, p2p: { ...OFFER, amount: '0' } }))
+		expect(out).not.toContain('Tasa')
+	})
+})
+
+describe('timeline', () => {
+	test('names the counterparty in the steps', () => {
+		const out = dump(renderProgress({ status: 'processing', isPayer: true }))
+		expect(out).toContain('Realiza el pago')
+		expect(out).toContain('a @peer con los datos de pago')
+	})
+
+	test('falls back to a generic counterparty without a username', () => {
+		const out = dump(renderProgress({ status: 'processing', isPayer: true, counterparty: null }))
+		expect(out).toContain('a tu contraparte con los datos de pago')
+	})
+
+	test('pending steps show their number and done steps a check', () => {
+		const processing = renderProgress({ status: 'processing', isPayer: true })
+		expect(processing.root.findAllByType('FontAwesome6').filter(icon => icon.props.name === 'check')).toHaveLength(0)
+		const completed = renderProgress({ status: 'completed', isPayer: true })
+		expect(completed.root.findAllByType('FontAwesome6').filter(icon => icon.props.name === 'check')).toHaveLength(3)
 	})
 })
 

@@ -6,18 +6,23 @@ import { useTranslation } from "react-i18next"
 import QPCoin from "../../ui/particles/QPCoin"
 import QPInput from "../../ui/particles/QPInput"
 
+import { offerRate } from "./p2pFlexible"
+import { formatRate, formatUsd } from "./p2pOfferCard"
+import { buildTradeTimeline, isTradeRoomStatus } from "./p2pTradeRoom"
 import usePaymentWindow from "./usePaymentWindow"
 
-import type { TFunction } from "i18next"
+import type { ReactNode } from "react"
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
-import type { P2POffer, P2PStatus } from "../../types/domain"
+import type { P2POffer, P2PStatus, P2PUser } from "../../types/domain"
+import type { TradeStepState } from "./p2pTradeRoom"
 
 type P2PTradeProgressProps = {
 	p2p: P2POffer | null
 	status: P2PStatus
 	isPayer: boolean
 	isReceiver: boolean
+	counterparty?: P2PUser | null
 	canMarkPaid: boolean
 	txIdInput: string
 	setTxIdInput: (value: string) => void
@@ -26,25 +31,56 @@ type P2PTradeProgressProps = {
 	containerStyles: ContainerStyles
 }
 
-// Trade lifecycle steps: the payer pays → marks it → the receiver releases.
-// Builder (no module-level copy): resolved with t() per render so the stepper
-// re-labels itself on a live language switch.
-const getSteps = (t: TFunction): string[] => [t('p2p.tradeProgress.steps.payment'), t('p2p.tradeProgress.steps.confirmation'), t('p2p.tradeProgress.steps.release')]
+type SummaryRowProps = {
+	label: string
+	children: ReactNode
+	theme: Theme
+	textStyles: TextStyles
+}
+
+const SummaryRow = ({ label, children, theme, textStyles }: SummaryRowProps) => (
+	<View style={styles.summaryRow}>
+		<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{label}</Text>
+		<View style={styles.summaryValue}>{children}</View>
+	</View>
+)
+
+type StepDotProps = {
+	state: TradeStepState
+	position: number
+	theme: Theme
+	textStyles: TextStyles
+}
+
+const StepDot = ({ state, position, theme, textStyles }: StepDotProps) => (
+	<View style={[
+		styles.stepDot,
+		state === "done" && { backgroundColor: theme.colors.successFill },
+		state === "active" && { backgroundColor: theme.colors.primary },
+		state === "pending" && { borderWidth: 1.5, borderColor: theme.colors.border },
+	]}>
+		{state === "done" ? (
+			<FontAwesome6 name="check" size={10} color={theme.colors.successFillText} iconStyle="solid" />
+		) : (
+			<Text style={[textStyles.h7, { color: state === "active" ? theme.colors.almostWhite : theme.colors.secondaryText }]}>{position}</Text>
+		)}
+	</View>
+)
 
 /**
- * Trade-room progress card (industry pattern: the Binance/OKX order screen):
- * the actionable amount as hero from the VIEWER's perspective (the payer sends
- * the rail amount, the receiver awaits it), a 3-step progress indicator driven
- * by the offer status, and — for the payer while `processing` — the TX-id
- * input that unlocks "He pagado".
- * The payment-window countdown lives in the header (P2PHeaderTimer, set by the
- * screen); the card only reacts to EXPIRY with a danger notice (the
- * p2p-validate cron relists the offer within its 10-minute sweep — the
- * screen's 5s poll picks that up).
+ * Trade-room status card: what moves in this deal from the VIEWER's perspective
+ * (the payer sends the rail amount and gets balance, the receiver awaits it and
+ * releases balance), then a vertical timeline with the indication of each step,
+ * driven by the offer status. The active step hosts what it needs: the TX-id
+ * input that unlocks "He pagado" and the receiver's safety line.
+ * The amount, the side and the payment-window countdown live in the header
+ * (P2PHeaderTitle, set by the screen); the card only reacts to EXPIRY with a
+ * danger notice (the p2p-validate cron relists the offer within its 10-minute
+ * sweep — the screen's 5s poll picks that up).
  * Renders only on processing/paid/completed; open, cancelled and revision keep
  * their own surfaces.
  */
-const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdInput, setTxIdInput, theme, textStyles, containerStyles }: P2PTradeProgressProps) => {
+const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, counterparty, canMarkPaid, txIdInput, setTxIdInput, theme, textStyles, containerStyles }: P2PTradeProgressProps) => {
 
 	const { t } = useTranslation()
 
@@ -53,27 +89,31 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdI
 		status === "processing" ? p2p?.payment_window_expires_at || null : null
 	)
 
-	if (!p2p || !["processing", "paid", "completed"].includes(status)) return null
+	if (!p2p || !isTradeRoomStatus(status)) return null
 	if (!isPayer && !isReceiver) return null
 
-	// processing → doing step 1 · paid → 1-2 done, waiting on release · completed → all done
-	const doneCount = status === "completed" ? 3 : status === "paid" ? 2 : 0
-	const activeIndex = status === "completed" ? -1 : status === "paid" ? 2 : 0
 	const completed = status === "completed"
-	const steps = getSteps(t)
+	const coinName = p2p.Coin?.name ?? p2p.coin
+	const balance = formatUsd(p2p.amount)
+	const rate = offerRate(p2p)
+	const steps = buildTradeTimeline(t, {
+		status,
+		isPayer,
+		amount: String(p2p.receive),
+		coin: coinName,
+		balance,
+		counterparty: counterparty?.username ? `@${counterparty.username}` : t('p2p.offer.counterpartyFallback'),
+	})
 
 	// Claves por perspectiva y tiempo verbal — frases completas, nada concatenado
-	const heroVerb = isPayer
-		? (completed ? t('p2p.tradeProgress.hero.sent') : t('p2p.tradeProgress.hero.send'))
-		: (completed ? t('p2p.tradeProgress.hero.received') : t('p2p.tradeProgress.hero.receive'))
-	// La tasa viaja aquí porque esta card SUSTITUYE a la informativa en el trade room.
-	// El " · " une dos datos independientes (frase de saldo + tasa), no parte una frase.
-	const amountNum = Number(p2p.amount)
-	const rate = amountNum > 0 ? (Number(p2p.receive) / amountNum).toFixed(2) : null
-	const balanceLine = (isPayer
-		? (completed ? t('p2p.tradeProgress.balance.payerDone', { amount: p2p.amount }) : t('p2p.tradeProgress.balance.payer', { amount: p2p.amount }))
-		: (completed ? t('p2p.tradeProgress.balance.receiverDone', { amount: p2p.amount }) : t('p2p.tradeProgress.balance.receiver', { amount: p2p.amount })))
-		+ (rate ? ` · ${t('p2p.tradeProgress.rateSuffix', { rate })}` : "")
+	const railLabel = isPayer
+		? (completed ? t('p2p.tradeProgress.summary.sent') : t('p2p.tradeProgress.summary.send'))
+		: (completed ? t('p2p.tradeProgress.summary.received') : t('p2p.tradeProgress.summary.receive'))
+	const balanceLabel = isPayer
+		? (completed ? t('p2p.tradeProgress.summary.received') : t('p2p.tradeProgress.summary.receive'))
+		: (completed ? t('p2p.tradeProgress.summary.released') : t('p2p.tradeProgress.summary.release'))
+
+	const valueStyle = [textStyles.h5, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium }]
 
 	return (
 		<View style={[containerStyles.card, styles.card]}>
@@ -89,69 +129,68 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdI
 					</View>
 				)}
 
-				{/* Hero: the amount the viewer acts on, not the rate */}
-				<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5 }]}>{heroVerb}</Text>
-				<View style={styles.heroRow}>
-					<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: "600" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
-						{p2p.receive}
-					</Text>
-					<QPCoin coin={p2p.Coin?.logo} size={20} />
-					<Text style={[textStyles.h5, { color: theme.colors.secondaryText, flexShrink: 1 }]} numberOfLines={1}>{p2p.Coin?.name}</Text>
-				</View>
-				<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{balanceLine}</Text>
+				{/* Lo que se mueve en el trato. La tasa viaja aquí porque esta card SUSTITUYE a la informativa */}
+				<SummaryRow label={railLabel} theme={theme} textStyles={textStyles}>
+					<Text style={[valueStyle, styles.summaryAmount]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{p2p.receive}</Text>
+					<QPCoin coin={p2p.Coin?.logo} size={18} />
+					<Text style={[textStyles.h6, styles.summaryCoin, { color: theme.colors.secondaryText }]} numberOfLines={1}>{coinName}</Text>
+				</SummaryRow>
+				<SummaryRow label={balanceLabel} theme={theme} textStyles={textStyles}>
+					<Text style={valueStyle} numberOfLines={1}>${balance}</Text>
+				</SummaryRow>
+				{rate != null && (
+					<SummaryRow label={t('p2p.tradeProgress.summary.rate')} theme={theme} textStyles={textStyles}>
+						<Text style={valueStyle} numberOfLines={1}>{formatRate(rate)}</Text>
+					</SummaryRow>
+				)}
 
-				{/* 3-step progress */}
-				<View style={styles.stepsRow}>
-					{steps.map((label, i) => {
-						const done = i < doneCount
-						const active = i === activeIndex
-						return (
-							<View key={label} style={styles.stepItem}>
-								{i > 0 && <View style={[styles.connector, { backgroundColor: i <= doneCount ? theme.colors.successText : theme.colors.border }]} />}
-								<View style={[
-									styles.stepDot,
-									done && { backgroundColor: theme.colors.successFill },
-									active && { backgroundColor: theme.colors.primary },
-									!done && !active && { borderWidth: 1.5, borderColor: theme.colors.border },
-								]}>
-									{done ? (
-										<FontAwesome6 name="check" size={10} color={theme.colors.successFillText} iconStyle="solid" />
-									) : (
-										<Text style={[textStyles.h7, { color: active ? theme.colors.almostWhite : theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>{i + 1}</Text>
-									)}
-								</View>
-								<Text style={[textStyles.h7, { fontSize: theme.typography.fontSize.xs, color: active ? theme.colors.primaryText : theme.colors.secondaryText, fontFamily: active ? theme.typography.fontFamily.medium : theme.typography.fontFamily.regular }]}>
-									{label}
-								</Text>
+				<View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
+				{/* Línea de tiempo: el raíl se estira con el paso, incluido el input del activo */}
+				{steps.map((step, i) => {
+					const last = i === steps.length - 1
+					return (
+						<View key={step.key} style={styles.step}>
+							<View style={styles.rail}>
+								<StepDot state={step.state} position={i + 1} theme={theme} textStyles={textStyles} />
+								{!last && <View style={[styles.railLine, { backgroundColor: step.state === "done" ? theme.colors.successText : theme.colors.border }]} />}
 							</View>
-						)
-					})}
-				</View>
+							<View style={[styles.stepBody, !last && styles.stepBodySpaced]}>
+								<Text style={[textStyles.h6, { color: step.state === "pending" ? theme.colors.secondaryText : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium }]}>
+									{step.title}
+								</Text>
+								<Text style={[textStyles.caption, { color: step.state === "active" ? theme.colors.secondaryText : theme.colors.tertiaryText }]}>
+									{step.body}
+								</Text>
 
-				{/* Safety line for the receiver while deciding to release */}
-				{status === "paid" && isReceiver && (
-					<View style={styles.safetyRow}>
-						<FontAwesome6 name="shield-halved" size={12} color={theme.colors.warning} iconStyle="solid" />
-						<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1 }]}>
-							{t('p2p.tradeProgress.safety')}
-						</Text>
-					</View>
-				)}
+								{/* TX id — part of the payment step, gates "He pagado" */}
+								{step.key === "payment" && canMarkPaid && (
+									<View style={styles.txIdBlock}>
+										<QPInput
+											value={txIdInput}
+											onChangeText={setTxIdInput}
+											placeholder={t('p2p.tradeProgress.txIdPlaceholder')}
+											prefixIconName="hashtag"
+										/>
+										<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
+											{t('p2p.tradeProgress.txIdHelper')}
+										</Text>
+									</View>
+								)}
 
-				{/* TX id — part of the payment step, gates "He pagado" */}
-				{canMarkPaid && (
-					<View style={styles.txIdBlock}>
-						<QPInput
-							value={txIdInput}
-							onChangeText={setTxIdInput}
-							placeholder={t('p2p.tradeProgress.txIdPlaceholder')}
-							prefixIconName="hashtag"
-						/>
-						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-							{t('p2p.tradeProgress.txIdHelper')}
-						</Text>
-					</View>
-				)}
+								{/* Safety line for the receiver while deciding to release */}
+								{step.key === "release" && status === "paid" && isReceiver && (
+									<View style={styles.safetyRow}>
+										<FontAwesome6 name="shield-halved" size={12} color={theme.colors.warning} iconStyle="solid" />
+										<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1 }]}>
+											{t('p2p.tradeProgress.safety')}
+										</Text>
+									</View>
+								)}
+							</View>
+						</View>
+					)
+				})}
 
 			</SurfaceHost>
 		</View>
@@ -164,39 +203,59 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		paddingHorizontal: 12,
 	},
-	heroRow: {
+	summaryRow: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 12,
+		minHeight: 26,
+	},
+	summaryValue: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "flex-end",
 		gap: 6,
-		marginTop: 2,
+		flexShrink: 1,
 	},
-	stepsRow: {
+	summaryAmount: {
+		flexShrink: 1,
+	},
+	summaryCoin: {
+		flexShrink: 0,
+		maxWidth: 120,
+	},
+	divider: {
+		height: StyleSheet.hairlineWidth,
+		marginVertical: 12,
+	},
+	step: {
 		flexDirection: "row",
-		alignItems: "flex-start",
-		marginTop: 14,
+		gap: 12,
 	},
-	stepItem: {
-		flex: 1,
+	rail: {
+		width: 24,
 		alignItems: "center",
-		gap: 4,
-		position: "relative",
+	},
+	railLine: {
+		flex: 1,
+		width: 2,
+		borderRadius: 1,
+		marginVertical: 4,
 	},
 	stepDot: {
-		width: 22,
-		height: 22,
-		borderRadius: 11,
+		width: 24,
+		height: 24,
+		borderRadius: 12,
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	connector: {
-		position: "absolute",
-		top: 10,
-		right: "50%",
-		left: "-50%",
-		marginRight: 15,
-		marginLeft: 15,
-		height: 2,
-		borderRadius: 1,
+	stepBody: {
+		flex: 1,
+		gap: 2,
+		paddingTop: 2,
+	},
+	stepBodySpaced: {
+		paddingBottom: 18,
 	},
 	bannerRow: {
 		flexDirection: "row",
@@ -208,7 +267,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 6,
-		marginTop: 8,
+		marginTop: 6,
 	},
 	txIdBlock: {
 		marginTop: 8,

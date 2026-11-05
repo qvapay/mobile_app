@@ -207,24 +207,81 @@
 		"txId": "Transaction ID"
 	},
 	"tradeProgress": {
-		"steps": {
-			"payment": "Payment",
-			"confirmation": "Confirmation",
-			"release": "Release"
-		},
-		"hero": {
+		"summary": {
 			"send": "You send",
 			"sent": "You sent",
 			"receive": "You'll receive",
-			"received": "You received"
+			"received": "You received",
+			"release": "You'll release",
+			"released": "You released",
+			"rate": "Rate"
 		},
-		"balance": {
-			"payer": "you'll get ${{amount}} in balance",
-			"payerDone": "you got ${{amount}} in balance",
-			"receiver": "you'll release ${{amount}} from your balance",
-			"receiverDone": "you released ${{amount}} from your balance"
+		"timeline": {
+			"payer": {
+				"paymentActive": {
+					"title": "Make the payment",
+					"body": "Send {{amount}} {{coin}} to {{counterparty}} using the offer's payment details."
+				},
+				"paymentDone": {
+					"title": "Payment made",
+					"body": "You sent {{amount}} {{coin}} to {{counterparty}}."
+				},
+				"confirmationPending": {
+					"title": "Let them know you paid",
+					"body": "Once the transfer is done, tap “I've paid”."
+				},
+				"confirmationDone": {
+					"title": "Payment notified",
+					"body": "We told {{counterparty}} you've paid."
+				},
+				"releasePending": {
+					"title": "Balance release",
+					"body": "Once {{counterparty}} gets the payment, they'll release ${{balance}} to your balance."
+				},
+				"releaseActive": {
+					"title": "Waiting for release",
+					"body": "We're waiting for {{counterparty}} to verify the payment and release your ${{balance}}."
+				},
+				"releaseDone": {
+					"title": "Balance received",
+					"body": "You got ${{balance}} from {{counterparty}} in your balance."
+				}
+			},
+			"receiver": {
+				"paymentActive": {
+					"title": "Waiting for payment",
+					"body": "You'll receive {{amount}} {{coin}} from {{counterparty}}. Your ${{balance}} stays on hold until you release it."
+				},
+				"paymentClaimed": {
+					"title": "Payment announced",
+					"body": "According to {{counterparty}}, they already sent you {{amount}} {{coin}}."
+				},
+				"paymentDone": {
+					"title": "Payment received",
+					"body": "You received {{amount}} {{coin}} from {{counterparty}}."
+				},
+				"confirmationPending": {
+					"title": "Payment notice",
+					"body": "You'll see here when {{counterparty}} marks it as paid."
+				},
+				"confirmationDone": {
+					"title": "Notice received",
+					"body": "You've got the payment notice from {{counterparty}}."
+				},
+				"releasePending": {
+					"title": "Release the balance",
+					"body": "Once the payment is in your account, release ${{balance}} to {{counterparty}}."
+				},
+				"releaseActive": {
+					"title": "Verify and release",
+					"body": "Check that {{amount}} {{coin}} reached your account and release ${{balance}} to {{counterparty}}."
+				},
+				"releaseDone": {
+					"title": "Balance released",
+					"body": "You released ${{balance}} to {{counterparty}}."
+				}
+			}
 		},
-		"rateSuffix": "rate {{rate}}",
 		"windowExpired": "Payment window expired; the offer will be relisted",
 		"safety": "Release only if the payment is already in your account, not for screenshots or promises.",
 		"txIdPlaceholder": "Transfer ID",

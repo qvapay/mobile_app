@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigation } from "@react-navigation/native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -35,7 +35,7 @@ import useP2POfferDetail from "./useP2POfferDetail"
 import P2POfferDetailsCard from "./P2POfferDetailsCard"
 import P2POfferChatDock from "./P2POfferChatDock"
 import P2POfferConfirm from "./P2POfferConfirm"
-import P2PHeaderTimer from "./P2PHeaderTimer"
+import P2PHeaderTitle from "./P2PHeaderTitle"
 import P2PPeerRow from "./P2PPeerRow"
 import P2PEditModal from "./P2PEditModal"
 import P2PApplyModal from "./P2PApplyModal"
@@ -46,6 +46,7 @@ import P2PRateSheet from "./P2PRateSheet"
 import P2PUserModerationSheet from "./P2PUserModerationSheet"
 import useUserModeration from "./useUserModeration"
 import { isBlockRestrictionError } from "./userModeration"
+import { isTradeRoomStatus, tradeHeaderModel } from "./p2pTradeRoom"
 
 import type { ReactElement } from "react"
 import type { RefreshControlProps } from "react-native"
@@ -137,16 +138,24 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 	// Keyboard height tracking
 	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
 
-	// Timer de la ventana de pago en el CENTRO del header (el título de la ruta
-	// va vacío): se setea UNA vez por ventana — P2PHeaderTimer se auto-tickea,
-	// así que no hay setOptions por segundo
+	// Título de la pantalla: moneda + monto + lado del trato, con la cuenta atrás de la
+	// ventana de pago. Se setea solo cuando cambia uno de estos primitivos (el timer se
+	// auto-tickea, no hay setOptions por segundo). Sin oferta va '' y nunca undefined:
+	// un headerTitle undefined cae al nombre de la ruta y se leía «P2POffer»
 	const windowExpiresAt = status === "processing" ? p2p?.payment_window_expires_at || null : null
-	useEffect(() => {
+	const header = p2p ? tradeHeaderModel(p2p, isOwner, isFlexibleOverview) : null
+	const side = header?.side
+	const headerAmount = header?.amount ?? ""
+	const coinLogo = header?.coinLogo ?? null
+	const coinName = header?.coinName ?? ""
+	useLayoutEffect(() => {
 		navigation.setOptions({
 			headerTitleAlign: "center",
-			headerTitle: windowExpiresAt ? () => <P2PHeaderTimer expiresAt={windowExpiresAt} /> : undefined,
+			headerTitle: side
+				? () => <P2PHeaderTitle side={side} amount={headerAmount} coinLogo={coinLogo} coinName={coinName} status={status} expiresAt={windowExpiresAt} />
+				: "",
 		})
-	}, [navigation, windowExpiresAt])
+	}, [navigation, side, headerAmount, coinLogo, coinName, status, windowExpiresAt])
 
 	// Loading state check - only show loader if no cached data
 	if (isLoading && !p2p) { return (<QPLoader />) }
@@ -173,13 +182,14 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					{/* Una sola card arriba: la informativa (open/cancelled/revision) se
 					    TRANSFORMA en la card de trade al aplicar — el swap anima la salida
 					    de una y la entrada de la otra (también al revertir a open) */}
-					{!isFlexibleOverview && (isPayer || isReceiver) && ["processing", "paid", "completed"].includes(status) ? (
+					{!isFlexibleOverview && (isPayer || isReceiver) && isTradeRoomStatus(status) ? (
 						<Animated.View key="trade-progress" entering={FadeInDown.duration(300)} exiting={FadeOutUp.duration(180)}>
 							<P2PTradeProgress
 								p2p={p2p}
 								status={status}
 								isPayer={isPayer}
 								isReceiver={isReceiver}
+								counterparty={counterparty}
 								canMarkPaid={canMarkPaid}
 								txIdInput={txIdInput}
 								setTxIdInput={setTxIdInput}
