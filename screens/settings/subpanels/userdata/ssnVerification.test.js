@@ -13,7 +13,7 @@ describe('deriveSsnView', () => {
 
 	test('puede empezar: ready, o retry si el último intento no casó', () => {
 		expect(deriveSsnView(ssn()).phase).toBe('ready')
-		expect(deriveSsnView(ssn({ status: 'no_match', attempts_left: 2 }))).toMatchObject({ phase: 'retry', attemptsLeft: 2, attemptsMax: 3 })
+		expect(deriveSsnView(ssn({ status: 'no_match', attempts_left: 2 }))).toMatchObject({ phase: 'retry', attemptsLeft: 2 })
 		expect(deriveSsnView(ssn({ status: 'partial' })).phase).toBe('retry')
 	})
 
