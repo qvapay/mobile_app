@@ -20,8 +20,8 @@ export const DEFAULT_POPULAR_COINS: QuickCoin[] = [
 	{ tick: 'ETECSA', label: 'ETECSA' },
 ]
 
-/** Tope de chips: más no caben sin scroll largo y el selector ya está a un toque. */
-export const MAX_QUICK_COINS = 6
+/** Tope de chips: dos a mano y el resto en el selector, que así queda a la vista. */
+export const MAX_QUICK_COINS = 2
 
 /**
  * Elegida → recientes → populares, sin repetir y con tope.

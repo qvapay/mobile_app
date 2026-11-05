@@ -34,9 +34,9 @@ const TINT_ALPHA = "26"
 /**
  * Barra de filtros del mercado P2P, al estilo de los P2P de la industria (Binance/OKX):
  * una fila de chips de moneda que se desliza —«Todas», la elegida, las recientes del
- * selector y las populares, más «Más» para abrir el selector— con el orden fijado a la
- * derecha como chip que dice lo que está aplicando. Debajo, los filtros del modal activos
- * como badges teñidos que se quitan de un toque.
+ * selector y las populares— con «Más» (el selector) siempre a la vista y el orden fijado
+ * a la derecha como chip que dice lo que está aplicando. Debajo, los filtros del modal
+ * activos como badges teñidos que se quitan de un toque.
  *
  * El lado del mercado (Comprar/Vender) y «Mis ofertas» NO están aquí: viven en el TopBar.
  */
@@ -74,7 +74,7 @@ const P2PFilterBar = ({ selectedCoin, sortIndex, showSortMenu, activeFilterBadge
 	return (
 		<View style={styles.bar}>
 			<View style={styles.row}>
-				<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" style={styles.flex}>
+				<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" style={styles.coins}>
 					{/* «Todas» = sin filtro de moneda */}
 					<QPPressable style={chipStyle(!selectedTick)} onPress={() => onSelectCoin(null)} accessibilityRole="button" accessibilityState={{ selected: !selectedTick }} testID="p2p-coin-all">
 						<Text style={chipText(!selectedTick)}>{t('p2p.filters.allCoins')}</Text>
@@ -89,13 +89,13 @@ const P2PFilterBar = ({ selectedCoin, sortIndex, showSortMenu, activeFilterBadge
 							</QPPressable>
 						)
 					})}
-
-					{/* El catálogo entero, con buscador */}
-					<QPPressable style={chipStyle(false)} onPress={onOpenCoinPicker} accessibilityRole="button" accessibilityLabel={t('p2p.common.coin')} testID="p2p-coin-more">
-						<Text style={chipText(false)}>{t('p2p.filters.moreCoins')}</Text>
-						<FontAwesome6 name="chevron-down" size={10} color={theme.colors.secondaryText} iconStyle="solid" />
-					</QPPressable>
 				</ScrollView>
+
+				{/* El catálogo entero, con buscador: fuera del scroll para que no se esconda en pantallas estrechas */}
+				<QPPressable style={chipStyle(false)} onPress={onOpenCoinPicker} accessibilityRole="button" accessibilityLabel={t('p2p.common.coin')} testID="p2p-coin-more">
+					<Text style={chipText(false)}>{t('p2p.filters.moreCoins')}</Text>
+					<FontAwesome6 name="chevron-down" size={10} color={theme.colors.secondaryText} iconStyle="solid" />
+				</QPPressable>
 
 				{/* Orden, fijo a la derecha: dice lo que aplica en vez de un icono mudo */}
 				<QPPressable style={[chipStyle(sortActive), styles.sortChip]} onPress={onToggleSortMenu} accessibilityRole="button" accessibilityState={{ expanded: showSortMenu }} testID="p2p-sort">
@@ -140,7 +140,8 @@ const P2PFilterBar = ({ selectedCoin, sortIndex, showSortMenu, activeFilterBadge
 const CHIP_HEIGHT = 34
 
 const styles = StyleSheet.create({
-	flex: { flex: 1 },
+	// Abraza sus chips y solo cede ancho (y se desliza) cuando no caben: «Más» va pegado a ellos
+	coins: { flexGrow: 0, flexShrink: 1 },
 	bar: { paddingVertical: 6, gap: 8 },
 	row: { flexDirection: "row", alignItems: "center", gap: 8 },
 	scroll: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 2 },
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
 		borderCurve: "continuous",
 	},
 	chipText: { lineHeight: undefined },
-	sortChip: { marginRight: 2 },
+	sortChip: { marginLeft: "auto", marginRight: 2 },
 	wrapRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: 2 },
 	badge: {
 		flexDirection: "row",
