@@ -33,6 +33,7 @@ import settings from './settings'
 import { filterSettings } from './settingsSearch'
 
 // Push prompt
+import useContentPadding from '../../hooks/useContentPadding'
 import usePushPrompt from '../../hooks/usePushPrompt'
 
 // In-app review
@@ -95,6 +96,7 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(24)
 
 	// Push prompt
 	const { shouldShowRedDot } = usePushPrompt()
@@ -228,7 +230,7 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 
 	return (
 		<View style={containerStyles.container}>
-			<ScrollView style={{ paddingHorizontal: theme.spacing.md }} contentInsetAdjustmentBehavior="never" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+			<ScrollView style={{ paddingHorizontal: theme.spacing.md }} contentContainerStyle={contentPadding} contentInsetAdjustmentBehavior="never" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
 
 				{/* `useAuth().user` es `User | null` y ProfileContainer declara `user?: ProfileUser`
 				    (null se comporta igual dentro, pero no es asignable a undefined). */}
@@ -329,7 +331,7 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 
 				{/* Repetir las Novedades de esta versión (solo si la versión trae manifiesto) */}
 				{!searching && whatsNewRelease && (
-					<Pressable onPress={() => navigation.navigate(ROUTES.WHATS_NEW, { version: whatsNewRelease.version })} hitSlop={12} style={{ marginTop: 10, marginBottom: insets.bottom, alignSelf: 'center' }}>
+					<Pressable onPress={() => navigation.navigate(ROUTES.WHATS_NEW, { version: whatsNewRelease.version })} hitSlop={12} style={{ marginTop: 10, alignSelf: 'center' }}>
 						<Text style={[textStyles.h6, { color: theme.colors.primary, textAlign: 'center' }]}>{t('settings.menu.whatsNew')}</Text>
 					</Pressable>
 				)}
