@@ -9,7 +9,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 import QPInput from '../particles/QPInput'
-import AddressAutocomplete from '../../screens/store/assisted/AddressAutocomplete'
+import AddressAutocomplete from '../AddressAutocomplete'
 import { US_STATES } from '../../screens/store/assisted/assistedConstants'
 import type { UsState } from '../../screens/store/assisted/assistedConstants'
 

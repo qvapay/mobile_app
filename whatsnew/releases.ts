@@ -28,6 +28,18 @@ export type WhatsNewRelease = { version: string, slides: WhatsNewSlide[] }
 
 export const RELEASES: WhatsNewRelease[] = [
 	{
+		version: '3.10.0',
+		slides: [
+			{
+				key: 'ssnDeposit',
+				hero: { kind: 'icon', icon: 'id-card-clip' },
+				titleKey: 'whatsnew.v3_10_0.ssnDeposit.title',
+				bodyKey: 'whatsnew.v3_10_0.ssnDeposit.body',
+				cta: { labelKey: 'whatsnew.v3_10_0.ssnDeposit.cta', target: { route: ROUTES.SETTINGS_STACK, params: { screen: ROUTES.USERDATA, initial: false } } },
+			},
+		],
+	},
+	{
 		version: '3.9.0',
 		slides: [
 			{

@@ -163,6 +163,15 @@ test('los accesos rápidos se esconden al buscar: estorban al filtrar', async ()
 	expect(quickPills()).toHaveLength(0)
 })
 
+test('un acceso rápido apagado tampoco elige: misma regla que su fila', async () => {
+	const onSelect = jest.fn()
+	await render({ options: OPTIONS, quick: [{ ...OPTIONS[0], disabledReason: 'Vuelve a tener cupo el 1 dic' }], onSelect })
+	const pill = tree.root.findAllByType('QPPressable').find(n => !n.props.accessibilityState)
+	expect(pill.props.disabled).toBe(true)
+	await act(async () => { pill.props.onPress() })
+	expect(onSelect).not.toHaveBeenCalled()
+})
+
 test('la búsqueda se limpia al cerrar: reabrir no hereda un catálogo a medias', async () => {
 	await render()
 	await act(async () => { search().props.onChangeText('sol') })

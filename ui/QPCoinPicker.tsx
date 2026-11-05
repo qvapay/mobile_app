@@ -30,6 +30,11 @@ type QPCoinPickerProps = {
 	showFees?: boolean
 	/** Etiqueta corta junto al nombre, por tick («Vía P2P» en el depósito). */
 	badges?: Record<string, string>
+	/**
+	 * Motivo por el que una moneda no se puede elegir ahora (p. ej. cupo del nivel
+	 * ssn agotado). Presente = la fila sale apagada, al final y sin reaccionar al toque.
+	 */
+	disabledReasonFor?: (coin: Coin) => string | null | undefined
 }
 
 /**
@@ -74,6 +79,7 @@ const QPCoinPicker = ({
 	defaultCoins = NO_DEFAULT_COINS,
 	showFees = true,
 	badges,
+	disabledReasonFor,
 }: QPCoinPickerProps) => {
 
 	const { t } = useTranslation()
@@ -106,10 +112,17 @@ const QPCoinPicker = ({
 			// espera encontrar el USDT correcto
 			keywords: `${coin.tick} ${coin.network ?? ''}`,
 			badge: badges?.[coin.tick],
+			disabledReason: disabledReasonFor?.(coin) ?? null,
 		}
-	}, [t, amount, direction, showFees, badges])
+	}, [t, amount, direction, showFees, badges, disabledReasonFor])
 
-	const options = useMemo(() => coins.map(optionFor), [coins, optionFor])
+	// Las apagadas al final: lo elegible primero, igual que en el intercambio de la wallet
+	const options = useMemo(() => {
+		const mapped = coins.map(optionFor)
+		if (!disabledReasonFor || !mapped.some(o => o.disabledReason)) { return mapped }
+		const usable = (o: QPAssetOption) => (o.disabledReason ? 1 : 0)
+		return [...mapped].sort((a, b) => usable(a) - usable(b))
+	}, [coins, optionFor, disabledReasonFor])
 
 	/** Recientes primero, rellenadas con las por defecto y sin repetir. */
 	const quick = useMemo(() => {

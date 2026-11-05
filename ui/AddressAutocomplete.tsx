@@ -4,15 +4,15 @@ import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
-import { useTheme } from '../../../theme/ThemeContext'
-import { createTextStyles } from '../../../theme/themeUtils'
+import { useTheme } from '../theme/ThemeContext'
+import { createTextStyles } from '../theme/themeUtils'
 
 // UI
-import QPInput from '../../../ui/particles/QPInput'
+import QPInput from './particles/QPInput'
 
 // API
-import { shopApi } from '../../../api/shopApi'
-import type { ApiResult } from '../../../types/api'
+import { shopApi } from '../api/shopApi'
+import type { ApiResult } from '../types/api'
 
 /** Sugerencia de Places tal y como la devuelve el proxy del backend. */
 type AddressSuggestion = { place_id: string, text: string }
@@ -46,7 +46,8 @@ const newToken = () => {
 }
 
 /**
- * US address search with autocomplete for the shipping-address form. Proxies
+ * US address search with autocomplete (shipping address of assisted shopping and
+ * the CIP address in Settings → Personal details). Proxies
  * Google Places through the backend (the key never ships in the app) with a
  * 300ms debounce and stale-response guard. Selecting a suggestion resolves
  * the structured fields and calls `onSelect({ line1, city, state,

@@ -191,8 +191,10 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 					{quick.map(option => (
 						<QPPressable
 							key={option.id}
-							onPress={() => pick(option.id)}
-							style={[styles.pill, {
+							// Una opción apagada tampoco se elige desde su pill (misma regla que la fila)
+							onPress={() => { if (!option.disabledReason) { pick(option.id) } }}
+							disabled={!!option.disabledReason}
+							style={[styles.pill, !!option.disabledReason && styles.disabled, {
 								backgroundColor: option.id === selectedId ? theme.colors.primary : theme.colors.surface,
 								borderColor: option.id === selectedId ? theme.colors.primary : theme.colors.border,
 							}]}

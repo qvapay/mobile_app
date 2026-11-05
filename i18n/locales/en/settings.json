@@ -840,8 +840,7 @@
 		"sections": {
 			"account": "Account",
 			"personal": "Personal information",
-			"contact": "Contact and social",
-			"location": "Location"
+			"contact": "Contact and social"
 		},
 		"placeholders": {
 			"username": "Username",
@@ -851,9 +850,7 @@
 			"bio": "Bio or description",
 			"phone": "Phone",
 			"telegram": "@telegram_user",
-			"twitter": "@twitter_user",
-			"address": "Address",
-			"country": "Country (e.g. US, ES, MX)"
+			"twitter": "@twitter_user"
 		},
 		"info": "Your username, email and phone are managed from their own settings sections.",
 		"memberSince": "Member since: <0>{{date}}</0>",
@@ -861,9 +858,89 @@
 			"loadFailed": "Couldn't load your user data",
 			"nameRequired": "Fill in at least your first and last name",
 			"invalidEmail": "Invalid email format",
-			"invalidCountry": "The country code must be 2 characters (e.g. US, ES)",
 			"updated": "Details updated successfully",
 			"updateFailed": "Couldn't update"
+		},
+		"cip": {
+			"section": "Your account details",
+			"intro": "Information required by regulation. US persons must provide their SSN/ITIN and address.",
+			"complete": "Complete",
+			"usPerson": "I'm a US person",
+			"usPersonHint": "US citizenship, residency or tax residence",
+			"ssnLabel": "SSN or ITIN",
+			"ssnPlaceholder": "9 digits",
+			"ssnSaved": "Saved ···{{last4}}. Leave blank to keep it.",
+			"ssnRemovalWarning": "You have a saved SSN/ITIN (···{{last4}}). Saving with the box unchecked removes it from your profile.",
+			"addressTitle": "US address",
+			"line1": "Street address",
+			"line2": "Apartment or unit (optional)",
+			"city": "City",
+			"state": "State",
+			"statePicker": "Choose the state",
+			"zip": "ZIP",
+			"country": "United States",
+			"privacy": "Your SSN is encrypted on the server and never returned in clear text.",
+			"errors": {
+				"ssnInvalid": "The SSN/ITIN must have 9 digits",
+				"addressRequired": "Fill in the street and city of your address",
+				"stateRequired": "Choose the state of your address",
+				"zipInvalid": "The ZIP must be 12345 or 12345-6789"
+			}
+		},
+		"ssn": {
+			"title": "SSN verification",
+			"hint": "For US persons with GOLD: card and PayPal up to $500 every 30 days.",
+			"verified": {
+				"pill": "SSN verified",
+				"date": "Verified on {{date}}",
+				"body": "You can deposit by card and PayPal up to $500 every 30 days.",
+				"deposit": "Deposit"
+			},
+			"ready": {
+				"body": "We check the name and date of birth on your document and your SSN against credit records. It isn't shared with anyone else."
+			},
+			"retry": {
+				"notice": "The last attempt didn't match. Make sure the SSN is yours and your document is in your name."
+			},
+			"attempts_one": "{{count}} attempt left",
+			"attempts_other": "{{count}} attempts left",
+			"button": "Verify my SSN",
+			"verifying": "Checking…",
+			"confirm": {
+				"title": "Verify your SSN",
+				"body": "We'll check your SSN, name and date of birth against credit records. It takes a few seconds and uses one of your {{max}} attempts per 30 days.",
+				"accept": "Verify"
+			},
+			"toasts": {
+				"success": {
+					"title": "SSN verified",
+					"body": "You can now deposit by card and PayPal."
+				},
+				"noMatch": "Your details don't match the records. Make sure the SSN is yours and that the name and date of birth on your document are correct.",
+				"attemptsLeft_one": "{{count}} attempt left.",
+				"attemptsLeft_other": "{{count}} attempts left.",
+				"rateLimited": "Too many requests. Wait a few minutes.",
+				"unavailable": "We couldn't check your details right now. Try again later.",
+				"failed": "We couldn't verify your SSN. Try again."
+			},
+			"block": {
+				"GOLD_REQUIRED": "SSN verification is available to GOLD accounts.",
+				"KYC_REQUIRED": "Verify your identity with your document first.",
+				"NOT_US_PERSON": "Only for US persons. Check the box above and save.",
+				"SSN_MISSING": "Save your SSN/ITIN in your details before verifying it.",
+				"DOCUMENT_REQUIRED": "We need the name and date of birth from your verified document. Verify your identity again.",
+				"ADDRESS_REQUIRED": "Complete your US address in your details.",
+				"ATTEMPTS_EXHAUSTED": "You've used up your verification attempts for the last 30 days. Write to support.",
+				"SDN_BLOCKED": "Not available for this account.",
+				"STAFF_ACCOUNT": "Not available for this account.",
+				"UNAVAILABLE": "SSN verification is not available right now."
+			},
+			"actions": {
+				"gold": "Learn about GOLD",
+				"kyc": "Verify identity",
+				"field": "Complete your details",
+				"support": "Write to support"
+			}
 		}
 	},
 	"lightningAddress": {

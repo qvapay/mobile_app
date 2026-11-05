@@ -180,5 +180,8 @@
 		"fallbackName": "Method",
 		"empty": "No saved methods for this coin",
 		"manage": "Manage payment methods"
+	},
+	"optionPicker": {
+		"searchPlaceholder": "Search…"
 	}
 }

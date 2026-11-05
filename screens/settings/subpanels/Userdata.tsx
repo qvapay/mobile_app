@@ -1,6 +1,7 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer, useCallback } from 'react'
 import { Text, View } from 'react-native'
 import { Trans, useTranslation } from 'react-i18next'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 // i18n (call-time para el helper de módulo + locale de fechas)
 import i18n, { getDateLocale } from '../../../i18n'
@@ -19,6 +20,14 @@ import QPLoader from '../../../ui/particles/QPLoader'
 
 // API
 import { userApi } from '../../../api/userApi'
+
+// Ficha CIP («Datos de tu cuenta») y verificación del SSN
+import { USER_CIP_QUERY } from '../../../hooks/useOfacQueries'
+import { DEPOSIT_ELIGIBILITY_KEY } from '../../../hooks/useDepositEligibilityQuery'
+import CipSection from './userdata/CipSection'
+import SsnVerificationBlock from './userdata/SsnVerificationBlock'
+import { EMPTY_CIP_FORM, buildCipPayload, cipFormFromProfile, isCipDirty, validateCip } from './userdata/cipForm'
+import type { CipField, CipForm } from './userdata/cipForm'
 
 // Notifications
 import { toast } from 'sonner-native'
@@ -44,14 +53,12 @@ type ProfileForm = {
 	phone: string
 	telegram: string
 	twitter: string
-	address: string
-	country: string
 	bio: string
 }
 
 type ProfileFormAction =
 	| { type: 'set', field: keyof ProfileForm, value: string }
-	| { type: 'loaded', data: User & { KYC?: { country?: string } } }
+	| { type: 'loaded', data: User }
 
 /** Banderas del perfil que la pantalla pinta como estado (no editables). */
 type UserStatus = {
@@ -63,7 +70,7 @@ type UserStatus = {
 }
 
 // The editable profile fields are one logical form
-const initialForm: ProfileForm = { username: '', name: '', lastname: '', email: '', phone: '', telegram: '', twitter: '', address: '', country: '', bio: '' }
+const initialForm: ProfileForm = { username: '', name: '', lastname: '', email: '', phone: '', telegram: '', twitter: '', bio: '' }
 
 function formReducer(state: ProfileForm, action: ProfileFormAction): ProfileForm {
 	switch (action.type) {
@@ -78,9 +85,7 @@ function formReducer(state: ProfileForm, action: ProfileFormAction): ProfileForm
 				phone: action.data.phone || '',
 				telegram: (action.data.telegram as string) || '',
 				twitter: (action.data.twitter as string) || '',
-				address: (action.data.address as string) || '',
 				bio: action.data.bio || '',
-				country: action.data.KYC?.country || '',
 			}
 		default:
 			return state
@@ -111,7 +116,7 @@ const Userdata = () => {
 
 	// Form fields
 	const [form, dispatchForm] = useReducer(formReducer, initialForm)
-	const { username, name, lastname, email, phone, telegram, twitter, address, country, bio } = form
+	const { username, name, lastname, email, phone, telegram, twitter, bio } = form
 
 	// User status fields
 	const [userStatus, setUserStatus] = useState<UserStatus>({
@@ -120,6 +125,35 @@ const Userdata = () => {
 		telegram_id: '',
 		createdAt: ''
 	})
+
+	// Ficha CIP: la misma query que las atestaciones OFAC (noPersist: lleva PII). El
+	// formulario sigue a la ficha mientras el usuario no la toque; tras guardar se
+	// vuelve a sincronizar con lo que devuelva el servidor
+	const queryClient = useQueryClient()
+	const { data: cip } = useQuery(USER_CIP_QUERY)
+	const [cipForm, setCipForm] = useState<CipForm>(EMPTY_CIP_FORM)
+	const [cipLoaded, setCipLoaded] = useState<CipForm>(EMPTY_CIP_FORM)
+	const [cipTouched, setCipTouched] = useState(false)
+	const [cipHighlight, setCipHighlight] = useState<CipField | null>(null)
+	useEffect(() => {
+		if (!cip) { return }
+		const loaded = cipFormFromProfile(cip)
+		setCipLoaded(loaded)
+		if (!cipTouched) { setCipForm(loaded) }
+	}, [cip, cipTouched])
+	const onCipChange = useCallback((patch: Partial<CipForm>) => {
+		setCipTouched(true)
+		setCipForm(prev => ({ ...prev, ...patch }))
+		// Tocar el campo resaltado apaga el resalte
+		setCipHighlight(prev => (prev && prev in patch ? null : prev))
+	}, [])
+	// Un `block_reason` de dato faltante (NOT_US_PERSON, SSN_MISSING, ADDRESS_REQUIRED) señala el campo
+	const highlightFromSsn = useCallback((field: 'usPerson' | 'ssn' | 'address') => {
+		if (field === 'usPerson') { setCipHighlight('usPerson'); return }
+		if (field === 'ssn') { onCipChange({ usPerson: true }); setCipHighlight('ssn'); return }
+		onCipChange({ usPerson: true })
+		setCipHighlight('addrLine1')
+	}, [onCipChange])
 
 	// Load user data on component mount
 	useEffect(() => {
@@ -158,9 +192,17 @@ const Userdata = () => {
 			toast.error(t('settings.userdata.toasts.invalidEmail'))
 			return
 		}
-		if (country && country.length !== 2) {
-			toast.error(t('settings.userdata.toasts.invalidCountry'))
-			return
+		// La ficha CIP viaja solo si cambió (un perfil que nunca la tocó no crea una fila
+		// vacía) y se valida ANTES: el backend guarda el perfil y luego valida `cip`, así
+		// que su 400 dejaría nombre y bio escritos con la ficha sin tocar
+		const sendCip = isCipDirty(cipForm, cipLoaded)
+		if (sendCip) {
+			const invalid = validateCip(cipForm, { hasSavedSsn: !!cip?.ssn_itin_last4 })
+			if (invalid) {
+				setCipHighlight(invalid.field)
+				toast.error(t(`settings.userdata.cip.errors.${invalid.key}`))
+				return
+			}
 		}
 
 		try {
@@ -169,14 +211,21 @@ const Userdata = () => {
 				name: name.trim(),
 				lastname: lastname.trim(),
 				bio: bio.trim(),
-				address: address.trim(),
-				country: country.trim().toUpperCase(),
 				telegram: telegram.trim(),
-				twitter: twitter.trim()
+				twitter: twitter.trim(),
+				...(sendCip && { cip: buildCipPayload(cipForm) }),
 			}
 			const result = await userApi.updateUser(updateData)
 			if (result.success && result.data) {
 				toast.success(t('settings.userdata.toasts.updated'))
+				if (sendCip) {
+					// La ficha nueva (y el estado de la verificación, que un SSN distinto
+					// reinicia) la trae el servidor; el SSN tecleado no se queda en pantalla
+					setCipTouched(false)
+					setCipForm(prev => ({ ...prev, ssn: '' }))
+					queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey })
+					queryClient.invalidateQueries({ queryKey: DEPOSIT_ELIGIBILITY_KEY })
+				}
 				// userApi.updateUser declara `ApiResult<unknown>`: forma local del perfil devuelto.
 				const userData = result.data as User
 				dispatchForm({ type: 'set', field: 'username', value: userData.username || username })
@@ -294,25 +343,17 @@ const Userdata = () => {
 				/>
 			</View>
 
-			{/* Location section */}
-			<View style={{ marginTop: 10 }}>
-				<SectionHeader icon="location-dot" title={t('settings.userdata.sections.location')} theme={theme} textStyles={textStyles} />
-				<QPInput
-					placeholder={t('settings.userdata.placeholders.address')}
-					value={address}
-					onChangeText={(value) => dispatchForm({ type: 'set', field: 'address', value })}
-					autoCapitalize="sentences"
-					prefixIconName="location-dot"
-				/>
-				<QPInput
-					placeholder={t('settings.userdata.placeholders.country')}
-					value={country}
-					onChangeText={(value) => dispatchForm({ type: 'set', field: 'country', value })}
-					autoCapitalize="characters"
-					maxLength={2}
-					prefixIconName="globe"
-				/>
-			</View>
+			{/* Ficha CIP: persona de EE. UU. + SSN/ITIN + dirección (BSA §1022.210) */}
+			<CipSection
+				form={cipForm}
+				onChange={onCipChange}
+				savedLast4={cip?.ssn_itin_last4 ?? null}
+				complete={cip?.cip_status === 'complete'}
+				highlight={cipHighlight}
+			/>
+
+			{/* Verificación del SSN: solo con la casilla GUARDADA (el servidor decide el resto) */}
+			{cip?.us_person && <SsnVerificationBlock cip={cip} onHighlight={highlightFromSsn} />}
 
 			{/* Info card */}
 			<View style={[containerStyles.card, { marginTop: 10 }]}>
