@@ -131,6 +131,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	const [lnDecoded, setLnDecoded] = useState<LnDecoded | null>(null)
 	// Último destino pedido al decode: el mismo valor nunca se vuelve a pedir (5 decodes/min por usuario)
 	const lastDecodedRef = useRef<string | null>(null)
+	const lnDecodeRequestRef = useRef(0)
 
 	// Crypto destination gate (own wallet vs third parties)
 	const [destination, setDestination] = useState<WithdrawDestination | null>(null)
@@ -357,9 +358,12 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	const lnError = lnResult?.error ?? null
 	const decodeLnDestination = useEffectEvent((value: string) => {
 		lastDecodedRef.current = value
+		lnDecodeRequestRef.current += 1
+		const request = lnDecodeRequestRef.current
 		withdrawApi.decodeLightning(value).then((res) => {
-			// Se pidió otro destino después: esta respuesta ya no es la última
-			if (lastDecodedRef.current !== value) return
+			// Solo cuenta la última petición: una anterior puede llegar tarde aunque sea del
+			// mismo destino (A → B → A y el primer A agota el tiempo)
+			if (request !== lnDecodeRequestRef.current) return
 			if (res.success) {
 				setLnDecoded({ value, info: res.data as LightningDecodePayload })
 				return

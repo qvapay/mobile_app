@@ -814,6 +814,24 @@ describe('Lightning (BTCLN)', () => {
 			expect(hasText(tree, SELF_PAY_COPY)).toBe(false)
 		})
 
+		test('a late answer for an earlier request of the same address does not erase the block', async () => {
+			const answers = []
+			withdrawApi.decodeLightning.mockImplementation(() => new Promise((resolve) => { answers.push(resolve) }))
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeQUSD(tree, '100')
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			await typeWallet(tree, OUTSIDE_ADDRESS)
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			await act(async () => { answers[2](SELF_PAY) })
+			await act(async () => { answers[0]({ success: false, error: 'timeout' }) })
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(true)
+			expect(continueButton(tree).props.disabled).toBe(true)
+			// Tampoco reabre la pregunta: el destino ya tiene respuesta
+			await typeWallet(tree, '')
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			expect(withdrawApi.decodeLightning).toHaveBeenCalledTimes(3)
+		})
+
 		test.each([['rate limit', 429], ['server error', 503], ['no network', undefined]])('a passing failure (%s) is asked again when the address comes back', async (_, status) => {
 			withdrawApi.decodeLightning.mockResolvedValueOnce({ success: false, error: 'x', status })
 			withdrawApi.decodeLightning.mockResolvedValueOnce(SELF_PAY)
