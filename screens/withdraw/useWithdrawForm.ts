@@ -87,6 +87,14 @@ type WithdrawFormParams = {
 	lnAmountSats?: number
 }
 
+/** Lo que respondió el decode y para qué destino: solo vale mientras ese destino siga en el campo. */
+type LnDecoded = {
+	value: string
+	info?: LightningDecodePayload
+	/** Fallo del decode (`code: 'LN_SELF_PAY'` = dirección de QvaPay). */
+	error?: { code?: string, message: string }
+}
+
 /**
  * Formulario de retiro: monedas, montos, campos dinámicos y fees.
  *
@@ -120,11 +128,10 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	// Origen de fondos para BTCLN: balance USD o redención de sats de cashback
 	const [source, setSource] = useState<'balance' | 'satoshis'>('balance')
 	const [amountSats, setAmountSats] = useState(lnAmountSats > 0 ? String(lnAmountSats) : '')
-	const [lnInfo, setLnInfo] = useState<LightningDecodePayload | null>(null)
-	/** Fallo del decode de lo escrito en el campo (`code: 'LN_SELF_PAY'` = dirección de QvaPay). */
-	const [lnError, setLnError] = useState<{ code?: string, message: string } | null>(null)
-	// Último destino decodificado: el mismo valor nunca se vuelve a pedir (5 decodes/min por usuario)
+	const [lnDecoded, setLnDecoded] = useState<LnDecoded | null>(null)
+	// Último destino pedido al decode: el mismo valor nunca se vuelve a pedir (5 decodes/min por usuario)
 	const lastDecodedRef = useRef<string | null>(null)
+	const lnDecodeRequestRef = useRef(0)
 
 	// Crypto destination gate (own wallet vs third parties)
 	const [destination, setDestination] = useState<WithdrawDestination | null>(null)
@@ -198,14 +205,14 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 
 	// Prefill de la factura escaneada una vez que BTCLN resuelve del fetch de coins:
 	// destino al campo `wallet` del working_data, monto derivado de la factura (si trae),
-	// y decode informativo (descripción/expiración) con fallo silencioso.
+	// y decode del destino, igual que lo escrito a mano (un QR de una dirección de QvaPay
+	// también se transfiere).
 	const applyLnPrefill = useEffectEvent(() => {
 		// Los casts de `lnInvoice`: el efecto de abajo solo dispara este evento con la factura presente
 		const walletField = workingFields.find((field) => (field.name || '').toLowerCase() === 'wallet')
 		if (walletField) { setWorkingForm((prev) => ({ ...prev, [keyFromFieldName(walletField.name)]: lnInvoice as string })) }
 		if (lnAmountSats > 0) { handleChangeAmountCoin((lnAmountSats / 1e8).toFixed(8)) }
-		lastDecodedRef.current = stripLightningScheme(lnInvoice)
-		withdrawApi.decodeLightning(lnInvoice as string).then((res) => { if (res.success) { setLnInfo(res.data as LightningDecodePayload) } }).catch(() => { })
+		decodeLnDestination(stripLightningScheme(lnInvoice))
 	})
 	useEffect(() => {
 		if (lnInvoice && selectedCoin?.tick === 'BTCLN') { applyLnPrefill() }
@@ -343,24 +350,34 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		return walletField ? keyFromFieldName(walletField.name) : null
 	}, [workingFields])
 	const walletValue = walletFieldKey ? String(workingForm[walletFieldKey] ?? '') : ''
+	const lnDestination = isBTCLN ? stripLightningScheme(walletValue) : ''
+	// Se deriva del destino vigente: con otra moneda u otro valor en el campo no aplica, y
+	// si el mismo valor vuelve, vuelve con su respuesta (no se pide dos veces)
+	const lnResult = lnDecoded?.value === lnDestination ? lnDecoded : null
+	const lnInfo = lnResult?.info ?? null
+	const lnError = lnResult?.error ?? null
+	const decodeLnDestination = useEffectEvent((value: string) => {
+		lastDecodedRef.current = value
+		lnDecodeRequestRef.current += 1
+		const request = lnDecodeRequestRef.current
+		withdrawApi.decodeLightning(value).then((res) => {
+			// Solo cuenta la última petición: una anterior puede llegar tarde aunque sea del
+			// mismo destino (A → B → A y el primer A agota el tiempo)
+			if (request !== lnDecodeRequestRef.current) return
+			if (res.success) {
+				setLnDecoded({ value, info: res.data as LightningDecodePayload })
+				return
+			}
+			setLnDecoded({ value, error: { code: (res.details as { code?: string } | undefined)?.code, message: res.error || '' } })
+			// Sin red, cupo agotado o 5xx no dicen nada del destino: si vuelve, se pregunta otra vez
+			if (!res.status || res.status === 429 || res.status >= 500) { lastDecodedRef.current = null }
+		}).catch(() => { })
+	})
 	useEffect(() => {
-		if (!isBTCLN) return
-		const normalized = stripLightningScheme(walletValue)
-		if (normalized === lastDecodedRef.current) return
-		setLnInfo(null)
-		setLnError(null)
-		if (!classifyLightningInput(normalized)) return
-		let cancelled = false
-		const timer = setTimeout(() => {
-			lastDecodedRef.current = normalized
-			withdrawApi.decodeLightning(normalized).then((res) => {
-				if (cancelled) return
-				if (res.success) { setLnInfo(res.data as LightningDecodePayload) }
-				else { setLnError({ code: (res.details as { code?: string } | undefined)?.code, message: res.error || '' }) }
-			}).catch(() => { })
-		}, 500)
-		return () => { cancelled = true; clearTimeout(timer) }
-	}, [isBTCLN, walletValue])
+		if (lnDestination === lastDecodedRef.current || !classifyLightningInput(lnDestination)) return
+		const timer = setTimeout(() => decodeLnDestination(lnDestination), 500)
+		return () => clearTimeout(timer)
+	}, [lnDestination])
 
 	const isFormValid = useMemo(() => {
 		// Una Lightning Address de QvaPay no se retira: se transfiere (el backend la rechaza con LN_SELF_PAY)
