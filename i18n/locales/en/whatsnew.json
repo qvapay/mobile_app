@@ -25,5 +25,12 @@
 			"body": "In Deposit, ETECSA balance and CUP/MLC cards are no longer left out: pick the coin and you'll see the best open offers to sell it and get the amount in your account.",
 			"cta": "See the offers"
 		}
+	},
+	"v3_10_0": {
+		"ssnDeposit": {
+			"title": "Card and PayPal for US persons",
+			"body": "If you're a US person with GOLD, verify your SSN in Personal details and deposit by card or PayPal up to $500 every 30 days.",
+			"cta": "Verify my SSN"
+		}
 	}
 }

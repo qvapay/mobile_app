@@ -19,7 +19,21 @@
 		},
 		"errors": {
 			"loadCoins": "Erro ao carregar as moedas disponíveis",
-			"createRetry": "Erro ao criar a solicitação de depósito, tente novamente em alguns minutos"
+			"createRetry": "Erro ao criar a solicitação de depósito, tente novamente em alguns minutos",
+			"capExceeded": "Com o seu nível de conta restam ${{remaining}} de limite em 30 dias. Reduza o valor.",
+			"resetsOn": "Volta a ter limite em {{date}}.",
+			"rateLimited": "Aguarde alguns segundos antes de criar outro depósito.",
+			"eligibility": "Não foi possível verificar quais métodos de depósito estão disponíveis para você.",
+			"retry": "Tentar novamente"
+		},
+		"ssnTier": {
+			"remaining": "Restam ${{remaining}} de ${{cap}} em 30 dias",
+			"exhausted": "Volta a ter limite em {{date}}",
+			"exhaustedNoDate": "Você esgotou o limite de 30 dias",
+			"cta": {
+				"title": "Verifique seu SSN para depositar com cartão ou PayPal",
+				"body": "Pessoas dos EUA com GOLD: até $500 a cada 30 dias."
+			}
 		}
 	},
 	"feeMode": {

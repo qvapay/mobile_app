@@ -52,6 +52,11 @@ import { useOfacChecks } from '../../hooks/useOfacQueries'
 import { fundingAttestationRequired } from '../../helpers/ofacCompliance'
 import type { OfacCompliancePayload } from '../../helpers/ofacCompliance'
 
+// Cupo del nivel ssn (tarjeta/PayPal para personas de EE. UU. con SSN verificado)
+import { capIssue, chargeTotalFor, formatCapAmount, formatCapDate } from './depositEligibility'
+import { DEPOSIT_ELIGIBILITY_KEY } from '../../hooks/useDepositEligibilityQuery'
+import type { SsnCap } from './depositEligibility'
+
 // Tipos
 import type { ApiClientError } from '../../types/api'
 import type { Coin } from '../../types/domain'
@@ -87,6 +92,10 @@ type DepositOrderArgs = {
 	feeMode: CardFeeMode
 	/** La moneda elegida se vende en el P2P (ETECSA, tarjetas cubanas): nunca se crea una orden. */
 	isViaP2P?: boolean
+	/** Cupo del nivel ssn para la moneda elegida (null = sin tope: nivel full o moneda no gateada). */
+	ssnCap?: SsnCap | null
+	/** Fee de CARD aplicable: con el fee aparte el servidor cuenta el cobro BRUTO contra el cupo. */
+	cardFeeRate?: number
 }
 
 /**
@@ -95,7 +104,7 @@ type DepositOrderArgs = {
  * @param args - Moneda y monto del formulario más el modo de fee de CARD.
  * @returns Estado del modal de depósito y sus acciones.
  */
-export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode, isViaP2P = false }: DepositOrderArgs) {
+export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode, isViaP2P = false, ssnCap = null, cardFeeRate = 0 }: DepositOrderArgs) {
 
 	const { user } = useAuth()
 	const { sounds } = useSettings()
@@ -148,6 +157,8 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 			// histórico refresca con UNA petición, no una por página cargada
 			queryClient.setQueriesData({ queryKey: ['transactions'] }, trimToFirstPage)
 			queryClient.invalidateQueries({ queryKey: ['transactions'] })
+			// Un cobro de tarjeta/PayPal baja el cupo del nivel ssn
+			queryClient.invalidateQueries({ queryKey: DEPOSIT_ELIGIBILITY_KEY })
 			// Close modal after a brief delay so the success toast reads clearly
 			setTimeout(() => { setShowDepositModal(false) }, 2000)
 			// Ask for app review after modal closes
@@ -199,8 +210,12 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 		if (isNaN(amountValue) || amountValue <= 0) { toast.error(t('add.index.toasts.invalidAmount')); return }
 		if (!selectedCoin || !amount) { toast.error(t('add.index.toasts.missingCoinOrAmount')); return }
 		if (amountValue < parseFloat(selectedCoin.min_in as string)) { toast.error(t('add.index.toasts.minAmount', { name: selectedCoin.name, min: selectedCoin.min_in })); return }
-		// Certificación del uso previsto de los fondos ANTES de crear la orden
+		// Cupo del nivel ssn: el servidor respondería 400 DEPOSIT_MONTHLY_LIMIT; mejor decirlo
+		// antes, en la misma tarjeta inline que el aviso de "por encima del máximo" de Retirar
 		const tick = selectedCoin.tick
+		const issue = capIssue(chargeTotalFor({ tick, amount, feeMode, feeRate: cardFeeRate }), ssnCap)
+		if (issue) { setError(capMessage(ssnCap?.remaining ?? 0, ssnCap?.resetsAt ?? null)); return }
+		// Certificación del uso previsto de los fondos ANTES de crear la orden
 		setIsLoading(true)
 		const usPerson = await resolveUsPerson()
 		setIsLoading(false)
@@ -240,11 +255,27 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 				}
 			} else { toast.error(t('add.index.toasts.createFailed')) }
 		} catch (err) {
-			// El gate de tarjeta y el tope diario responden 400/429 con mensaje propio
-			const serverMessage = (err as ApiClientError)?.response?.data?.error
-			setError(serverMessage || t('add.index.errors.createRetry'))
+			// El gate de tarjeta y el tope diario responden 400/429 con mensaje propio; los
+			// del nivel ssn traen `code` y se redactan aquí (la prosa del servidor es solo español)
+			const body = (err as ApiClientError)?.response?.data
+			if (body?.code === 'DEPOSIT_MONTHLY_LIMIT') {
+				setError(capMessage(Number(body.remaining ?? 0), (body.resets_at as string | null | undefined) ?? null))
+				// El cupo que la pantalla tenía ya no vale
+				queryClient.invalidateQueries({ queryKey: DEPOSIT_ELIGIBILITY_KEY })
+			} else if (body?.code === 'RATE_LIMITED') {
+				setError(t('add.index.errors.rateLimited'))
+			} else {
+				setError(body?.error || t('add.index.errors.createRetry'))
+			}
 		}
 		finally { setIsLoading(false) }
+	}
+
+	/** Aviso de cupo: lo que queda y, si se sabe, cuándo vuelve a haber. */
+	const capMessage = (remaining: number, resetsAt: string | null) => {
+		const base = t('add.index.errors.capExceeded', { remaining: formatCapAmount(remaining) })
+		const date = formatCapDate(resetsAt)
+		return date ? `${base} ${t('add.index.errors.resetsOn', { date })}` : base
 	}
 
 	// Start countdown when deposit modal opens

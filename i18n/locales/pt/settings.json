@@ -840,8 +840,7 @@
 		"sections": {
 			"account": "Conta",
 			"personal": "Informações pessoais",
-			"contact": "Contato e redes",
-			"location": "Localização"
+			"contact": "Contato e redes"
 		},
 		"placeholders": {
 			"username": "Nome de usuário",
@@ -851,9 +850,7 @@
 			"bio": "Biografia ou descrição",
 			"phone": "Telefone",
 			"telegram": "@usuario_telegram",
-			"twitter": "@usuario_twitter",
-			"address": "Endereço",
-			"country": "País (ex.: US, ES, MX)"
+			"twitter": "@usuario_twitter"
 		},
 		"info": "O nome de usuário, o e-mail e o telefone são gerenciados nas respectivas seções das configurações.",
 		"memberSince": "Membro desde: <0>{{date}}</0>",
@@ -861,9 +858,89 @@
 			"loadFailed": "Erro ao carregar os dados do usuário",
 			"nameRequired": "Preencha pelo menos o nome e o sobrenome",
 			"invalidEmail": "Formato de e-mail inválido",
-			"invalidCountry": "O código do país deve ter 2 caracteres (ex.: US, ES)",
 			"updated": "Dados atualizados com sucesso",
 			"updateFailed": "Erro ao atualizar"
+		},
+		"cip": {
+			"section": "Dados da sua conta",
+			"intro": "Informações exigidas por regulação. Pessoas dos EUA devem informar seu SSN/ITIN e endereço.",
+			"complete": "Completo",
+			"usPerson": "Sou pessoa dos EUA",
+			"usPersonHint": "Cidadania, residência ou domicílio fiscal nos Estados Unidos",
+			"ssnLabel": "SSN ou ITIN",
+			"ssnPlaceholder": "9 dígitos",
+			"ssnSaved": "Salvo ···{{last4}}. Deixe em branco para não alterar.",
+			"ssnRemovalWarning": "Você tem um SSN/ITIN salvo (···{{last4}}). Ao salvar sem marcar a caixa, ele será removido do seu cadastro.",
+			"addressTitle": "Endereço nos EUA",
+			"line1": "Rua e número",
+			"line2": "Apartamento ou unidade (opcional)",
+			"city": "Cidade",
+			"state": "Estado",
+			"statePicker": "Escolha o estado",
+			"zip": "ZIP",
+			"country": "Estados Unidos",
+			"privacy": "Seu SSN é criptografado no servidor e nunca é devolvido em texto claro.",
+			"errors": {
+				"ssnInvalid": "O SSN/ITIN deve ter 9 dígitos",
+				"addressRequired": "Preencha a rua e a cidade do seu endereço",
+				"stateRequired": "Escolha o estado do seu endereço",
+				"zipInvalid": "O ZIP deve ser 12345 ou 12345-6789"
+			}
+		},
+		"ssn": {
+			"title": "Verificação do SSN",
+			"hint": "Para pessoas dos EUA com GOLD: cartão e PayPal até $500 a cada 30 dias.",
+			"verified": {
+				"pill": "SSN verificado",
+				"date": "Verificado em {{date}}",
+				"body": "Você pode depositar com cartão e PayPal até $500 a cada 30 dias.",
+				"deposit": "Depositar"
+			},
+			"ready": {
+				"body": "Comparamos o nome e a data de nascimento do seu documento e o seu SSN com registros de crédito. Não é compartilhado com mais ninguém."
+			},
+			"retry": {
+				"notice": "A última tentativa não coincidiu. Confira se o SSN é seu e se o documento está no seu nome."
+			},
+			"attempts_one": "Resta {{count}} tentativa",
+			"attempts_other": "Restam {{count}} tentativas",
+			"button": "Verificar meu SSN",
+			"verifying": "Verificando…",
+			"confirm": {
+				"title": "Verificar seu SSN",
+				"body": "Vamos comparar seu SSN, seu nome e sua data de nascimento com registros de crédito. Leva alguns segundos e usa uma das suas {{max}} tentativas em 30 dias.",
+				"accept": "Verificar"
+			},
+			"toasts": {
+				"success": {
+					"title": "SSN verificado",
+					"body": "Agora você pode depositar com cartão e PayPal."
+				},
+				"noMatch": "Seus dados não coincidem com os registros. Confira se o SSN é seu e se o nome e a data de nascimento do seu documento estão corretos.",
+				"attemptsLeft_one": "Resta {{count}} tentativa.",
+				"attemptsLeft_other": "Restam {{count}} tentativas.",
+				"rateLimited": "Muitas solicitações. Aguarde alguns minutos.",
+				"unavailable": "Não foi possível consultar seus dados agora. Tente mais tarde.",
+				"failed": "Não foi possível verificar seu SSN. Tente de novo."
+			},
+			"block": {
+				"GOLD_REQUIRED": "A verificação do SSN está disponível para contas GOLD.",
+				"KYC_REQUIRED": "Primeiro verifique sua identidade com seu documento.",
+				"NOT_US_PERSON": "Só se aplica a pessoas dos EUA. Marque a caixa acima e salve.",
+				"SSN_MISSING": "Salve seu SSN/ITIN no cadastro antes de verificá-lo.",
+				"DOCUMENT_REQUIRED": "Precisamos do nome e da data de nascimento do seu documento verificado. Verifique sua identidade de novo.",
+				"ADDRESS_REQUIRED": "Complete seu endereço nos EUA no cadastro.",
+				"ATTEMPTS_EXHAUSTED": "Você esgotou as tentativas de verificação dos últimos 30 dias. Escreva ao suporte.",
+				"SDN_BLOCKED": "Não disponível para esta conta.",
+				"STAFF_ACCOUNT": "Não disponível para esta conta.",
+				"UNAVAILABLE": "A verificação do SSN não está disponível no momento."
+			},
+			"actions": {
+				"gold": "Conhecer o GOLD",
+				"kyc": "Verificar identidade",
+				"field": "Completar o cadastro",
+				"support": "Escrever ao suporte"
+			}
 		}
 	},
 	"lightningAddress": {

@@ -19,7 +19,21 @@
 		},
 		"errors": {
 			"loadCoins": "Couldn't load the available coins",
-			"createRetry": "Couldn't create the deposit request, please try again in a few minutes"
+			"createRetry": "Couldn't create the deposit request, please try again in a few minutes",
+			"capExceeded": "With your account level you have ${{remaining}} of allowance left in 30 days. Lower the amount.",
+			"resetsOn": "Available again on {{date}}.",
+			"rateLimited": "Wait a few seconds before creating another deposit.",
+			"eligibility": "We couldn't check which deposit methods are available to you.",
+			"retry": "Retry"
+		},
+		"ssnTier": {
+			"remaining": "${{remaining}} of ${{cap}} left in 30 days",
+			"exhausted": "Available again on {{date}}",
+			"exhaustedNoDate": "You've used up your 30-day allowance",
+			"cta": {
+				"title": "Verify your SSN to deposit by card or PayPal",
+				"body": "US persons with GOLD: up to $500 every 30 days."
+			}
 		}
 	},
 	"feeMode": {

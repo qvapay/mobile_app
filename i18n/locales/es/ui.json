@@ -180,5 +180,8 @@
 		"fallbackName": "Método",
 		"empty": "No hay métodos guardados para esta moneda",
 		"manage": "Gestionar métodos de pago"
+	},
+	"optionPicker": {
+		"searchPlaceholder": "Buscar…"
 	}
 }

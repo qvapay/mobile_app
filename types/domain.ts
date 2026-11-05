@@ -97,6 +97,108 @@ export type User = {
 } & Record<string, unknown>
 
 // ---------------------------------------------------------------------------
+// Ficha CIP (`GET /user/cip`) y verificación del SSN (`POST /user/cip/verify-ssn`)
+// ---------------------------------------------------------------------------
+
+export type SsnVerificationStatus = 'none' | 'verified' | 'partial' | 'no_match'
+
+/** Por qué no puede empezar la verificación (403 de verify-ssn y `block_reason` de la ficha). */
+export type SsnBlockReason =
+	| 'GOLD_REQUIRED' | 'KYC_REQUIRED' | 'NOT_US_PERSON' | 'SSN_MISSING' | 'DOCUMENT_REQUIRED'
+	| 'ADDRESS_REQUIRED' | 'ATTEMPTS_EXHAUSTED' | 'SDN_BLOCKED' | 'STAFF_ACCOUNT' | 'UNAVAILABLE'
+
+/**
+ * Estado de la verificación del SSN contra registros de crédito. `can_start` decide
+ * el botón; `block_reason` + `message` (prosa en español del servidor) dicen por qué no.
+ * Un cambio del SSN en la ficha devuelve `status` a `none`.
+ */
+export type SsnVerification = {
+	status: SsnVerificationStatus
+	verified_at: string | null
+	/** Intentos CON respuesta del proveedor que quedan en los últimos 30 días. */
+	attempts_left: number
+	attempts_max: number
+	can_start: boolean
+	block_reason: SsnBlockReason | null
+	message: string | null
+}
+
+/**
+ * Ficha CIP del titular. Respuesta PLANA de `GET /user/cip` (sin sobre `data`).
+ * `us_person` es la autodeclaración y la ÚNICA fuente de "US person" del backend
+ * (no `users.country` ni el país del KYC). El SSN nunca viaja en claro: solo `ssn_itin_last4`.
+ */
+export type UserCip = {
+	us_person: boolean
+	ssn_itin_last4: string | null
+	addr_line1: string
+	addr_line2: string
+	addr_city: string
+	addr_state: string
+	addr_postal: string
+	addr_country: string
+	cip_status: 'complete' | 'incomplete'
+	has_document_hash: boolean
+	ssn_verification: SsnVerification
+}
+
+/**
+ * Objeto `cip` de `POST /user/update`. Con `us_person: true` la dirección viaja ENTERA
+ * (el backend pone a null lo que no llega) y `ssn` se omite para conservar el guardado.
+ * `us_person: false` borra el SSN de la ficha.
+ */
+export type CipPayload = {
+	us_person: boolean
+	ssn?: string
+	addr_line1?: string
+	addr_line2?: string
+	addr_city?: string
+	addr_state?: string
+	addr_postal?: string
+	addr_country?: string
+}
+
+// ---------------------------------------------------------------------------
+// Elegibilidad de depósito (`GET /user/deposit-eligibility`)
+// ---------------------------------------------------------------------------
+
+/** Nivel con el que la cuenta accede a un riel gateado: sin tope (`full`) o $500/30 días (`ssn`). */
+export type DepositTier = 'full' | 'ssn'
+
+export type DepositRailReason = 'NOT_ELIGIBLE' | 'GEO_CU' | 'SSN_TIER_OFF' | 'CHANNEL'
+
+export type DepositRailEligibility = {
+	eligible: boolean
+	tier: DepositTier | null
+	reason: DepositRailReason | null
+}
+
+/** Cupo del nivel `ssn`: `remaining` es lo que aún puede cobrarse (tarjeta + PayPal sumados). */
+export type SsnDepositTier = {
+	enabled: boolean
+	verified: boolean
+	tester?: boolean
+	cap: number
+	used_30d: number
+	remaining: number
+	window_days: number
+	/** Cuándo sale de la ventana el cobro más antiguo; null sin cobros. */
+	resets_at: string | null
+}
+
+/**
+ * Qué rieles gateados aceptará `POST /topup` a ESTA cuenta desde ESTE canal.
+ * `GET /coins/v2` sigue listando CARD/PAYPAL para todos: no sirve para decidir.
+ */
+export type DepositEligibility = {
+	channel: string
+	card: DepositRailEligibility
+	paypal: DepositRailEligibility
+	bank: DepositRailEligibility
+	ssn_tier: SsnDepositTier
+}
+
+// ---------------------------------------------------------------------------
 // Lightning Address (`GET|POST /user/lightning-address`, LUD-16 `name@qvpay.me`)
 // ---------------------------------------------------------------------------
 

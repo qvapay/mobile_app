@@ -18,16 +18,21 @@ import { unwrap } from '../api/unwrap'
  */
 
 /**
- * ¿El titular se autodeclaró US person? (`GET /user/cip` → `us_person`, la
- * ÚNICA fuente del backend). Decide la atestación de fondeo del depósito y el
- * nombre del destinatario en recargas a Cuba.
+ * Ficha CIP del titular (`GET /user/cip`). `us_person` (la ÚNICA fuente de "US
+ * person" del backend) decide la atestación de fondeo del depósito y el nombre del
+ * destinatario en recargas a Cuba; la misma query alimenta la sección «Datos de tu
+ * cuenta» de Ajustes y el bloque de verificación del SSN. Lleva PII (últimos 4 del
+ * SSN, dirección): NUNCA se persiste.
  */
-export const US_PERSON_QUERY = {
+export const USER_CIP_QUERY = {
 	queryKey: ['user', 'cip'] as const,
 	queryFn: async () => unwrap(await userApi.getCip()),
 	staleTime: 10 * 60 * 1000,
 	meta: { noPersist: true },
 }
+
+/** Nombre histórico (solo se leía `us_person`); misma query. */
+export const US_PERSON_QUERY = USER_CIP_QUERY
 
 /** ¿La transferencia a `to` exige la certificación CACR? (destinatario nacional cubano). */
 export const transferOfacQuery = (to: string) => ({

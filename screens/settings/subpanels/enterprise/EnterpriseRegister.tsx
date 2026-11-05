@@ -1,8 +1,6 @@
-import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Modal } from 'react-native'
-import QPModalCard from '../../../../ui/QPModalCard'
+import { useLayoutEffect, useState } from 'react'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import Animated from 'react-native-reanimated'
-import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 
 // React Query
@@ -17,6 +15,7 @@ import QPInput from '../../../../ui/particles/QPInput'
 import QPPressable from '../../../../ui/particles/QPPressable'
 import QPStepDots from '../../../../ui/particles/QPStepDots'
 import QPSplitButton from '../../../../ui/particles/QPSplitButton'
+import OptionPickerModal from '../../../../ui/OptionPickerModal'
 
 // Wizard transitions (mismo kit que Register/Onboard)
 import useStepTransitions from '../../../../hooks/useStepTransitions'
@@ -51,15 +50,12 @@ import { toast } from 'sonner-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { DocumentPickerResponse } from '@react-native-documents/picker'
 import type { Theme } from '../../../../theme/ThemeContext'
-import type { TextStyles, ContainerStyles } from '../../../../theme/themeUtils'
+import type { TextStyles } from '../../../../theme/themeUtils'
 import type { SettingsStackParamList } from '../../../../types/navigation'
 import type { EnterpriseForm } from './enterpriseForm'
 
 /** Picker modal abierto (ninguno = null). */
 type OpenPicker = null | 'country' | 'incState' | 'addrState'
-
-/** Opción de un OptionPickerModal (código que viaja + etiqueta visible). */
-type PickerOption = { value: string, label: string }
 
 const STEPS = 3
 
@@ -343,9 +339,6 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 				onSelect={selectCountry}
 				onClose={() => setPickerOpen(null)}
 				searchable
-				theme={theme}
-				textStyles={textStyles}
-				containerStyles={containerStyles}
 			/>
 
 			{/* Pickers de estado US (constitución y dirección) */}
@@ -357,9 +350,6 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 				onSelect={(code: string) => { setField('incState')(code); setPickerOpen(null) }}
 				onClose={() => setPickerOpen(null)}
 				searchable
-				theme={theme}
-				textStyles={textStyles}
-				containerStyles={containerStyles}
 			/>
 			<OptionPickerModal
 				visible={pickerOpen === 'addrState'}
@@ -369,9 +359,6 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 				onSelect={(code: string) => { setField('addrState')(code); setPickerOpen(null) }}
 				onClose={() => setPickerOpen(null)}
 				searchable
-				theme={theme}
-				textStyles={textStyles}
-				containerStyles={containerStyles}
 			/>
 
 		</View>
@@ -403,72 +390,6 @@ const Chip = ({ label, selected, onPress, theme }: ChipProps) => (
 		</Text>
 	</QPPressable>
 )
-
-/**
- * Modal centrado de opciones (patrón de la casa: overlay + card, fade,
- * statusBarTranslucent, dismiss al tocar fuera) con búsqueda opcional —
- * lo usan el país de constitución y los estados de EE. UU.
- */
-type OptionPickerModalProps = {
-	visible: boolean
-	title: string
-	options: PickerOption[]
-	selected?: string
-	onSelect: (value: string) => void
-	onClose: () => void
-	searchable?: boolean
-	theme: Theme
-	textStyles: TextStyles
-	containerStyles: ContainerStyles
-}
-
-const optionKey = (o: PickerOption) => o.value
-
-const OptionPickerModal = ({ visible, title, options, selected, onSelect, onClose, searchable = false, theme, textStyles, containerStyles }: OptionPickerModalProps) => {
-
-	const { t } = useTranslation()
-	const [search, setSearch] = useState('')
-	const query = search.trim().toLowerCase()
-	const filtered = useMemo(() => (query
-		? options.filter((o: PickerOption) => o.label.toLowerCase().includes(query) || o.value.toLowerCase().includes(query))
-		: options
-	), [options, query])
-
-	const close = () => { setSearch(''); onClose() }
-
-	const renderItem = useCallback(({ item: option }: { item: PickerOption }) => (
-		<QPPressable
-			style={[styles.pickerOption, option.value === selected && { backgroundColor: theme.colors.primary + '1F' }]}
-			onPress={() => { setSearch(''); onSelect(option.value) }}
-		>
-			<Text style={[textStyles.h4, { color: option.value === selected ? theme.colors.primary : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular }]}>
-				{option.label}
-			</Text>
-			{option.value === selected && <FontAwesome6 name="check" size={14} color={theme.colors.primary} iconStyle="solid" />}
-		</QPPressable>
-	), [selected, theme, textStyles, onSelect])
-
-	return (
-		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
-			<QPPressable style={containerStyles.modalOverlay} onPress={close}>
-				<QPModalCard style={styles.pickerCard}>
-					<Text style={[textStyles.h3, { color: theme.colors.primaryText, marginBottom: 10 }]}>{title}</Text>
-					{searchable && (
-						<QPInput value={search} onChangeText={setSearch} placeholder={t('settings.enterprise.register.searchPlaceholder')} prefixIconName="magnifying-glass" style={{ marginVertical: 0, marginBottom: 8 }} />
-					)}
-					<View style={styles.pickerList}>
-						<FlashList
-							data={filtered}
-							keyExtractor={optionKey}
-							renderItem={renderItem}
-							keyboardShouldPersistTaps="handled"
-						/>
-					</View>
-				</QPModalCard>
-			</QPPressable>
-		</Modal>
-	)
-}
 
 const styles = StyleSheet.create({
 	fill: {
@@ -525,23 +446,6 @@ const styles = StyleSheet.create({
 	},
 	scrollFooterSpace: {
 		height: 24,
-	},
-	pickerCard: {
-		width: '100%',
-	},
-	// Alto FIJO (antes `maxHeight`): FlashList no se mide por su contenido y sin alto no
-	// pinta filas (ver QPAssetSheet). Países y estados superan siempre los 380, y buscar
-	// no encoge el card
-	pickerList: {
-		height: 380,
-	},
-	pickerOption: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		borderRadius: 10,
 	},
 })
 

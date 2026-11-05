@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { LightningAddressAction, LightningAddressState, User } from '../types/domain'
+import type { CipPayload, DepositEligibility, LightningAddressAction, LightningAddressState, User, UserCip } from '../types/domain'
 
 /**
  * Resultado de `userApi.requestKYCSession`: el éxito trae `sessionToken` extra
@@ -12,12 +12,14 @@ import type { LightningAddressAction, LightningAddressState, User } from '../typ
  */
 export type KYCSessionResult = | (ApiSuccess<string> & { sessionToken: string | null }) | (ApiFailure & { reason?: KYCHoldReason })
 
-/**
- * Ficha CIP (`GET /user/cip`) — solo lo que la app lee. `us_person` es la
- * autodeclaración del titular y la ÚNICA fuente de "US person" del backend
- * (no `users.country` ni el país del KYC): decide la atestación de fondeo.
- */
-export type UserCip = { us_person: boolean }
+/** Re-export: la ficha vivía aquí antes de crecer; sus consumidores siguen importándola de userApi. */
+export type { UserCip } from '../types/domain'
+
+/** Éxito de `POST /user/cip/verify-ssn` (desenvuelto de `data`). */
+export type SsnVerifyResult = { status: 'verified', verified_at: string, attempts_left: number }
+
+/** Body de `POST /user/update`: campos sueltos del perfil y, opcionalmente, la ficha CIP. */
+export type UserUpdateInput = Record<string, unknown> & { cip?: CipPayload }
 
 /** `GET /user/block?uuid=`: `blocked` = yo lo bloqueé, `blocked_by` = él me bloqueó. */
 export type UserBlockStatusPayload = { blocked: boolean, blocked_by: boolean }
@@ -231,15 +233,67 @@ export const userApi = {
 	},
 
 	/**
-	 * Gets the user's CIP profile (`GET /user/cip`). Only `us_person` is typed:
-	 * the rest (structured address, SSN last4) is PII the app doesn't need.
+	 * Gets the user's CIP profile (`GET /user/cip`): `us_person`, SSN last4, the structured
+	 * US address and the SSN verification state. The response is FLAT (no `data` envelope).
+	 * PII stays in memory only — the query that holds it is `noPersist`.
 	 *
 	 * @returns `{ success, data?, error?, status? }` — `data` is `UserCip`
 	 */
 	getCip: async (): Promise<ApiResult<UserCip>> => {
 		try {
 			const response = await apiClient.get('/user/cip', { silent: true })
-			return { success: true, data: { us_person: response.data?.us_person === true }, status: response.status }
+			const raw = (response.data ?? {}) as Partial<UserCip>
+			// Un backend anterior no manda `ssn_verification`: se normaliza a "no disponible"
+			const data: UserCip = {
+				us_person: raw.us_person === true,
+				ssn_itin_last4: raw.ssn_itin_last4 ?? null,
+				addr_line1: raw.addr_line1 ?? '',
+				addr_line2: raw.addr_line2 ?? '',
+				addr_city: raw.addr_city ?? '',
+				addr_state: raw.addr_state ?? '',
+				addr_postal: raw.addr_postal ?? '',
+				addr_country: raw.addr_country ?? '',
+				cip_status: raw.cip_status === 'complete' ? 'complete' : 'incomplete',
+				has_document_hash: raw.has_document_hash === true,
+				ssn_verification: raw.ssn_verification ?? {
+					status: 'none', verified_at: null, attempts_left: 0, attempts_max: 0,
+					can_start: false, block_reason: 'UNAVAILABLE', message: null,
+				},
+			}
+			return { success: true, data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Runs the SSN verification against credit-bureau records (`POST /user/cip/verify-ssn`,
+	 * no body, synchronous: a few seconds). The failure keeps the raw body in `details`
+	 * (`code`, `attempts_left`) — 409 no/partial match consume an attempt, 503 does not.
+	 *
+	 * @returns `{ success, data?, error?, status?, details? }` — `data` is `SsnVerifyResult`
+	 */
+	verifySsn: async (): Promise<ApiResult<SsnVerifyResult>> => {
+		try {
+			const response = await apiClient.post('/user/cip/verify-ssn', {})
+			return { success: true, data: response.data?.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || error.message, status: error.response?.status, details: error.response?.data }
+		}
+	},
+
+	/**
+	 * Which gated deposit rails (`card`, `paypal`, `bank`) `POST /topup` will accept for
+	 * this account from this channel, with tier and the `ssn` cap (`GET /user/deposit-eligibility`).
+	 *
+	 * @returns `{ success, data?, error?, status? }` — `data` is `DepositEligibility`
+	 */
+	getDepositEligibility: async (): Promise<ApiResult<DepositEligibility>> => {
+		try {
+			const response = await apiClient.get('/user/deposit-eligibility', { silent: true })
+			return { success: true, data: response.data?.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
 			return { success: false, error: error.message, status: error.response?.status }
@@ -265,16 +319,20 @@ export const userApi = {
 	/**
 	 * Updates the current user's profile fields (`POST /user/update`).
 	 *
-	 * @param userData - Partial profile fields to update (name, bio, username, ...)
+	 * `cip` (ficha CIP) es opcional: el backend la valida DESPUÉS de guardar el resto,
+	 * así que un 400 de `cip` deja el perfil ya escrito — la pantalla valida antes.
+	 *
+	 * @param userData - Partial profile fields to update (name, bio, username, ...) and/or `cip`
 	 * @returns `{ success, data?, error?, status? }` — `data` is the updated profile
 	 */
-	updateUser: async (userData: Record<string, unknown>): Promise<ApiResult<unknown>> => {
+	updateUser: async (userData: UserUpdateInput): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/user/update`, userData)
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
-			return { success: false, error: error.message, status: error.response?.status }
+			// El 400 del CIP trae la prosa de validación en `error`: la pantalla la enseña tal cual
+			return { success: false, error: error.response?.data?.error || error.message, status: error.response?.status, details: error.response?.data }
 		}
 	},
 

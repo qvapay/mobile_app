@@ -25,5 +25,12 @@
 			"body": "Em Depositar, o saldo ETECSA e os cartões em CUP e MLC já não ficam de fora: escolha a moeda e verá as melhores ofertas abertas para vendê-lo e receber o valor na sua conta.",
 			"cta": "Ver as ofertas"
 		}
+	},
+	"v3_10_0": {
+		"ssnDeposit": {
+			"title": "Cartão e PayPal para pessoas dos EUA",
+			"body": "Se você é pessoa dos EUA e tem GOLD, verifique seu SSN em Dados pessoais e deposite com cartão ou PayPal até $500 a cada 30 dias.",
+			"cta": "Verificar meu SSN"
+		}
 	}
 }
