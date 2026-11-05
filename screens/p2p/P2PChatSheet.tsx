@@ -1,8 +1,11 @@
-import { useEffect, useEffectEvent } from "react"
-import { View, Pressable, BackHandler, StyleSheet } from "react-native"
+import { useEffect, useEffectEvent, useLayoutEffect } from "react"
+import { View, Pressable, BackHandler, StyleSheet, useWindowDimensions } from "react-native"
 
-import Animated, { FadeIn, FadeOut, SlideOutDown, useAnimatedKeyboard, useAnimatedStyle, KeyboardState } from "react-native-reanimated"
+import Animated, { FadeIn, FadeOut, SlideOutDown, useAnimatedKeyboard, useAnimatedStyle, useSharedValue, withSpring, withTiming, KeyboardState } from "react-native-reanimated"
+import { GestureDetector, usePanGesture } from "react-native-gesture-handler"
+import { scheduleOnRN } from "react-native-worklets"
 import { SHEET_ENTERING, SHEET_MAX_RATIO } from '../../ui/sheetConfig'
+import { shouldDismissSheet } from '../../ui/sheetDrag'
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import type { EdgeInsets } from "react-native-safe-area-context"
@@ -27,6 +30,13 @@ type P2PChatSheetProps = {
 	onMoreCounterparty?: () => void
 }
 
+/** El arrastre arranca tras bajar estos puntos: por debajo sigue siendo un toque en la cabecera. */
+const DRAG_ACTIVE_OFFSET = 10
+/** Un gesto de lado no es arrastrar la hoja. */
+const DRAG_FAIL_OFFSET_X = 20
+const DRAG_SPRING = { damping: 24, stiffness: 260, mass: 0.7 }
+const DRAG_CLOSE_TIMING = { duration: 180 }
+
 /**
  * Chat as a bottom sheet in the app's canonical sheet language (QPCoinPicker):
  * dark overlay + sheet anchored at the bottom with grabber and continuous top
@@ -35,6 +45,9 @@ type P2PChatSheetProps = {
  * peer row + close as its header and the panel rendered flat inside.
  * The SCREEN keeps owning the useP2PChat state: messages keep flowing
  * (SSE/poll) while the sheet is closed and the unread badge stays accurate.
+ *
+ * Se cierra arrastrando hacia abajo el agarrador o la cabecera. Solo ellos: en la
+ * lista de mensajes ese gesto es hacer scroll.
  *
  * Se renderiza como overlay INLINE de la pantalla y no como `Modal`. El
  * padding del teclado se mide con `useAnimatedKeyboard` de Reanimated, que en
@@ -75,6 +88,36 @@ const P2PChatSheet = ({ visible, onClose, insets, theme, textStyles, containerSt
 		return () => sub.remove()
 	}, [visible])
 
+	// Arrastre de la hoja por su cabecera, en la UI thread. Sale de pantalla ANTES de
+	// avisar: el padre desmonta en ese momento y la salida ya no vería el desplazamiento
+	const { height: windowHeight } = useWindowDimensions()
+	const dragY = useSharedValue(0)
+	const dragPan = usePanGesture({
+		activeOffsetY: DRAG_ACTIVE_OFFSET,
+		failOffsetX: [-DRAG_FAIL_OFFSET_X, DRAG_FAIL_OFFSET_X],
+		onUpdate: event => {
+			'worklet'
+			dragY.value = Math.max(event.translationY, 0)
+		},
+		onDeactivate: event => {
+			'worklet'
+			if (event.canceled || !shouldDismissSheet(event.translationY, event.velocityY)) {
+				dragY.value = withSpring(0, DRAG_SPRING)
+				return
+			}
+			dragY.value = withTiming(windowHeight, DRAG_CLOSE_TIMING, finished => {
+				'worklet'
+				if (finished) scheduleOnRN(onClose)
+			})
+		},
+	})
+	const dragStyle = useAnimatedStyle(() => ({ transform: [{ translateY: dragY.value }] }))
+
+	// La hoja que se fue arrastrando deja puesto su desplazamiento: la siguiente arranca de cero
+	useLayoutEffect(() => {
+		if (visible) dragY.value = 0
+	}, [visible, dragY])
+
 	if (!visible) return null
 
 	return (
@@ -88,37 +131,41 @@ const P2PChatSheet = ({ visible, onClose, insets, theme, textStyles, containerSt
 				    Animated.View y no Pressable: animar un Pressable revienta en Fabric */}
 				<Animated.View
 					onStartShouldSetResponder={() => true}
-					style={[styles.sheet, { backgroundColor: theme.colors.surface }]}
+					style={[styles.sheet, { backgroundColor: theme.colors.surface }, dragStyle]}
 				>
 					{/* Contenido sobre el que cae el padding del teclado (animated style en la UI thread) */}
 					<Animated.View style={[styles.sheetContent, keyboardPaddingStyle]}>
 
-						{/* Grabber */}
-						<View style={[styles.grabber, { backgroundColor: theme.colors.border }]} />
+						<GestureDetector gesture={dragPan}>
+							<View>
+								{/* Grabber */}
+								<View style={[styles.grabber, { backgroundColor: theme.colors.border }]} />
 
-						{/* Header: contraparte + cerrar. Separación por AIRE, no por línea —
-						    la hairline solo existe en light (regla de la casa: nada de bordes
-						    sutiles sobre surface en dark) */}
-						<View style={[styles.header, !theme.isDark && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}>
-							<P2PPeerRow
-								targetUser={chatPanelProps.counterparty}
-								wrapStyle={styles.headerPeer}
-								peerStats={chatPanelProps.peerStats}
-								peerReviewsCount={chatPanelProps.peerReviewsCount}
-								isOnline={chatPanelProps.isUserOnline?.(chatPanelProps.counterparty?.uuid)}
-								onPress={chatPanelProps.openPeerProfile}
-								theme={theme}
-								textStyles={textStyles}
-							/>
-							{onMoreCounterparty ? (
-								<Pressable onPress={onMoreCounterparty} hitSlop={8} style={styles.closeButton} accessibilityRole="button" testID="chat-more">
-									<FontAwesome6 name="ellipsis" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
-								</Pressable>
-							) : null}
-							<Pressable onPress={onClose} hitSlop={8} style={styles.closeButton}>
-								<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
-							</Pressable>
-						</View>
+								{/* Header: contraparte + cerrar. Separación por AIRE, no por línea —
+								    la hairline solo existe en light (regla de la casa: nada de bordes
+								    sutiles sobre surface en dark) */}
+								<View style={[styles.header, !theme.isDark && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}>
+									<P2PPeerRow
+										targetUser={chatPanelProps.counterparty}
+										wrapStyle={styles.headerPeer}
+										peerStats={chatPanelProps.peerStats}
+										peerReviewsCount={chatPanelProps.peerReviewsCount}
+										isOnline={chatPanelProps.isUserOnline?.(chatPanelProps.counterparty?.uuid)}
+										onPress={chatPanelProps.openPeerProfile}
+										theme={theme}
+										textStyles={textStyles}
+									/>
+									{onMoreCounterparty ? (
+										<Pressable onPress={onMoreCounterparty} hitSlop={8} style={styles.closeButton} accessibilityRole="button" testID="chat-more">
+											<FontAwesome6 name="ellipsis" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
+										</Pressable>
+									) : null}
+									<Pressable onPress={onClose} hitSlop={8} style={styles.closeButton}>
+										<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
+									</Pressable>
+								</View>
+							</View>
+						</GestureDetector>
 
 						<P2PChatPanel
 							{...chatPanelProps}
