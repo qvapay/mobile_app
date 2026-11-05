@@ -27,6 +27,7 @@ jest.mock('sonner-native', () => ({ toast: { info: jest.fn(), success: jest.fn()
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../settings/SettingsContext', () => ({ useSettings: jest.fn() }))
 jest.mock('../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
+jest.mock('../lock/AppLockContext', () => ({ useAppLock: jest.fn() }))
 jest.mock('../helpers/playSound', () => jest.fn())
 jest.mock('../helpers/installReferrer', () => ({ consumeInstallReferrer: jest.fn() }))
 jest.mock('../helpers/versionCheck', () => ({ maybePromptUpdate: jest.fn() }))
@@ -45,6 +46,8 @@ import { toast } from 'sonner-native'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
 import { useWallet } from '../wallet/WalletContext'
+import { useAppLock } from '../lock/AppLockContext'
+import { acquireModalPresence, isAnyModalPresented } from '../ui/modalPresence'
 import playSound from '../helpers/playSound'
 import { consumeInstallReferrer } from '../helpers/installReferrer'
 import { maybePromptUpdate } from '../helpers/versionCheck'
@@ -80,6 +83,7 @@ beforeEach(() => {
 	useNavigation.mockReturnValue(navigation)
 	useAuth.mockReturnValue({ user: { uuid: 'me' }, isAuthenticated: true, isLoading: false })
 	useWallet.mockReturnValue({ isReady: true, hasWallet: false })
+	useAppLock.mockReturnValue({ isLocked: false, isCovered: false, isReady: true })
 	useSettings.mockReturnValue({
 		appearance: { firstTime: false },
 		sounds: { enabled: true, transactionSound: true },
@@ -169,6 +173,145 @@ describe('auth ↔ navigation reconciliation', () => {
 		await passSplash()
 		expect(navigation.reset).not.toHaveBeenCalled()
 	})
+})
+
+// Actualizar = abrir la app con la sesión ya iniciada: el navigator NACE en
+// MainStack (initialRouteName) y la reconciliación no tiene nada que resetear
+describe('WhatsNew on a cold start with a session (the update path)', () => {
+	const WHATS_NEW = ['WhatsNew', { version: '3.8.0' }]
+	const tick = (ms = 1) => act(async () => { jest.advanceTimersByTime(ms) })
+	const renderCold = async () => {
+		let renderer
+		const Harness = () => { useAppNavigation({ current: null }); return null }
+		await act(async () => { renderer = create(<Harness />) })
+		return { rerender: () => act(async () => { renderer.update(<Harness />) }) }
+	}
+
+	beforeEach(() => {
+		navigation.getState.mockReturnValue({ index: 0, routes: [{ name: 'MainStack' }] })
+	})
+	// `modalPresence` es estado de módulo: ningún test puede dejar un modal apuntado
+	afterEach(() => { expect(isAnyModalPresented()).toBe(false) })
+
+	test('shows on top of MainStack without resetting the stack', async () => {
+		await renderCold()
+		await passSplash()
+		expect(navigation.navigate).not.toHaveBeenCalled()
+		await tick()
+		expect(navigation.reset).not.toHaveBeenCalled()
+		expect(navigation.navigate).toHaveBeenCalledWith(...WHATS_NEW)
+	})
+
+	test('already seen for this version stays silent', async () => {
+		useSettings.mockReturnValue({ appearance: { firstTime: false, lastSeenWhatsNew: '3.8.0' }, sounds: { enabled: true, transactionSound: true }, isLoading: false })
+		await renderCold()
+		await passSplash()
+		await tick(2000)
+		expect(navigation.navigate).not.toHaveBeenCalled()
+	})
+
+	test('waits until the lock has decided whether to arm', async () => {
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, isReady: false })
+		const { rerender } = await renderCold()
+		await passSplash()
+		await tick(5000)
+		expect(navigation.navigate).not.toHaveBeenCalled()
+
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, isReady: true })
+		await rerender()
+		await tick()
+		expect(navigation.navigate).toHaveBeenCalledWith(...WHATS_NEW)
+	})
+
+	// En iOS react-native-screens cierra el <Modal> del bloqueo para presentar el
+	// suyo: «desbloqueado» no basta, el modal tiene que haber terminado de irse
+	test('never while locked, nor while the lock modal is still leaving the screen', async () => {
+		const releaseLockModal = acquireModalPresence()
+		useAppLock.mockReturnValue({ isLocked: true, isCovered: false, isReady: true })
+		const { rerender } = await renderCold()
+		await passSplash()
+		await tick(5000)
+		expect(navigation.navigate).not.toHaveBeenCalled()
+
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, isReady: true })
+		await rerender()
+		await tick(5000)
+		expect(navigation.navigate).not.toHaveBeenCalled()
+
+		await act(async () => { releaseLockModal() })
+		await tick()
+		expect(navigation.navigate).toHaveBeenCalledWith(...WHATS_NEW)
+	})
+
+	test('the curtain coming down before it fires cancels it', async () => {
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, isReady: false })
+		const { rerender } = await renderCold()
+		await passSplash()
+		// Listo y, en el mismo tick, la app se va al fondo: cortina
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, isReady: true })
+		await rerender()
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: true, isReady: true })
+		await rerender()
+		await tick(5000)
+		expect(navigation.navigate).not.toHaveBeenCalled()
+	})
+
+	test('a store-update prompt in front holds it back until it is gone', async () => {
+		maybePromptUpdate.mockResolvedValue({ needsUpdate: true, latestVersion: '9.9.9' })
+		const result = { current: null }
+		const Harness = () => { result.current = useAppNavigation({ current: null }); return null }
+		await act(async () => { create(<Harness />) })
+		await passSplash()
+		await tick(5000)
+		expect(navigation.navigate).not.toHaveBeenCalled()
+
+		await act(async () => { result.current.dismissUpdate() })
+		await tick()
+		expect(navigation.navigate).toHaveBeenCalledWith(...WHATS_NEW)
+	})
+
+	test('a screen already open on top of MainStack wins, and it is not offered later in the process', async () => {
+		navigation.getState.mockReturnValue({ index: 1, routes: [{ name: 'MainStack' }, { name: 'P2POffer' }] })
+		const { rerender } = await renderCold()
+		await passSplash()
+		await tick()
+		expect(navigation.navigate).not.toHaveBeenCalled()
+
+		// Vuelve a Home y pasa por un bloqueo: sigue sin salir hasta el próximo arranque
+		navigation.getState.mockReturnValue({ index: 0, routes: [{ name: 'MainStack' }] })
+		useAppLock.mockReturnValue({ isLocked: true, isCovered: false, isReady: true })
+		await rerender()
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, isReady: true })
+		await rerender()
+		await tick(5000)
+		expect(navigation.navigate).not.toHaveBeenCalled()
+	})
+
+	test('is offered once per process', async () => {
+		const { rerender } = await renderCold()
+		await passSplash()
+		await tick()
+		expect(navigation.navigate).toHaveBeenCalledTimes(1)
+
+		useAppLock.mockReturnValue({ isLocked: true, isCovered: false, isReady: true })
+		await rerender()
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, isReady: true })
+		await rerender()
+		await tick(5000)
+		expect(navigation.navigate).toHaveBeenCalledTimes(1)
+	})
+
+	test('a logged-out start never shows it', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		navigation.getState.mockReturnValue({ index: 0, routes: [{ name: 'Welcome' }] })
+		await renderCold()
+		await passSplash()
+		await tick(5000)
+		expect(navigation.navigate).not.toHaveBeenCalled()
+	})
+})
+
+describe('auth ↔ navigation reconciliation: deep links', () => {
 
 	test('a pending Pay deep link resets to MainStack + Pay so back lands on Home', async () => {
 		const pendingRef = { current: `https://qvapay.com/pay/${P2P_UUID}` }
