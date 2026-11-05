@@ -908,14 +908,14 @@
 			"verifying": "Verificando…",
 			"confirm": {
 				"title": "Verificar seu SSN",
-				"body": "Vamos comparar seu SSN, seu nome e sua data de nascimento com registros de crédito. Leva alguns segundos e usa uma das suas {{max}} tentativas em 30 dias.",
+				"body": "Vamos comparar seu SSN, seu nome e sua data de nascimento com registros de crédito. Leva alguns segundos.",
 				"accept": "Verificar"
 			},
+			"success": {
+				"title": "SSN verificado",
+				"body": "Agora você pode depositar com cartão e PayPal."
+			},
 			"toasts": {
-				"success": {
-					"title": "SSN verificado",
-					"body": "Agora você pode depositar com cartão e PayPal."
-				},
 				"noMatch": "Seus dados não coincidem com os registros. Confira se o SSN é seu e se o nome e a data de nascimento do seu documento estão corretos.",
 				"attemptsLeft_one": "Resta {{count}} tentativa.",
 				"attemptsLeft_other": "Restam {{count}} tentativas.",

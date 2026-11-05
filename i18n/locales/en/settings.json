@@ -908,14 +908,14 @@
 			"verifying": "Checking…",
 			"confirm": {
 				"title": "Verify your SSN",
-				"body": "We'll check your SSN, name and date of birth against credit records. It takes a few seconds and uses one of your {{max}} attempts per 30 days.",
+				"body": "We'll check your SSN, name and date of birth against credit records. It takes a few seconds.",
 				"accept": "Verify"
 			},
+			"success": {
+				"title": "SSN verified",
+				"body": "You can now deposit by card and PayPal."
+			},
 			"toasts": {
-				"success": {
-					"title": "SSN verified",
-					"body": "You can now deposit by card and PayPal."
-				},
 				"noMatch": "Your details don't match the records. Make sure the SSN is yours and that the name and date of birth on your document are correct.",
 				"attemptsLeft_one": "{{count}} attempt left.",
 				"attemptsLeft_other": "{{count}} attempts left.",

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Linking, Modal, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
@@ -50,7 +51,8 @@ const SUPPORT_MAILTO = 'mailto:soporte@qvapay.com'
  * + fecha de nacimiento del documento con registros de crédito (`POST /user/cip/verify-ssn`,
  * síncrono) y abre tarjeta y PayPal con cupo de $500/30 días. Cuatro estados derivados
  * por `deriveSsnView`: verificado · listo · reintento · bloqueado (con la acción por
- * `block_reason`). Nunca nombra al proveedor.
+ * `block_reason`). El éxito se celebra en un modal que espera a que lo cierre el usuario.
+ * Nunca nombra al proveedor.
  */
 const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
 
@@ -64,12 +66,14 @@ const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
 	const view = deriveSsnView(cip.ssn_verification)
 	const [confirming, setConfirming] = useState(false)
 	const [verifying, setVerifying] = useState(false)
-	const [celebrate, setCelebrate] = useState(false)
+	const [celebrating, setCelebrating] = useState(false)
 	// En vuelo: el servidor no tiene restricción única y la llamada cobra intento
 	const inFlight = useRef(false)
 	// Cerrar la confirmación justo al tocar «Verificar» = ocultar un Modal recién presentado:
 	// pasa por el gate para no dejar un zombi en iOS
-	const gate = useModalGate(confirming)
+	const confirmGate = useModalGate(confirming)
+	// El éxito espera a que la confirmación termine de irse: dos `<Modal>` a la vez fallan en iOS
+	const successGate = useModalGate(celebrating && !confirmGate.mounted)
 
 	const refresh = useCallback(() => {
 		queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey })
@@ -85,8 +89,7 @@ const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
 			const result = await userApi.verifySsn()
 			if (result.success) {
 				queryClient.setQueryData(USER_CIP_QUERY.queryKey, (current: UserCip | null | undefined) => applyVerified(current ?? cip, result.data))
-				setCelebrate(true)
-				toast.success(t('settings.userdata.ssn.toasts.success.title'), { description: t('settings.userdata.ssn.toasts.success.body') })
+				setCelebrating(true)
 				refresh()
 				return
 			}
@@ -127,6 +130,7 @@ const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
 	}, [navigation, onHighlight])
 
 	const goDeposit = useCallback(() => { navigation.navigate(ROUTES.ADD, { preselectedCoin: 'CARD' }) }, [navigation])
+	const closeSuccess = useCallback(() => setCelebrating(false), [])
 
 	const formatDate = (iso: string | null) => {
 		if (!iso) { return '' }
@@ -134,66 +138,40 @@ const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
 		return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(getDateLocale(), { year: 'numeric', month: 'long', day: 'numeric' })
 	}
 
-	const header = (
-		<View style={styles.header}>
-			<FontAwesome6 name="shield-halved" size={14} color={theme.colors.primary} iconStyle="solid" />
-			<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginLeft: 8, marginBottom: 0, flex: 1 }]}>{t('settings.userdata.ssn.title')}</Text>
-			{view.phase === 'verified' && (
-				<View style={[styles.pill, { backgroundColor: theme.colors.successFill }]} testID="ssn-verified-pill">
-					<FontAwesome6 name="circle-check" size={11} color={theme.colors.successFillText} iconStyle="solid" />
-					<Text style={[textStyles.caption, { color: theme.colors.successFillText, fontFamily: theme.typography.fontFamily.medium }]}>{t('settings.userdata.ssn.verified.pill')}</Text>
-				</View>
-			)}
-		</View>
-	)
-
-	// 1. Verificado: fecha, cupo y acceso directo a Depositar
+	let content: ReactNode
 	if (view.phase === 'verified') {
-		return (
-			<View style={styles.section} testID="ssn-block-verified">
-				{header}
-				<View style={containerStyles.card}>
-					{celebrate && (
-						<LottieView source={require('../../../../assets/lotties/verified.json')} autoPlay loop={false} style={styles.lottie} onAnimationFinish={() => setCelebrate(false)} />
-					)}
-					{!!view.verifiedAt && <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('settings.userdata.ssn.verified.date', { date: formatDate(view.verifiedAt) })}</Text>}
-					<Text style={[textStyles.body, { color: theme.colors.primaryText, marginTop: 4 }]}>{t('settings.userdata.ssn.verified.body')}</Text>
-					<QPButton title={t('settings.userdata.ssn.verified.deposit')} onPress={goDeposit} icon="plus" iconStyle="solid" iconColor={theme.colors.almostWhite} style={styles.button} textStyle={{ color: theme.colors.almostWhite }} />
-				</View>
-			</View>
+		// 1. Verificado: fecha, cupo y acceso directo a Depositar
+		content = (
+			<>
+				{!!view.verifiedAt && <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('settings.userdata.ssn.verified.date', { date: formatDate(view.verifiedAt) })}</Text>}
+				<Text style={[textStyles.body, { color: theme.colors.primaryText, marginTop: 4 }]}>{t('settings.userdata.ssn.verified.body')}</Text>
+				<QPButton title={t('settings.userdata.ssn.verified.deposit')} onPress={goDeposit} icon="plus" iconStyle="solid" iconColor={theme.colors.almostWhite} style={styles.button} textStyle={{ color: theme.colors.almostWhite }} />
+			</>
 		)
-	}
-
-	// 3. Bloqueado: el motivo del servidor y la salida que corresponde
-	if (view.phase === 'blocked') {
+	} else if (view.phase === 'blocked') {
+		// 3. Bloqueado: el motivo del servidor y la salida que corresponde
 		const action = blockActionFor(view.blockReason)
 		const key = `settings.userdata.ssn.block.${view.blockReason ?? 'UNAVAILABLE'}`
 		const message = t(key) !== key ? t(key) : (view.message || t('settings.userdata.ssn.block.UNAVAILABLE'))
-		return (
-			<View style={styles.section} testID="ssn-block-blocked">
-				{header}
-				<View style={containerStyles.card}>
-					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>{t('settings.userdata.ssn.hint')}</Text>
-					<View style={styles.blockedRow}>
-						<FontAwesome6 name="circle-info" size={14} color={theme.colors.warning} iconStyle="solid" />
-						<Text style={[textStyles.body, { color: theme.colors.primaryText, flex: 1 }]}>{message}</Text>
-					</View>
-					{action.kind !== 'none' && (
-						<QPPressable onPress={() => runBlockAction(action)} style={styles.link} accessibilityRole="button" testID="ssn-block-action">
-							<Text style={[textStyles.body, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }]}>{t(`settings.userdata.ssn.actions.${action.kind}`)}</Text>
-							<FontAwesome6 name="chevron-right" size={12} color={theme.colors.primary} iconStyle="solid" />
-						</QPPressable>
-					)}
+		content = (
+			<>
+				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>{t('settings.userdata.ssn.hint')}</Text>
+				<View style={styles.blockedRow}>
+					<FontAwesome6 name="circle-info" size={14} color={theme.colors.warning} iconStyle="solid" />
+					<Text style={[textStyles.body, { color: theme.colors.primaryText, flex: 1 }]}>{message}</Text>
 				</View>
-			</View>
+				{action.kind !== 'none' && (
+					<QPPressable onPress={() => runBlockAction(action)} style={styles.link} accessibilityRole="button" testID="ssn-block-action">
+						<Text style={[textStyles.body, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }]}>{t(`settings.userdata.ssn.actions.${action.kind}`)}</Text>
+						<FontAwesome6 name="chevron-right" size={12} color={theme.colors.primary} iconStyle="solid" />
+					</QPPressable>
+				)}
+			</>
 		)
-	}
-
-	// 2 y 4. Puede verificar (con el aviso de reintento si el último no casó)
-	return (
-		<View style={styles.section} testID="ssn-block-ready">
-			{header}
-			<View style={containerStyles.card}>
+	} else {
+		// 2 y 4. Puede verificar (con el aviso de reintento si el último no casó)
+		content = (
+			<>
 				<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>{t('settings.userdata.ssn.ready.body')}</Text>
 				{view.phase === 'retry' && (
 					<View style={[styles.blockedRow, { marginTop: 10 }]}>
@@ -213,18 +191,50 @@ const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
 					style={styles.button}
 					textStyle={{ color: theme.colors.almostWhite }}
 				/>
+			</>
+		)
+	}
+
+	return (
+		<View style={styles.section} testID={`ssn-block-${view.phase}`}>
+			<View style={styles.header}>
+				<FontAwesome6 name="shield-halved" size={14} color={theme.colors.primary} iconStyle="solid" />
+				<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginLeft: 8, marginBottom: 0, flex: 1 }]}>{t('settings.userdata.ssn.title')}</Text>
+				{view.phase === 'verified' && (
+					<View style={[styles.pill, { backgroundColor: theme.colors.successFill }]} testID="ssn-verified-pill">
+						<FontAwesome6 name="circle-check" size={11} color={theme.colors.successFillText} iconStyle="solid" />
+						<Text style={[textStyles.caption, { color: theme.colors.successFillText, fontFamily: theme.typography.fontFamily.medium }]}>{t('settings.userdata.ssn.verified.pill')}</Text>
+					</View>
+				)}
 			</View>
+			<View style={containerStyles.card}>{content}</View>
+
+			{/* Los modales no dependen de la fase: verificar la cambia, y desmontar la confirmación a medio cerrar dejaría un zombi en iOS */}
 
 			{/* Confirmación: la consulta cobra uno de los intentos */}
-			{gate.mounted && (
-				<Modal visible={gate.visible} onShow={gate.onShow} onDismiss={gate.onDismiss} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setConfirming(false)}>
+			{confirmGate.mounted && (
+				<Modal visible={confirmGate.visible} onShow={confirmGate.onShow} onDismiss={confirmGate.onDismiss} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setConfirming(false)}>
 					<QPPressable style={containerStyles.modalOverlay} onPress={() => setConfirming(false)}>
-						<QPModalCard key={gate.generation}>
+						<QPModalCard key={confirmGate.generation}>
 							<FontAwesome6 name="shield-halved" size={40} color={theme.colors.primary} iconStyle="solid" style={styles.modalIcon} />
 							<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>{t('settings.userdata.ssn.confirm.title')}</Text>
-							<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 16 }]}>{t('settings.userdata.ssn.confirm.body', { max: view.attemptsMax })}</Text>
+							<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 16 }]}>{t('settings.userdata.ssn.confirm.body')}</Text>
 							<QPButton title={t('settings.userdata.ssn.confirm.accept')} onPress={verify} style={{ backgroundColor: theme.colors.primary, marginBottom: 8 }} textStyle={{ color: theme.colors.almostWhite }} testID="ssn-confirm-accept" />
 							<QPButton title={t('common.actions.cancel')} onPress={() => setConfirming(false)} style={{ backgroundColor: 'transparent' }} textStyle={{ color: theme.colors.secondaryText }} />
+						</QPModalCard>
+					</QPPressable>
+				</Modal>
+			)}
+
+			{/* Éxito: la animación termina en el check y ahí se queda hasta que el usuario cierre */}
+			{successGate.mounted && (
+				<Modal visible={successGate.visible} onShow={successGate.onShow} onDismiss={successGate.onDismiss} transparent animationType="fade" statusBarTranslucent onRequestClose={closeSuccess}>
+					<QPPressable style={containerStyles.modalOverlay} onPress={closeSuccess}>
+						<QPModalCard key={successGate.generation} testID="ssn-success-modal">
+							<LottieView source={require('../../../../assets/lotties/verified.json')} autoPlay loop={false} style={styles.lottie} />
+							<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>{t('settings.userdata.ssn.success.title')}</Text>
+							<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 16 }]}>{t('settings.userdata.ssn.success.body')}</Text>
+							<QPButton title={t('common.actions.understood')} onPress={closeSuccess} style={{ backgroundColor: theme.colors.primary }} textStyle={{ color: theme.colors.almostWhite }} testID="ssn-success-close" />
 						</QPModalCard>
 					</QPPressable>
 				</Modal>
@@ -240,7 +250,7 @@ const styles = StyleSheet.create({
 	blockedRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
 	link: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, alignSelf: 'flex-start' },
 	button: { marginTop: 14 },
-	lottie: { width: 96, height: 96, alignSelf: 'center' },
+	lottie: { width: 120, height: 120, alignSelf: 'center', marginBottom: 8 },
 	modalIcon: { alignSelf: 'center', marginBottom: 16 },
 })
 

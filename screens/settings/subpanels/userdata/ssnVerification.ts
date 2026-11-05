@@ -20,7 +20,6 @@ export type SsnPhase = 'verified' | 'ready' | 'retry' | 'blocked'
 export type SsnView = {
 	phase: SsnPhase
 	attemptsLeft: number
-	attemptsMax: number
 	verifiedAt: string | null
 	blockReason: SsnBlockReason | null
 	/** Prosa del servidor (español) — fallback cuando no hay traducción del código. */
@@ -38,7 +37,6 @@ export type SsnBlockAction =
 export function deriveSsnView(ssn: SsnVerification | null | undefined): SsnView {
 	const base = {
 		attemptsLeft: Math.max(0, Number(ssn?.attempts_left ?? 0)),
-		attemptsMax: Math.max(0, Number(ssn?.attempts_max ?? 0)),
 		verifiedAt: ssn?.verified_at ?? null,
 		blockReason: null as SsnBlockReason | null,
 		message: null as string | null,
