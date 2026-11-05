@@ -2,8 +2,11 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ROUTES } from '../../routes'
+import { supportsLiquidGlass } from '../../helpers/liquidGlass'
+import useTabBarClearance from '../../hooks/useTabBarClearance'
 import QPPressable from '../../ui/particles/QPPressable'
 import { missingP2PRequirements } from './p2pRequirements'
 
@@ -48,11 +51,15 @@ const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerSty
 	// El acceso al P2P también puede estar cerrado por la cuenta (p2p_enabled),
 	// y eso no lo arregla ningún paso de esta lista: se dice explícitamente en
 	// vez de dejar tres checks verdes sin explicación.
+	// Vive dentro del tab P2P: fuera de iOS 26+ la barra inferior flota encima
+	const insets = useSafeAreaInsets()
+	const tabBarClearance = useTabBarClearance()
+
 	const accountBlocked = serverMissing === 'p2p_enabled' || missingP2PRequirements(user).includes('p2p_enabled')
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView contentContainerStyle={styles.requirementsContainer} showsVerticalScrollIndicator={false}>
+			<ScrollView contentContainerStyle={[styles.requirementsContainer, !supportsLiquidGlass && { paddingBottom: 30 + insets.bottom + tabBarClearance }]} showsVerticalScrollIndicator={false}>
 				<FontAwesome6 name="triangle-exclamation" size={40} color={theme.colors.warning} iconStyle="solid" />
 				<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 16 }]}>{t('p2p.requirements.title')}</Text>
 				<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6, marginBottom: 24 }]}>

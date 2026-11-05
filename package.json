@@ -39,7 +39,8 @@
 		},
 		"ios": {
 			"componentProvider": {
-				"QPSecureView": "QPSecureView"
+				"QPSecureView": "QPSecureView",
+				"QPBlurView": "QPBlurView"
 			}
 		}
 	},

@@ -24,6 +24,10 @@ import QPKeypad from '../../ui/QPKeypad'
 // Routes
 import { ROUTES } from '../../routes'
 
+// Barra inferior: nativa en iOS 26+, emulada (flotante) en el resto
+import { supportsLiquidGlass } from '../../helpers/liquidGlass'
+import useTabBarClearance from '../../hooks/useTabBarClearance'
+
 // Toast
 import { toast } from 'sonner-native'
 
@@ -62,6 +66,7 @@ export default function Keypad({ navigation }: KeypadProps) {
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const insets = useSafeAreaInsets()
+	const tabBarClearance = useTabBarClearance()
 	const { t } = useTranslation()
 
 	// State
@@ -184,7 +189,7 @@ export default function Keypad({ navigation }: KeypadProps) {
 	}, [amount])
 
 	return (
-		<View style={[containerStyles.container, styles.container, Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26 && { paddingBottom: insets.bottom + 60 }]}>
+		<View style={[containerStyles.container, styles.container, { paddingBottom: supportsLiquidGlass ? insets.bottom + 60 : insets.bottom + tabBarClearance + 4 }]}>
 			{/* Amount Display Section */}
 			<View style={styles.amountSection}>
 

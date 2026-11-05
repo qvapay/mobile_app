@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Pressable, View, Text, Platform, Image, type ImageSourcePropType } from 'react-native'
+import { Pressable, View, Text, Image, type ImageSourcePropType } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -7,9 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supportsLiquidGlass } from '../helpers/liquidGlass'
 
 // Tab Navigators: native for iOS 26+ (liquid glass), JS-based for Android and older iOS
+// (ahí la barra es `GlassTabBar`, la emulación flotante de la nativa)
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeBottomTabNavigator } from '@react-navigation/bottom-tabs/unstable'
-import type { BottomTabNavigationOptions, BottomTabTypeBag } from '@react-navigation/bottom-tabs'
+import type { BottomTabBarProps, BottomTabNavigationOptions, BottomTabTypeBag } from '@react-navigation/bottom-tabs'
 import type { TypedNavigator } from '@react-navigation/native'
 import type { MainTabParamList, RootStackParamList } from '../types/navigation'
 
@@ -49,7 +50,7 @@ import { useSettings } from '../settings/SettingsContext'
 import HeaderIdentity from '../ui/HeaderIdentity'
 import ErrorBoundary from '../ui/ErrorBoundary'
 import { BottomBarProvider } from '../ui/BottomBarContext'
-import AnimatedTabBar from '../ui/AnimatedTabBar'
+import GlassTabBar from '../ui/GlassTabBar'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -95,6 +96,9 @@ const getTabIcon = (routeName: string) => {
 		<FontAwesome6 name={config.android} size={size || 22} color={color} iconStyle="solid" />
 	)
 }
+
+/** `tabBar` del navigator JS (iOS < 26 y Android). Identidad estable: no se recrea por render. */
+const renderGlassTabBar = (props: BottomTabBarProps) => <GlassTabBar {...props} />
 
 // Main Stack
 const MainStack = ({ navigation }: MainStackProps) => {
@@ -145,23 +149,10 @@ const MainStack = ({ navigation }: MainStackProps) => {
 		}),
 		tabBarActiveTintColor: theme.colors.primary,
 		tabBarInactiveTintColor: theme.colors.secondaryText,
+		// Fuera de iOS 26+ la barra la pinta entera GlassTabBar (medidas, material
+		// y etiquetas): aquí solo viajan los colores y si hay etiquetas
 		tabBarShowLabel: showLabels,
-		// Tab bar styling for Android and pre-liquid-glass iOS
-		...(!supportsLiquidGlass && {
-			tabBarStyle: {
-				backgroundColor: theme.colors.background,
-				borderTopColor: theme.colors.surface,
-				borderTopWidth: 1,
-				height: (showLabels ? 64 : 56) + insets.bottom,
-				paddingBottom: insets.bottom + 4,
-				paddingTop: 8,
-			},
-			tabBarLabelStyle: {
-				fontFamily: theme.typography.fontFamily.medium,
-				fontSize: theme.typography.fontSize.xs,
-			},
-		}),
-	}), [theme, showLabels, insets.top, insets.bottom, user, containerStyles, navigation, t])
+	}), [theme, showLabels, insets.top, user, containerStyles, navigation, t])
 
 	// Memoized per-screen options.
 	// OJO: los `unstable_header*Items` (iOS 26 liquid glass) no están en
@@ -172,6 +163,7 @@ const MainStack = ({ navigation }: MainStackProps) => {
 		const openLightningAddress = () => navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.LIGHTNING_ADDRESS, initial: false })
 		return ({
 		tabBarLabel: showLabels ? t('navigation.tabs.home') : '',
+		tabBarAccessibilityLabel: t('navigation.tabs.home'),
 		tabBarIcon: getTabIcon(ROUTES.HOME_SCREEN),
 		// Android fallback
 		headerRight: () => (
@@ -231,6 +223,7 @@ const MainStack = ({ navigation }: MainStackProps) => {
 	// golden_check) + escáner QR.
 	const cryptoOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.crypto') : '',
+		tabBarAccessibilityLabel: t('navigation.tabs.crypto'),
 		tabBarIcon: getTabIcon(ROUTES.CRYPTO_SCREEN),
 		// Android fallback
 		headerRight: () => (
@@ -269,6 +262,7 @@ const MainStack = ({ navigation }: MainStackProps) => {
 
 	const keypadOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.send') : '',
+		tabBarAccessibilityLabel: t('navigation.tabs.send'),
 		tabBarIcon: getTabIcon(ROUTES.KEYPAD_SCREEN),
 	}), [showLabels, t])
 
@@ -277,6 +271,7 @@ const MainStack = ({ navigation }: MainStackProps) => {
 	// de pestañas para que la barra siga leyéndose igual.
 	const p2pOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.p2p') : '',
+		tabBarAccessibilityLabel: t('navigation.tabs.p2p'),
 		tabBarIcon: getTabIcon(ROUTES.P2P_SCREEN),
 		// P2P.tsx lo repite en su setOptions (junto al switch), pero ahí llega un
 		// frame tarde: sin esto el header entra alineado a la izquierda (default
@@ -300,6 +295,7 @@ const MainStack = ({ navigation }: MainStackProps) => {
 
 	const storeOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.store') : '',
+		tabBarAccessibilityLabel: t('navigation.tabs.store'),
 		tabBarIcon: getTabIcon(ROUTES.STORE_SCREEN),
 		headerTitle: '',
 		// Android fallback
@@ -333,7 +329,7 @@ const MainStack = ({ navigation }: MainStackProps) => {
 					initialRouteName={ROUTES.HOME_SCREEN}
 					backBehavior='initialRoute'
 					screenOptions={screenOptions}
-					{...(Platform.OS === 'android' ? { tabBar: (props) => <AnimatedTabBar {...props} /> } : {})}
+					{...(supportsLiquidGlass ? {} : { tabBar: renderGlassTabBar })}
 				>
 
 					<Tab.Screen

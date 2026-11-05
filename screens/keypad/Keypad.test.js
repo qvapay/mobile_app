@@ -14,6 +14,8 @@ jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('react-native-safe-area-context', () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }))
+// Hueco de la barra inferior emulada: sale de Ajustes + insets, ajenos a esta pantalla
+jest.mock('../../hooks/useTabBarClearance', () => ({ __esModule: true, default: () => 0 }))
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../../ui/particles/QPBalance', () => 'QPBalance')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
