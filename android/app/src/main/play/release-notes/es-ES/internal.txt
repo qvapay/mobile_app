@@ -1,7 +1,5 @@
-Novedades de QvaPay 3.9.2:
-• Lightning Address: recibe sats desde cualquier wallet Lightning en tunombre@qvpay.me, en USD o en sats.
-• Depositar: saldo ETECSA y tarjetas cubanas vía P2P, con las mejores ofertas abiertas.
-• P2P: nueva cabecera con chips de moneda; bloquea o reporta usuarios desde el perfil y el chat.
-• Retirar: tus métodos de pago guardados, a un toque.
-• Pantalla de Novedades y colores propios en las mini-apps.
-• Campos más visibles en modo oscuro, arreglos y estabilidad.
+Novedades de QvaPay 3.10.0:
+• Tarjeta y PayPal para personas de EE. UU.: con GOLD y tu identidad verificada, verifica tu SSN en Ajustes → Datos personales y deposita hasta $500 cada 30 días.
+• Depositar: verás tu cupo disponible y cuándo se renueva.
+• Datos personales: nueva sección «Datos de tu cuenta» con buscador de direcciones.
+• Arreglos y estabilidad.
