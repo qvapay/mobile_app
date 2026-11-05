@@ -51,6 +51,7 @@ jest.mock('../../ui/KycGateModal', () => 'KycGateModal')
 jest.mock('../../ui/OfacAttestationModal', () => 'OfacAttestationModal')
 
 import React from 'react'
+import { Text } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider, defaultScheduler, notifyManager } from '@tanstack/react-query'
 import { useAuth } from '../../auth/AuthContext'
@@ -680,6 +681,150 @@ describe('Lightning (BTCLN)', () => {
 		expect(footerButton(tree).props.disabled).toBe(true)
 		await act(async () => { satsCard(tree).props.onChangeAmountSats('2000') })
 		expect(footerButton(tree).props.disabled).toBe(false)
+	})
+
+	describe('decode of the destination', () => {
+		const QVAPAY_ADDRESS = 'alice@qvpay.me'
+		const OUTSIDE_ADDRESS = 'bob@getalby.com'
+		const SELF_PAY_COPY = 'Esa es una Lightning Address de QvaPay'
+		const SELF_PAY = { success: false, error: 'x', details: { code: 'LN_SELF_PAY' }, status: 400 }
+		const OUTSIDE_PREVIEW = { success: true, data: { kind: 'lnaddress', address: OUTSIDE_ADDRESS, min_sat: 1, max_sat: 1000000 } }
+
+		const typeWallet = async (tree, text) => {
+			await fillField(tree, 'wallet', text)
+			await act(async () => { jest.advanceTimersByTime(500) })
+		}
+		const fillCup = async (tree) => {
+			await typeQUSD(tree, '100')
+			await fillField(tree, 'card_number', '9224061799991234')
+			await fillField(tree, 'full_name', 'John Doe')
+		}
+		const hasText = (tree, needle) => tree.root.findAllByType(Text).some(node => [].concat(node.props.children).join('').includes(needle))
+		// Con el aviso en pantalla hay otro QPButton (Transferir): el del pie va el último
+		const continueButton = (tree) => tree.root.findAllByType('QPButton').at(-1)
+
+		beforeEach(() => { withdrawApi.decodeLightning.mockResolvedValue(SELF_PAY) })
+
+		test('a QvaPay address blocks Continue, says why and offers Transfer', async () => {
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeQUSD(tree, '100')
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(true)
+			expect(tree.root.findAllByType('QPButton').map(button => button.props.icon)).toContain('paper-plane')
+			expect(continueButton(tree).props.disabled).toBe(true)
+		})
+
+		// El QR de una Lightning Address de QvaPay lleva su LNURL
+		test.each([['address', QVAPAY_ADDRESS], ['LNURL', 'lnurl1dp68gurn8ghj7um5v93kketj9ehx2amn9uh8wetvdskkkmn0wahz7mrww4excup0']])('a scanned QvaPay %s blocks Continue too', async (_, destination) => {
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN', lnInvoice: destination })
+			await typeQUSD(tree, '100')
+			expect(tree.root.findByType('WithdrawAccountFields').props.workingForm.wallet).toBe(destination)
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(true)
+			expect(continueButton(tree).props.disabled).toBe(true)
+		})
+
+		test('picking another coin after a QvaPay address does not leave Continue disabled', async () => {
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			await selectCoin(tree, CUP)
+			await fillCup(tree)
+			expect(continueButton(tree).props.disabled).toBe(false)
+		})
+
+		test('leaving through the Saldo side of the switch does not leave Continue disabled', async () => {
+			const tree = await renderWithdraw({ preselectedCoin: 'BANK_CUP' })
+			await act(async () => { tree.root.findByType('QPSwitch').props.onChange('right') })
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			await act(async () => { tree.root.findByType('QPSwitch').props.onChange('left') })
+			expect(amountCard(tree).props.selectedCoin.tick).toBe('BANK_CUP')
+			await fillCup(tree)
+			expect(continueButton(tree).props.disabled).toBe(false)
+		})
+
+		test('the same text in the Wallet field of another coin is neither decoded nor blocked', async () => {
+			const OTHER = { ...CUP, tick: 'OTHER', working_data: JSON.stringify([{ name: 'Wallet', type: 'text' }]) }
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			await selectCoin(tree, OTHER)
+			await typeQUSD(tree, '100')
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			expect(withdrawApi.decodeLightning).toHaveBeenCalledTimes(1)
+			expect(continueButton(tree).props.disabled).toBe(false)
+		})
+
+		test('the block comes back with the same address, without asking twice', async () => {
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeQUSD(tree, '100')
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			await typeWallet(tree, '')
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(false)
+			expect(continueButton(tree).props.disabled).toBe(true) // sin destino
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(true)
+			expect(continueButton(tree).props.disabled).toBe(true)
+			expect(withdrawApi.decodeLightning).toHaveBeenCalledTimes(1)
+		})
+
+		test('the block comes back after going through another coin and back to BTCLN', async () => {
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeQUSD(tree, '100')
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			await selectCoin(tree, CUP)
+			await selectCoin(tree, BTCLN)
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(true)
+			expect(continueButton(tree).props.disabled).toBe(true)
+			expect(withdrawApi.decodeLightning).toHaveBeenCalledTimes(1)
+		})
+
+		test('an outside address keeps its preview when it comes back', async () => {
+			withdrawApi.decodeLightning.mockResolvedValue(OUTSIDE_PREVIEW)
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeWallet(tree, OUTSIDE_ADDRESS)
+			expect(hasText(tree, `Pagar a ${OUTSIDE_ADDRESS}`)).toBe(true)
+			await typeWallet(tree, '')
+			expect(hasText(tree, `Pagar a ${OUTSIDE_ADDRESS}`)).toBe(false)
+			await typeWallet(tree, OUTSIDE_ADDRESS)
+			expect(hasText(tree, `Pagar a ${OUTSIDE_ADDRESS}`)).toBe(true)
+			expect(withdrawApi.decodeLightning).toHaveBeenCalledTimes(1)
+		})
+
+		test('an answer that arrives after the field was cleared still counts when the address comes back', async () => {
+			let answer
+			withdrawApi.decodeLightning.mockImplementation(() => new Promise((resolve) => { answer = resolve }))
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeQUSD(tree, '100')
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			await typeWallet(tree, '')
+			await act(async () => { answer(SELF_PAY) })
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(true)
+			expect(withdrawApi.decodeLightning).toHaveBeenCalledTimes(1)
+		})
+
+		test('a late answer for the previous address does not replace the current one', async () => {
+			const answers = []
+			withdrawApi.decodeLightning.mockImplementation(() => new Promise((resolve) => { answers.push(resolve) }))
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			await typeWallet(tree, OUTSIDE_ADDRESS)
+			await act(async () => { answers[1](OUTSIDE_PREVIEW) })
+			await act(async () => { answers[0](SELF_PAY) })
+			expect(hasText(tree, `Pagar a ${OUTSIDE_ADDRESS}`)).toBe(true)
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(false)
+		})
+
+		test.each([['rate limit', 429], ['server error', 503], ['no network', undefined]])('a passing failure (%s) is asked again when the address comes back', async (_, status) => {
+			withdrawApi.decodeLightning.mockResolvedValueOnce({ success: false, error: 'x', status })
+			withdrawApi.decodeLightning.mockResolvedValueOnce(SELF_PAY)
+			const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(false)
+			await typeWallet(tree, '')
+			await typeWallet(tree, QVAPAY_ADDRESS)
+			expect(withdrawApi.decodeLightning).toHaveBeenCalledTimes(2)
+			expect(hasText(tree, SELF_PAY_COPY)).toBe(true)
+		})
 	})
 })
 
