@@ -10,10 +10,11 @@ require Pod::Executable.execute_command('node', ['-p',
 # requires iOS 15.5 for spec resolution.
 platform :ios, '15.5'
 
-# Didit KYC nativo: variante 'autodetection' (captura automática de documento/cara,
-# SIN NFC — NFC exigiría entitlement + capability en el provisioning profile).
+# Didit KYC nativo: variante 'core' (captura automática de documento/cara, SIN NFC —
+# NFC exigiría entitlement + capability en el provisioning profile). Desde el SDK
+# nativo 4.10 'autodetection' es un alias obsoleto de 'core'.
 # El wrapper RN (@didit-protocol/sdk-react-native) lee esta global en su podspec.
-$DiditSdkIosVariant = 'autodetection'
+$DiditSdkIosVariant = 'core'
 
 # stripe-react-native >= 0.81 resuelve el SDK de Stripe por Swift Package Manager,
 # que exige frameworks dinámicos; aquí van estáticos (use_frameworks! :static).
@@ -39,8 +40,8 @@ target 'QvaPay' do
   config = use_native_modules!
 
   # DiditSDK no está en el trunk de CocoaPods: se resuelve por podspec remoto,
-  # pineado a la versión nativa que empaqueta el wrapper RN (4.9.0).
-  pod 'DiditSDK/AutoDetection', :podspec => 'https://raw.githubusercontent.com/didit-protocol/sdk-ios/4.9.1/DiditSDK.podspec'
+  # pineado a la versión nativa del wrapper RN (diditNativeSdkVersions en su package.json).
+  pod 'DiditSDK/Core', :podspec => 'https://raw.githubusercontent.com/didit-protocol/sdk-ios/4.13.0/DiditSDK.podspec'
 
   use_react_native!(
     :path => config[:reactNativePath],
