@@ -55,6 +55,5 @@ export const useViaP2PShowcaseQuery = (tick: string | null | undefined, { enable
 	},
 	enabled: enabled && !!tick,
 	staleTime: 30 * 1000,
-	placeholderData: previous => previous,
 	meta: { noPersist: true },
 })
