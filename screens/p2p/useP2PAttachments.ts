@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { launchImageLibrary } from 'react-native-image-picker'
 import { errorCodes, isErrorWithCode, pick, types } from '@react-native-documents/picker'
 import { toast } from 'sonner-native'
@@ -39,6 +39,7 @@ export const p2pAttachmentsKey = (uuid: string, order: string | null) => ['p2p',
 export default function useP2PAttachments({ p2p_uuid, order, enabled, messageCount }: UseP2PAttachmentsOptions) {
 
 	const { t } = useTranslation()
+	const queryClient = useQueryClient()
 	const [uploading, setUploading] = useState(false)
 	const [openingUuid, setOpeningUuid] = useState<string | null>(null)
 	const busyRef = useRef(false)
@@ -51,6 +52,12 @@ export default function useP2PAttachments({ p2p_uuid, order, enabled, messageCou
 		meta: { noPersist: true },
 	})
 	const { refetch } = query
+
+	useEffect(() => {
+		if (!enabled) {
+			queryClient.setQueryData(p2pAttachmentsKey(p2p_uuid, order), undefined)
+		}
+	}, [enabled, p2p_uuid, order, queryClient])
 
 	const lastCountRef = useRef(messageCount)
 	useEffect(() => {

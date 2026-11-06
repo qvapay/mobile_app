@@ -87,12 +87,12 @@ const P2PTradeAttachments = ({ attachments, canUpload, isPayer, isReceiver, proo
 				</View>
 			)}
 
-			{canUpload && (
-				<View style={{ flexDirection: 'row', gap: 8 }}>
-					<QPButton title={t('p2p.attachments.photo')} onPress={onPickImage} outlined icon="image" iconStyle="solid" disabled={uploading} loading={uploading} style={{ flex: 1 }} />
-					<QPButton title={t('p2p.attachments.pdf')} onPress={onPickPdf} outlined icon="file-pdf" iconStyle="solid" disabled={uploading} style={{ flex: 1 }} />
-				</View>
-			)}
+		{canUpload && (
+			<View style={{ flexDirection: 'row', gap: 8 }}>
+				<QPButton title={t('p2p.attachments.photo')} onPress={onPickImage} outlined icon="image" iconStyle="solid" disabled={uploading} loading={uploading} style={{ flex: 1 }} />
+				<QPButton title={t('p2p.attachments.pdf')} onPress={onPickPdf} outlined icon="file-pdf" iconStyle="solid" disabled={uploading} loading={uploading} style={{ flex: 1 }} />
+			</View>
+		)}
 		</View>
 	)
 }
