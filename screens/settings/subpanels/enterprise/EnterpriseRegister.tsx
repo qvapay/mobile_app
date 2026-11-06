@@ -38,6 +38,7 @@ import {
 	validateFiscalStep,
 	validateContactStep,
 	buildRegisterFields,
+	withOrgKind,
 } from './enterpriseForm'
 
 // Icons
@@ -52,7 +53,7 @@ import type { DocumentPickerResponse } from '@react-native-documents/picker'
 import type { Theme } from '../../../../theme/ThemeContext'
 import type { TextStyles } from '../../../../theme/themeUtils'
 import type { SettingsStackParamList } from '../../../../types/navigation'
-import type { EnterpriseForm } from './enterpriseForm'
+import type { EnterpriseForm, OrgKind } from './enterpriseForm'
 
 /** Picker modal abierto (ninguno = null). */
 type OpenPicker = null | 'country' | 'incState' | 'addrState'
@@ -63,12 +64,17 @@ const STEPS = 3
  * Registro de empresa in-app (`POST /user/company`) — wizard de 3 pasos con el
  * kit de la casa (useStepTransitions + QPStepDots + QPSplitButton persistente):
  *
- * 1. Empresa — nombre, actividad, rango de empleados (chips).
+ * 1. Empresa — qué se registra (empresa o cuenta propia), nombre, actividad y
+ *    rango de empleados (chips).
  * 2. Fiscal — país de constitución (picker buscable, sin jurisdicciones
  *    sancionadas) + campos por país: US → EIN/entidad/estado/dirección,
  *    CU → NIT+REEUP, resto → tax id genérico.
  * 3. Contacto — director, email corporativo y PDF de estatutos
  *    (@react-native-documents/picker, máx 10MB).
+ *
+ * Cuenta propia (TCP) es la misma pantalla con otros textos: Cuba fija, solo
+ * el NIT, y el titular con un documento opcional que se puede quitar. Cambiar
+ * de rama vacía los datos fiscales y el PDF (cada rama pide los suyos).
  *
  * La validación de cada paso es espejo del wizard web (enterpriseForm.js);
  * el server re-valida todo (mismo núcleo registerCompanyLead). Tras el 200 se
@@ -111,7 +117,15 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 	// Pickers modales: null | 'country' | 'incState' | 'addrState'
 	const [pickerOpen, setPickerOpen] = useState<OpenPicker>(null)
 
+	const isTcp = form.orgKind === 'tcp'
+
 	const setField = (key: keyof EnterpriseForm) => (value: string) => setForm((prev) => ({ ...prev, [key]: value }))
+
+	const selectOrgKind = (orgKind: OrgKind) => {
+		if (orgKind === form.orgKind) { return }
+		setForm((prev) => withOrgKind(prev, orgKind))
+		setFile(null)
+	}
 
 	// Cambiar el país resetea los identificadores fiscales del país anterior
 	const selectCountry = (code: string) => {
@@ -151,8 +165,7 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 		if (error) { toast.info(error); return }
 
 		setLoading(true)
-		// validateContactStep ya garantizó que `file` no es null en esta rama.
-		const result = await userApi.registerCompany({ fields: buildRegisterFields(form), file: file as { uri: string, name?: string } })
+		const result = await userApi.registerCompany({ fields: buildRegisterFields(form), file })
 		setLoading(false)
 
 		if (result.success) {
@@ -174,15 +187,19 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 
 				{step === 0 && (
 					<Animated.View key="company" entering={makeStepEnter(0)} exiting={stepExit}>
-						<Text style={textStyles.h1}>{t('settings.enterprise.register.step1.title')}</Text>
-						<Text style={[textStyles.h3, { color: theme.colors.secondaryText, marginBottom: 18 }]}>
-							{t('settings.enterprise.register.step1.subtitle')}
-						</Text>
+						<StepHeader
+							title={isTcp ? t('settings.enterprise.register.tcp.step1Title') : t('settings.enterprise.register.step1.title')}
+							subtitle={isTcp ? t('settings.enterprise.register.tcp.step1Subtitle') : t('settings.enterprise.register.step1.subtitle')}
+							theme={theme}
+							textStyles={textStyles}
+						/>
 
-						<FieldLabel text={t('settings.enterprise.register.step1.nameLabel')} theme={theme} textStyles={textStyles} />
-						<QPInput value={form.companyName} onChangeText={setField('companyName')} placeholder={t('settings.enterprise.register.step1.namePlaceholder')} autoCapitalize="words" />
+						<OrgKindField isTcp={isTcp} onSelect={selectOrgKind} theme={theme} textStyles={textStyles} />
 
-						<FieldLabel text={t('settings.enterprise.register.step1.activityLabel')} theme={theme} textStyles={textStyles} />
+						<FieldLabel text={isTcp ? t('settings.enterprise.register.tcp.nameLabel') : t('settings.enterprise.register.step1.nameLabel')} theme={theme} textStyles={textStyles} />
+						<QPInput value={form.companyName} onChangeText={setField('companyName')} placeholder={isTcp ? t('settings.enterprise.register.tcp.namePlaceholder') : t('settings.enterprise.register.step1.namePlaceholder')} autoCapitalize="words" />
+
+						<FieldLabel text={isTcp ? t('settings.enterprise.register.tcp.activityLabel') : t('settings.enterprise.register.step1.activityLabel')} theme={theme} textStyles={textStyles} />
 						<QPInput value={form.activity} onChangeText={setField('activity')} placeholder={t('settings.enterprise.register.step1.activityPlaceholder')} autoCapitalize="sentences" />
 
 						<FieldLabel text={t('settings.enterprise.register.step1.employeesLabel')} theme={theme} textStyles={textStyles} />
@@ -198,25 +215,21 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 							))}
 						</View>
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 8 }]}>
-							{t('settings.enterprise.register.step1.employeesHint')}
+							{isTcp ? t('settings.enterprise.register.tcp.employeesHint') : t('settings.enterprise.register.step1.employeesHint')}
 						</Text>
 					</Animated.View>
 				)}
 
 				{step === 1 && (
 					<Animated.View key="fiscal" entering={makeStepEnter(0)} exiting={stepExit}>
-						<Text style={textStyles.h1}>{t('settings.enterprise.register.step2.title')}</Text>
-						<Text style={[textStyles.h3, { color: theme.colors.secondaryText, marginBottom: 18 }]}>
-							{t('settings.enterprise.register.step2.subtitle')}
-						</Text>
+						<StepHeader
+							title={isTcp ? t('settings.enterprise.register.tcp.step2Title') : t('settings.enterprise.register.step2.title')}
+							subtitle={isTcp ? t('settings.enterprise.register.tcp.step2Subtitle') : t('settings.enterprise.register.step2.subtitle')}
+							theme={theme}
+							textStyles={textStyles}
+						/>
 
-						<FieldLabel text={t('settings.enterprise.register.step2.countryLabel')} theme={theme} textStyles={textStyles} />
-						<QPPressable style={[styles.pickerRow, { backgroundColor: theme.colors.elevation }]} onPress={() => setPickerOpen('country')}>
-							<Text style={[textStyles.text, { color: form.country ? theme.colors.primaryText : theme.colors.secondaryText }]}>
-								{countryName || t('settings.enterprise.register.step2.countryPlaceholder')}
-							</Text>
-							<FontAwesome6 name="angle-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
-						</QPPressable>
+						<CountryField isTcp={isTcp} countryName={countryName} onOpen={() => setPickerOpen('country')} theme={theme} textStyles={textStyles} />
 
 						{form.country === 'US' && (
 							<>
@@ -260,11 +273,19 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 								<FieldLabel text={t('settings.enterprise.register.step2.nitLabel')} theme={theme} textStyles={textStyles} />
 								<QPInput value={form.taxId} onChangeText={setField('taxId')} placeholder={t('settings.enterprise.register.step2.nitPlaceholder')} keyboardType="number-pad" maxLength={11} />
 
-								<FieldLabel text={t('settings.enterprise.register.step2.reeupLabel')} theme={theme} textStyles={textStyles} />
-								<QPInput value={form.reeup} onChangeText={setField('reeup')} placeholder="123.4.56789" autoCapitalize="none" maxLength={20} />
-								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-									{t('settings.enterprise.register.step2.reeupHint')}
-								</Text>
+								{isTcp ? (
+									<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
+										{t('settings.enterprise.register.tcp.nitHint')}
+									</Text>
+								) : (
+									<>
+										<FieldLabel text={t('settings.enterprise.register.step2.reeupLabel')} theme={theme} textStyles={textStyles} />
+										<QPInput value={form.reeup} onChangeText={setField('reeup')} placeholder="123.4.56789" autoCapitalize="none" maxLength={20} />
+										<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
+											{t('settings.enterprise.register.step2.reeupHint')}
+										</Text>
+									</>
+								)}
 							</>
 						)}
 
@@ -282,36 +303,23 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 
 				{step === 2 && (
 					<Animated.View key="contact" entering={makeStepEnter(0)} exiting={stepExit}>
-						<Text style={textStyles.h1}>{t('settings.enterprise.register.step3.title')}</Text>
-						<Text style={[textStyles.h3, { color: theme.colors.secondaryText, marginBottom: 18 }]}>
-							{t('settings.enterprise.register.step3.subtitle')}
-						</Text>
+						<StepHeader
+							title={isTcp ? t('settings.enterprise.register.tcp.step3Title') : t('settings.enterprise.register.step3.title')}
+							subtitle={isTcp ? t('settings.enterprise.register.tcp.step3Subtitle') : t('settings.enterprise.register.step3.subtitle')}
+							theme={theme}
+							textStyles={textStyles}
+						/>
 
-						<FieldLabel text={t('settings.enterprise.register.step3.directorLabel')} theme={theme} textStyles={textStyles} />
+						<FieldLabel text={isTcp ? t('settings.enterprise.register.tcp.holderLabel') : t('settings.enterprise.register.step3.directorLabel')} theme={theme} textStyles={textStyles} />
 						<QPInput value={form.directorName} onChangeText={setField('directorName')} placeholder={t('settings.enterprise.register.step3.directorPlaceholder')} autoCapitalize="words" />
 
-						<FieldLabel text={t('settings.enterprise.register.step3.emailLabel')} theme={theme} textStyles={textStyles} />
-						<QPInput value={form.email} onChangeText={setField('email')} placeholder={t('settings.enterprise.register.step3.emailPlaceholder')} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+						<FieldLabel text={isTcp ? t('settings.enterprise.register.tcp.emailLabel') : t('settings.enterprise.register.step3.emailLabel')} theme={theme} textStyles={textStyles} />
+						<QPInput value={form.email} onChangeText={setField('email')} placeholder={isTcp ? t('settings.enterprise.register.tcp.emailPlaceholder') : t('settings.enterprise.register.step3.emailPlaceholder')} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2, marginBottom: 8 }]}>
 							{t('settings.enterprise.register.step3.emailHint')}
 						</Text>
 
-						<FieldLabel text={t('settings.enterprise.register.step3.statutesLabel')} theme={theme} textStyles={textStyles} />
-						<QPPressable style={[styles.fileCard, { backgroundColor: theme.colors.elevation }]} onPress={pickStatutes}>
-							<View style={[styles.fileIcon, { backgroundColor: (file ? theme.colors.successText : theme.colors.primary) + '1F' }]}>
-								<FontAwesome6 name={file ? 'file-circle-check' : 'file-arrow-up'} size={18} color={file ? theme.colors.successText : theme.colors.primary} iconStyle="solid" />
-							</View>
-							<View style={styles.fill}>
-								<Text numberOfLines={1} style={textStyles.text}>
-									{file ? (file.name || t('settings.enterprise.register.step3.statutesFileName')) : t('settings.enterprise.register.step3.chooseFile')}
-								</Text>
-								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-									{file
-										? (file.size ? t('settings.enterprise.register.step3.fileSizeTap', { size: (file.size / 1024 / 1024).toFixed(2) }) : t('settings.enterprise.register.step3.tapToChange'))
-										: t('settings.enterprise.register.step3.fileHint')}
-								</Text>
-							</View>
-						</QPPressable>
+						<DocumentField isTcp={isTcp} file={file} onPick={pickStatutes} onRemove={() => setFile(null)} theme={theme} textStyles={textStyles} />
 					</Animated.View>
 				)}
 
@@ -362,6 +370,107 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 			/>
 
 		</View>
+	)
+}
+
+// Título y subtítulo de cada paso
+type StepHeaderProps = { title: string, subtitle: string, theme: Theme, textStyles: TextStyles }
+
+const StepHeader = ({ title, subtitle, theme, textStyles }: StepHeaderProps) => (
+	<>
+		<Text style={textStyles.h1}>{title}</Text>
+		<Text style={[textStyles.h3, { color: theme.colors.secondaryText, marginBottom: 18 }]}>{subtitle}</Text>
+	</>
+)
+
+// Qué se registra: empresa o cuenta propia, con la nota de esta última
+type OrgKindFieldProps = { isTcp: boolean, onSelect: (orgKind: OrgKind) => void, theme: Theme, textStyles: TextStyles }
+
+const OrgKindField = ({ isTcp, onSelect, theme, textStyles }: OrgKindFieldProps) => {
+	const { t } = useTranslation()
+	return (
+		<>
+			<FieldLabel text={t('settings.enterprise.register.orgKind.label')} theme={theme} textStyles={textStyles} />
+			<View style={styles.chipRow}>
+				<Chip label={t('settings.enterprise.register.orgKind.business')} selected={!isTcp} onPress={() => onSelect('business')} theme={theme} />
+				<Chip label={t('settings.enterprise.register.orgKind.tcp')} selected={isTcp} onPress={() => onSelect('tcp')} theme={theme} />
+			</View>
+			{isTcp && (
+				<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 8 }]}>
+					{t('settings.enterprise.register.orgKind.tcpNote')}
+				</Text>
+			)}
+		</>
+	)
+}
+
+// País: selector en una empresa, Cuba fija en un TCP
+type CountryFieldProps = { isTcp: boolean, countryName?: string, onOpen: () => void, theme: Theme, textStyles: TextStyles }
+
+const CountryField = ({ isTcp, countryName, onOpen, theme, textStyles }: CountryFieldProps) => {
+	const { t } = useTranslation()
+	return (
+		<>
+			<FieldLabel text={isTcp ? t('settings.enterprise.register.tcp.countryLabel') : t('settings.enterprise.register.step2.countryLabel')} theme={theme} textStyles={textStyles} />
+			{isTcp ? (
+				<View style={[styles.pickerRow, { backgroundColor: theme.colors.elevation }]}>
+					<Text style={[textStyles.text, { color: theme.colors.secondaryText }]}>{countryName}</Text>
+				</View>
+			) : (
+				<QPPressable style={[styles.pickerRow, { backgroundColor: theme.colors.elevation }]} onPress={onOpen}>
+					<Text style={[textStyles.text, { color: countryName ? theme.colors.primaryText : theme.colors.secondaryText }]}>
+						{countryName || t('settings.enterprise.register.step2.countryPlaceholder')}
+					</Text>
+					<FontAwesome6 name="angle-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
+				</QPPressable>
+			)}
+		</>
+	)
+}
+
+// Tarjeta del documento. En un TCP es opcional, así que un archivo elegido se puede quitar:
+// sin ese botón, un PDF de más de 10MB dejaría la solicitud sin salida
+type DocumentFieldProps = { isTcp: boolean, file: DocumentPickerResponse | null, onPick: () => void, onRemove: () => void, theme: Theme, textStyles: TextStyles }
+
+const DocumentField = ({ isTcp, file, onPick, onRemove, theme, textStyles }: DocumentFieldProps) => {
+	const { t } = useTranslation()
+	const emptyHint = isTcp ? t('settings.enterprise.register.tcp.fileHint') : t('settings.enterprise.register.step3.fileHint')
+	const chosenHint = file?.size ? t('settings.enterprise.register.step3.fileSizeTap', { size: (file.size / 1024 / 1024).toFixed(2) }) : t('settings.enterprise.register.step3.tapToChange')
+	return (
+		<>
+			<FieldLabel text={isTcp ? t('settings.enterprise.register.tcp.documentLabel') : t('settings.enterprise.register.step3.statutesLabel')} theme={theme} textStyles={textStyles} />
+			{isTcp && (
+				<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
+					{t('settings.enterprise.register.tcp.documentHint')}
+				</Text>
+			)}
+			<View style={styles.fileRow}>
+				<QPPressable style={[styles.fileCard, styles.fill, { backgroundColor: theme.colors.elevation }]} onPress={onPick}>
+					<View style={[styles.fileIcon, { backgroundColor: (file ? theme.colors.successText : theme.colors.primary) + '1F' }]}>
+						<FontAwesome6 name={file ? 'file-circle-check' : 'file-arrow-up'} size={18} color={file ? theme.colors.successText : theme.colors.primary} iconStyle="solid" />
+					</View>
+					<View style={styles.fill}>
+						<Text numberOfLines={1} style={textStyles.text}>
+							{file ? (file.name || t('settings.enterprise.register.step3.statutesFileName')) : t('settings.enterprise.register.step3.chooseFile')}
+						</Text>
+						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
+							{file ? chosenHint : emptyHint}
+						</Text>
+					</View>
+				</QPPressable>
+				{isTcp && file && (
+					<QPPressable
+						style={[styles.fileRemove, { backgroundColor: theme.colors.elevation }]}
+						onPress={onRemove}
+						accessible
+						accessibilityRole="button"
+						accessibilityLabel={t('settings.enterprise.register.tcp.removeFile')}
+					>
+						<FontAwesome6 name="xmark" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
+					</QPPressable>
+				)}
+			</View>
+		</>
 	)
 }
 
@@ -425,6 +534,11 @@ const styles = StyleSheet.create({
 	addrZip: {
 		flex: 1,
 	},
+	fileRow: {
+		flexDirection: 'row',
+		alignItems: 'stretch',
+		gap: 8,
+	},
 	fileCard: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -437,6 +551,13 @@ const styles = StyleSheet.create({
 		width: 38,
 		height: 38,
 		borderRadius: 11,
+		borderCurve: 'continuous',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	fileRemove: {
+		width: 48,
+		borderRadius: 12,
 		borderCurve: 'continuous',
 		alignItems: 'center',
 		justifyContent: 'center',
