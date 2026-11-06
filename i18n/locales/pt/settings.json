@@ -92,6 +92,8 @@
 	"contributors": {
 		"title": "Obrigado",
 		"message": "O QvaPay existe graças a quem dedica seu tempo a melhorá-lo. Estas são as pessoas que contribuíram código para o app.",
+		"count_one": "{{count}} contribuição",
+		"count_other": "{{count}} contribuições",
 		"footer": "Quer aparecer aqui? Envie seu primeiro PR"
 	},
 	"appLock": {
