@@ -1,5 +1,9 @@
 module.exports = {
   preset: '@react-native/jest-preset',
+  // `ios/build` es el DerivedData de scripts/run-ios-device.sh y ahí Xcode clona los
+  // paquetes Swift. OpenIAP es un monorepo con sus propios tests y __mocks__: sin
+  // esto Jest los recoge y sus mocks tumban las suites de la app.
+  modulePathIgnorePatterns: ['<rootDir>/ios/build/'],
   // Project keys REPLACE preset keys wholesale, so re-declare the preset's own
   // setup file alongside ours — dropping it would silently lose RN's global
   // mocks. jest.setup.js initializes the real i18next singleton with the
