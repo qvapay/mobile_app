@@ -26,6 +26,7 @@ import { useViaP2PShowcaseQuery } from './addQueries'
 import { usePeerProfile } from '../p2p/usePeerProfile'
 import DepositViaP2PBlock from './DepositViaP2PBlock'
 
+const { theme } = jest.requireMock('../../theme/ThemeContext').useTheme()
 const ETECSA = { tick: 'ETECSA', name: 'Saldo ETECSA', enabled_in: 0 }
 // Perfil con acceso completo al P2P (los 4 gates), cuenta de hace 60 días
 const FULL_USER = { uuid: 'me', p2p_enabled: 1, kyc: 1, phone_verified: 1, telegram_id: '1', created_at: '2026-09-04T00:00:00Z', trustscore: 0 }
@@ -145,13 +146,17 @@ test('al recuperar el foco (vuelta del detalle) se revalida; el primer foco no',
 test('mientras carga, «Ver todas» espera: aún no se sabe si lleva a la tesorería o al mercado', () => {
 	useViaP2PShowcaseQuery.mockReturnValue({ data: undefined, isPending: true, error: null })
 	const { tree } = render()
-	expect(byId(tree, 'via-p2p-see-all')[0].props.disabled).toBe(true)
+	const link = byId(tree, 'via-p2p-see-all')[0]
+	expect(link.props.disabled).toBe(true)
+	expect(link.findByType('FontAwesome6').props.color).toBe(theme.colors.secondaryText)
 })
 
 test('con las ofertas ya cargadas, «Ver todas» se puede tocar', () => {
 	useViaP2PShowcaseQuery.mockReturnValue({ data: { source: 'treasury', offers: [offer('t1')], promotedUuid: null }, isPending: false, error: null })
 	const { tree } = render()
-	expect(byId(tree, 'via-p2p-see-all')[0].props.disabled).toBe(false)
+	const link = byId(tree, 'via-p2p-see-all')[0]
+	expect(link.props.disabled).toBe(false)
+	expect(link.findByType('FontAwesome6').props.color).toBe(theme.colors.primary)
 })
 
 test('sin acceso al P2P el enlace sigue activo aunque la query esté parada: lleva a completar el perfil', () => {

@@ -122,6 +122,8 @@ const DepositViaP2PBlock = ({ coin, navigation }: Props) => {
 	const name = coin.name || coin.tick
 	const howToPay = t(howToPayKey(coin.tick))
 	const loading = !gated && showcase.isPending
+	// En gris y no con opacidad: la de QPPressable pisa la del estilo
+	const linkColor = loading ? theme.colors.secondaryText : theme.colors.primary
 
 	return (
 		<View style={[styles.block, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]} testID="deposit-via-p2p">
@@ -169,9 +171,9 @@ const DepositViaP2PBlock = ({ coin, navigation }: Props) => {
 			)}
 
 			{/* Mientras carga aún no se sabe si lleva a la tesorería o al mercado entero */}
-			<QPPressable onPress={openMarket} disabled={loading} variant="opacity" hitSlop={8} style={[styles.linkRow, loading && styles.linkLoading]} testID="via-p2p-see-all">
-				<Text style={[textStyles.caption, styles.link, { color: theme.colors.primary }]}>{gated ? t('add.viaP2P.needsP2PLink') : t('add.viaP2P.seeAll')}</Text>
-				<FontAwesome6 name="arrow-right" size={11} color={theme.colors.primary} iconStyle="solid" />
+			<QPPressable onPress={openMarket} disabled={loading} variant="opacity" hitSlop={8} style={styles.linkRow} testID="via-p2p-see-all">
+				<Text style={[textStyles.caption, styles.link, { color: linkColor }]}>{gated ? t('add.viaP2P.needsP2PLink') : t('add.viaP2P.seeAll')}</Text>
+				<FontAwesome6 name="arrow-right" size={11} color={linkColor} iconStyle="solid" />
 			</QPPressable>
 		</View>
 	)
@@ -187,7 +189,6 @@ const styles = StyleSheet.create({
 	item: { borderRadius: 0, marginBottom: 0 },
 	divider: { height: StyleSheet.hairlineWidth },
 	linkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 2 },
-	linkLoading: { opacity: 0.5 },
 	link: { textDecorationLine: 'underline' },
 })
 
