@@ -140,6 +140,32 @@ describe('verificar con la ficha sin guardar', () => {
 		expect(userApi.verifySsn).toHaveBeenCalledTimes(1)
 		expect(userApi.updateUser.mock.invocationCallOrder[0]).toBeLessThan(userApi.verifySsn.mock.invocationCallOrder[0])
 	})
+
+	test('si la dirección del buscador llega con la confirmación abierta, la cierra y no verifica', async () => {
+		const tree = await open()
+		await act(async () => { verifyButton(tree).props.onPress() })
+		await settle()
+		const modal = () => tree.root.findAllByType('Modal')[0]
+		await act(async () => { modal().props.onShow() })
+		await settle()
+		expect(modal().props.visible).toBe(true)
+
+		await act(async () => { tree.root.findByType('AddressAutocomplete').props.onSelect({ line1: '1 Main St', city: 'Newark', state: 'DE', postal_code: '19711' }) })
+		await settle()
+		expect(verifyButton(tree).props.disabled).toBe(true)
+		expect(modal().props.visible).toBe(false)
+		// iOS lo mantiene montado mientras se va: un toque en ese momento tampoco consulta
+		await act(async () => { byTestId(tree, 'ssn-confirm-accept')[0].props.onPress() })
+		await settle()
+		expect(userApi.verifySsn).not.toHaveBeenCalled()
+
+		// Deshacer el cambio reactiva el botón, pero la confirmación no se reabre sola
+		await act(async () => { modal().props.onDismiss() })
+		await editCip(tree, { addrLine1: '818 Leahy Cir', addrCity: 'Dover', addrPostal: '19901' })
+		await settle()
+		expect(verifyButton(tree).props.disabled).toBe(false)
+		expect(tree.root.findAllByType('Modal')).toHaveLength(0)
+	})
 })
 
 describe('lo que permite la ficha se refresca', () => {

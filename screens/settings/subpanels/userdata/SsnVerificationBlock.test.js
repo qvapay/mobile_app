@@ -83,6 +83,22 @@ describe('SsnVerificationBlock', () => {
 		expect(texts(unsavedHint()[0])).toContain('Guarda los cambios de tu ficha antes de verificar')
 	})
 
+	test('si aparecen cambios mientras la confirmación aún se presenta, no consulta y se cierra al terminar', async () => {
+		await render()
+		act(() => { verifyButton().props.onPress() })
+		await settle()
+		await act(async () => { tree.update(<QueryClientProvider client={client}><Harness hasUnsavedChanges /></QueryClientProvider>) })
+		await settle()
+		// iOS no deja ocultar un Modal a medio presentar: sigue visible y su botón, a mano
+		expect(modals(tree)[0].props.visible).toBe(true)
+		await act(async () => { await button(tree, 'ssn-confirm-accept').props.onPress() })
+		await settle()
+		expect(userApi.verifySsn).not.toHaveBeenCalled()
+		act(() => { modals(tree)[0].props.onShow() })
+		await settle()
+		expect(modals(tree)[0].props.visible).toBe(false)
+	})
+
 	test('sin cambios, ni aviso ni botón apagado', async () => {
 		await render()
 		expect(verifyButton().props.disabled).toBe(false)

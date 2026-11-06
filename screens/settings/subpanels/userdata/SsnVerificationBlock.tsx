@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Linking, Modal, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -77,13 +77,19 @@ const SsnVerificationBlock = ({ cip, onHighlight, hasUnsavedChanges = false }: P
 	// El éxito espera a que la confirmación termine de irse: dos `<Modal>` a la vez fallan en iOS
 	const successGate = useModalGate(celebrating && !confirmGate.mounted)
 
+	// Los cambios pueden llegar con la confirmación ya abierta: el buscador de direcciones
+	// rellena la ficha cuando responde, no cuando se elige la sugerencia
+	useEffect(() => {
+		if (hasUnsavedChanges) { setConfirming(false) }
+	}, [hasUnsavedChanges])
+
 	const refresh = useCallback(() => {
 		queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey })
 		queryClient.invalidateQueries({ queryKey: DEPOSIT_ELIGIBILITY_KEY })
 	}, [queryClient])
 
 	const verify = useCallback(async () => {
-		if (inFlight.current) { return }
+		if (inFlight.current || hasUnsavedChanges) { return }
 		inFlight.current = true
 		setConfirming(false)
 		setVerifying(true)
@@ -119,7 +125,7 @@ const SsnVerificationBlock = ({ cip, onHighlight, hasUnsavedChanges = false }: P
 			inFlight.current = false
 			setVerifying(false)
 		}
-	}, [cip, queryClient, refresh, t])
+	}, [cip, hasUnsavedChanges, queryClient, refresh, t])
 
 	const runBlockAction = useCallback((action: SsnBlockAction) => {
 		switch (action.kind) {
