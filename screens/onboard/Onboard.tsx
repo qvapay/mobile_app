@@ -115,11 +115,12 @@ const Onboard = ({ navigation }: Props) => {
 	const { shouldShowOnboardPrompt, enablePush, dismissOnboardPrompt } = usePushPrompt()
 
 	// Settings Context
-	const { updateSetting } = useSettings()
+	const { updateSettings } = useSettings()
 	const handleCompleteOnboarding = async () => {
-		await updateSetting('appearance', 'firstTime', false)
-		// Instalación nueva: la versión actual queda como «vista» para que Novedades solo salga al ACTUALIZAR
-		await updateSetting('appearance', 'lastSeenWhatsNew', appJson.version)
+		// Instalación nueva: la versión actual queda como «vista» para que Novedades solo salga al ACTUALIZAR.
+		// Una sola escritura a propósito: updateSetting parte del estado de SU render, así que un segundo
+		// await desde esta misma closure devolvería firstTime a true (y el onboarding saldría en cada arranque)
+		await updateSettings('appearance', { firstTime: false, lastSeenWhatsNew: appJson.version })
 		if (shouldShowOnboardPrompt) {
 			setShowPushModal(true)
 		} else {
