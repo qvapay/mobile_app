@@ -1,11 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ComponentProps, ReactElement } from 'react'
+import { useScrollToTop } from '@react-navigation/native'
 import { useSharedValue } from 'react-native-reanimated'
 import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../hooks/useContentPadding'
 import useTabBarClearance from '../../hooks/useTabBarClearance'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
-import type { RefreshControlProps } from 'react-native'
+import type { RefreshControlProps, ScrollViewInstance } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -193,6 +194,11 @@ const Home = ({ navigation }: HomeProps) => {
 	// La barra inferior emulada flota sobre el contenido: su hueco se suma aquí (0 en iOS 26+)
 	const contentPadding = useContentPadding(20 + useTabBarClearance())
 
+	// Tocar Inicio estando ya en Inicio vuelve arriba. Hace falta con la barra emulada
+	// (Android, iOS < 26); en iOS 26+ lo resuelve la barra nativa y el hook se aparta
+	const scrollRef = useRef<ScrollViewInstance>(null)
+	useScrollToTop(scrollRef)
+
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
@@ -233,7 +239,7 @@ const Home = ({ navigation }: HomeProps) => {
 			{/* Cast del refreshControl: `createHiddenRefreshControl` declara
 			    `ReactElement` (props `unknown`) y ScrollView pide
 			    `ReactElement<RefreshControlProps>` — el elemento ES un RefreshControl */}
-			<ScrollView style={styles.scrollView} contentContainerStyle={contentPadding} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}>
+			<ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={contentPadding} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}>
 
 				{/* Aviso global del panel admin (misma fuente que la barra del
 				    dashboard web). Va ENCIMA de la promo y es otra cosa: esto es
