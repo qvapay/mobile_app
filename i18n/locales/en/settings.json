@@ -323,7 +323,7 @@
 			},
 			"step2": {
 				"title": "Tax details",
-				"subtitle": "The country where the company is incorporated and its tax ID",
+				"subtitle": "The country where the company is incorporated, its tax ID and its owners",
 				"countryLabel": "Country of incorporation",
 				"countryPlaceholder": "Select the country…",
 				"einLabel": "EIN (Employer Identification Number)",
@@ -337,11 +337,20 @@
 				"addrStateTitle": "Address state",
 				"nitLabel": "NIT (Tax Identification Number)",
 				"nitPlaceholder": "11 digits",
-				"reeupLabel": "REEUP code",
-				"reeupHint": "Cuba's State Registry of Companies and Budgeted Units.",
 				"taxIdLabel": "Tax identification number",
 				"taxIdPlaceholder": "RFC, RUC, NIT, CIF…",
 				"taxIdHint": "Your company's tax ID in its country of registration."
+			},
+			"owners": {
+				"label": "Company owners",
+				"hintCuba": "Include every partner that appears on the deed (escritura), any percentage. Each partner must have a verified QvaPay account.",
+				"hintIntl": "Only people owning {{min}}% or more. Do not include notaries, witnesses or counsel.",
+				"rowTitle": "Owner {{number}}",
+				"namePlaceholder": "Full name",
+				"emailPlaceholder": "Email (optional)",
+				"usernamePlaceholder": "QvaPay username",
+				"add": "Add another owner",
+				"remove": "Remove owner {{number}}"
 			},
 			"step3": {
 				"title": "Contact and bylaws",
@@ -372,7 +381,6 @@
 			"addrState": "Select the state of the registered address.",
 			"addrZip": "Enter a valid ZIP code (e.g. 33101).",
 			"nit": "Enter a valid NIT (11 digits).",
-			"reeup": "Enter a valid REEUP code.",
 			"taxId": "Enter the company's tax identification number.",
 			"directorName": "Enter the director or president's name.",
 			"email": "Enter a valid contact email.",
@@ -380,7 +388,14 @@
 			"fileTooLarge": "The file must not exceed 10MB.",
 			"tcpBusinessName": "Enter the business name.",
 			"tcpActivity": "Describe your activity.",
-			"tcpHolderName": "Enter your full name."
+			"tcpHolderName": "Enter your full name.",
+			"ownersCubaRequired": "Add every partner that appears on the company deed (escritura).",
+			"ownerName": "Enter the full name of each owner.",
+			"ownerPct": "The ownership percentage for {{name}} must be between 0 and 100.",
+			"ownerPctRequired": "Enter the ownership percentage for {{name}}.",
+			"ownerPctMin": "Outside Cuba only owners with {{min}}% or more are declared ({{name}} is below).",
+			"ownerEmail": "The email for {{name}} is not valid.",
+			"ownersTotal": "Ownership percentages cannot add up to more than 100%."
 		}
 	},
 	"fontSize": {
