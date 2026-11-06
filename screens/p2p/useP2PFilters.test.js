@@ -228,3 +228,38 @@ describe('applyLink', () => {
 		expect(f.current.filters).toMatchObject({ typeFilter: 'buy', showMine: true, onlyVip: false })
 	})
 })
+
+describe('el comerciante de un enlace al cambiar de moneda', () => {
+	const fromLink = () => {
+		const f = renderFilters()
+		act(() => { f.current.applyLink({ coin: { tick: 'ETECSA' }, peer: 'skymind' }) })
+		return f
+	}
+
+	test('pasar a otra moneda lo quita', () => {
+		const f = fromLink()
+		set(f, 'selectedCoin', { tick: 'BANK_MLC' })
+		expect(f.current.apiFilters.coin).toBe('BANK_MLC')
+		expect(f.current.apiFilters).not.toHaveProperty('peer')
+	})
+
+	test('volver a elegir la misma moneda lo conserva', () => {
+		const f = fromLink()
+		set(f, 'selectedCoin', { tick: 'ETECSA' })
+		expect(f.current.apiFilters.peer).toBe('skymind')
+	})
+
+	test('quitar la moneda lo conserva: quedan todas las ofertas de ese comerciante', () => {
+		const f = fromLink()
+		set(f, 'selectedCoin', null)
+		expect(f.current.apiFilters).not.toHaveProperty('coin')
+		expect(f.current.apiFilters.peer).toBe('skymind')
+	})
+
+	test('con un enlace solo de comerciante, elegir moneda filtra sus ofertas', () => {
+		const f = renderFilters()
+		act(() => { f.current.applyLink({ peer: 'skymind' }) })
+		set(f, 'selectedCoin', { tick: 'USDT' })
+		expect(f.current.apiFilters).toMatchObject({ coin: 'USDT', peer: 'skymind' })
+	})
+})

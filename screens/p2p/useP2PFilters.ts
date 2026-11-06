@@ -105,6 +105,11 @@ const clearedFilters = (state: P2PFiltersState): P2PFiltersState => ({ ...initia
 function filtersReducer(state: P2PFiltersState, action: P2PFilterAction): P2PFiltersState {
 	switch (action.type) {
 		case "set":
+			// El comerciante de un enlace iba con su moneda, y en otra puede no tener ofertas.
+			// Con un enlace solo de comerciante (sin moneda) elegir una es filtrar las suyas
+			if (action.field === "selectedCoin" && action.value && state.selectedCoin && action.value.tick !== state.selectedCoin.tick) {
+				return { ...state, selectedCoin: action.value, peer: null }
+			}
 			return { ...state, [action.field]: action.value }
 		case "reset":
 			return clearedFilters(state)

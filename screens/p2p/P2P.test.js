@@ -117,6 +117,14 @@ describe('links to the market', () => {
 		expect(badges(tree)).toEqual([])
 	})
 
+	test('picking another coin in the bar drops the merchant the link brought', async () => {
+		const tree = await open(TREASURY_LINK)
+		await act(async () => { tree.root.findByType('P2PFilterBar').props.onSelectCoin({ tick: 'BANK_MLC', label: 'MLC' }) })
+		expect(mockApiFilters.coin).toBe('BANK_MLC')
+		expect(mockApiFilters).not.toHaveProperty('peer')
+		expect(badges(tree)).toEqual([])
+	})
+
 	test('in My offers a link changes nothing, and leaving it does not apply it late', async () => {
 		const tree = await open(undefined)
 		await setFilter(tree, 'showMine', true)
