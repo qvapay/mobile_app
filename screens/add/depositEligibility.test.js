@@ -105,6 +105,18 @@ describe('ssnCtaVisible', () => {
 		expect(ssnCtaVisible(eligibility(), cip({ ssn_verification: ssn({ can_start: false, block_reason: 'KYC_REQUIRED' }) }))).toBe(false)
 	})
 
+	test('con el nivel apagado no se ofrece a quien podría verificar: gastaría un intento para nada', () => {
+		const off = { ssn_tier: tier({ enabled: false, verified: false }) }
+		expect(ssnCtaVisible(eligibility(off), cip())).toBe(false)
+		expect(ssnCtaVisible(eligibility({ ...off, card: rail(false, null, 'SSN_TIER_OFF'), paypal: rail(false, null, 'SSN_TIER_OFF') }), cip())).toBe(false)
+		expect(ssnCtaVisible(eligibility(off), cip({ ssn_verification: ssn({ can_start: false, block_reason: 'GOLD_REQUIRED' }) }))).toBe(false)
+		expect(ssnCtaVisible(eligibility({ ssn_tier: undefined }), cip())).toBe(false)
+	})
+
+	test('una cuenta de pruebas sí, aunque el nivel esté apagado', () => {
+		expect(ssnCtaVisible(eligibility({ ssn_tier: tier({ enabled: false, verified: false, tester: true }) }), cip())).toBe(true)
+	})
+
 	test('sin datos no se ofrece', () => {
 		expect(ssnCtaVisible(null, cip())).toBe(false)
 		expect(ssnCtaVisible(eligibility(), null)).toBe(false)

@@ -248,6 +248,8 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 				setTopupData(data)
 				setDepositStatus('pending')
 				setShowDepositModal(true)
+				// El cupo cuenta también lo pendiente de la última hora: esta orden ya lo baja, se pague o no
+				if (ssnCap) { queryClient.invalidateQueries({ queryKey: DEPOSIT_ELIGIBILITY_KEY }) }
 				if (data?.client_secret) {
 					launchCardSheet(data)
 				} else if (data?.redirect_url) {
