@@ -141,3 +141,22 @@ test('al recuperar el foco (vuelta del detalle) se revalida; el primer foco no',
 	act(() => { onFocus() })
 	expect(invalidate).toHaveBeenCalledWith({ queryKey: ['add', 'via-p2p', 'ETECSA'] })
 })
+
+test('mientras carga, «Ver todas» espera: aún no se sabe si lleva a la tesorería o al mercado', () => {
+	useViaP2PShowcaseQuery.mockReturnValue({ data: undefined, isPending: true, error: null })
+	const { tree } = render()
+	expect(byId(tree, 'via-p2p-see-all')[0].props.disabled).toBe(true)
+})
+
+test('con las ofertas ya cargadas, «Ver todas» se puede tocar', () => {
+	useViaP2PShowcaseQuery.mockReturnValue({ data: { source: 'treasury', offers: [offer('t1')], promotedUuid: null }, isPending: false, error: null })
+	const { tree } = render()
+	expect(byId(tree, 'via-p2p-see-all')[0].props.disabled).toBe(false)
+})
+
+test('sin acceso al P2P el enlace sigue activo aunque la query esté parada: lleva a completar el perfil', () => {
+	useAuth.mockReturnValue({ user: { ...FULL_USER, kyc: 0 } })
+	useViaP2PShowcaseQuery.mockReturnValue({ data: undefined, isPending: true, error: null })
+	const { tree } = render()
+	expect(byId(tree, 'via-p2p-see-all')[0].props.disabled).toBe(false)
+})
