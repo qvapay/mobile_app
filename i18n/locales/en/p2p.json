@@ -286,16 +286,15 @@
 		"safety": "Release only if the payment is already in your account, not for screenshots or promises.",
 		"txIdPlaceholder": "Transfer ID",
 		"txIdHelper": "The payment ID unlocks “I've paid” and helps verify it faster.",
-		"txIdHelperOrProof": "Enter the payment ID or attach a receipt to unlock “I've paid”."
+		"txIdHelperOrProof": "Enter the payment ID or attach a receipt to unlock “I've paid”.",
+		"txIdHelperAttach": "The payment ID unlocks “I've paid”. You can also attach a photo or a PDF: only the other party and support can see it."
 	},
 	"attachments": {
 		"title": "Receipts",
-		"hintPrivate": "Attach a photo or a PDF of the payment. Only the other party and support can see it.",
-		"hintProof": "If you don't have the payment ID, a receipt is enough to mark “I've paid”. Only the other party and support can see it.",
-		"photo": "Photo",
-		"pdf": "PDF",
-		"rowImage": "Receipt {{index}} · Image · {{size}}",
-		"rowPdf": "Receipt {{index}} · PDF · {{size}}",
+		"attachPhoto": "Attach photo",
+		"attachPdf": "Attach PDF",
+		"rowImage": "Image · {{size}}",
+		"rowPdf": "PDF · {{size}}",
 		"mine": "Yours",
 		"theirs": "From the other party",
 		"openLabel": "Open receipt {{index}}",

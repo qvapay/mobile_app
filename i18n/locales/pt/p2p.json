@@ -286,16 +286,15 @@
 		"safety": "Libere apenas se o pagamento já estiver na sua conta, não por prints nem promessas.",
 		"txIdPlaceholder": "ID da transferência",
 		"txIdHelper": "O ID do pagamento habilita “Já paguei” e ajuda a verificar mais rápido.",
-		"txIdHelperOrProof": "Digite o ID do pagamento ou anexe um comprovante para habilitar “Já paguei”."
+		"txIdHelperOrProof": "Digite o ID do pagamento ou anexe um comprovante para habilitar “Já paguei”.",
+		"txIdHelperAttach": "O ID do pagamento habilita “Já paguei”. Você também pode anexar uma foto ou um PDF: só a outra parte e o suporte podem ver."
 	},
 	"attachments": {
 		"title": "Comprovantes",
-		"hintPrivate": "Anexe uma foto ou um PDF do pagamento. Só a outra parte e o suporte podem ver.",
-		"hintProof": "Se você não tiver o ID do pagamento, um comprovante basta para marcar “Já paguei”. Só a outra parte e o suporte podem ver.",
-		"photo": "Foto",
-		"pdf": "PDF",
-		"rowImage": "Comprovante {{index}} · Imagem · {{size}}",
-		"rowPdf": "Comprovante {{index}} · PDF · {{size}}",
+		"attachPhoto": "Anexar foto",
+		"attachPdf": "Anexar PDF",
+		"rowImage": "Imagem · {{size}}",
+		"rowPdf": "PDF · {{size}}",
 		"mine": "Seu",
 		"theirs": "Da outra parte",
 		"openLabel": "Abrir comprovante {{index}}",

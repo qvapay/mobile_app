@@ -8,10 +8,30 @@ import {
 	attachmentFileName,
 	canShowAttachments,
 	canSubmitMarkPaid,
+	proofWarningVisible,
 	formatAttachmentSize,
 } from './p2pAttachments'
 
 const MAX = 4 * 1024 * 1024
+
+describe('proofWarningVisible', () => {
+	const base = { isReceiver: true, fromCounterparty: true }
+
+	it('sale donde la línea de tiempo no lo dice: esperando el pago y en disputa', () => {
+		expect(proofWarningVisible({ ...base, status: 'processing' })).toBe(true)
+		expect(proofWarningVisible({ ...base, status: 'revision' })).toBe(true)
+	})
+
+	it('no se repite en paid ni se enseña cuando ya no decide nada', () => {
+		expect(proofWarningVisible({ ...base, status: 'paid' })).toBe(false)
+		expect(proofWarningVisible({ ...base, status: 'completed' })).toBe(false)
+	})
+
+	it('solo a quien recibe, y solo por lo que manda la contraparte', () => {
+		expect(proofWarningVisible({ ...base, isReceiver: false, status: 'revision' })).toBe(false)
+		expect(proofWarningVisible({ ...base, fromCounterparty: false, status: 'revision' })).toBe(false)
+	})
+})
 
 describe('canShowAttachments', () => {
 	const base = { isFlexibleOverview: false, isPayer: true, isReceiver: false, status: 'processing' }

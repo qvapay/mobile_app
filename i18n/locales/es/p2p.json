@@ -286,16 +286,15 @@
 		"safety": "Libera solo si el pago ya está en tu cuenta, no por capturas ni promesas.",
 		"txIdPlaceholder": "ID de la transferencia",
 		"txIdHelper": "El ID del pago habilita «He pagado» y ayuda a verificarlo más rápido.",
-		"txIdHelperOrProof": "Escribe el ID del pago o adjunta un comprobante para habilitar «He pagado»."
+		"txIdHelperOrProof": "Escribe el ID del pago o adjunta un comprobante para habilitar «He pagado».",
+		"txIdHelperAttach": "El ID del pago habilita «He pagado». También puedes adjuntar una foto o un PDF: solo lo ven la otra parte y soporte."
 	},
 	"attachments": {
 		"title": "Comprobantes",
-		"hintPrivate": "Adjunta una foto o un PDF del pago. Solo lo ven la otra parte y soporte.",
-		"hintProof": "Si no tienes el ID del pago, con un comprobante basta para marcar «He pagado». Solo lo ven la otra parte y soporte.",
-		"photo": "Foto",
-		"pdf": "PDF",
-		"rowImage": "Comprobante {{index}} · Imagen · {{size}}",
-		"rowPdf": "Comprobante {{index}} · PDF · {{size}}",
+		"attachPhoto": "Adjuntar foto",
+		"attachPdf": "Adjuntar PDF",
+		"rowImage": "Imagen · {{size}}",
+		"rowPdf": "PDF · {{size}}",
 		"mine": "Tuyo",
 		"theirs": "De la contraparte",
 		"openLabel": "Abrir comprobante {{index}}",
