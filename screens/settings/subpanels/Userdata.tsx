@@ -2,6 +2,7 @@ import { useState, useEffect, useReducer, useCallback } from 'react'
 import { Text, View } from 'react-native'
 import { Trans, useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useFocusEffect } from '@react-navigation/native'
 
 // i18n (call-time para el helper de módulo + locale de fechas)
 import i18n, { getDateLocale } from '../../../i18n'
@@ -135,6 +136,12 @@ const Userdata = () => {
 	const [cipLoaded, setCipLoaded] = useState<CipForm>(EMPTY_CIP_FORM)
 	const [cipTouched, setCipTouched] = useState(false)
 	const [cipHighlight, setCipHighlight] = useState<CipField | null>(null)
+	// Comprar GOLD o verificar la identidad cambia lo que permite el bloque del SSN, y con
+	// los 10 min de caché de la ficha lo seguiría negando: se pide al entrar y al volver
+	useFocusEffect(useCallback(() => {
+		// Sin cancelar la petición que ya lance el montaje con la caché caducada: serían dos
+		queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey }, { cancelRefetch: false })
+	}, [queryClient]))
 	useEffect(() => {
 		if (!cip) { return }
 		const loaded = cipFormFromProfile(cip)
@@ -353,7 +360,7 @@ const Userdata = () => {
 			/>
 
 			{/* Verificación del SSN: solo con la casilla GUARDADA (el servidor decide el resto) */}
-			{cip?.us_person && <SsnVerificationBlock cip={cip} onHighlight={highlightFromSsn} />}
+			{cip?.us_person && <SsnVerificationBlock cip={cip} onHighlight={highlightFromSsn} hasUnsavedChanges={isCipDirty(cipForm, cipLoaded)} />}
 
 			{/* Info card */}
 			<View style={[containerStyles.card, { marginTop: 10 }]}>

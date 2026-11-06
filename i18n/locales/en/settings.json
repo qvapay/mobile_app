@@ -950,6 +950,7 @@
 			"retry": {
 				"notice": "The last attempt didn't match. Make sure the SSN is yours and your document is in your name."
 			},
+			"unsaved": "Save the changes to your details before verifying: the check uses the saved data.",
 			"attempts_one": "{{count}} attempt left",
 			"attempts_other": "{{count}} attempts left",
 			"button": "Verify my SSN",

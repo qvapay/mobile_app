@@ -36,9 +36,9 @@ const CIP = {
 const VERIFIED = { success: true, data: { status: 'verified', verified_at: '2026-11-05T12:00:00Z', attempts_left: 2 } }
 
 /** La ficha sale de la caché real, como en Datos personales: verificar cambia la fase. */
-const Harness = () => {
+const Harness = (props) => {
 	const { data } = useQuery({ queryKey: USER_CIP_QUERY.queryKey, queryFn: () => CIP, enabled: false, initialData: CIP })
-	return <SsnVerificationBlock cip={data} onHighlight={jest.fn()} />
+	return <SsnVerificationBlock cip={data} onHighlight={jest.fn()} {...props} />
 }
 
 const settle = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
@@ -64,15 +64,30 @@ describe('SsnVerificationBlock', () => {
 	let client
 	let tree
 
-	const render = async () => {
+	const render = async (props) => {
 		client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 		await act(async () => {
-			tree = create(<QueryClientProvider client={client}><Harness /></QueryClientProvider>)
+			tree = create(<QueryClientProvider client={client}><Harness {...props} /></QueryClientProvider>)
 		})
 		await settle()
 	}
 
 	beforeEach(() => { jest.clearAllMocks() })
+
+	const verifyButton = () => tree.root.findAll(node => node.type === 'QPButton' && node.props.icon === 'shield-halved')[0]
+	const unsavedHint = () => tree.root.findAll(node => node.props.testID === 'ssn-unsaved-hint' && typeof node.type === 'string')
+
+	test('con cambios sin guardar no deja verificar y dice por qué', async () => {
+		await render({ hasUnsavedChanges: true })
+		expect(verifyButton().props.disabled).toBe(true)
+		expect(texts(unsavedHint()[0])).toContain('Guarda los cambios de tu ficha antes de verificar')
+	})
+
+	test('sin cambios, ni aviso ni botón apagado', async () => {
+		await render()
+		expect(verifyButton().props.disabled).toBe(false)
+		expect(unsavedHint()).toHaveLength(0)
+	})
 
 	afterEach(() => {
 		act(() => { tree.unmount() })
