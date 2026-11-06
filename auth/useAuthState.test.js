@@ -53,10 +53,15 @@ jest.mock('../helpers/miniAppShortcuts', () => ({
 	clearMiniAppQuickActions: jest.fn(async () => {}),
 }))
 
+jest.mock('../helpers/openAuthedFile', () => ({
+	sweepCachedFiles: jest.fn(async () => {}),
+}))
+
 import React from 'react'
 import { act, create } from 'react-test-renderer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { syncPushToken, unregisterPush } from '../push'
+import { sweepCachedFiles } from '../helpers/openAuthedFile'
 import { Passkey } from 'react-native-passkey'
 import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
@@ -374,6 +379,13 @@ describe('logout', () => {
 		expect(authApi.logout).not.toHaveBeenCalled()
 		expect(unregisterPush).toHaveBeenCalled()
 		expect(result.current.isAuthenticated).toBe(false)
+	})
+
+	test('no receipt from this account stays in the phone cache', async () => {
+		const { result } = await renderAuthenticatedHook()
+		await act(async () => { await result.current.logout() })
+
+		expect(sweepCachedFiles).toHaveBeenCalledWith('p2p-att-')
 	})
 
 	test('a failed server-side revocation never blocks the local logout', async () => {

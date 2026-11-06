@@ -32,6 +32,8 @@ import { useKeyboardHeight } from "../../hooks/useKeyboardHeight"
 import useP2PChat from "./useP2PChat"
 import useP2PChatSSE from "./useP2PChatSSE"
 import useP2POfferDetail from "./useP2POfferDetail"
+import useP2PAttachments from "./useP2PAttachments"
+import { canShowAttachments, canSubmitMarkPaid } from "./p2pAttachments"
 import P2POfferDetailsCard from "./P2POfferDetailsCard"
 import P2POfferChatDock from "./P2POfferChatDock"
 import P2POfferConfirm from "./P2POfferConfirm"
@@ -40,6 +42,7 @@ import P2PPeerRow from "./P2PPeerRow"
 import P2PEditModal from "./P2PEditModal"
 import P2PApplyModal from "./P2PApplyModal"
 import P2PTradeProgress from "./P2PTradeProgress"
+import P2PTradeAttachments from "./P2PTradeAttachments"
 import P2PActionBar from "./P2PActionBar"
 import P2PFlexibleOrders from "./P2PFlexibleOrders"
 import P2PRateSheet from "./P2PRateSheet"
@@ -131,6 +134,15 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 		handleApply, handleApplyConfirm, handleShareIntent, openEditModal, handleEdit,
 	} = offer
 
+	// Comprobantes del trato (privados: nunca entran en la caché del detalle)
+	const proofs = useP2PAttachments({
+		p2p_uuid,
+		order: chatOrder,
+		enabled: canShowAttachments({ isFlexibleOverview, isPayer, isReceiver, status }),
+		messageCount: chat.messages.length,
+	})
+	const markPaidReady = canSubmitMarkPaid({ txId: txIdInput, ownProofs: proofs.ownCount, proofReplaces: proofs.proofReplaces })
+
 	// Reportar · bloquear a la contraparte desde el menú ⋯ del chat (como el chat de la web).
 	// El estado de bloqueo solo se pide con un trato en marcha (hay contraparte)
 	const moderation = useUserModeration(counterparty ?? null, { enabled: !!counterparty && !!user })
@@ -193,6 +205,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 								canMarkPaid={canMarkPaid}
 								txIdInput={txIdInput}
 								setTxIdInput={setTxIdInput}
+								proofReplaces={proofs.proofReplaces}
 								theme={theme}
 								textStyles={textStyles}
 								containerStyles={containerStyles}
@@ -208,6 +221,24 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 
 					{/* Payment details + registered TX id (+ banner only for revision — the stepper covers the rest) */}
 					<P2POfferDetailsCard p2p={p2p} statusMessage={status === "revision" ? statusMessage : null} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
+
+					{proofs.available && (
+						<P2PTradeAttachments
+							attachments={proofs.attachments}
+							canUpload={proofs.canUpload}
+							isPayer={isPayer}
+							isReceiver={isReceiver}
+							proofReplaces={proofs.proofReplaces}
+							uploading={proofs.uploading}
+							openingUuid={proofs.openingUuid}
+							onPickImage={proofs.pickImage}
+							onPickPdf={proofs.pickPdf}
+							onOpen={proofs.open}
+							theme={theme}
+							textStyles={textStyles}
+							containerStyles={containerStyles}
+						/>
+					)}
 
 					{isFlexibleOverview && rawP2p ? (
 						/* Oferta por rango sin orden elegida: resumen + órdenes (cada una, su trade) */
@@ -434,7 +465,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					onDispute={handleDispute}
 					onBackToOffer={backToOffer}
 					loading={loading}
-					txIdInput={txIdInput}
+					markPaidReady={markPaidReady}
 					onApply={handleApply}
 					onCancel={handleCancel}
 					onMarkPaid={handleMarkPaid}
