@@ -269,7 +269,8 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 		const tick = route?.params?.coin
 		if (tick) setFilter("selectedCoin", { tick, name: route?.params?.coinName || tick, logo: tick })
 		if (paramType === "buy" || paramType === "sell") setFilter("typeFilter", paramType)
-		if (paramPeer !== undefined) setFilter("peer", paramPeer || null)
+		// Un enlace con moneda no hereda el comerciante de uno anterior: o trae su `peer` o no hay
+		if (tick || paramPeer !== undefined) setFilter("peer", paramPeer || null)
 		// "Mejor tasa" exige moneda: sin ella el hook degradaría al orden por defecto
 		if (paramSort === "best_rate" && tick) setFilter("sortIndex", Math.max(0, SORT_OPTIONS.findIndex(o => o.orderBy === "best_rate")))
 	}, [route?.params?.coin, route?.params?.coinName, paramType, paramPeer, paramSort, paramKey, setFilter])
