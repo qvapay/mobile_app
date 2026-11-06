@@ -19,6 +19,7 @@ import { unwrap } from '../../../api/unwrap'
 
 // Helpers
 import { getShortDateTime } from '../../../helpers'
+import { statutesRowKey } from './enterprise/enterpriseForm'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -46,6 +47,8 @@ type Company = {
 	activity?: string
 	employee_count?: string
 	statutes_sent?: boolean
+	/** `TCP` en un trabajador por cuenta propia. El backend aún no lo devuelve. */
+	entity_type?: string
 	created_at?: string
 }
 
@@ -225,7 +228,7 @@ const Enterprise = ({ navigation }: NativeStackScreenProps<SettingsStackParamLis
 								<DetailRow label={t('settings.enterprise.details.email')} value={company.email} theme={theme} textStyles={textStyles} />
 								<DetailRow label={t('settings.enterprise.details.activity')} value={company.activity} theme={theme} textStyles={textStyles} />
 								<DetailRow label={t('settings.enterprise.details.employees')} value={company.employee_count} theme={theme} textStyles={textStyles} />
-								<DetailRow label={t('settings.enterprise.details.statutes')} value={company.statutes_sent ? t('settings.enterprise.details.statutesSent') : t('settings.enterprise.details.statutesNotSent')} theme={theme} textStyles={textStyles} />
+								<DetailRow label={t('settings.enterprise.details.statutes')} value={t(statutesRowKey(company))} theme={theme} textStyles={textStyles} />
 								<DetailRow label={t('settings.enterprise.details.submittedAt')} value={company.created_at ? getShortDateTime(company.created_at) : 'N/A'} theme={theme} textStyles={textStyles} />
 
 								{company.status === 'rejected' && (

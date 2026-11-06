@@ -3,7 +3,9 @@
  * server-side rules in qpweb's `lib/company-fiscal.js` (CCO 2026-08-14):
  * US → EIN + entity type + inc. state + registered address; CU → NIT + REEUP;
  * rest → generic tax id. Sanctioned jurisdictions are excluded from the
- * country list (the server rejects them anyway). Free of React Native imports
+ * country list (the server rejects them anyway). La rama «cuenta propia»
+ * (`orgKind: 'tcp'`, espejo de `lib/company-tcp.js`) es solo para Cuba: NIT
+ * obligatorio, sin socios y documento opcional. Free of React Native imports
  * so it runs under `@jest-environment node` (see keypadAmount.js) — the i18n
  * singleton is RN-free too, and the localized validation messages resolve via
  * `i18n.t()` EN CALL TIME (never at module scope) so language switches apply.
@@ -69,8 +71,21 @@ export const REEUP_REGEX = /^[A-Za-z0-9./-]{4,20}$/
 export const US_ZIP_REGEX = /^\d{5}(-\d{4})?$/
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Tope del documento, mismo que el server (register-company.js)
+const MAX_FILE_BYTES = 10 * 1024 * 1024
+
+/** Qué se registra: empresa o trabajador por cuenta propia (TCP, figura cubana). */
+export type OrgKind = 'business' | 'tcp'
+
+// Espejo de TCP_COUNTRY en qpweb lib/company-tcp.js: el TCP no elige país
+export const TCP_COUNTRY = 'CU'
+
+// Espejo de TCP_ENTITY_TYPE en qpweb lib/company-tcp.js
+const TCP_ENTITY_TYPE = 'TCP'
+
 /** Formulario completo del wizard (todos los campos son string, incluso los opcionales). */
 export type EnterpriseForm = {
+	orgKind: OrgKind
 	companyName: string
 	activity: string
 	employeeCount: string
@@ -93,6 +108,7 @@ export type StatutesFile = { name?: string | null, size?: number | null } | null
 
 // Estado inicial del formulario del wizard
 export const EMPTY_FORM: EnterpriseForm = {
+	orgKind: 'business',
 	companyName: '',
 	activity: '',
 	employeeCount: '',
@@ -113,13 +129,28 @@ export const EMPTY_FORM: EnterpriseForm = {
 export const EMPTY_FISCAL: Partial<EnterpriseForm> = { taxId: '', reeup: '', entityType: '', incState: '', addrLine1: '', addrCity: '', addrState: '', addrZip: '' }
 
 /**
+ * Cambia lo que se registra. Cada rama tiene sus propios datos fiscales, así
+ * que al cambiar se vacían siempre, aunque el país coincida: de TCP a empresa
+ * no debe quedar Cuba preseleccionada sin que nadie la haya elegido, ni el NIT.
+ * Nombre, actividad y contacto valen para las dos ramas y se conservan.
+ * @param form
+ * @param orgKind - Rama elegida.
+ * @returns El mismo form si la rama no cambia; si no, uno nuevo limpio.
+ */
+export const withOrgKind = (form: EnterpriseForm, orgKind: OrgKind): EnterpriseForm => {
+	if (form.orgKind === orgKind) { return form }
+	return { ...form, ...EMPTY_FISCAL, orgKind, country: orgKind === 'tcp' ? TCP_COUNTRY : '' }
+}
+
+/**
  * Valida el paso Empresa (nombre, actividad, empleados).
  * @param form
  * @returns Mensaje de error (localizado) o null si es válido.
  */
 export const validateCompanyStep = (form: EnterpriseForm): string | null => {
-	if (form.companyName.trim().length < 2) { return i18n.t('settings.enterprise.validation.companyName') }
-	if (form.activity.trim().length < 3) { return i18n.t('settings.enterprise.validation.activity') }
+	const isTcp = form.orgKind === 'tcp'
+	if (form.companyName.trim().length < 2) { return isTcp ? i18n.t('settings.enterprise.validation.tcpBusinessName') : i18n.t('settings.enterprise.validation.companyName') }
+	if (form.activity.trim().length < 3) { return isTcp ? i18n.t('settings.enterprise.validation.tcpActivity') : i18n.t('settings.enterprise.validation.activity') }
 	if (!EMPLOYEE_RANGES.some((r) => r.value === form.employeeCount)) { return i18n.t('settings.enterprise.validation.employeeCount') }
 	return null
 }
@@ -131,6 +162,10 @@ export const validateCompanyStep = (form: EnterpriseForm): string | null => {
  * @returns Mensaje de error (localizado) o null si es válido.
  */
 export const validateFiscalStep = (form: EnterpriseForm): string | null => {
+	// Un TCP no elige país ni tiene REEUP: el NIT es lo único que hay que contrastar
+	if (form.orgKind === 'tcp') {
+		return NIT_REGEX.test(form.taxId.trim().replace(/\s/g, '')) ? null : i18n.t('settings.enterprise.validation.nit')
+	}
 	if (!form.country) { return i18n.t('settings.enterprise.validation.country') }
 	if (form.country === 'US') {
 		if (!EIN_REGEX.test(form.taxId.trim().replace(/\s/g, ''))) { return i18n.t('settings.enterprise.validation.ein') }
@@ -152,23 +187,26 @@ export const validateFiscalStep = (form: EnterpriseForm): string | null => {
 }
 
 /**
- * Valida el paso Contacto y estatutos (director, email, PDF).
+ * Valida el paso Contacto y estatutos (director, email, PDF). En un TCP el
+ * documento es opcional, pero si lo adjunta rige el mismo tope de tamaño.
  * @param form
  * @param file - Documento elegido en el picker.
  * @returns Mensaje de error (localizado) o null si es válido.
  */
 export const validateContactStep = (form: EnterpriseForm, file: StatutesFile): string | null => {
-	if (form.directorName.trim().length < 3) { return i18n.t('settings.enterprise.validation.directorName') }
+	const isTcp = form.orgKind === 'tcp'
+	if (form.directorName.trim().length < 3) { return isTcp ? i18n.t('settings.enterprise.validation.tcpHolderName') : i18n.t('settings.enterprise.validation.directorName') }
 	if (!EMAIL_REGEX.test(form.email.trim())) { return i18n.t('settings.enterprise.validation.email') }
-	if (!file) { return i18n.t('settings.enterprise.validation.statutesPdf') }
-	if (file.size && file.size > 10 * 1024 * 1024) { return i18n.t('settings.enterprise.validation.fileTooLarge') }
+	if (!file && !isTcp) { return i18n.t('settings.enterprise.validation.statutesPdf') }
+	if (file?.size && file.size > MAX_FILE_BYTES) { return i18n.t('settings.enterprise.validation.fileTooLarge') }
 	return null
 }
 
 /**
  * Aplana el formulario a los campos multipart que espera el endpoint —
  * solo viajan los campos fiscales del país elegido (mismo criterio que el
- * wizard web).
+ * wizard web). Un TCP lleva `orgKind` y Cuba fija, sin REEUP; una empresa no
+ * lleva `orgKind` (el server la asume por defecto).
  *
  * @param form
  * @returns Campos listos para FormData.
@@ -183,6 +221,11 @@ export const buildRegisterFields = (form: EnterpriseForm): Record<string, string
 		country: form.country,
 		taxId: form.taxId.trim(),
 	}
+	if (form.orgKind === 'tcp') {
+		fields.orgKind = 'tcp'
+		fields.country = TCP_COUNTRY
+		return fields
+	}
 	if (form.country === 'CU') { fields.reeup = form.reeup.trim() }
 	if (form.country === 'US') {
 		fields.entityType = form.entityType
@@ -193,4 +236,19 @@ export const buildRegisterFields = (form: EnterpriseForm): Record<string, string
 		fields.addrZip = form.addrZip.trim()
 	}
 	return fields
+}
+
+/**
+ * Clave de i18n de la fila «Estatutos» del panel Empresa. `entity_type` se lee
+ * de forma tolerante: el backend aún no lo devuelve en `GET /user/company`, y
+ * sin él un TCP sin documento sigue diciendo «No enviados», que es cierto.
+ * @param company
+ * @param company.statutes_sent - Si la solicitud lleva documento.
+ * @param company.entity_type - Figura guardada en `companies.entity_type`.
+ * @returns Clave de `settings.enterprise.details`.
+ */
+export const statutesRowKey = ({ statutes_sent, entity_type }: { statutes_sent?: boolean, entity_type?: string | null }): string => {
+	if (statutes_sent) { return 'settings.enterprise.details.statutesSent' }
+	if (entity_type === TCP_ENTITY_TYPE) { return 'settings.enterprise.details.statutesNotRequired' }
+	return 'settings.enterprise.details.statutesNotSent'
 }

@@ -265,6 +265,7 @@
 			"statutes": "Estatutos",
 			"statutesSent": "Enviados",
 			"statutesNotSent": "No enviados",
+			"statutesNotRequired": "No requerido",
 			"submittedAt": "Solicitud"
 		},
 		"stores": {
@@ -283,6 +284,33 @@
 			},
 			"searchPlaceholder": "Buscar…",
 			"submitButton": "Enviar solicitud",
+			"orgKind": {
+				"label": "¿Qué vas a registrar?",
+				"business": "Empresa · PYME, sociedad, autónomo",
+				"tcp": "Cuenta propia · TCP en Cuba",
+				"tcpNote": "Para quien trabaja por cuenta propia en Cuba: sin socios ni estatutos. Solo pedimos tu NIT y, si lo tienes, un documento que acredite tu actividad."
+			},
+			"tcp": {
+				"step1Title": "Tu negocio",
+				"step1Subtitle": "Registra tu negocio para acceder a la cuenta empresarial de QvaPay",
+				"nameLabel": "Nombre del negocio",
+				"namePlaceholder": "Taller Pérez",
+				"activityLabel": "Actividad",
+				"employeesHint": "Contándote a ti y a quienes trabajan contigo.",
+				"step2Title": "Tu NIT",
+				"step2Subtitle": "Solo para Cuba. Fuera de Cuba, registra tu negocio como empresa.",
+				"countryLabel": "País",
+				"nitHint": "El NIT que te asignó la ONAT.",
+				"step3Title": "Contacto y documento",
+				"step3Subtitle": "Tu negocio quedará asociado a tu cuenta QvaPay",
+				"holderLabel": "Nombre completo del titular",
+				"emailLabel": "Email de contacto",
+				"emailPlaceholder": "tu@correo.com",
+				"documentLabel": "Proyecto de Trabajo o certificado de la ONAT (PDF) · opcional",
+				"documentHint": "Si no lo tienes a mano, puedes enviar la solicitud sin él. La revisa nuestro equipo de cumplimiento.",
+				"fileHint": "PDF · máx. 10MB",
+				"removeFile": "Quitar archivo"
+			},
 			"step1": {
 				"title": "Tu empresa",
 				"subtitle": "Registra tu PYME para acceder a la cuenta empresarial de QvaPay",
@@ -349,7 +377,10 @@
 			"directorName": "Ingresa el nombre del director o presidente.",
 			"email": "Ingresa un email de contacto válido.",
 			"statutesPdf": "Adjunta los estatutos de la empresa en PDF.",
-			"fileTooLarge": "El archivo no debe superar los 10MB."
+			"fileTooLarge": "El archivo no debe superar los 10MB.",
+			"tcpBusinessName": "Ingresa el nombre del negocio.",
+			"tcpActivity": "Describe tu actividad.",
+			"tcpHolderName": "Ingresa tu nombre completo."
 		}
 	},
 	"fontSize": {
