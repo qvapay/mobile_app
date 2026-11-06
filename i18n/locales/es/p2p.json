@@ -285,7 +285,32 @@
 		"windowExpired": "Ventana de pago expirada; la oferta volverá a publicarse",
 		"safety": "Libera solo si el pago ya está en tu cuenta, no por capturas ni promesas.",
 		"txIdPlaceholder": "ID de la transferencia",
-		"txIdHelper": "El ID del pago habilita «He pagado» y ayuda a verificarlo más rápido."
+		"txIdHelper": "El ID del pago habilita «He pagado» y ayuda a verificarlo más rápido.",
+		"txIdHelperOrProof": "Escribe el ID del pago o adjunta un comprobante para habilitar «He pagado»."
+	},
+	"attachments": {
+		"title": "Comprobantes",
+		"hintPrivate": "Adjunta una foto o un PDF del pago. Solo lo ven la otra parte y soporte.",
+		"hintProof": "Si no tienes el ID del pago, con un comprobante basta para marcar «He pagado». Solo lo ven la otra parte y soporte.",
+		"photo": "Foto",
+		"pdf": "PDF",
+		"rowImage": "Comprobante {{index}} · Imagen · {{size}}",
+		"rowPdf": "Comprobante {{index}} · PDF · {{size}}",
+		"mine": "Tuyo",
+		"theirs": "De la contraparte",
+		"openLabel": "Abrir comprobante {{index}}",
+		"toasts": {
+			"uploaded": "Comprobante adjuntado",
+			"tooLarge": "El comprobante no puede superar los 4 MB",
+			"type": "Solo se admiten imágenes y documentos PDF",
+			"limit": "Ya subiste el máximo de comprobantes en este trato",
+			"state": "Este trato ya no admite comprobantes",
+			"unavailable": "Los comprobantes no están disponibles ahora mismo. Inténtalo más tarde.",
+			"rateLimited": "Demasiados comprobantes seguidos, espera un momento",
+			"uploadFailed": "No se pudo subir el comprobante",
+			"openFailed": "No se pudo abrir el comprobante",
+			"noViewer": "No tienes ninguna app para abrir este archivo"
+		}
 	},
 	"chat": {
 		"safetyNotice": "Coordina el pago por aquí. Nunca compartas tu contraseña ni códigos de acceso: QvaPay jamás te los pedirá.",

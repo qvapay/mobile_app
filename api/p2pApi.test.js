@@ -298,6 +298,71 @@ describe('p2pApi.getChat', () => {
 	})
 })
 
+describe('p2pApi.listAttachments', () => {
+
+	const list = { attachments: [], limits: { max_bytes: 100, max_per_party: 5, remaining: 5, can_upload: true, proof_replaces_tx_id: false } }
+
+	test('asks for the trade list without the global loading bar', async () => {
+		apiClient.get.mockResolvedValue({ data: list, status: 200 })
+
+		const result = await p2pApi.listAttachments('abc-123')
+
+		expect(apiClient.get).toHaveBeenCalledWith('/p2p/abc-123/attachments', { silent: true })
+		expect(result).toEqual({ success: true, data: list, status: 200 })
+	})
+
+	test('scopes a range offer to its order', async () => {
+		apiClient.get.mockResolvedValue({ data: list, status: 200 })
+
+		await p2pApi.listAttachments('abc-123', 'order-1')
+
+		expect(apiClient.get).toHaveBeenCalledWith('/p2p/abc-123/attachments?order=order-1', { silent: true })
+	})
+
+	test('a 404 means a backend without the route: no data, not an error', async () => {
+		apiClient.get.mockRejectedValue(apiError(404, { error: 'not found' }))
+
+		expect(await p2pApi.listAttachments('abc-123')).toEqual({ success: true, data: null, status: 404 })
+	})
+
+	test('any other failure stays a failure', async () => {
+		apiClient.get.mockRejectedValue(apiError(500, { error: 'boom' }))
+
+		const result = await p2pApi.listAttachments('abc-123')
+
+		expect(result.success).toBe(false)
+		expect(result.status).toBe(500)
+	})
+})
+
+describe('p2pApi.uploadAttachment', () => {
+
+	const file = { uri: 'file:///recibo.pdf', name: 'recibo.pdf', type: 'application/pdf' }
+
+	test('posts multipart with a timeout long enough for slow networks', async () => {
+		apiClient.post.mockResolvedValue({ data: { attachment: { uuid: 'a' } }, status: 201 })
+
+		const result = await p2pApi.uploadAttachment('abc-123', file, 'order-1')
+
+		const [url, body, config] = apiClient.post.mock.calls[0]
+		expect(url).toBe('/p2p/abc-123/attachments?order=order-1')
+		expect(body).toBeInstanceOf(FormData)
+		expect(body.has('file')).toBe(true)
+		expect(config).toEqual({ headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000, silent: true })
+		expect(result.success).toBe(true)
+	})
+
+	test('keeps the server code in details', async () => {
+		apiClient.post.mockRejectedValue(apiError(413, { error: 'Muy grande', code: 'ATTACHMENT_TOO_LARGE' }))
+
+		const result = await p2pApi.uploadAttachment('abc-123', file)
+
+		expect(result.success).toBe(false)
+		expect(result.status).toBe(413)
+		expect(result.details.code).toBe('ATTACHMENT_TOO_LARGE')
+	})
+})
+
 describe('p2pApi.sendChat', () => {
 
 	test('posts a plain text payload as JSON', async () => {

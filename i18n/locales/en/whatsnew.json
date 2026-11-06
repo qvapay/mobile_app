@@ -4,6 +4,12 @@
 		"next": "Next",
 		"gotIt": "Got it"
 	},
+	"v3_13_0": {
+		"tradeProofs": {
+			"title": "Receipts in P2P",
+			"body": "Attach a photo or a PDF of the payment to your trade, without going through the chat. Only the other party and support can see it."
+		}
+	},
 	"v3_8_0": {
 		"lightningAddress": {
 			"title": "Your Lightning Address",

@@ -28,6 +28,17 @@ export type WhatsNewRelease = { version: string, slides: WhatsNewSlide[] }
 
 export const RELEASES: WhatsNewRelease[] = [
 	{
+		version: '3.13.0',
+		slides: [
+			{
+				key: 'tradeProofs',
+				hero: { kind: 'icon', icon: 'paperclip' },
+				titleKey: 'whatsnew.v3_13_0.tradeProofs.title',
+				bodyKey: 'whatsnew.v3_13_0.tradeProofs.body',
+			},
+		],
+	},
+	{
 		version: '3.10.0',
 		slides: [
 			{

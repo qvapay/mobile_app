@@ -285,7 +285,32 @@
 		"windowExpired": "Payment window expired; the offer will be relisted",
 		"safety": "Release only if the payment is already in your account, not for screenshots or promises.",
 		"txIdPlaceholder": "Transfer ID",
-		"txIdHelper": "The payment ID unlocks “I've paid” and helps verify it faster."
+		"txIdHelper": "The payment ID unlocks “I've paid” and helps verify it faster.",
+		"txIdHelperOrProof": "Enter the payment ID or attach a receipt to unlock “I've paid”."
+	},
+	"attachments": {
+		"title": "Receipts",
+		"hintPrivate": "Attach a photo or a PDF of the payment. Only the other party and support can see it.",
+		"hintProof": "If you don't have the payment ID, a receipt is enough to mark “I've paid”. Only the other party and support can see it.",
+		"photo": "Photo",
+		"pdf": "PDF",
+		"rowImage": "Receipt {{index}} · Image · {{size}}",
+		"rowPdf": "Receipt {{index}} · PDF · {{size}}",
+		"mine": "Yours",
+		"theirs": "From the other party",
+		"openLabel": "Open receipt {{index}}",
+		"toasts": {
+			"uploaded": "Receipt attached",
+			"tooLarge": "The receipt can't be larger than 4 MB",
+			"type": "Only images and PDF documents are allowed",
+			"limit": "You've reached the maximum number of receipts for this trade",
+			"state": "This trade no longer accepts receipts",
+			"unavailable": "Receipts aren't available right now. Try again later.",
+			"rateLimited": "Too many receipts in a row, wait a moment",
+			"uploadFailed": "Couldn't upload the receipt",
+			"openFailed": "Couldn't open the receipt",
+			"noViewer": "You don't have an app that can open this file"
+		}
 	},
 	"chat": {
 		"safetyNotice": "Coordinate the payment here. Never share your password or access codes: QvaPay will never ask you for them.",

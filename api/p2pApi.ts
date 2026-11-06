@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { P2PIndexEnvelope, P2PFeatured, P2PMarketAverages, P2POffer, P2POfferKind, P2PPromoBid, P2PPromoOfferType, P2PPromoPayload, P2PPromoSlot, P2PPromoted, P2PRatingTag } from '../types/domain'
+import type { P2PAttachment, P2PAttachmentList, P2PIndexEnvelope, P2PFeatured, P2PMarketAverages, P2POffer, P2POfferKind, P2PPromoBid, P2PPromoOfferType, P2PPromoPayload, P2PPromoSlot, P2PPromoted, P2PRatingTag } from '../types/domain'
 
 /** Filtros de `GET /p2p/index`. */
 export type P2PIndexFilters = {
@@ -359,6 +359,48 @@ export const p2pApi = {
 			const error = err as ApiClientError
 			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
 		}
+	},
+
+	/**
+	 * Lists the payment proofs of a trade (`GET /p2p/{uuid}/attachments`) with its limits.
+	 * Private: never cached on disk (see `useP2PAttachments`).
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @param {string} [order] - Order UUID of a range offer (required by the server there)
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is null on a 404
+	 * (backend without the route): the screen hides the section and keeps asking for the tx id.
+	 */
+	listAttachments: async (p2p_uuid: string, order?: string | null): Promise<ApiResult<P2PAttachmentList | null>> => {
+		try {
+			const response = await apiClient.get(`/p2p/${p2p_uuid}/attachments${orderQuery(order)}`, { silent: true })
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) {
+			if ((err as ApiClientError).response?.status === 404) return { success: true, data: null, status: 404 }
+			return failure(err)
+		}
+	},
+
+	/**
+	 * Uploads a payment proof (`POST /p2p/{uuid}/attachments`, multipart `file`). The global 20 s
+	 * timeout is too short for a 4 MB file on a slow network, hence the longer one here.
+	 * Error codes (`ATTACHMENT_*`) travel in `details.code`.
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @param {{ uri: string, name: string, type: string }} file - Picked file
+	 * @param {string} [order] - Order UUID of a range offer
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
+	 */
+	uploadAttachment: async (p2p_uuid: string, file: { uri: string, name: string, type: string }, order?: string | null): Promise<ApiResult<{ attachment: P2PAttachment }>> => {
+		try {
+			const formData = new FormData()
+			formData.append('file', file)
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/attachments${orderQuery(order)}`, formData, {
+				headers: { 'Content-Type': 'multipart/form-data' },
+				timeout: 60000,
+				silent: true,
+			})
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) { return failure(err) }
 	},
 
 	/**

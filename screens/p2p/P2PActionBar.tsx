@@ -42,7 +42,8 @@ type P2PActionBarProps = {
 	/** La pantalla muestra una orden de una oferta por rango (no la oferta entera). */
 	isOrder?: boolean
 	loading: TradeActionLoading
-	txIdInput: string
+	/** Hay ID del pago o un comprobante que el servidor acepta en su lugar. */
+	markPaidReady: boolean
 	onApply: () => void
 	onCancel: () => void
 	onMarkPaid: () => void
@@ -68,7 +69,7 @@ const P2PActionBar = ({
 	p2p, isOwner, isPayer, isReceiver,
 	canApply, canCancel, canMarkPaid, canConfirmReceived, canRatePeer, myRating = null, canEditRating = false, rateUsername = null,
 	canDispute = false, canBackToOffer = false, flexibleLocked = false, requirementsLocked = false, requirementsMissing = [], isOrder = false,
-	loading, txIdInput,
+	loading, markPaidReady,
 	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onRate, onDispute, onBackToOffer,
 	keyboardVisible, insets, theme, textStyles, containerStyles,
 }: P2PActionBarProps) => {
@@ -146,7 +147,7 @@ const P2PActionBar = ({
 					iconColor={theme.colors.successFillText}
 					iconStyle="solid"
 					loading={loading.markPaid}
-					disabled={loading.markPaid || !txIdInput.trim()}
+					disabled={loading.markPaid || !markPaidReady}
 				/>
 			)}
 

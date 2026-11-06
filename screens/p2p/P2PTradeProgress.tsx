@@ -25,6 +25,8 @@ type P2PTradeProgressProps = {
 	counterparty?: P2PUser | null
 	canMarkPaid: boolean
 	txIdInput: string
+	/** El comprobante propio basta para «He pagado»: lo decide el servidor. */
+	proofReplaces?: boolean
 	setTxIdInput: (value: string) => void
 	theme: Theme
 	textStyles: TextStyles
@@ -80,7 +82,7 @@ const StepDot = ({ state, position, theme, textStyles }: StepDotProps) => (
  * Renders only on processing/paid/completed; open, cancelled and revision keep
  * their own surfaces.
  */
-const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, counterparty, canMarkPaid, txIdInput, setTxIdInput, theme, textStyles, containerStyles }: P2PTradeProgressProps) => {
+const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, counterparty, canMarkPaid, txIdInput, setTxIdInput, proofReplaces = false, theme, textStyles, containerStyles }: P2PTradeProgressProps) => {
 
 	const { t } = useTranslation()
 
@@ -173,7 +175,7 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, counterparty, canM
 											prefixIconName="hashtag"
 										/>
 										<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-											{t('p2p.tradeProgress.txIdHelper')}
+											{t(proofReplaces ? 'p2p.tradeProgress.txIdHelperOrProof' : 'p2p.tradeProgress.txIdHelper')}
 										</Text>
 									</View>
 								)}

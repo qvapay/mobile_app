@@ -285,7 +285,32 @@
 		"windowExpired": "O prazo de pagamento expirou; a oferta será publicada novamente",
 		"safety": "Libere apenas se o pagamento já estiver na sua conta, não por prints nem promessas.",
 		"txIdPlaceholder": "ID da transferência",
-		"txIdHelper": "O ID do pagamento habilita “Já paguei” e ajuda a verificar mais rápido."
+		"txIdHelper": "O ID do pagamento habilita “Já paguei” e ajuda a verificar mais rápido.",
+		"txIdHelperOrProof": "Digite o ID do pagamento ou anexe um comprovante para habilitar “Já paguei”."
+	},
+	"attachments": {
+		"title": "Comprovantes",
+		"hintPrivate": "Anexe uma foto ou um PDF do pagamento. Só a outra parte e o suporte podem ver.",
+		"hintProof": "Se você não tiver o ID do pagamento, um comprovante basta para marcar “Já paguei”. Só a outra parte e o suporte podem ver.",
+		"photo": "Foto",
+		"pdf": "PDF",
+		"rowImage": "Comprovante {{index}} · Imagem · {{size}}",
+		"rowPdf": "Comprovante {{index}} · PDF · {{size}}",
+		"mine": "Seu",
+		"theirs": "Da outra parte",
+		"openLabel": "Abrir comprovante {{index}}",
+		"toasts": {
+			"uploaded": "Comprovante anexado",
+			"tooLarge": "O comprovante não pode ter mais de 4 MB",
+			"type": "Só são aceitos imagens e documentos PDF",
+			"limit": "Você já enviou o máximo de comprovantes nesta negociação",
+			"state": "Esta negociação não aceita mais comprovantes",
+			"unavailable": "Os comprovantes não estão disponíveis agora. Tente de novo mais tarde.",
+			"rateLimited": "Muitos comprovantes seguidos, aguarde um momento",
+			"uploadFailed": "Não foi possível enviar o comprovante",
+			"openFailed": "Não foi possível abrir o comprovante",
+			"noViewer": "Você não tem um app para abrir este arquivo"
+		}
 	},
 	"chat": {
 		"safetyNotice": "Combine o pagamento por aqui. Nunca compartilhe sua senha nem códigos de acesso: o QvaPay jamais vai pedir esses dados.",

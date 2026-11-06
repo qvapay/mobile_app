@@ -13,6 +13,8 @@ import { syncPushToken, unregisterPush } from '../push'
 // Widget Bridge
 import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
 import { clearMiniAppQuickActions } from '../helpers/miniAppShortcuts'
+import { sweepCachedFiles } from '../helpers/openAuthedFile'
+import { ATTACHMENT_FILE_PREFIX } from '../screens/p2p/p2pAttachments'
 
 // Cold-start data cache (transactions, quick-pay, catalogs…) — purged with the session
 import { clearDataCache } from '../helpers/dataCache'
@@ -96,6 +98,8 @@ const clearAuthData = async () => {
 			// Las favoritas siguen en el teléfono (por cuenta), pero el icono de la
 			// app no debe enseñar las de la cuenta que acaba de salir
 			clearMiniAppQuickActions(),
+			// Un recibo de esta cuenta no se queda en la caché del teléfono
+			sweepCachedFiles(ATTACHMENT_FILE_PREFIX),
 		])
 	} catch (err) { /* error clearing auth data */ }
 }

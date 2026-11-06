@@ -155,6 +155,8 @@ describe('payment window expiry', () => {
 describe('TX-id gate', () => {
 	test('the payer gets the TX-id input with its unlock helper while they can mark paid', () => {
 		const tree = renderProgress({ status: 'processing', isPayer: true, canMarkPaid: true })
+		expect(dump(tree)).not.toContain('adjunta un comprobante')
+		expect(dump(renderProgress({ status: 'processing', isPayer: true, canMarkPaid: true, proofReplaces: true }))).toContain('adjunta un comprobante')
 		expect(tree.root.findAllByType('QPInput')).toHaveLength(1)
 		expect(dump(tree)).toContain('habilita «He pagado»')
 	})

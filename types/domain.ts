@@ -566,6 +566,32 @@ export type P2POfferKind = 'fixed' | 'flexible'
 /** Estado de una orden de una oferta por rango (sin `open`: nace ya tomada). */
 export type P2POrderStatus = 'processing' | 'paid' | 'completed' | 'cancelled' | 'revision'
 
+/**
+ * Comprobante de un trato P2P (imagen o PDF), privado entre las dos partes y soporte.
+ * `mine` dice si lo subió quien mira. El servidor no devuelve el nombre original del
+ * fichero: enseñárselo a la contraparte sería texto libre en una interfaz de confianza.
+ */
+export type P2PAttachment = {
+	uuid: string
+	kind: 'image' | 'pdf'
+	mime: string
+	size: number
+	mine: boolean
+	created_at: string
+}
+
+/** Límites del trato (`GET /p2p/{uuid}/attachments`). */
+export type P2PAttachmentLimits = {
+	max_bytes: number
+	max_per_party: number
+	remaining: number
+	can_upload: boolean
+	/** El comprobante propio basta para «He pagado». Lo decide el servidor. */
+	proof_replaces_tx_id: boolean
+}
+
+export type P2PAttachmentList = { attachments: P2PAttachment[], limits: P2PAttachmentLimits }
+
 /** Orden hija de una oferta por rango (`GET /p2p/{uuid}` → `Orders`). */
 export type P2POrder = {
 	uuid: string
