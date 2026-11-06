@@ -616,3 +616,45 @@ describe('userApi notification settings', () => {
 		expect(await userApi.updateNotificationSettings({ p2p: false })).toEqual({ success: false, error: 'Request failed', status: 500 })
 	})
 })
+
+describe('userApi.registerCompany', () => {
+
+	const FIELDS = { orgKind: 'tcp', country: 'CU', taxId: '12345678901' }
+	const sentForm = () => apiClient.post.mock.calls[0][1]
+
+	test('without a file it posts the fields and no statutes part (TCP)', async () => {
+		apiClient.post.mockResolvedValue(ok({ uuid: 'u' }))
+
+		const result = await userApi.registerCompany({ fields: FIELDS, file: null })
+
+		expect(result).toEqual({ success: true, data: { uuid: 'u' }, status: 200 })
+		expect(apiClient.post.mock.calls[0][0]).toBe('/user/company')
+		expect(sentForm().has('statutes')).toBe(false)
+		expect(sentForm().get('orgKind')).toBe('tcp')
+	})
+
+	test('also works when file is left out', async () => {
+		apiClient.post.mockResolvedValue(ok({ uuid: 'u' }))
+
+		expect((await userApi.registerCompany({ fields: FIELDS })).success).toBe(true)
+		expect(sentForm().has('statutes')).toBe(false)
+	})
+
+	test('with a file it adds the statutes part, even if the picker gave no name', async () => {
+		apiClient.post.mockResolvedValue(ok({ uuid: 'u' }))
+
+		await userApi.registerCompany({ fields: FIELDS, file: { uri: 'file:///a.pdf', name: null } })
+
+		expect(sentForm().has('statutes')).toBe(true)
+	})
+
+	test('returns the server message on a rejection', async () => {
+		apiClient.post.mockRejectedValue(apiError(403, { error: 'Debes completar la verificación de identidad (KYC) para usar tu cuenta.', code: 'KYC_REQUIRED' }))
+
+		expect(await userApi.registerCompany({ fields: FIELDS })).toEqual({
+			success: false,
+			error: 'Debes completar la verificación de identidad (KYC) para usar tu cuenta.',
+			status: 403,
+		})
+	})
+})

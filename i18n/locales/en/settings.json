@@ -265,6 +265,7 @@
 			"statutes": "Bylaws",
 			"statutesSent": "Sent",
 			"statutesNotSent": "Not sent",
+			"statutesNotRequired": "Not required",
 			"submittedAt": "Application"
 		},
 		"stores": {
@@ -283,6 +284,33 @@
 			},
 			"searchPlaceholder": "Search…",
 			"submitButton": "Submit application",
+			"orgKind": {
+				"label": "What are you registering?",
+				"business": "Business · Company, LLC, sole proprietor",
+				"tcp": "Self-employed · TCP in Cuba",
+				"tcpNote": "For self-employed workers in Cuba: no partners and no articles of incorporation. We only ask for your NIT and, if you have one, a document that proves your activity."
+			},
+			"tcp": {
+				"step1Title": "Your business",
+				"step1Subtitle": "Register your business to access QvaPay's business account",
+				"nameLabel": "Business name",
+				"namePlaceholder": "Taller Pérez",
+				"activityLabel": "Activity",
+				"employeesHint": "Counting yourself and anyone who works with you.",
+				"step2Title": "Your NIT",
+				"step2Subtitle": "Only for Cuba. Outside Cuba, register your business as a company.",
+				"countryLabel": "Country",
+				"nitHint": "The NIT assigned to you by the ONAT.",
+				"step3Title": "Contact and document",
+				"step3Subtitle": "Your business will be linked to your QvaPay account",
+				"holderLabel": "Full name of the holder",
+				"emailLabel": "Contact email",
+				"emailPlaceholder": "you@email.com",
+				"documentLabel": "Proyecto de Trabajo or ONAT certificate (PDF) · optional",
+				"documentHint": "If you do not have it at hand, you can submit without it. Our compliance team reviews the application.",
+				"fileHint": "PDF · max. 10MB",
+				"removeFile": "Remove file"
+			},
 			"step1": {
 				"title": "Your company",
 				"subtitle": "Register your company to access QvaPay's business account",
@@ -349,7 +377,10 @@
 			"directorName": "Enter the director or president's name.",
 			"email": "Enter a valid contact email.",
 			"statutesPdf": "Attach the company bylaws as a PDF.",
-			"fileTooLarge": "The file must not exceed 10MB."
+			"fileTooLarge": "The file must not exceed 10MB.",
+			"tcpBusinessName": "Enter the business name.",
+			"tcpActivity": "Describe your activity.",
+			"tcpHolderName": "Enter your full name."
 		}
 	},
 	"fontSize": {

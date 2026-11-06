@@ -78,8 +78,8 @@ export type PasswordChangeInput = {
 export type CompanyRegisterInput = {
 	/** Flat form fields (see enterpriseForm.buildRegisterFields). */
 	fields: Record<string, string>
-	/** Statutes PDF from the document picker. */
-	file: { uri: string, name?: string }
+	/** PDF from the document picker. Solo es opcional en la rama TCP: sin archivo, el campo no viaja. */
+	file?: { uri: string, name?: string | null } | null
 }
 
 /** Body de `POST /user/gold` (compra de Gold Check con saldo). */
@@ -449,12 +449,12 @@ export const userApi = {
 	/**
 	 * Submits an enterprise registration from the app (`POST /user/company`,
 	 * multipart). Same fields as the web /enterprise wizard; the authenticated
-	 * user becomes the company owner. `file` is the statutes PDF from the
-	 * document picker (`{ uri, name }`).
+	 * user becomes the company owner. `file` is the PDF from the document
+	 * picker (`{ uri, name }`): the statutes, or the optional TCP document.
 	 *
 	 * @param params
 	 * @param params.fields - Flat form fields (see enterpriseForm.buildRegisterFields).
-	 * @param params.file - Statutes PDF.
+	 * @param [params.file] - PDF. Sin archivo no se añade `statutes` (solo vale en la rama TCP).
 	 * @returns `{ success, data?, error?, status? }` — 409 = solicitud activa/empresa aprobada duplicada
 	 */
 	registerCompany: async ({ fields, file }: CompanyRegisterInput): Promise<ApiResult<unknown>> => {
@@ -463,11 +463,13 @@ export const userApi = {
 			Object.entries(fields).forEach(([key, value]) => {
 				if (value !== undefined && value !== null && value !== '') { formData.append(key, value) }
 			})
-			formData.append('statutes', {
-				uri: file.uri,
-				name: file.name || 'estatutos.pdf',
-				type: 'application/pdf'
-			})
+			if (file) {
+				formData.append('statutes', {
+					uri: file.uri,
+					name: file.name || 'estatutos.pdf',
+					type: 'application/pdf'
+				})
+			}
 			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
 			const response = await apiClient.post('/user/company', formData, config)
 			return { success: true, data: response.data, status: response.status }
