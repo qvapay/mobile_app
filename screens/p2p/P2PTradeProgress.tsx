@@ -27,6 +27,10 @@ type P2PTradeProgressProps = {
 	txIdInput: string
 	/** El comprobante propio basta para «He pagado»: lo decide el servidor. */
 	proofReplaces?: boolean
+	/** Al lado del campo del ID: los iconos para adjuntar. */
+	txIdAccessory?: ReactNode
+	/** Debajo del campo del ID: lo ya adjuntado. */
+	txIdFooter?: ReactNode
 	setTxIdInput: (value: string) => void
 	theme: Theme
 	textStyles: TextStyles
@@ -82,7 +86,7 @@ const StepDot = ({ state, position, theme, textStyles }: StepDotProps) => (
  * Renders only on processing/paid/completed; open, cancelled and revision keep
  * their own surfaces.
  */
-const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, counterparty, canMarkPaid, txIdInput, setTxIdInput, proofReplaces = false, theme, textStyles, containerStyles }: P2PTradeProgressProps) => {
+const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, counterparty, canMarkPaid, txIdInput, setTxIdInput, proofReplaces = false, txIdAccessory = null, txIdFooter = null, theme, textStyles, containerStyles }: P2PTradeProgressProps) => {
 
 	const { t } = useTranslation()
 
@@ -168,15 +172,23 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, counterparty, canM
 								{/* TX id — part of the payment step, gates "He pagado" */}
 								{step.key === "payment" && canMarkPaid && (
 									<View style={styles.txIdBlock}>
-										<QPInput
-											value={txIdInput}
-											onChangeText={setTxIdInput}
-											placeholder={t('p2p.tradeProgress.txIdPlaceholder')}
-											prefixIconName="hashtag"
-										/>
+										<View style={styles.txIdRow}>
+											<View style={styles.txIdField}>
+												<QPInput
+													value={txIdInput}
+													onChangeText={setTxIdInput}
+													placeholder={t('p2p.tradeProgress.txIdPlaceholder')}
+													prefixIconName="hashtag"
+												/>
+											</View>
+											{txIdAccessory}
+										</View>
 										<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-											{t(proofReplaces ? 'p2p.tradeProgress.txIdHelperOrProof' : 'p2p.tradeProgress.txIdHelper')}
+											{t(proofReplaces
+												? 'p2p.tradeProgress.txIdHelperOrProof'
+												: txIdAccessory ? 'p2p.tradeProgress.txIdHelperAttach' : 'p2p.tradeProgress.txIdHelper')}
 										</Text>
+										{txIdFooter}
 									</View>
 								)}
 
@@ -274,6 +286,14 @@ const styles = StyleSheet.create({
 	txIdBlock: {
 		marginTop: 8,
 		gap: 2,
+	},
+	txIdRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+	},
+	txIdField: {
+		flex: 1,
 	},
 })
 

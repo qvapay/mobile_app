@@ -42,7 +42,7 @@ import P2PPeerRow from "./P2PPeerRow"
 import P2PEditModal from "./P2PEditModal"
 import P2PApplyModal from "./P2PApplyModal"
 import P2PTradeProgress from "./P2PTradeProgress"
-import P2PTradeAttachments from "./P2PTradeAttachments"
+import P2PTradeAttachments, { P2PProofPickers, P2PProofRows } from "./P2PTradeAttachments"
 import P2PActionBar from "./P2PActionBar"
 import P2PFlexibleOrders from "./P2PFlexibleOrders"
 import P2PRateSheet from "./P2PRateSheet"
@@ -142,6 +142,8 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 		messageCount: chat.messages.length,
 	})
 	const markPaidReady = canSubmitMarkPaid({ txId: txIdInput, ownProofs: proofs.ownCount, proofReplaces: proofs.proofReplaces })
+	// El comprobante lo manda quien paga el fiat
+	const canAttachProof = proofs.canUpload && isPayer
 
 	// Reportar · bloquear a la contraparte desde el menú ⋯ del chat (como el chat de la web).
 	// El estado de bloqueo solo se pide con un trato en marcha (hay contraparte)
@@ -206,6 +208,8 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 								txIdInput={txIdInput}
 								setTxIdInput={setTxIdInput}
 								proofReplaces={proofs.proofReplaces}
+								txIdAccessory={canAttachProof ? <P2PProofPickers uploading={proofs.uploading} onPickImage={proofs.pickImage} onPickPdf={proofs.pickPdf} theme={theme} /> : null}
+								txIdFooter={proofs.attachments.length > 0 ? <P2PProofRows attachments={proofs.attachments} openingUuid={proofs.openingUuid} onOpen={proofs.open} theme={theme} textStyles={textStyles} /> : null}
 								theme={theme}
 								textStyles={textStyles}
 								containerStyles={containerStyles}
@@ -222,13 +226,13 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					{/* Payment details + registered TX id (+ banner only for revision — the stepper covers the rest) */}
 					<P2POfferDetailsCard p2p={p2p} statusMessage={status === "revision" ? statusMessage : null} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
 
-					{proofs.available && (
+					{/* Mientras se puede marcar pagado, los comprobantes viven junto al campo del ID */}
+					{proofs.available && !canMarkPaid && (
 						<P2PTradeAttachments
 							attachments={proofs.attachments}
-							canUpload={proofs.canUpload}
-							isPayer={isPayer}
+							canUpload={canAttachProof}
 							isReceiver={isReceiver}
-							proofReplaces={proofs.proofReplaces}
+							status={status}
 							uploading={proofs.uploading}
 							openingUuid={proofs.openingUuid}
 							onPickImage={proofs.pickImage}

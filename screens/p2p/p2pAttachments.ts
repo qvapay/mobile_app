@@ -20,6 +20,10 @@ export const canShowAttachments = ({ isFlexibleOverview, isPayer, isReceiver, st
 export const canSubmitMarkPaid = ({ txId, ownProofs, proofReplaces }: { txId: string, ownProofs: number, proofReplaces: boolean }) =>
 	txId.trim().length > 0 || (proofReplaces && ownProofs > 0)
 
+/** Aviso antifraude junto a los adjuntos. En `paid` ya lo dice la línea de tiempo, y tras completar no decide nada. */
+export const proofWarningVisible = ({ isReceiver, status, fromCounterparty }: { isReceiver: boolean, status?: string | null, fromCounterparty: boolean }) =>
+	isReceiver && fromCounterparty && (status === 'processing' || status === 'revision')
+
 /** → motivo por el que no vale subirlo, o null. Sin tamaño conocido decide el servidor. */
 export const attachmentFileIssue = ({ size, type, name }: { size?: number | null, type?: string | null, name?: string | null }, maxBytes: number) => {
 	if (size && size > maxBytes) return 'tooLarge'

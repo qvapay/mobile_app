@@ -1,7 +1,3 @@
-Novedades de QvaPay 3.12.0:
-• Empresa: ya puedes registrarte como cuenta propia (TCP).
-• Empresa: las sociedades cubanas ya completan el registro, con sus socios y sin REEUP.
-• P2P: los enlaces al mercado abren con los filtros limpios y no tocan «Mis ofertas».
-• Depositar vía P2P: «Ver todas» ya no arrastra filtros y solo ves ofertas de la moneda elegida.
-• Verificar tu SSN: ya no gastas un intento con cambios sin guardar.
-• Librerías al día, arreglos y estabilidad.
+Novedades de QvaPay 3.13.1:
+• P2P: adjunta una foto o un PDF como comprobante de tu trato. Solo lo ven las dos partes y soporte.
+• Arreglos y estabilidad.

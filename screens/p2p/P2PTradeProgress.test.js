@@ -161,6 +161,16 @@ describe('TX-id gate', () => {
 		expect(dump(tree)).toContain('habilita «He pagado»')
 	})
 
+	test('hosts the proof icons beside the input and what was attached below it', () => {
+		const accessory = React.createElement('ProofIcons')
+		const footer = React.createElement('ProofRows')
+		const tree = renderProgress({ status: 'processing', isPayer: true, canMarkPaid: true, txIdAccessory: accessory, txIdFooter: footer })
+		expect(tree.root.findAllByType('ProofIcons')).toHaveLength(1)
+		expect(tree.root.findAllByType('ProofRows')).toHaveLength(1)
+		expect(dump(tree)).toContain('adjuntar una foto o un PDF')
+		expect(dump(renderProgress({ status: 'processing', isPayer: true, canMarkPaid: true, txIdAccessory: accessory, proofReplaces: true }))).toContain('adjunta un comprobante para habilitar')
+	})
+
 	test('the receiver never sees the TX-id input', () => {
 		const tree = renderProgress({ status: 'paid', isReceiver: true })
 		expect(tree.root.findAllByType('QPInput')).toHaveLength(0)
