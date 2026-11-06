@@ -178,3 +178,88 @@ describe('peer (solo las ofertas de un comerciante: «Ver todas» del depósito 
 		expect(f.current.filters.peer).toBeNull()
 	})
 })
+
+describe('applyLink', () => {
+	const link = (f, value) => act(() => { f.current.applyLink(value) })
+
+	test('es «Limpiar» más lo que traiga el enlace', () => {
+		const f = renderFilters({ tick: 'BANK_CUP' })
+		set(f, 'opAmount', '50')
+		set(f, 'ratioMin', '300')
+		set(f, 'ratioMax', '400')
+		set(f, 'onlyVip', true)
+		set(f, 'peer', 'skymind')
+		link(f, { coin: { tick: 'USDT' }, type: 'buy' })
+		expect(f.current.apiFilters).toEqual({ take: 30, order: 'desc', orderBy: 'updated_at', type: 'buy', coin: 'USDT' })
+	})
+
+	test('el lado no se pierde si el enlace no lo pide: nunca es null', () => {
+		const f = renderFilters()
+		set(f, 'typeFilter', 'buy')
+		link(f, { coin: { tick: 'USDT' } })
+		expect(f.current.filters.typeFilter).toBe('buy')
+	})
+
+	test('sustituye el orden elegido, y "Mejor tasa" solo se aplica con moneda', () => {
+		const f = renderFilters()
+		set(f, 'sortIndex', 1)
+		link(f, { coin: { tick: 'USDT' }, sort: 'best_rate' })
+		expect(f.current.orderBy).toBe('best_rate')
+		link(f, { peer: 'skymind', sort: 'best_rate' })
+		expect(f.current.filters.sortIndex).toBe(0)
+		expect(f.current.apiFilters).toMatchObject({ orderBy: 'updated_at', peer: 'skymind' })
+	})
+
+	test('en «Mis ofertas» no cambia nada', () => {
+		const f = renderFilters({ tick: 'BANK_CUP' })
+		set(f, 'showMine', true)
+		set(f, 'onlyVip', true)
+		const before = f.current.filters
+		link(f, { coin: { tick: 'USDT' }, type: 'buy', peer: 'skymind', sort: 'best_rate' })
+		expect(f.current.filters).toBe(before)
+	})
+
+	test('«Limpiar» sigue dejando el lado y «Mis ofertas»', () => {
+		const f = renderFilters()
+		set(f, 'typeFilter', 'buy')
+		set(f, 'showMine', true)
+		set(f, 'onlyVip', true)
+		act(() => { f.current.resetFilters() })
+		expect(f.current.filters).toMatchObject({ typeFilter: 'buy', showMine: true, onlyVip: false })
+	})
+})
+
+describe('el comerciante de un enlace al cambiar de moneda', () => {
+	const fromLink = () => {
+		const f = renderFilters()
+		act(() => { f.current.applyLink({ coin: { tick: 'ETECSA' }, peer: 'skymind' }) })
+		return f
+	}
+
+	test('pasar a otra moneda lo quita', () => {
+		const f = fromLink()
+		set(f, 'selectedCoin', { tick: 'BANK_MLC' })
+		expect(f.current.apiFilters.coin).toBe('BANK_MLC')
+		expect(f.current.apiFilters).not.toHaveProperty('peer')
+	})
+
+	test('volver a elegir la misma moneda lo conserva', () => {
+		const f = fromLink()
+		set(f, 'selectedCoin', { tick: 'ETECSA' })
+		expect(f.current.apiFilters.peer).toBe('skymind')
+	})
+
+	test('quitar la moneda lo conserva: quedan todas las ofertas de ese comerciante', () => {
+		const f = fromLink()
+		set(f, 'selectedCoin', null)
+		expect(f.current.apiFilters).not.toHaveProperty('coin')
+		expect(f.current.apiFilters.peer).toBe('skymind')
+	})
+
+	test('con un enlace solo de comerciante, elegir moneda filtra sus ofertas', () => {
+		const f = renderFilters()
+		act(() => { f.current.applyLink({ peer: 'skymind' }) })
+		set(f, 'selectedCoin', { tick: 'USDT' })
+		expect(f.current.apiFilters).toMatchObject({ coin: 'USDT', peer: 'skymind' })
+	})
+})

@@ -39,10 +39,18 @@ export type P2PFiltersState = {
 	peer: string | null
 }
 
+/** Lo que pide un enlace al mercado (deep link, «Ver todas», CoinDetail). */
+export type P2PMarketLink = {
+	coin?: FilterCoin
+	type?: 'buy' | 'sell'
+	peer?: string
+	sort?: 'best_rate'
+}
+
 /** Campo de `P2PFiltersState` con su valor: mantiene `setFilter` honesto por clave. */
 export type P2PFilterAction = {
 	[K in keyof P2PFiltersState]: { type: "set", field: K, value: P2PFiltersState[K] }
-}[keyof P2PFiltersState] | { type: "reset" }
+}[keyof P2PFiltersState] | { type: "reset" } | { type: "link", link: P2PMarketLink }
 
 /** Badge de filtro activo pintado en la barra (tocarlo limpia su campo). */
 export type P2PFilterBadge = { key: string, label: string, onRemove: () => void }
@@ -90,15 +98,35 @@ const initialFilters: P2PFiltersState = {
 	peer: null,
 }
 
+// Ni el lado del mercado (typeFilter) ni «Mis ofertas» (showMine) se limpian: viven en
+// el TopBar (switch y botón propio) y son el modo en el que estás, no un filtro más
+const clearedFilters = (state: P2PFiltersState): P2PFiltersState => ({ ...initialFilters, typeFilter: state.typeFilter, showMine: state.showMine })
+
 function filtersReducer(state: P2PFiltersState, action: P2PFilterAction): P2PFiltersState {
 	switch (action.type) {
 		case "set":
+			// El comerciante de un enlace iba con su moneda, y en otra puede no tener ofertas.
+			// Con un enlace solo de comerciante (sin moneda) elegir una es filtrar las suyas
+			if (action.field === "selectedCoin" && action.value && state.selectedCoin && action.value.tick !== state.selectedCoin.tick) {
+				return { ...state, selectedCoin: action.value, peer: null }
+			}
 			return { ...state, [action.field]: action.value }
 		case "reset":
-			// Ni el lado del mercado (typeFilter) ni «Mis ofertas» (showMine) se
-			// limpian: viven en el TopBar (switch y botón propio) y son el modo en
-			// el que estás, no un filtro más
-			return { ...initialFilters, typeFilter: state.typeFilter, showMine: state.showMine }
+			return clearedFilters(state)
+		case "link": {
+			// Un enlace pide una vista concreta del mercado: es «Limpiar» más lo que traiga.
+			// «Mis ofertas» es otra cosa, y lo que tengas puesto ahí no lo cambia
+			if (state.showMine) return state
+			const { coin, type, peer, sort } = action.link
+			return {
+				...clearedFilters(state),
+				typeFilter: type ?? state.typeFilter,
+				selectedCoin: coin ?? null,
+				peer: peer || null,
+				// "Mejor tasa" exige moneda: sin ella el hook degradaría al orden por defecto
+				sortIndex: sort === "best_rate" && coin ? Math.max(0, SORT_OPTIONS.findIndex(o => o.orderBy === "best_rate")) : initialFilters.sortIndex,
+			}
+		}
 		default:
 			return state
 	}
@@ -125,7 +153,7 @@ const num = (value: string): number | null => {
  * cuanto el servidor pasó a soportarlos.
  *
  * @param initialCoin - Preselected coin (e.g. from navigation params); only `tick` is read.
- * @returns Filter API: `filters`, `setFilter`, `resetFilters`, `orderBy`,
+ * @returns Filter API: `filters`, `setFilter`, `resetFilters`, `applyLink`, `orderBy`,
  *   `orderType`, `hasActiveFilters`, `apiFilters`, `activeFilterBadges`.
  */
 export default function useP2PFilters(initialCoin: FilterCoin | null) {
@@ -138,6 +166,7 @@ export default function useP2PFilters(initialCoin: FilterCoin | null) {
 	// La firma genérica ata `value` al campo: setFilter("showMine", "sí") no compila.
 	const setFilter = useCallback(<K extends keyof P2PFiltersState>(field: K, value: P2PFiltersState[K]) => dispatch({ type: "set", field, value } as P2PFilterAction), [])
 	const resetFilters = useCallback(() => dispatch({ type: "reset" }), [])
+	const applyLink = useCallback((link: P2PMarketLink) => dispatch({ type: "link", link }), [])
 
 	const { typeFilter, selectedCoin, sortIndex, showMine, opAmount, ratioMin, ratioMax, onlyVip, peer } = filters
 
@@ -202,5 +231,5 @@ export default function useP2PFilters(initialCoin: FilterCoin | null) {
 		return badges
 	}, [showMine, opAmount, ratioMin, ratioMax, onlyVip, peer, setFilter, t])
 
-	return { filters, setFilter, resetFilters, orderBy, orderType, hasActiveFilters, apiFilters, activeFilterBadges }
+	return { filters, setFilter, resetFilters, applyLink, orderBy, orderType, hasActiveFilters, apiFilters, activeFilterBadges }
 }

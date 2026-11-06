@@ -35,42 +35,43 @@ const MLC = { tick: 'BANK_MLC', name: 'MLC', enabled_in: 0 }
 const offersOf = (coin) => ({ success: true, offers: [{ uuid: `${coin}-1`, coin, type: 'sell' }] })
 
 let client
+let tree
 const block = (coin) => <QueryClientProvider client={client}><DepositViaP2PBlock coin={coin} navigation={{ navigate: jest.fn() }} /></QueryClientProvider>
 const settle = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
-const shownOffers = (tree) => tree.root.findAllByType('P2POfferItem').map(item => item.props.offer.coin)
+const shownOffers = () => tree.root.findAllByType('P2POfferItem').map(item => item.props.offer.coin)
 
 beforeEach(() => {
 	jest.clearAllMocks()
 	client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 	p2pApi.index.mockImplementation(async ({ coin }) => offersOf(coin))
 })
-afterEach(() => {
+afterEach(async () => {
+	// Sin desmontar, los observers dejan vivos sus temporizadores y jest no cierra
+	await act(async () => { tree.unmount() })
 	client.clear()
 	client.unmount()
 })
 
 test('switching coin shows the skeleton until its own offers arrive, never the previous ones', async () => {
-	let tree
 	await act(async () => { tree = create(block(ETECSA)) })
 	await settle()
-	expect(shownOffers(tree)).toEqual(['ETECSA'])
+	expect(shownOffers()).toEqual(['ETECSA'])
 
 	const answers = []
 	p2pApi.index.mockImplementation(({ coin }) => new Promise((resolve) => { answers.push(() => resolve(offersOf(coin))) }))
 	await act(async () => { tree.update(block(MLC)) })
 	await settle()
 	expect(answers).toHaveLength(2) // tesorería y mercado de MLC
-	expect(shownOffers(tree)).toEqual([])
+	expect(shownOffers()).toEqual([])
 	expect(tree.root.findAllByType('P2POfferItemSkeleton').length).toBeGreaterThan(0)
 
 	await act(async () => { answers.forEach(answer => answer()) })
 	await settle()
-	expect(shownOffers(tree)).toEqual(['BANK_MLC'])
+	expect(shownOffers()).toEqual(['BANK_MLC'])
 	expect(tree.root.findAllByType('P2POfferItemSkeleton')).toHaveLength(0)
 })
 
 test('coming back to a coin shows its own offers right away and keeps them while it refreshes', async () => {
-	let tree
 	await act(async () => { tree = create(block(ETECSA)) })
 	await settle()
 	await act(async () => { tree.update(block(MLC)) })
@@ -79,23 +80,26 @@ test('coming back to a coin shows its own offers right away and keeps them while
 	const answers = []
 	p2pApi.index.mockImplementation(({ coin }) => new Promise((resolve) => { answers.push(() => resolve(offersOf(coin))) }))
 	await act(async () => { tree.update(block(ETECSA)) })
-	expect(shownOffers(tree)).toEqual(['ETECSA'])
+	expect(shownOffers()).toEqual(['ETECSA'])
 	await settle()
 	expect(answers.length).toBeGreaterThan(0) // cambiar de moneda revalida la nueva
-	expect(shownOffers(tree)).toEqual(['ETECSA'])
+	expect(shownOffers()).toEqual(['ETECSA'])
 	expect(tree.root.findAllByType('P2POfferItemSkeleton')).toHaveLength(0)
 
 	await act(async () => { answers.forEach(answer => answer()) })
 	await settle()
-	expect(shownOffers(tree)).toEqual(['ETECSA'])
+	expect(shownOffers()).toEqual(['ETECSA'])
 })
 
 test('a refresh of the same coin keeps its offers on screen', async () => {
-	let tree
 	await act(async () => { tree = create(block(ETECSA)) })
 	await settle()
-	p2pApi.index.mockImplementation(() => new Promise(() => {}))
+	const answers = []
+	p2pApi.index.mockImplementation(({ coin }) => new Promise((resolve) => { answers.push(() => resolve(offersOf(coin))) }))
 	await act(async () => { client.invalidateQueries({ queryKey: ['add', 'via-p2p', 'ETECSA'] }) })
 	await settle()
-	expect(shownOffers(tree)).toEqual(['ETECSA'])
+	expect(shownOffers()).toEqual(['ETECSA'])
+
+	await act(async () => { answers.forEach(answer => answer()) })
+	await settle()
 })

@@ -59,6 +59,7 @@ const open = async (params) => {
 }
 const followLink = (tree, params) => act(async () => { tree.update(screen(params)) })
 const badges = (tree) => tree.root.findByType('P2PFilterBar').props.activeFilterBadges.map(badge => badge.key)
+const setFilter = (tree, field, value) => act(async () => { tree.root.findByType('P2PFiltersModal').props.setFilter(field, value) })
 
 // «Ver todas» de una moneda en la que la tesorería tiene ofertas
 const TREASURY_LINK = { coin: 'ETECSA', coinName: 'ETECSA', type: 'sell', sort: 'best_rate', peer: 'skymind', key: 1 }
@@ -88,13 +89,55 @@ describe('links to the market', () => {
 		expect(mockApiFilters).toMatchObject({ coin: 'BANK_CUP', peer: 'otro' })
 	})
 
-	test.each([
-		['entering the tab with no params', undefined],
-		['a link that only picks the side', { offer_type: 'buy' }],
-	])('the filter stays when nothing asks for a new view: %s', async (_, params) => {
+	test('entering the tab with no params leaves everything as it was', async () => {
 		const tree = await open(TREASURY_LINK)
-		await followLink(tree, params)
+		await followLink(tree, undefined)
 		expect(mockApiFilters).toMatchObject({ coin: 'ETECSA', peer: 'skymind' })
 		expect(badges(tree)).toEqual(['peer'])
+	})
+
+	test('a link clears what was set on the Index and applies what it brings', async () => {
+		const tree = await open(undefined)
+		await setFilter(tree, 'opAmount', '50')
+		await setFilter(tree, 'ratioMin', '300')
+		await setFilter(tree, 'ratioMax', '400')
+		await setFilter(tree, 'onlyVip', true)
+		await setFilter(tree, 'sortIndex', 1)
+		expect(badges(tree)).toEqual(['opAmount', 'ratioMin', 'ratioMax', 'onlyVip'])
+
+		await followLink(tree, { coin: 'USDT', offer_type: 'buy' })
+		expect(mockApiFilters).toEqual({ take: 30, order: 'desc', orderBy: 'updated_at', type: 'buy', coin: 'USDT' })
+		expect(badges(tree)).toEqual([])
+	})
+
+	test('a link that only picks the side also clears the rest', async () => {
+		const tree = await open(TREASURY_LINK)
+		await followLink(tree, { offer_type: 'buy' })
+		expect(mockApiFilters).toEqual({ take: 30, order: 'desc', orderBy: 'updated_at', type: 'buy' })
+		expect(badges(tree)).toEqual([])
+	})
+
+	test('picking another coin in the bar drops the merchant the link brought', async () => {
+		const tree = await open(TREASURY_LINK)
+		await act(async () => { tree.root.findByType('P2PFilterBar').props.onSelectCoin({ tick: 'BANK_MLC', label: 'MLC' }) })
+		expect(mockApiFilters.coin).toBe('BANK_MLC')
+		expect(mockApiFilters).not.toHaveProperty('peer')
+		expect(badges(tree)).toEqual([])
+	})
+
+	test('in My offers a link changes nothing, and leaving it does not apply it late', async () => {
+		const tree = await open(undefined)
+		await setFilter(tree, 'showMine', true)
+		await setFilter(tree, 'opAmount', '50')
+		const mine = mockApiFilters
+		expect(mine).toMatchObject({ my: true, min: 50 })
+
+		await followLink(tree, { coin: 'USDT', offer_type: 'buy', peer: 'skymind', sort: 'best_rate' })
+		expect(mockApiFilters).toEqual(mine)
+
+		await setFilter(tree, 'showMine', false)
+		expect(mockApiFilters).not.toHaveProperty('coin')
+		expect(mockApiFilters).not.toHaveProperty('peer')
+		expect(mockApiFilters).toMatchObject({ type: 'sell', min: 50 })
 	})
 })

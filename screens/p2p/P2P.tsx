@@ -172,7 +172,7 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 
 	// Filters + derived API filters/badges
 	const initialCoin = route?.params?.coin ? { tick: route.params.coin, name: route.params.coinName || route.params.coin, logo: route.params.coin } : null
-	const { filters, setFilter, resetFilters, apiFilters, activeFilterBadges } = useP2PFilters(initialCoin)
+	const { filters, setFilter, resetFilters, applyLink, apiFilters, activeFilterBadges } = useP2PFilters(initialCoin)
 	const { typeFilter, selectedCoin, sortIndex, showMine, opAmount, ratioMin, ratioMax, onlyVip } = filters
 	// Filtros que solo se ponen desde el modal: tiñen el ⋯ del header para que se sepa
 	// que ahí dentro hay algo puesto (moneda, orden y «Mis ofertas» ya se ven fuera)
@@ -258,22 +258,27 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 		return () => { if (unique.length) untrackUsers(unique) }
 	}, [p2pOffers, trackUsers, untrackUsers])
 
-	// Preselección por params (CoinDetail, «Ver todas» del depósito Vía P2P, deep link
-	// `/p2p?coin=&offer_type=&peer=`): moneda, lado, comerciante y orden. `key` cambia en
-	// cada enlace para que repetirlo con los mismos params vuelva a aplicarlos
+	// Enlace al mercado (deep link `/p2p?coin=&offer_type=&peer=`, «Ver todas» del depósito
+	// Vía P2P, CoinDetail): `applyLink` limpia los ajustes del Index y aplica lo que trae; en
+	// «Mis ofertas» no cambia nada. Los de dentro de la app abren un MainStack nuevo, así que
+	// solo un deep link con la app abierta encuentra ajustes previos. Entrar al tab sin params
+	// no es un enlace. `key` cambia en cada uno para que repetirlo vuelva a aplicarlo
+	const paramTick = route?.params?.coin
+	const paramCoinName = route?.params?.coinName
 	const paramType = route?.params?.type ?? route?.params?.offer_type
 	const paramPeer = route?.params?.peer
 	const paramSort = route?.params?.sort
 	const paramKey = route?.params?.key
 	useEffect(() => {
-		const tick = route?.params?.coin
-		if (tick) setFilter("selectedCoin", { tick, name: route?.params?.coinName || tick, logo: tick })
-		if (paramType === "buy" || paramType === "sell") setFilter("typeFilter", paramType)
-		// Un enlace con moneda no hereda el comerciante de uno anterior: o trae su `peer` o no hay
-		if (tick || paramPeer !== undefined) setFilter("peer", paramPeer || null)
-		// "Mejor tasa" exige moneda: sin ella el hook degradaría al orden por defecto
-		if (paramSort === "best_rate" && tick) setFilter("sortIndex", Math.max(0, SORT_OPTIONS.findIndex(o => o.orderBy === "best_rate")))
-	}, [route?.params?.coin, route?.params?.coinName, paramType, paramPeer, paramSort, paramKey, setFilter])
+		const type = paramType === "buy" || paramType === "sell" ? paramType : undefined
+		if (!paramTick && !type && paramPeer === undefined) return
+		applyLink({
+			coin: paramTick ? { tick: paramTick, name: paramCoinName || paramTick, logo: paramTick } : undefined,
+			type,
+			peer: paramPeer,
+			sort: paramSort,
+		})
+	}, [paramTick, paramCoinName, paramType, paramPeer, paramSort, paramKey, applyLink])
 
 	// Scroll-hide filter bar (Twitter-style)
 	const lastScrollY = useSharedValue(0)
