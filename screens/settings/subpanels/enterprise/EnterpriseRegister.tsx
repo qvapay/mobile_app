@@ -15,7 +15,9 @@ import QPInput from '../../../../ui/particles/QPInput'
 import QPPressable from '../../../../ui/particles/QPPressable'
 import QPStepDots from '../../../../ui/particles/QPStepDots'
 import QPSplitButton from '../../../../ui/particles/QPSplitButton'
+import QPKeyboardAvoidingView from '../../../../ui/QPKeyboardAvoidingView'
 import OptionPickerModal from '../../../../ui/OptionPickerModal'
+import { SurfaceHost } from '../../../../ui/SurfaceContext'
 
 // Wizard transitions (mismo kit que Register/Onboard)
 import useStepTransitions from '../../../../hooks/useStepTransitions'
@@ -34,11 +36,16 @@ import {
 	US_STATES,
 	EMPTY_FORM,
 	EMPTY_FISCAL,
+	INTL_OWNER_MIN_PCT,
+	MAX_COMPANY_OWNERS,
 	validateCompanyStep,
 	validateFiscalStep,
 	validateContactStep,
 	buildRegisterFields,
 	withOrgKind,
+	withOwnerAdded,
+	withOwnerField,
+	withOwnerRemoved,
 } from './enterpriseForm'
 
 // Icons
@@ -51,9 +58,9 @@ import { toast } from 'sonner-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { DocumentPickerResponse } from '@react-native-documents/picker'
 import type { Theme } from '../../../../theme/ThemeContext'
-import type { TextStyles } from '../../../../theme/themeUtils'
+import type { ContainerStyles, TextStyles } from '../../../../theme/themeUtils'
 import type { SettingsStackParamList } from '../../../../types/navigation'
-import type { EnterpriseForm, OrgKind } from './enterpriseForm'
+import type { EnterpriseForm, OrgKind, OwnerField, OwnerRow } from './enterpriseForm'
 
 /** Picker modal abierto (ninguno = null). */
 type OpenPicker = null | 'country' | 'incState' | 'addrState'
@@ -68,13 +75,14 @@ const STEPS = 3
  *    rango de empleados (chips).
  * 2. Fiscal — país de constitución (picker buscable, sin jurisdicciones
  *    sancionadas) + campos por país: US → EIN/entidad/estado/dirección,
- *    CU → NIT+REEUP, resto → tax id genérico.
+ *    CU → NIT, resto → tax id genérico. Debajo, los socios, cuya regla depende
+ *    del país (Cuba: todos los de la escritura; resto: solo 25 % o más).
  * 3. Contacto — director, email corporativo y PDF de estatutos
  *    (@react-native-documents/picker, máx 10MB).
  *
  * Cuenta propia (TCP) es la misma pantalla con otros textos: Cuba fija, solo
  * el NIT, y el titular con un documento opcional que se puede quitar. Cambiar
- * de rama vacía los datos fiscales y el PDF (cada rama pide los suyos).
+ * de rama vacía los datos fiscales, los socios y el PDF (cada rama pide los suyos).
  *
  * La validación de cada paso es espejo del wizard web (enterpriseForm.js);
  * el server re-valida todo (mismo núcleo registerCompanyLead). Tras el 200 se
@@ -119,7 +127,7 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 
 	const isTcp = form.orgKind === 'tcp'
 
-	const setField = (key: keyof EnterpriseForm) => (value: string) => setForm((prev) => ({ ...prev, [key]: value }))
+	const setField = (key: Exclude<keyof EnterpriseForm, 'owners'>) => (value: string) => setForm((prev) => ({ ...prev, [key]: value }))
 
 	const selectOrgKind = (orgKind: OrgKind) => {
 		if (orgKind === form.orgKind) { return }
@@ -181,9 +189,10 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 	const countryName = COMPANY_COUNTRIES.find((c) => c.code === form.country)?.name
 
 	return (
-		<View style={[containerStyles.subContainer, { paddingHorizontal: 20 }]}>
+		<QPKeyboardAvoidingView style={[containerStyles.subContainer, { paddingHorizontal: 20 }]}>
 
-			<ScrollView style={styles.fill} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+			{/* Sin keyboardDismissMode: para llegar a un socio de abajo hay que hacer scroll con el teclado abierto */}
+			<ScrollView style={styles.fill} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
 				{step === 0 && (
 					<Animated.View key="company" entering={makeStepEnter(0)} exiting={stepExit}>
@@ -273,18 +282,10 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 								<FieldLabel text={t('settings.enterprise.register.step2.nitLabel')} theme={theme} textStyles={textStyles} />
 								<QPInput value={form.taxId} onChangeText={setField('taxId')} placeholder={t('settings.enterprise.register.step2.nitPlaceholder')} keyboardType="number-pad" maxLength={11} />
 
-								{isTcp ? (
+								{isTcp && (
 									<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
 										{t('settings.enterprise.register.tcp.nitHint')}
 									</Text>
-								) : (
-									<>
-										<FieldLabel text={t('settings.enterprise.register.step2.reeupLabel')} theme={theme} textStyles={textStyles} />
-										<QPInput value={form.reeup} onChangeText={setField('reeup')} placeholder="123.4.56789" autoCapitalize="none" maxLength={20} />
-										<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-											{t('settings.enterprise.register.step2.reeupHint')}
-										</Text>
-									</>
 								)}
 							</>
 						)}
@@ -297,6 +298,19 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 									{t('settings.enterprise.register.step2.taxIdHint')}
 								</Text>
 							</>
+						)}
+
+						{!isTcp && form.country !== '' && (
+							<OwnersField
+								owners={form.owners}
+								isCuba={form.country === 'CU'}
+								onChange={(id, field, value) => setForm((prev) => withOwnerField(prev, id, field, value))}
+								onAdd={() => setForm(withOwnerAdded)}
+								onRemove={(id) => setForm((prev) => withOwnerRemoved(prev, id))}
+								theme={theme}
+								textStyles={textStyles}
+								containerStyles={containerStyles}
+							/>
 						)}
 					</Animated.View>
 				)}
@@ -369,7 +383,7 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 				searchable
 			/>
 
-		</View>
+		</QPKeyboardAvoidingView>
 	)
 }
 
@@ -422,6 +436,69 @@ const CountryField = ({ isTcp, countryName, onOpen, theme, textStyles }: Country
 						{countryName || t('settings.enterprise.register.step2.countryPlaceholder')}
 					</Text>
 					<FontAwesome6 name="angle-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
+				</QPPressable>
+			)}
+		</>
+	)
+}
+
+// Socios de la empresa: una tarjeta por socio. El porcentaje admite decimales, y el email y el
+// usuario son opcionales. La única fila no se quita: vaciarla basta (una fila vacía no viaja)
+type OwnersFieldProps = {
+	owners: OwnerRow[]
+	isCuba: boolean
+	onChange: (id: number, field: OwnerField, value: string) => void
+	onAdd: () => void
+	onRemove: (id: number) => void
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
+
+const OwnersField = ({ owners, isCuba, onChange, onAdd, onRemove, theme, textStyles, containerStyles }: OwnersFieldProps) => {
+	const { t } = useTranslation()
+	return (
+		<>
+			<FieldLabel text={t('settings.enterprise.register.owners.label')} theme={theme} textStyles={textStyles} />
+			<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginBottom: 4 }]}>
+				{isCuba ? t('settings.enterprise.register.owners.hintCuba') : t('settings.enterprise.register.owners.hintIntl', { min: INTL_OWNER_MIN_PCT })}
+			</Text>
+			{owners.map((owner, index) => (
+				<View key={owner.id} style={containerStyles.card}>
+					<SurfaceHost tone="surface">
+						<View style={styles.ownerHeader}>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+								{t('settings.enterprise.register.owners.rowTitle', { number: index + 1 })}
+							</Text>
+							{owners.length > 1 && (
+								<QPPressable
+									style={styles.ownerRemove}
+									onPress={() => onRemove(owner.id)}
+									accessible
+									accessibilityRole="button"
+									accessibilityLabel={t('settings.enterprise.register.owners.remove', { number: index + 1 })}
+								>
+									<FontAwesome6 name="xmark" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
+								</QPPressable>
+							)}
+						</View>
+						<View style={styles.ownerRow}>
+							<View style={styles.fill}>
+								<QPInput value={owner.name} onChangeText={(value) => onChange(owner.id, 'name', value)} placeholder={t('settings.enterprise.register.owners.namePlaceholder')} autoCapitalize="words" maxLength={255} />
+							</View>
+							<View style={styles.ownerPct}>
+								<QPInput value={owner.pct} onChangeText={(value) => onChange(owner.id, 'pct', value)} placeholder="%" keyboardType="decimal-pad" maxLength={6} />
+							</View>
+						</View>
+						<QPInput value={owner.email} onChangeText={(value) => onChange(owner.id, 'email', value)} placeholder={t('settings.enterprise.register.owners.emailPlaceholder')} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} maxLength={255} />
+						<QPInput value={owner.username} onChangeText={(value) => onChange(owner.id, 'username', value)} placeholder={t('settings.enterprise.register.owners.usernamePlaceholder')} autoCapitalize="none" autoCorrect={false} maxLength={255} />
+					</SurfaceHost>
+				</View>
+			))}
+			{owners.length < MAX_COMPANY_OWNERS && (
+				<QPPressable style={styles.ownerAdd} onPress={onAdd} accessible accessibilityRole="button">
+					<FontAwesome6 name="plus" size={12} color={theme.colors.primary} iconStyle="solid" />
+					<Text style={[textStyles.h6, { color: theme.colors.primary }]}>{t('settings.enterprise.register.owners.add')}</Text>
 				</QPPressable>
 			)}
 		</>
@@ -533,6 +610,32 @@ const styles = StyleSheet.create({
 	},
 	addrZip: {
 		flex: 1,
+	},
+	ownerHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		minHeight: 32,
+	},
+	ownerRemove: {
+		width: 32,
+		height: 32,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	ownerRow: {
+		flexDirection: 'row',
+		gap: 8,
+	},
+	ownerPct: {
+		width: 84,
+	},
+	ownerAdd: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		alignSelf: 'flex-start',
+		paddingVertical: 10,
 	},
 	fileRow: {
 		flexDirection: 'row',

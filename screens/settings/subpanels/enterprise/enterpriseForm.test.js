@@ -9,11 +9,15 @@ import {
 	US_ENTITY_TYPES,
 	US_STATES,
 	EMPTY_FORM,
+	MAX_COMPANY_OWNERS,
 	validateCompanyStep,
 	validateFiscalStep,
 	validateContactStep,
 	buildRegisterFields,
 	withOrgKind,
+	withOwnerAdded,
+	withOwnerField,
+	withOwnerRemoved,
 	statutesRowKey,
 } from './enterpriseForm'
 
@@ -34,6 +38,8 @@ const VALID_US = {
 	email: 'juan@acme.com',
 }
 
+const owner = (fields) => ({ ...EMPTY_FORM.owners[0], ...fields })
+
 const VALID_CU = {
 	...EMPTY_FORM,
 	companyName: 'Mi PYME SRL',
@@ -41,7 +47,7 @@ const VALID_CU = {
 	employeeCount: '11-50',
 	country: 'CU',
 	taxId: '12345678901',
-	reeup: '123.4.56789',
+	owners: [owner({ id: 0, name: 'Ana García', pct: '60' }), owner({ id: 1, name: 'Luis Soto', pct: '40' })],
 	directorName: 'Ana García',
 	email: 'ana@pyme.cu',
 }
@@ -111,14 +117,13 @@ describe('validateFiscalStep', () => {
 		expect(validateFiscalStep({ ...VALID_US, taxId: '123456789' })).toBeNull()
 	})
 
-	test('CU requires NIT (11 digits) and REEUP', () => {
+	test('CU requires a NIT of 11 digits', () => {
 		expect(validateFiscalStep(VALID_CU)).toBeNull()
 		expect(validateFiscalStep({ ...VALID_CU, taxId: '123' })).toMatch(/NIT/)
-		expect(validateFiscalStep({ ...VALID_CU, reeup: 'x' })).toMatch(/REEUP/)
 	})
 
 	test('other countries only need a generic tax id', () => {
-		const mx = { ...VALID_CU, country: 'MX', taxId: 'ACM010203AB1', reeup: '' }
+		const mx = { ...VALID_CU, country: 'MX', taxId: 'ACM010203AB1' }
 		expect(validateFiscalStep(mx)).toBeNull()
 		expect(validateFiscalStep({ ...mx, taxId: 'ab' })).toMatch(/fiscal/)
 	})
@@ -136,8 +141,74 @@ describe('validateFiscalStep', () => {
 		expect(validateFiscalStep({ ...VALID_TCP, taxId: '1234567890' })).toMatch(/NIT/)
 	})
 
-	test('a Cuban business still needs its REEUP', () => {
-		expect(validateFiscalStep({ ...VALID_TCP, orgKind: 'business' })).toMatch(/REEUP/)
+	test('TCP never looks at the owners, not even a leftover invalid row', () => {
+		expect(validateFiscalStep({ ...VALID_TCP, owners: [owner({ name: 'A', pct: '500' })] })).toBeNull()
+	})
+
+	test('a Cuban business needs its partners, a TCP with the same data does not', () => {
+		expect(validateFiscalStep({ ...VALID_TCP, orgKind: 'business' })).toMatch(/escritura/)
+	})
+})
+
+describe('validateFiscalStep (owners)', () => {
+	const MX = { ...VALID_CU, country: 'MX', taxId: 'ACM010203AB1' }
+	const onlyOwner = (fields) => [owner(fields)]
+
+	test('Cuba needs at least one partner, and an empty row does not count', () => {
+		expect(validateFiscalStep({ ...VALID_CU, owners: [] })).toMatch(/escritura/)
+		expect(validateFiscalStep({ ...VALID_CU, owners: EMPTY_FORM.owners })).toMatch(/escritura/)
+		expect(validateFiscalStep({ ...VALID_CU, owners: onlyOwner({ name: '   ' }) })).toMatch(/escritura/)
+	})
+
+	test('Cuba takes any percentage, and none at all', () => {
+		expect(validateFiscalStep({ ...VALID_CU, owners: onlyOwner({ name: 'Ana García' }) })).toBeNull()
+		expect(validateFiscalStep({ ...VALID_CU, owners: onlyOwner({ name: 'Ana García', pct: '0.5' }) })).toBeNull()
+	})
+
+	test('outside Cuba the list can be empty', () => {
+		expect(validateFiscalStep({ ...MX, owners: EMPTY_FORM.owners })).toBeNull()
+		expect(validateFiscalStep({ ...VALID_US, owners: EMPTY_FORM.owners })).toBeNull()
+	})
+
+	test('outside Cuba a partner needs a percentage of 25 or more', () => {
+		expect(validateFiscalStep({ ...MX, owners: onlyOwner({ name: 'Ana García' }) })).toBe('Indica el porcentaje de participación de Ana García.')
+		expect(validateFiscalStep({ ...MX, owners: onlyOwner({ name: 'Ana García', pct: '24.99' }) })).toBe('Fuera de Cuba solo se declaran socios con 25% o más de participación (Ana García no llega).')
+		expect(validateFiscalStep({ ...MX, owners: onlyOwner({ name: 'Ana García', pct: '25' }) })).toBeNull()
+	})
+
+	test('the US rule is the same as the rest of the world', () => {
+		expect(validateFiscalStep({ ...VALID_US, owners: onlyOwner({ name: 'Ana García', pct: '10' }) })).toMatch(/no llega/)
+	})
+
+	test('a row with any data needs a full name', () => {
+		expect(validateFiscalStep({ ...VALID_CU, owners: onlyOwner({ pct: '100' }) })).toBe('Ingresa el nombre completo de cada socio.')
+		expect(validateFiscalStep({ ...VALID_CU, owners: onlyOwner({ name: 'Al' }) })).toBe('Ingresa el nombre completo de cada socio.')
+	})
+
+	test.each(['0', '-5', '100.5', 'abc', '50%'])('rejects the percentage %s', (pct) => {
+		expect(validateFiscalStep({ ...VALID_CU, owners: onlyOwner({ name: 'Ana García', pct }) })).toBe('El porcentaje de participación de Ana García debe estar entre 0 y 100.')
+	})
+
+	test('a decimal comma is a valid percentage', () => {
+		expect(validateFiscalStep({ ...VALID_CU, owners: onlyOwner({ name: 'Ana García', pct: '12,5' }) })).toBeNull()
+		expect(validateFiscalStep({ ...MX, owners: onlyOwner({ name: 'Ana García', pct: '24,9' }) })).toMatch(/no llega/)
+	})
+
+	test('rejects an invalid email but not a missing one', () => {
+		expect(validateFiscalStep({ ...VALID_CU, owners: onlyOwner({ name: 'Ana García', email: 'ana@' }) })).toBe('El email del socio Ana García no es válido.')
+		expect(validateFiscalStep({ ...VALID_CU, owners: onlyOwner({ name: 'Ana García', email: 'ana@pyme.cu' }) })).toBeNull()
+	})
+
+	test('the total cannot pass 100, with the server tolerance', () => {
+		const shares = (...pcts) => pcts.map((pct, id) => owner({ id, name: `Socio ${id}`, pct }))
+		expect(validateFiscalStep({ ...VALID_CU, owners: shares('60', '50') })).toBe('La suma de los porcentajes de participación no puede superar el 100%.')
+		expect(validateFiscalStep({ ...VALID_CU, owners: shares('33.34', '33.33', '33.33') })).toBeNull()
+		expect(validateFiscalStep({ ...VALID_CU, owners: shares('33.34', '33.34', '33.34') })).toMatch(/100%/)
+	})
+
+	test('fiscal errors come first: the owners sit below them on screen', () => {
+		expect(validateFiscalStep({ ...VALID_CU, taxId: '123', owners: [] })).toMatch(/NIT/)
+		expect(validateFiscalStep({ ...VALID_US, addrZip: 'ABC', owners: onlyOwner({ name: 'Al' }) })).toMatch(/ZIP/)
 	})
 })
 
@@ -177,28 +248,46 @@ describe('buildRegisterFields', () => {
 		expect(fields.reeup).toBeUndefined()
 	})
 
-	test('CU payload carries reeup but no US fields', () => {
+	test('CU payload carries the NIT and the owners, but no US fields and no REEUP', () => {
 		const fields = buildRegisterFields(VALID_CU)
-		expect(fields.reeup).toBe('123.4.56789')
+		expect(fields.taxId).toBe('12345678901')
+		expect(JSON.parse(fields.owners)).toHaveLength(2)
+		expect(fields.reeup).toBeUndefined()
 		expect(fields.entityType).toBeUndefined()
 		expect(fields.addrLine1).toBeUndefined()
 	})
 
-	test('generic-country payload carries only the tax id', () => {
-		const fields = buildRegisterFields({ ...VALID_CU, country: 'MX', taxId: ' ACM010203AB1 ', reeup: '' })
+	test('generic-country payload carries the tax id and an empty owners list', () => {
+		const fields = buildRegisterFields({ ...VALID_CU, country: 'MX', taxId: ' ACM010203AB1 ', owners: EMPTY_FORM.owners })
 		expect(fields.taxId).toBe('ACM010203AB1')
-		expect(fields.reeup).toBeUndefined()
+		expect(fields.owners).toBe('[]')
 	})
 
-	test('TCP payload carries orgKind and Cuba, without reeup', () => {
-		const fields = buildRegisterFields({ ...VALID_TCP, country: 'US', reeup: '123.4.56789', addrLine1: '123 Ocean Drive' })
+	test('owners travel normalized as the server stores them, without the row id', () => {
+		const fields = buildRegisterFields({
+			...VALID_CU,
+			owners: [
+				owner({ id: 3, name: '  Ana García ', pct: ' 12,5 ', email: ' Ana@Pyme.CU ', username: ' @ana ' }),
+				owner({ id: 4 }),
+				owner({ id: 5, name: 'Luis Soto', pct: '33.333' }),
+				owner({ id: 6, name: 'Eva Díaz' }),
+			],
+		})
+		expect(JSON.parse(fields.owners)).toEqual([
+			{ name: 'Ana García', pct: 12.5, email: 'ana@pyme.cu', username: 'ana' },
+			{ name: 'Luis Soto', pct: 33.33, email: null, username: null },
+			{ name: 'Eva Díaz', pct: null, email: null, username: null },
+		])
+	})
+
+	test('TCP payload carries orgKind and Cuba, without owners', () => {
+		const fields = buildRegisterFields({ ...VALID_TCP, country: 'US', addrLine1: '123 Ocean Drive', owners: [owner({ name: 'Ana García' })] })
 		expect(fields).toMatchObject({ orgKind: 'tcp', country: 'CU', taxId: '12345678901', directorName: 'Pedro Pérez' })
-		expect(fields.reeup).toBeUndefined()
 		expect(fields.addrLine1).toBeUndefined()
 		expect(fields.owners).toBeUndefined()
 	})
 
-	test('business payloads stay exactly as before, with no orgKind', () => {
+	test('business payloads carry no orgKind', () => {
 		expect(buildRegisterFields(VALID_CU).orgKind).toBeUndefined()
 		expect(buildRegisterFields(VALID_US).orgKind).toBeUndefined()
 	})
@@ -224,13 +313,16 @@ describe('withOrgKind', () => {
 		})
 	})
 
-	test('a Cuban business loses its REEUP and NIT even though the country matches', () => {
-		expect(withOrgKind(VALID_CU, 'tcp')).toMatchObject({ orgKind: 'tcp', country: 'CU', taxId: '', reeup: '' })
+	test('a Cuban business loses its NIT and partners even though the country matches', () => {
+		const next = withOrgKind(VALID_CU, 'tcp')
+		expect(next).toMatchObject({ orgKind: 'tcp', country: 'CU', taxId: '' })
+		expect(next.owners).toEqual(EMPTY_FORM.owners)
 	})
 
 	test('going there and back leaves nothing behind', () => {
 		const roundTrip = withOrgKind(withOrgKind(VALID_CU, 'tcp'), 'business')
-		expect(roundTrip).toMatchObject({ orgKind: 'business', country: '', taxId: '', reeup: '' })
+		expect(roundTrip).toMatchObject({ orgKind: 'business', country: '', taxId: '' })
+		expect(roundTrip.owners).toEqual(EMPTY_FORM.owners)
 	})
 
 	test('the same branch returns the same form untouched', () => {
@@ -240,6 +332,46 @@ describe('withOrgKind', () => {
 
 	test('the default branch is a business', () => {
 		expect(EMPTY_FORM.orgKind).toBe('business')
+	})
+})
+
+describe('owner rows', () => {
+	test('a field change touches only that row', () => {
+		const next = withOwnerField(VALID_CU, 1, 'pct', '35')
+		expect(next.owners.map(o => o.pct)).toEqual(['60', '35'])
+		expect(next.owners[0]).toBe(VALID_CU.owners[0])
+	})
+
+	test('a new row is empty and gets an id of its own', () => {
+		const next = withOwnerAdded(VALID_CU)
+		expect(next.owners).toHaveLength(3)
+		expect(next.owners[2]).toEqual(owner({ id: 2 }))
+	})
+
+	test('ids stay unique after removing a row in the middle', () => {
+		const three = withOwnerAdded(VALID_CU)
+		const next = withOwnerAdded(withOwnerRemoved(three, 1))
+		const ids = next.owners.map(o => o.id)
+		expect(new Set(ids).size).toBe(ids.length)
+	})
+
+	test('stops at the server limit', () => {
+		let form = EMPTY_FORM
+		for (let i = 0; i < MAX_COMPANY_OWNERS + 5; i += 1) { form = withOwnerAdded(form) }
+		expect(form.owners).toHaveLength(20)
+		expect(withOwnerAdded(form)).toBe(form)
+	})
+
+	test('removes a row, but the list never ends up empty', () => {
+		expect(withOwnerRemoved(VALID_CU, 0).owners.map(o => o.name)).toEqual(['Luis Soto'])
+		const single = { ...VALID_CU, owners: [VALID_CU.owners[0]] }
+		expect(withOwnerRemoved(single, 0)).toBe(single)
+	})
+
+	test('the shared empty list is never mutated', () => {
+		const before = JSON.stringify(EMPTY_FORM.owners)
+		withOwnerField(withOwnerAdded(EMPTY_FORM), 0, 'name', 'Ana García')
+		expect(JSON.stringify(EMPTY_FORM.owners)).toBe(before)
 	})
 })
 
@@ -253,7 +385,7 @@ describe('statutesRowKey', () => {
 		expect(statutesRowKey({ statutes_sent: false, entity_type: 'TCP' })).toBe('settings.enterprise.details.statutesNotRequired')
 	})
 
-	test('without entity_type it stays "not sent" (the backend does not return it yet)', () => {
+	test('without entity_type it stays "not sent" (a backend older than 4.4.14 does not return it)', () => {
 		expect(statutesRowKey({ statutes_sent: false })).toBe('settings.enterprise.details.statutesNotSent')
 		expect(statutesRowKey({ statutes_sent: false, entity_type: 'LLC' })).toBe('settings.enterprise.details.statutesNotSent')
 	})

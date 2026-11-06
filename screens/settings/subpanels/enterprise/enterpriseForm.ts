@@ -1,11 +1,14 @@
 /**
  * Pure form logic for the in-app enterprise registration wizard — mirrors the
  * server-side rules in qpweb's `lib/company-fiscal.js` (CCO 2026-08-14):
- * US → EIN + entity type + inc. state + registered address; CU → NIT + REEUP;
+ * US → EIN + entity type + inc. state + registered address; CU → NIT;
  * rest → generic tax id. Sanctioned jurisdictions are excluded from the
- * country list (the server rejects them anyway). La rama «cuenta propia»
- * (`orgKind: 'tcp'`, espejo de `lib/company-tcp.js`) es solo para Cuba: NIT
- * obligatorio, sin socios y documento opcional. Free of React Native imports
+ * country list (the server rejects them anyway). Una empresa declara además a
+ * sus socios (espejo de `lib/company-owners.js`): en Cuba todos los de la
+ * escritura y al menos uno; fuera de Cuba solo quienes tengan 25 % o más, y la
+ * lista puede ir vacía. La rama «cuenta propia» (`orgKind: 'tcp'`, espejo de
+ * `lib/company-tcp.js`) es solo para Cuba: NIT obligatorio, sin socios y
+ * documento opcional. Free of React Native imports
  * so it runs under `@jest-environment node` (see keypadAmount.js) — the i18n
  * singleton is RN-free too, and the localized validation messages resolve via
  * `i18n.t()` EN CALL TIME (never at module scope) so language switches apply.
@@ -67,12 +70,15 @@ export const US_STATES = [
 // Mismos regexes que el server (lib/company-fiscal.js)
 export const EIN_REGEX = /^\d{2}-?\d{7}$/
 export const NIT_REGEX = /^\d{11}$/
-export const REEUP_REGEX = /^[A-Za-z0-9./-]{4,20}$/
 export const US_ZIP_REGEX = /^\d{5}(-\d{4})?$/
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Tope del documento, mismo que el server (register-company.js)
 const MAX_FILE_BYTES = 10 * 1024 * 1024
+
+// Espejo de lib/company-owners.js en qpweb
+export const MAX_COMPANY_OWNERS = 20
+export const INTL_OWNER_MIN_PCT = 25
 
 /** Qué se registra: empresa o trabajador por cuenta propia (TCP, figura cubana). */
 export type OrgKind = 'business' | 'tcp'
@@ -83,7 +89,13 @@ export const TCP_COUNTRY = 'CU'
 // Espejo de TCP_ENTITY_TYPE en qpweb lib/company-tcp.js
 const TCP_ENTITY_TYPE = 'TCP'
 
-/** Formulario completo del wizard (todos los campos son string, incluso los opcionales). */
+/** Fila del listado de socios. `id` solo identifica la fila en pantalla: no viaja al servidor. */
+export type OwnerRow = { id: number, name: string, pct: string, email: string, username: string }
+
+/** Campos editables de una fila de socio. */
+export type OwnerField = Exclude<keyof OwnerRow, 'id'>
+
+/** Formulario completo del wizard (todo son strings, incluso lo opcional, salvo la lista de socios). */
 export type EnterpriseForm = {
 	orgKind: OrgKind
 	companyName: string
@@ -92,19 +104,22 @@ export type EnterpriseForm = {
 	/** ISO-2 del país de constitución. */
 	country: string
 	taxId: string
-	reeup: string
 	entityType: string
 	incState: string
 	addrLine1: string
 	addrCity: string
 	addrState: string
 	addrZip: string
+	owners: OwnerRow[]
 	directorName: string
 	email: string
 }
 
 /** Documento elegido en el picker (solo se leen nombre y tamaño). */
 export type StatutesFile = { name?: string | null, size?: number | null } | null
+
+// El listado parte de una fila, como el wizard web
+const EMPTY_OWNER: OwnerRow = { id: 0, name: '', pct: '', email: '', username: '' }
 
 // Estado inicial del formulario del wizard
 export const EMPTY_FORM: EnterpriseForm = {
@@ -114,32 +129,110 @@ export const EMPTY_FORM: EnterpriseForm = {
 	employeeCount: '',
 	country: '',
 	taxId: '',
-	reeup: '',
 	entityType: '',
 	incState: '',
 	addrLine1: '',
 	addrCity: '',
 	addrState: '',
 	addrZip: '',
+	owners: [EMPTY_OWNER],
 	directorName: '',
 	email: '',
 }
 
-// Campos fiscales que se resetean al cambiar el país de constitución
-export const EMPTY_FISCAL: Partial<EnterpriseForm> = { taxId: '', reeup: '', entityType: '', incState: '', addrLine1: '', addrCity: '', addrState: '', addrZip: '' }
+// Campos fiscales que se resetean al cambiar el país de constitución. Los socios no:
+// son las mismas personas, y la regla del país nuevo se valida al continuar (igual que en la web)
+export const EMPTY_FISCAL: Partial<EnterpriseForm> = { taxId: '', entityType: '', incState: '', addrLine1: '', addrCity: '', addrState: '', addrZip: '' }
 
 /**
  * Cambia lo que se registra. Cada rama tiene sus propios datos fiscales, así
  * que al cambiar se vacían siempre, aunque el país coincida: de TCP a empresa
  * no debe quedar Cuba preseleccionada sin que nadie la haya elegido, ni el NIT.
- * Nombre, actividad y contacto valen para las dos ramas y se conservan.
+ * Los socios también: un TCP no tiene. Nombre, actividad y contacto valen para
+ * las dos ramas y se conservan.
  * @param form
  * @param orgKind - Rama elegida.
  * @returns El mismo form si la rama no cambia; si no, uno nuevo limpio.
  */
 export const withOrgKind = (form: EnterpriseForm, orgKind: OrgKind): EnterpriseForm => {
 	if (form.orgKind === orgKind) { return form }
-	return { ...form, ...EMPTY_FISCAL, orgKind, country: orgKind === 'tcp' ? TCP_COUNTRY : '' }
+	return { ...form, ...EMPTY_FISCAL, owners: EMPTY_FORM.owners, orgKind, country: orgKind === 'tcp' ? TCP_COUNTRY : '' }
+}
+
+/**
+ * Cambia un campo de una fila de socio.
+ * @param form
+ * @param id - Fila.
+ * @param field - Campo.
+ * @param value - Texto tecleado.
+ * @returns Un form nuevo.
+ */
+export const withOwnerField = (form: EnterpriseForm, id: number, field: OwnerField, value: string): EnterpriseForm => ({
+	...form,
+	owners: form.owners.map((owner) => (owner.id === id ? { ...owner, [field]: value } : owner)),
+})
+
+/**
+ * Añade una fila vacía, hasta el tope del servidor.
+ * @param form
+ * @returns Un form nuevo, o el mismo si ya está en el tope.
+ */
+export const withOwnerAdded = (form: EnterpriseForm): EnterpriseForm => {
+	if (form.owners.length >= MAX_COMPANY_OWNERS) { return form }
+	const id = Math.max(...form.owners.map((owner) => owner.id)) + 1
+	return { ...form, owners: [...form.owners, { ...EMPTY_OWNER, id }] }
+}
+
+/**
+ * Quita una fila. La última se queda: el listado nunca se pinta vacío.
+ * @param form
+ * @param id - Fila.
+ * @returns Un form nuevo, o el mismo si solo queda esa fila.
+ */
+export const withOwnerRemoved = (form: EnterpriseForm, id: number): EnterpriseForm => {
+	if (form.owners.length <= 1) { return form }
+	return { ...form, owners: form.owners.filter((owner) => owner.id !== id) }
+}
+
+// ¿La fila está totalmente vacía? Se descarta en silencio, como en el servidor
+const isOwnerRowEmpty = ({ name, pct, email, username }: OwnerRow) => !name.trim() && !pct.trim() && !email.trim() && !username.trim()
+
+// El teclado decimal escribe coma en un teléfono en español, y el servidor espera punto.
+// Texto ilegible → NaN, que la validación rechaza
+const parseOwnerPct = (text: string): number | null => {
+	const value = text.trim().replace(',', '.')
+	return value === '' ? null : Math.round(Number(value) * 100) / 100
+}
+
+// Filas con datos, normalizadas como las guarda el servidor (sin el `id` de pantalla)
+const normalizedOwners = (rows: OwnerRow[]) => rows.filter((row) => !isOwnerRowEmpty(row)).map((row) => ({
+	name: row.name.trim(),
+	pct: parseOwnerPct(row.pct),
+	email: row.email.trim().toLowerCase() || null,
+	username: row.username.trim().replace(/^@/, '') || null,
+}))
+
+/**
+ * Valida el listado de socios — espejo de validateCompanyOwners en qpweb. En
+ * Cuba manda la escritura: al menos un socio y el porcentaje es opcional. Fuera
+ * de Cuba el 25 % define quién entra en la lista, así que hace falta saberlo.
+ * @param form
+ * @returns Mensaje de error (localizado) o null si es válido.
+ */
+const validateOwners = ({ owners: rows, country }: EnterpriseForm): string | null => {
+	const owners = normalizedOwners(rows)
+	const isCuba = country === 'CU'
+	if (isCuba && owners.length === 0) { return i18n.t('settings.enterprise.validation.ownersCubaRequired') }
+	for (const { name, pct, email } of owners) {
+		if (name.length < 3) { return i18n.t('settings.enterprise.validation.ownerName') }
+		if (pct !== null && !(pct > 0 && pct <= 100)) { return i18n.t('settings.enterprise.validation.ownerPct', { name }) }
+		if (!isCuba && pct === null) { return i18n.t('settings.enterprise.validation.ownerPctRequired', { name }) }
+		if (!isCuba && pct !== null && pct < INTL_OWNER_MIN_PCT) { return i18n.t('settings.enterprise.validation.ownerPctMin', { name, min: INTL_OWNER_MIN_PCT }) }
+		if (email && !EMAIL_REGEX.test(email)) { return i18n.t('settings.enterprise.validation.ownerEmail', { name }) }
+	}
+	const total = owners.reduce((sum, { pct }) => sum + (pct ?? 0), 0)
+	if (total > 100.01) { return i18n.t('settings.enterprise.validation.ownersTotal') }
+	return null
 }
 
 /**
@@ -157,12 +250,13 @@ export const validateCompanyStep = (form: EnterpriseForm): string | null => {
 
 /**
  * Valida el paso Fiscal — espejo del bloque fiscalError del wizard web
- * (y de validateCompanyFiscal en el server).
+ * (y de validateCompanyFiscal en el server): primero los datos fiscales, luego
+ * los socios, que van en el mismo paso.
  * @param form
  * @returns Mensaje de error (localizado) o null si es válido.
  */
 export const validateFiscalStep = (form: EnterpriseForm): string | null => {
-	// Un TCP no elige país ni tiene REEUP: el NIT es lo único que hay que contrastar
+	// Un TCP no elige país ni tiene socios: el NIT es lo único que hay que contrastar
 	if (form.orgKind === 'tcp') {
 		return NIT_REGEX.test(form.taxId.trim().replace(/\s/g, '')) ? null : i18n.t('settings.enterprise.validation.nit')
 	}
@@ -175,15 +269,12 @@ export const validateFiscalStep = (form: EnterpriseForm): string | null => {
 		if (form.addrCity.trim().length < 2) { return i18n.t('settings.enterprise.validation.addrCity') }
 		if (!US_STATES.some((s) => s.code === form.addrState)) { return i18n.t('settings.enterprise.validation.addrState') }
 		if (!US_ZIP_REGEX.test(form.addrZip.trim())) { return i18n.t('settings.enterprise.validation.addrZip') }
-		return null
-	}
-	if (form.country === 'CU') {
+	} else if (form.country === 'CU') {
 		if (!NIT_REGEX.test(form.taxId.trim().replace(/\s/g, ''))) { return i18n.t('settings.enterprise.validation.nit') }
-		if (!REEUP_REGEX.test(form.reeup.trim())) { return i18n.t('settings.enterprise.validation.reeup') }
-		return null
+	} else if (form.taxId.trim().length < 3) {
+		return i18n.t('settings.enterprise.validation.taxId')
 	}
-	if (form.taxId.trim().length < 3) { return i18n.t('settings.enterprise.validation.taxId') }
-	return null
+	return validateOwners(form)
 }
 
 /**
@@ -205,8 +296,9 @@ export const validateContactStep = (form: EnterpriseForm, file: StatutesFile): s
 /**
  * Aplana el formulario a los campos multipart que espera el endpoint —
  * solo viajan los campos fiscales del país elegido (mismo criterio que el
- * wizard web). Un TCP lleva `orgKind` y Cuba fija, sin REEUP; una empresa no
- * lleva `orgKind` (el server la asume por defecto).
+ * wizard web). Un TCP lleva `orgKind` y Cuba fija, sin socios; una empresa no
+ * lleva `orgKind` (el server la asume por defecto) y sí `owners`, un JSON que
+ * puede ser `[]` fuera de Cuba.
  *
  * @param form
  * @returns Campos listos para FormData.
@@ -226,7 +318,7 @@ export const buildRegisterFields = (form: EnterpriseForm): Record<string, string
 		fields.country = TCP_COUNTRY
 		return fields
 	}
-	if (form.country === 'CU') { fields.reeup = form.reeup.trim() }
+	fields.owners = JSON.stringify(normalizedOwners(form.owners))
 	if (form.country === 'US') {
 		fields.entityType = form.entityType
 		fields.incState = form.incState
@@ -240,8 +332,8 @@ export const buildRegisterFields = (form: EnterpriseForm): Record<string, string
 
 /**
  * Clave de i18n de la fila «Estatutos» del panel Empresa. `entity_type` se lee
- * de forma tolerante: el backend aún no lo devuelve en `GET /user/company`, y
- * sin él un TCP sin documento sigue diciendo «No enviados», que es cierto.
+ * de forma tolerante: qpweb lo devuelve en `GET /user/company` desde la 4.4.14,
+ * y sin él un TCP sin documento sigue diciendo «No enviados», que es cierto.
  * @param company
  * @param company.statutes_sent - Si la solicitud lleva documento.
  * @param company.entity_type - Figura guardada en `companies.entity_type`.

@@ -323,7 +323,7 @@
 			},
 			"step2": {
 				"title": "Datos fiscales",
-				"subtitle": "El país donde está constituida la empresa y su identificación fiscal",
+				"subtitle": "El país donde está constituida la empresa, su identificación fiscal y sus socios",
 				"countryLabel": "País de constitución",
 				"countryPlaceholder": "Selecciona el país…",
 				"einLabel": "EIN (Employer Identification Number)",
@@ -337,11 +337,20 @@
 				"addrStateTitle": "Estado de la dirección",
 				"nitLabel": "NIT (Número de Identificación Tributaria)",
 				"nitPlaceholder": "11 dígitos",
-				"reeupLabel": "Código REEUP",
-				"reeupHint": "Registro Estatal de Empresas y Unidades Presupuestadas.",
 				"taxIdLabel": "Número de identificación fiscal",
 				"taxIdPlaceholder": "RFC, RUC, NIT, CIF…",
 				"taxIdHint": "El identificador fiscal de tu empresa en su país de registro."
+			},
+			"owners": {
+				"label": "Socios de la empresa",
+				"hintCuba": "Incluye a todos los socios que aparecen en la escritura, con cualquier porcentaje. Cada socio debe tener una cuenta QvaPay verificada.",
+				"hintIntl": "Solo personas con {{min}}% o más de participación. No incluyas notarios, testigos ni asesores.",
+				"rowTitle": "Socio {{number}}",
+				"namePlaceholder": "Nombre completo",
+				"emailPlaceholder": "Email (opcional)",
+				"usernamePlaceholder": "Usuario QvaPay",
+				"add": "Otro socio",
+				"remove": "Quitar socio {{number}}"
 			},
 			"step3": {
 				"title": "Contacto y estatutos",
@@ -372,7 +381,6 @@
 			"addrState": "Selecciona el estado de la dirección registrada.",
 			"addrZip": "Ingresa un código ZIP válido (p. ej. 33101).",
 			"nit": "Ingresa un NIT válido (11 dígitos).",
-			"reeup": "Ingresa un código REEUP válido.",
 			"taxId": "Ingresa el número de identificación fiscal de la empresa.",
 			"directorName": "Ingresa el nombre del director o presidente.",
 			"email": "Ingresa un email de contacto válido.",
@@ -380,7 +388,14 @@
 			"fileTooLarge": "El archivo no debe superar los 10MB.",
 			"tcpBusinessName": "Ingresa el nombre del negocio.",
 			"tcpActivity": "Describe tu actividad.",
-			"tcpHolderName": "Ingresa tu nombre completo."
+			"tcpHolderName": "Ingresa tu nombre completo.",
+			"ownersCubaRequired": "Agrega a todos los socios que aparecen en la escritura de la empresa.",
+			"ownerName": "Ingresa el nombre completo de cada socio.",
+			"ownerPct": "El porcentaje de participación de {{name}} debe estar entre 0 y 100.",
+			"ownerPctRequired": "Indica el porcentaje de participación de {{name}}.",
+			"ownerPctMin": "Fuera de Cuba solo se declaran socios con {{min}}% o más de participación ({{name}} no llega).",
+			"ownerEmail": "El email del socio {{name}} no es válido.",
+			"ownersTotal": "La suma de los porcentajes de participación no puede superar el 100%."
 		}
 	},
 	"fontSize": {

@@ -2,8 +2,9 @@
  * Recorrido del wizard de registro con la pantalla real: qué pinta cada rama y qué
  * llega a `userApi.registerCompany`. La lógica de cada campo está en
  * enterpriseForm.test.js; aquí se cubre lo que solo se ve montando la pantalla: la
- * rama TCP no enseña país ni REEUP, el documento es opcional y se puede quitar, y
- * cambiar de rama no deja datos fiscales ni el PDF de la otra.
+ * rama TCP no enseña país ni socios, el documento es opcional y se puede quitar, una
+ * empresa declara a sus socios (el REEUP ya no se pide), y cambiar de rama no deja
+ * datos fiscales, socios ni el PDF de la otra.
  * @jest-environment node
  */
 jest.mock('../../../../theme/ThemeContext', () => {
@@ -16,6 +17,7 @@ jest.mock('../../../../ui/particles/QPInput', () => 'QPInput')
 jest.mock('../../../../ui/particles/QPPressable', () => 'QPPressable')
 jest.mock('../../../../ui/particles/QPStepDots', () => 'QPStepDots')
 jest.mock('../../../../ui/particles/QPSplitButton', () => 'QPSplitButton')
+jest.mock('../../../../ui/QPKeyboardAvoidingView', () => 'QPKeyboardAvoidingView')
 jest.mock('../../../../ui/OptionPickerModal', () => 'OptionPickerModal')
 jest.mock('../../../../hooks/useStepTransitions', () => () => ({ direction: { value: 1 }, makeStepEnter: () => ({}), stepExit: {} }))
 jest.mock('@react-native-documents/picker', () => ({
@@ -54,12 +56,14 @@ const press = async (label) => {
 	await act(async () => { await match[0].props.onPress() })
 }
 
-const type = async (placeholder, value) => {
-	const input = tree.root.findAll((n) => n.type === 'QPInput' && n.props.placeholder === placeholder)[0]
-	await act(async () => { input.props.onChangeText(value) })
+const inputs = (placeholder) => tree.root.findAll((n) => n.type === 'QPInput' && n.props.placeholder === placeholder)
+
+/** Escribe en el campo con ese placeholder; `index` elige la fila de socio. */
+const type = async (placeholder, value, index = 0) => {
+	await act(async () => { inputs(placeholder)[index].props.onChangeText(value) })
 }
 
-const inputValue = (placeholder) => tree.root.findAll((n) => n.type === 'QPInput' && n.props.placeholder === placeholder)[0].props.value
+const inputValue = (placeholder, index = 0) => inputs(placeholder)[index].props.value
 
 const footer = () => tree.root.findAll((n) => n.type === 'QPSplitButton')[0]
 const next = async () => { await act(async () => { await footer().props.onPress() }) }
@@ -80,6 +84,11 @@ const fillBusinessStepOne = async () => {
 	await type('Mi Empresa S.L.', 'Mi Empresa')
 	await type('Comercio electrónico, servicios, etc.', 'Servicios')
 	await press('1–10')
+}
+
+const fillBusinessContact = async () => {
+	await type('Juan Pérez García', 'Juan Pérez')
+	await type('director@empresa.com', 'juan@empresa.com')
 }
 
 const selectCountry = async (code) => {
@@ -116,7 +125,7 @@ describe('rama cuenta propia', () => {
 		expect(screenText()).not.toContain('Nombre de la PYME')
 	})
 
-	test('el paso fiscal enseña Cuba fija y el NIT, sin selector de país ni REEUP', async () => {
+	test('el paso fiscal enseña Cuba fija y el NIT, sin selector de país ni socios', async () => {
 		await press('Cuenta propia')
 		await fillTcpStepOne()
 		await next()
@@ -124,7 +133,7 @@ describe('rama cuenta propia', () => {
 		expect(screenText()).toContain('Tu NIT')
 		expect(screenText()).toContain('Cuba')
 		expect(screenText()).toContain('El NIT que te asignó la ONAT.')
-		expect(screenText()).not.toContain('REEUP')
+		expect(screenText()).not.toContain('Socios de la empresa')
 		expect(screenText()).not.toContain('País de constitución')
 		expect(screenText()).not.toContain('Selecciona el país')
 
@@ -210,8 +219,7 @@ describe('rama empresa', () => {
 		await type('RFC, RUC, NIT, CIF…', 'ACM010203AB1')
 		await next()
 		expect(screenText()).toContain('Contacto y estatutos')
-		await type('Juan Pérez García', 'Juan Pérez')
-		await type('director@empresa.com', 'juan@empresa.com')
+		await fillBusinessContact()
 
 		await next()
 		expect(toast.info).toHaveBeenCalledWith('Adjunta los estatutos de la empresa en PDF.')
@@ -226,23 +234,126 @@ describe('rama empresa', () => {
 		expect(file).toBe(PDF)
 		expect(fields.orgKind).toBeUndefined()
 		expect(fields.country).toBe('MX')
+		expect(fields.owners).toBe('[]')
 	})
+})
 
-	test('una empresa cubana sigue viendo el REEUP', async () => {
+describe('socios', () => {
+	const toFiscalStep = async (country) => {
 		await fillBusinessStepOne()
 		await next()
+		await selectCountry(country)
+	}
+
+	test('salen al elegir el país, y sin REEUP', async () => {
+		await fillBusinessStepOne()
+		await next()
+		expect(screenText()).not.toContain('Socios de la empresa')
+
 		await selectCountry('CU')
-		expect(screenText()).toContain('Código REEUP')
+		expect(screenText()).toContain('Socios de la empresa')
+		expect(screenText()).toContain('todos los socios que aparecen en la escritura')
+		expect(screenText()).not.toContain('REEUP')
+	})
+
+	test('la regla que se explica cambia con el país, y los socios escritos se quedan', async () => {
+		await toFiscalStep('CU')
+		await type('Nombre completo', 'Ana García')
+
+		await selectCountry('MX')
+		expect(screenText()).toContain('Solo personas con 25% o más de participación')
+		expect(screenText()).not.toContain('aparecen en la escritura')
+		expect(inputValue('Nombre completo')).toBe('Ana García')
+	})
+
+	test('una empresa cubana no pasa sin socios', async () => {
+		await toFiscalStep('CU')
+		await type('11 dígitos', NIT)
+		await next()
+		expect(toast.info).toHaveBeenCalledWith('Agrega a todos los socios que aparecen en la escritura de la empresa.')
+		expect(screenText()).toContain('Datos fiscales')
+	})
+
+	test('una empresa cubana se envía con todos sus socios y sin REEUP', async () => {
+		await toFiscalStep('CU')
+		await type('11 dígitos', NIT)
+		await type('Nombre completo', 'Ana García')
+		await type('%', '60,5')
+		await type('Email (opcional)', 'Ana@Pyme.cu')
+		await press('Otro socio')
+		await type('Nombre completo', 'Luis Soto', 1)
+		await type('%', '39.5', 1)
+		await type('Usuario QvaPay', '@luis', 1)
+		await next()
+		await fillBusinessContact()
+		await press('Elegir archivo PDF')
+		await next()
+
+		expect(userApi.registerCompany).toHaveBeenCalledTimes(1)
+		const { fields } = userApi.registerCompany.mock.calls[0][0]
+		expect(fields).toEqual({
+			country: 'CU',
+			taxId: NIT,
+			companyName: 'Mi Empresa',
+			activity: 'Servicios',
+			employeeCount: '1-10',
+			directorName: 'Juan Pérez',
+			email: 'juan@empresa.com',
+			owners: JSON.stringify([
+				{ name: 'Ana García', pct: 60.5, email: 'ana@pyme.cu', username: null },
+				{ name: 'Luis Soto', pct: 39.5, email: null, username: 'luis' },
+			]),
+		})
+	})
+
+	test('fuera de Cuba un socio de menos del 25 % no pasa, y dejar la fila vacía sí', async () => {
+		await toFiscalStep('MX')
+		await type('RFC, RUC, NIT, CIF…', 'ACM010203AB1')
+		await type('Nombre completo', 'Ana García')
+		await type('%', '10')
+		await next()
+		expect(toast.info).toHaveBeenCalledWith('Fuera de Cuba solo se declaran socios con 25% o más de participación (Ana García no llega).')
+		expect(screenText()).toContain('Datos fiscales')
+
+		await type('Nombre completo', '')
+		await type('%', '')
+		await next()
+		expect(screenText()).toContain('Contacto y estatutos')
+	})
+
+	test('quitar un socio se lleva su fila, no la de al lado', async () => {
+		await toFiscalStep('CU')
+		expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Quitar socio 1')).toHaveLength(0)
+
+		await type('Nombre completo', 'Ana García')
+		await press('Otro socio')
+		await type('Nombre completo', 'Luis Soto', 1)
+		await press('Quitar socio 1')
+
+		expect(inputs('Nombre completo')).toHaveLength(1)
+		expect(inputValue('Nombre completo')).toBe('Luis Soto')
+		expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Quitar socio 1')).toHaveLength(0)
+	})
+
+	test('el botón de añadir desaparece en el tope de 20', async () => {
+		await toFiscalStep('CU')
+		for (let i = 1; i < 20; i += 1) { await press('Otro socio') }
+		expect(inputs('Nombre completo')).toHaveLength(20)
+		expect(screenText()).not.toContain('Otro socio')
+
+		await press('Quitar socio 20')
+		expect(screenText()).toContain('Otro socio')
 	})
 })
 
 describe('cambiar de rama', () => {
-	test('de empresa cubana a TCP y vuelta no deja NIT, REEUP ni país', async () => {
+	test('de empresa cubana a TCP y vuelta no deja NIT, socios ni país', async () => {
 		await fillBusinessStepOne()
 		await next()
 		await selectCountry('CU')
 		await type('11 dígitos', NIT)
-		await type('123.4.56789', '123.4.56789')
+		await type('Nombre completo', 'Ana García')
+		await press('Otro socio')
 		await back()
 
 		await press('Cuenta propia')
@@ -254,7 +365,11 @@ describe('cambiar de rama', () => {
 		await press('Empresa')
 		await next()
 		expect(screenText()).toContain('Selecciona el país…')
-		expect(screenText()).not.toContain('Código REEUP')
+
+		await selectCountry('CU')
+		expect(inputs('Nombre completo')).toHaveLength(1)
+		expect(inputValue('Nombre completo')).toBe('')
+		expect(inputValue('11 dígitos')).toBe('')
 	})
 
 	test('el PDF no pasa de una rama a la otra', async () => {
