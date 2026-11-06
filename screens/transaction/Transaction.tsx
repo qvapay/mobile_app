@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
 import type { ReactElement } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import type { RefreshControlProps } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -18,11 +18,10 @@ import { useAuth } from '../../auth/AuthContext'
 
 // API
 import { transferApi } from '../../api/transferApi'
-import { getAuthToken } from '../../api/client'
 import { getApiBaseUrl } from '../../api/apiHost'
 
 // PDF download
-import ReactNativeBlobUtil from 'react-native-blob-util'
+import { openAuthedFile } from '../../helpers/openAuthedFile'
 
 // Helpers
 import { getShortDateTime, statusText, getFirstChunk, copyTextToClipboard } from '../../helpers'
@@ -222,30 +221,14 @@ const Transaction = ({ route, navigation }: Props) => {
 		downloadingRef.current = true
 		try {
 
-			const token = await getAuthToken()
-			if (!token) {
-				toast.error(t('transactions.common.errorTitle'), { description: t('transactions.detail.toasts.tokenFailed') })
-				return
-			}
-
-			const url = `${getApiBaseUrl()}/transaction/${transactionDetails.uuid}/pdf`
-			const dirs = ReactNativeBlobUtil.fs.dirs
-			const filePath = `${dirs.CacheDir}/transaction-${transactionDetails.uuid}.pdf`
-			const res = await ReactNativeBlobUtil.config({
-				path: filePath,
-			}).fetch('GET', url, {
-				Authorization: `Bearer ${token}`,
-				Accept: 'application/pdf',
+			const result = await openAuthedFile({
+				url: `${getApiBaseUrl()}/transaction/${transactionDetails.uuid}/pdf`,
+				fileName: `transaction-${transactionDetails.uuid}.pdf`,
+				mime: 'application/pdf',
 			})
-
-			const status = res.info().status
-			if (status === 200) {
-				const path = res.path()
-				if (Platform.OS === 'ios') {
-					ReactNativeBlobUtil.ios.openDocument(path)
-				} else { ReactNativeBlobUtil.android.actionViewIntent(path, 'application/pdf') }
-				toast.success(t('transactions.detail.toasts.successTitle'), { description: t('transactions.detail.toasts.pdfDownloaded') })
-			} else { toast.error(t('transactions.common.errorTitle'), { description: t('transactions.detail.toasts.pdfFailed') }) }
+			if (result === 'no-token') { toast.error(t('transactions.common.errorTitle'), { description: t('transactions.detail.toasts.tokenFailed') }) }
+			else if (result === 'opened') { toast.success(t('transactions.detail.toasts.successTitle'), { description: t('transactions.detail.toasts.pdfDownloaded') }) }
+			else { toast.error(t('transactions.common.errorTitle'), { description: t('transactions.detail.toasts.pdfFailed') }) }
 		} catch (error) {
 			toast.error(t('transactions.common.errorTitle'), { description: t('transactions.detail.toasts.pdfFailed') })
 		} finally { downloadingRef.current = false }
