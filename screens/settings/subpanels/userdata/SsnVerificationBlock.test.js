@@ -36,9 +36,9 @@ const CIP = {
 const VERIFIED = { success: true, data: { status: 'verified', verified_at: '2026-11-05T12:00:00Z', attempts_left: 2 } }
 
 /** La ficha sale de la caché real, como en Datos personales: verificar cambia la fase. */
-const Harness = () => {
+const Harness = (props) => {
 	const { data } = useQuery({ queryKey: USER_CIP_QUERY.queryKey, queryFn: () => CIP, enabled: false, initialData: CIP })
-	return <SsnVerificationBlock cip={data} onHighlight={jest.fn()} />
+	return <SsnVerificationBlock cip={data} onHighlight={jest.fn()} {...props} />
 }
 
 const settle = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
@@ -64,15 +64,46 @@ describe('SsnVerificationBlock', () => {
 	let client
 	let tree
 
-	const render = async () => {
+	const render = async (props) => {
 		client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 		await act(async () => {
-			tree = create(<QueryClientProvider client={client}><Harness /></QueryClientProvider>)
+			tree = create(<QueryClientProvider client={client}><Harness {...props} /></QueryClientProvider>)
 		})
 		await settle()
 	}
 
 	beforeEach(() => { jest.clearAllMocks() })
+
+	const verifyButton = () => tree.root.findAll(node => node.type === 'QPButton' && node.props.icon === 'shield-halved')[0]
+	const unsavedHint = () => tree.root.findAll(node => node.props.testID === 'ssn-unsaved-hint' && typeof node.type === 'string')
+
+	test('con cambios sin guardar no deja verificar y dice por qué', async () => {
+		await render({ hasUnsavedChanges: true })
+		expect(verifyButton().props.disabled).toBe(true)
+		expect(texts(unsavedHint()[0])).toContain('Guarda los cambios de tu ficha antes de verificar')
+	})
+
+	test('si aparecen cambios mientras la confirmación aún se presenta, no consulta y se cierra al terminar', async () => {
+		await render()
+		act(() => { verifyButton().props.onPress() })
+		await settle()
+		await act(async () => { tree.update(<QueryClientProvider client={client}><Harness hasUnsavedChanges /></QueryClientProvider>) })
+		await settle()
+		// iOS no deja ocultar un Modal a medio presentar: sigue visible y su botón, a mano
+		expect(modals(tree)[0].props.visible).toBe(true)
+		await act(async () => { await button(tree, 'ssn-confirm-accept').props.onPress() })
+		await settle()
+		expect(userApi.verifySsn).not.toHaveBeenCalled()
+		act(() => { modals(tree)[0].props.onShow() })
+		await settle()
+		expect(modals(tree)[0].props.visible).toBe(false)
+	})
+
+	test('sin cambios, ni aviso ni botón apagado', async () => {
+		await render()
+		expect(verifyButton().props.disabled).toBe(false)
+		expect(unsavedHint()).toHaveLength(0)
+	})
 
 	afterEach(() => {
 		act(() => { tree.unmount() })

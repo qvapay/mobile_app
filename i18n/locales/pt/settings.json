@@ -950,6 +950,7 @@
 			"retry": {
 				"notice": "A última tentativa não coincidiu. Confira se o SSN é seu e se o documento está no seu nome."
 			},
+			"unsaved": "Salve as alterações do cadastro antes de verificar: a consulta usa os dados salvos.",
 			"attempts_one": "Resta {{count}} tentativa",
 			"attempts_other": "Restam {{count}} tentativas",
 			"button": "Verificar meu SSN",

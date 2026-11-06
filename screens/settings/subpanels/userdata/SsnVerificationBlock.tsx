@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Linking, Modal, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -42,6 +42,8 @@ type Props = {
 	cip: UserCip
 	/** Un `block_reason` de dato faltante pide resaltar el campo de la ficha. */
 	onHighlight: (field: Extract<SsnBlockAction, { kind: 'field' }>['field']) => void
+	/** La ficha tiene cambios sin guardar: la consulta usa lo guardado y gastaría un intento con los datos viejos. */
+	hasUnsavedChanges?: boolean
 }
 
 const SUPPORT_MAILTO = 'mailto:soporte@qvapay.com'
@@ -54,7 +56,7 @@ const SUPPORT_MAILTO = 'mailto:soporte@qvapay.com'
  * `block_reason`). El éxito se celebra en un modal que espera a que lo cierre el usuario.
  * Nunca nombra al proveedor.
  */
-const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
+const SsnVerificationBlock = ({ cip, onHighlight, hasUnsavedChanges = false }: Props) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -75,13 +77,19 @@ const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
 	// El éxito espera a que la confirmación termine de irse: dos `<Modal>` a la vez fallan en iOS
 	const successGate = useModalGate(celebrating && !confirmGate.mounted)
 
+	// Los cambios pueden llegar con la confirmación ya abierta: el buscador de direcciones
+	// rellena la ficha cuando responde, no cuando se elige la sugerencia
+	useEffect(() => {
+		if (hasUnsavedChanges) { setConfirming(false) }
+	}, [hasUnsavedChanges])
+
 	const refresh = useCallback(() => {
 		queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey })
 		queryClient.invalidateQueries({ queryKey: DEPOSIT_ELIGIBILITY_KEY })
 	}, [queryClient])
 
 	const verify = useCallback(async () => {
-		if (inFlight.current) { return }
+		if (inFlight.current || hasUnsavedChanges) { return }
 		inFlight.current = true
 		setConfirming(false)
 		setVerifying(true)
@@ -117,7 +125,7 @@ const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
 			inFlight.current = false
 			setVerifying(false)
 		}
-	}, [cip, queryClient, refresh, t])
+	}, [cip, hasUnsavedChanges, queryClient, refresh, t])
 
 	const runBlockAction = useCallback((action: SsnBlockAction) => {
 		switch (action.kind) {
@@ -180,11 +188,17 @@ const SsnVerificationBlock = ({ cip, onHighlight }: Props) => {
 					</View>
 				)}
 				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 10 }]}>{t('settings.userdata.ssn.attempts', { count: view.attemptsLeft })}</Text>
+				{hasUnsavedChanges && (
+					<View style={[styles.blockedRow, styles.unsavedRow]} testID="ssn-unsaved-hint">
+						<FontAwesome6 name="triangle-exclamation" size={13} color={theme.colors.warning} iconStyle="solid" />
+						<Text style={[textStyles.caption, styles.unsavedText, { color: theme.colors.warning }]}>{t('settings.userdata.ssn.unsaved')}</Text>
+					</View>
+				)}
 				<QPButton
 					title={verifying ? t('settings.userdata.ssn.verifying') : t('settings.userdata.ssn.button')}
 					onPress={() => setConfirming(true)}
 					loading={verifying}
-					disabled={verifying}
+					disabled={verifying || hasUnsavedChanges}
 					icon="shield-halved"
 					iconStyle="solid"
 					iconColor={theme.colors.almostWhite}
@@ -248,6 +262,8 @@ const styles = StyleSheet.create({
 	header: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
 	pill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
 	blockedRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+	unsavedRow: { marginTop: 10 },
+	unsavedText: { flex: 1 },
 	link: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, alignSelf: 'flex-start' },
 	button: { marginTop: 14 },
 	lottie: { width: 120, height: 120, alignSelf: 'center', marginBottom: 8 },
