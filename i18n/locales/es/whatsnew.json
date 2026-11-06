@@ -4,6 +4,12 @@
 		"next": "Siguiente",
 		"gotIt": "Entendido"
 	},
+	"v3_13_0": {
+		"tradeProofs": {
+			"title": "Comprobantes en el P2P",
+			"body": "Adjunta una foto o un PDF del pago en tu trato, sin pasar por el chat. Solo lo ven la otra parte y soporte."
+		}
+	},
 	"v3_8_0": {
 		"lightningAddress": {
 			"title": "Tu Lightning Address",
