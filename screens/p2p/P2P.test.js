@@ -74,7 +74,7 @@ describe('links to the market', () => {
 		['«Ver todas» of a coin the treasury does not sell', { coin: 'BANK_MLC', coinName: 'MLC', type: 'sell', sort: 'best_rate', key: 2 }, 'BANK_MLC'],
 		['CoinDetail', { coin: 'USDT', coinName: 'USDT' }, 'USDT'],
 		['the same coin from CoinDetail', { coin: 'ETECSA', coinName: 'ETECSA' }, 'ETECSA'],
-	])('a later link without a peer lists the whole market: %s', async (_, link, coin) => {
+	])('a later link without a peer drops the previous one: %s', async (_, link, coin) => {
 		const tree = await open(TREASURY_LINK)
 		await followLink(tree, link)
 		expect(mockApiFilters.coin).toBe(coin)

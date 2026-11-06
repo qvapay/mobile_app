@@ -11,7 +11,12 @@ jest.mock('../../theme/ThemeContext', () => {
 jest.mock('../../ui/P2POfferItem', () => ({ __esModule: true, default: 'P2POfferItem', P2POfferItemSkeleton: 'P2POfferItemSkeleton' }))
 jest.mock('../../ui/particles/QPPressable', () => 'QPPressable')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
-jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }))
+// El useFocusEffect de React Navigation con la pantalla enfocada: corre al montar y cada
+// vez que cambia su callback (el paquete real es ESM y jest no lo transforma)
+jest.mock('@react-navigation/native', () => {
+	const { useEffect } = require('react')
+	return { useFocusEffect: (effect) => { useEffect(() => effect(), [effect]) } }
+})
 jest.mock('../../auth/AuthContext', () => ({
 	useAuth: () => ({ user: { uuid: 'me', p2p_enabled: 1, kyc: 1, phone_verified: 1, telegram_id: '1', created_at: '2026-09-04T00:00:00Z', trustscore: 0 } }),
 }))
@@ -64,17 +69,25 @@ test('switching coin shows the skeleton until its own offers arrive, never the p
 	expect(tree.root.findAllByType('P2POfferItemSkeleton')).toHaveLength(0)
 })
 
-test('coming back to a coin shows its own offers right away, without asking again', async () => {
+test('coming back to a coin shows its own offers right away and keeps them while it refreshes', async () => {
 	let tree
 	await act(async () => { tree = create(block(ETECSA)) })
 	await settle()
 	await act(async () => { tree.update(block(MLC)) })
 	await settle()
-	p2pApi.index.mockClear()
+
+	const answers = []
+	p2pApi.index.mockImplementation(({ coin }) => new Promise((resolve) => { answers.push(() => resolve(offersOf(coin))) }))
 	await act(async () => { tree.update(block(ETECSA)) })
 	expect(shownOffers(tree)).toEqual(['ETECSA'])
 	await settle()
-	expect(p2pApi.index).not.toHaveBeenCalled() // dentro de los 30 s de frescura
+	expect(answers.length).toBeGreaterThan(0) // cambiar de moneda revalida la nueva
+	expect(shownOffers(tree)).toEqual(['ETECSA'])
+	expect(tree.root.findAllByType('P2POfferItemSkeleton')).toHaveLength(0)
+
+	await act(async () => { answers.forEach(answer => answer()) })
+	await settle()
+	expect(shownOffers(tree)).toEqual(['ETECSA'])
 })
 
 test('a refresh of the same coin keeps its offers on screen', async () => {
