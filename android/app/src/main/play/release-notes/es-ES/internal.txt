@@ -1,6 +1,7 @@
-Novedades de QvaPay 3.11.4:
-• Toca la pestaña en la que estás y vuelves arriba: Inicio, Crypto, P2P y Tienda.
-• P2P: el título del trato muestra moneda, monto y lado, y su estado va en una línea de tiempo.
-• P2P: dos monedas rápidas, selector siempre a la vista y chat que se cierra arrastrando su cabecera.
-• Si usas solo la wallet, la bienvenida ya no sale cada vez que abres la app.
+Novedades de QvaPay 3.12.0:
+• Empresa: ya puedes registrarte como cuenta propia (TCP).
+• Empresa: las sociedades cubanas ya completan el registro, con sus socios y sin REEUP.
+• P2P: los enlaces al mercado abren con los filtros limpios y no tocan «Mis ofertas».
+• Depositar vía P2P: «Ver todas» ya no arrastra filtros y solo ves ofertas de la moneda elegida.
+• Verificar tu SSN: ya no gastas un intento con cambios sin guardar.
 • Librerías al día, arreglos y estabilidad.
