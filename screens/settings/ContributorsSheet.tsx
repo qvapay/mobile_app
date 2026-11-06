@@ -20,8 +20,9 @@ const AVATAR = 44
 
 /**
  * Easter egg del pie de Ajustes: agradecimiento y la lista de personas que han
- * contribuido código a la app (GitHub), cada una con su avatar y su usuario. Tocar
- * una fila abre su perfil. La query solo corre con la hoja abierta.
+ * contribuido código a la app (GitHub), de más a menos contribuciones, cada una con
+ * su avatar, su usuario y su cuenta. Tocar una fila abre su perfil. La query solo
+ * corre con la hoja abierta.
  */
 const ContributorsSheet = ({ visible, onClose }: { visible: boolean, onClose: () => void }) => {
 
@@ -42,7 +43,10 @@ const ContributorsSheet = ({ visible, onClose }: { visible: boolean, onClose: ()
 					{contributors.map((c, index) => (
 						<QPPressable key={c.login} onPress={() => Linking.openURL(c.html_url)} style={[styles.row, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border }]}>
 							<FastImage source={{ uri: avatarUrl(c, AVATAR * 3), cache: FastImage.cacheControl.web }} style={[styles.avatar, { backgroundColor: theme.colors.surface }]} resizeMode={FastImage.resizeMode.cover} />
-							<Text style={[textStyles.h5, styles.login, { color: theme.colors.primaryText }]} numberOfLines={1}>@{c.login}</Text>
+							<View style={styles.identity}>
+								<Text style={[textStyles.h5, { color: theme.colors.primaryText }]} numberOfLines={1}>@{c.login}</Text>
+								<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]} numberOfLines={1}>{t('settings.contributors.count', { count: c.contributions })}</Text>
+							</View>
 							<FontAwesome6 name="arrow-up-right-from-square" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
 						</QPPressable>
 					))}
@@ -61,7 +65,7 @@ const styles = StyleSheet.create({
 	list: { marginTop: 12 },
 	row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 14 },
 	avatar: { width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2 },
-	login: { flex: 1 },
+	identity: { flex: 1 },
 	footer: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, paddingVertical: 10 },
 	footerText: { flex: 1 },
 })
