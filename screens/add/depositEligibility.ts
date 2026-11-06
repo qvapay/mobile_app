@@ -117,6 +117,7 @@ export function capIssue(chargeTotal: number, cap: SsnCap | null | undefined): C
 export function ssnCtaVisible(eligibility: DepositEligibility | null | undefined, cip: UserCip | null | undefined): boolean {
 	if (!eligibility || !cip?.us_person) { return false }
 	if (eligibility.card?.eligible || eligibility.paypal?.eligible) { return false }
+	if (!eligibility.ssn_tier?.enabled && !eligibility.ssn_tier?.tester) { return false }
 	const ssn = cip.ssn_verification
 	if (!ssn || ssn.status === 'verified') { return false }
 	return ssn.can_start === true || ssn.block_reason === 'GOLD_REQUIRED'

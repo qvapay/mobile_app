@@ -200,18 +200,20 @@ const Add = ({ navigation, route }: AddProps) => {
 	// Catálogo desde la caché compartida (useCoins): la lista aparece al
 	// instante en vez de esperar un viaje a la red en cada entrada
 	useEffect(() => {
-		if (coinCatalog.length) {
-			// Tarjeta y PayPal salen del catálogo si el servidor no los acepta (o aún no
-			// respondió): pedir un depósito que va a rechazar con un 400 genérico es peor
-			const depositable = filterGatedCoins(coinCatalog, eligibility)
-			// Sin monedas «Vía P2P» se conserva la identidad del catálogo (nada que fusionar)
-			setAvailableCoins(viaP2PCoins.length ? [...depositable, ...viaP2PCoins] : depositable)
-			setError(null)
-		} else if (!loadingCoins) {
-			// Sin catálogo y sin carga en curso: la red falló y no había copia
-			setError(t('add.index.errors.loadCoins'))
-		}
-	}, [coinCatalog, viaP2PCoins, loadingCoins, eligibility, t, setError])
+		if (!coinCatalog.length) { return }
+		// Tarjeta y PayPal salen del catálogo si el servidor no los acepta (o aún no
+		// respondió): pedir un depósito que va a rechazar con un 400 genérico es peor
+		const depositable = filterGatedCoins(coinCatalog, eligibility)
+		// Sin monedas «Vía P2P» se conserva la identidad del catálogo (nada que fusionar)
+		setAvailableCoins(viaP2PCoins.length ? [...depositable, ...viaP2PCoins] : depositable)
+	}, [coinCatalog, viaP2PCoins, eligibility])
+
+	// Sin catálogo y sin carga en curso: la red falló y no había copia. Va aparte para que
+	// refrescar el cupo no borre el aviso del depósito que el servidor acaba de rechazar
+	const catalogFailed = !coinCatalog.length && !loadingCoins
+	useEffect(() => {
+		setError(catalogFailed ? t('add.index.errors.loadCoins') : null)
+	}, [catalogFailed, t, setError])
 
 	// Si la elegibilidad llega DESPUÉS de elegir tarjeta/PayPal y los niega, se suelta la moneda
 	useEffect(() => {
@@ -223,6 +225,8 @@ const Add = ({ navigation, route }: AddProps) => {
 	const handleCoinSelect = (coin: Coin) => {
 		setSelectedCoin(coin)
 		setFeeMode('on_top')
+		// El aviso de un intento con otra moneda (p. ej. el cupo de la tarjeta) ya no aplica
+		setError(null)
 		// Una moneda «Vía P2P» no tiene importe que depositar: lo tecleado para otra moneda
 		// se enseñaría convertido bajo un campo apagado
 		if (isViaP2PCoin(coin)) setAmount('')

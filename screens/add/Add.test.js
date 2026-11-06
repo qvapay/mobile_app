@@ -142,6 +142,17 @@ afterEach(async () => {
 	Linking.openURL.mockRestore()
 })
 
+test('sin catálogo avisa, y el aviso se va cuando llega', async () => {
+	mockCoinCatalog = []
+	const tree = await renderAdd()
+	const screen = (params) => tree.update(<QueryClientProvider client={clients.at(-1)}><Add navigation={{ navigate }} route={{ params }} /></QueryClientProvider>)
+	expect(JSON.stringify(tree.toJSON())).toContain('Error al cargar las monedas disponibles')
+	mockCoinCatalog = [USDT]
+	await act(async () => { screen() })
+	expect(JSON.stringify(tree.toJSON())).not.toContain('Error al cargar las monedas disponibles')
+	expect(tree.root.findByType('QPCoinPicker').props.coins).toEqual([USDT])
+})
+
 test('el catálogo llega de la caché compartida, sin pedirlo al montar', async () => {
 	const coins = [{ name: 'Criptomonedas', coins: [USDT] }]
 	mockCoinCatalog = coins
@@ -448,6 +459,88 @@ describe('nivel ssn: tarjeta y PayPal con cupo de $500 por 30 días', () => {
 		expect(apiClient.get).toHaveBeenCalledWith('/user/deposit-eligibility', { silent: true })
 	})
 
+	describe('el cupo cambia en el servidor', () => {
+		const flush = () => act(async () => { await jest.advanceTimersByTimeAsync(50) })
+		const CAP_DATE = '2026-12-01T12:00:00Z'
+		const rejected = (remaining) => ({ response: { status: 400, data: { error: 'prosa', code: 'DEPOSIT_MONTHLY_LIMIT', cap: 500, used: 500 - remaining, remaining, resets_at: CAP_DATE } } })
+		let remaining
+
+		beforeEach(() => {
+			remaining = 500
+			apiClient.get.mockImplementation(url => {
+				if (url === '/user/deposit-eligibility') { return Promise.resolve({ data: { result: 'OK', data: ssnEligibility({ remaining }) } }) }
+				if (url === '/user/cip') { return Promise.resolve({ data: { us_person: false } }) }
+				return Promise.resolve({ data: [] })
+			})
+			presentCardDeposit.mockResolvedValue({ status: 'canceled' })
+			apiClient.post.mockResolvedValue({ status: 200, data: { data: { transaction_uuid: 'tx-1', wallet: 'pi_1', client_secret: 'cs_1' } } })
+		})
+
+		test('una orden abandonada baja el cupo que se enseña: lo pendiente de la última hora cuenta', async () => {
+			const tree = await renderAdd()
+			await flush()
+			await pickCoinAndAmount(tree, CARD, '300')
+			expect(rendered(tree)).toContain('Te quedan $500 de $500')
+			remaining = 182 // el servidor ya cuenta los $318 de la orden
+			await pressGenerate(tree)
+			await flush()
+			expect(rendered(tree)).toContain('Te quedan $182 de $500')
+		})
+
+		test('con el cupo fresco, el segundo intento se avisa sin pedir', async () => {
+			const tree = await renderAdd()
+			await flush()
+			await pickCoinAndAmount(tree, CARD, '300')
+			remaining = 182
+			await pressGenerate(tree)
+			await flush()
+			await act(async () => { tree.root.findByType('DepositDetailsModal').props.onClose() })
+			apiClient.post.mockClear()
+			await act(async () => { tree.root.findAllByType('QPAmountCard')[0].props.onChangeAmount('200') })
+			await pressGenerate(tree)
+			await flush()
+			expect(apiClient.post).not.toHaveBeenCalled()
+			expect(rendered(tree)).toContain('te quedan $182 de cupo')
+		})
+
+		test('el aviso del 400 sigue en pantalla cuando llega el cupo nuevo', async () => {
+			const tree = await renderAdd()
+			await flush()
+			await pickCoinAndAmount(tree, CARD, '50')
+			remaining = 20 // gastado desde otro dispositivo: la pantalla aún no lo sabe
+			apiClient.post.mockRejectedValue(rejected(20))
+			await pressGenerate(tree)
+			await flush()
+			expect(rendered(tree)).toContain('Te quedan $20 de $500')
+			expect(rendered(tree)).toContain('te quedan $20 de cupo')
+		})
+
+		test('otro error del intento tampoco se borra al refrescar el cupo', async () => {
+			const tree = await renderAdd()
+			await flush()
+			await pickCoinAndAmount(tree, CARD, '50')
+			apiClient.post.mockRejectedValue({ response: { status: 400, data: { error: 'Rechazado por el banco' } } })
+			await pressGenerate(tree)
+			remaining = 400
+			await act(async () => { clients.at(-1).invalidateQueries({ queryKey: ['user', 'deposit-eligibility'] }) })
+			await flush()
+			expect(rendered(tree)).toContain('Te quedan $400 de $500')
+			expect(rendered(tree)).toContain('Rechazado por el banco')
+		})
+
+		test('elegir otra moneda retira el aviso del cupo', async () => {
+			const tree = await renderAdd()
+			await flush()
+			await pickCoinAndAmount(tree, CARD, '50')
+			apiClient.post.mockRejectedValue(rejected(20))
+			await pressGenerate(tree)
+			await flush()
+			expect(rendered(tree)).toContain('te quedan $20 de cupo')
+			await act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect(USDT) })
+			expect(rendered(tree)).not.toContain('te quedan $20 de cupo')
+		})
+	})
+
 	test('el 429 RATE_LIMITED del nivel ssn tiene su propio aviso', async () => {
 		apiClient.post.mockRejectedValue({ response: { status: 429, data: { error: 'Espera', code: 'RATE_LIMITED' } } })
 		const tree = await renderAdd()
@@ -469,6 +562,12 @@ describe('acceso a la verificación del SSN desde Depositar', () => {
 		const cta = tree.root.findByType('SsnTierCta')
 		await act(async () => { cta.props.onPress() })
 		expect(navigate).toHaveBeenCalledWith('SettingsStack', { screen: 'Userdata', initial: false })
+	})
+
+	test('con el nivel apagado no sale, aunque pudiera verificar', async () => {
+		const off = { ...noRails, card: { ...RAIL_OFF, reason: 'SSN_TIER_OFF' }, paypal: { ...RAIL_OFF, reason: 'SSN_TIER_OFF' }, ssn_tier: { ...SSN_TIER, enabled: false } }
+		mockGets({ eligibility: off, cip: { us_person: true, ssn_verification: ssn() } })
+		expect((await renderAdd()).root.findAllByType('SsnTierCta')).toHaveLength(0)
 	})
 
 	test('no sale para quien no es US person, ya tiene tarjeta o el nivel está apagado', async () => {

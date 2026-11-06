@@ -61,6 +61,15 @@ const READY = cipWith(ssn())
 
 const serveCip = (data) => userApi.getCip.mockResolvedValue({ success: true, data })
 
+// Respuestas de la ficha retenidas por un test. Se sueltan siempre al acabar, también si
+// falla: una query sin terminar programa su limpieza al cancelarse y jest no llega a cerrar
+const heldCip = []
+const answerHeldCip = (data) => act(async () => { heldCip.splice(0).forEach(answer => answer({ success: true, data })) })
+const holdCip = () => {
+	userApi.getCip.mockImplementation(() => new Promise((resolve) => { heldCip.push(resolve) }))
+	return answerHeldCip
+}
+
 const settle = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
 
 let client
@@ -93,6 +102,7 @@ beforeEach(() => {
 	serveCip(NO_MATCH)
 })
 afterEach(async () => {
+	await answerHeldCip(READY)
 	for (const tree of trees) { await act(async () => { tree.unmount() }) }
 	trees = []
 	client.clear()
@@ -165,6 +175,83 @@ describe('verificar con la ficha sin guardar', () => {
 		await settle()
 		expect(verifyButton(tree).props.disabled).toBe(false)
 		expect(tree.root.findAllByType('Modal')).toHaveLength(0)
+	})
+})
+
+describe('tras guardar la ficha', () => {
+	const FIRST_FORM = { usPerson: true, ssn: '123-45-6789', addrLine1: '1 Main St', addrLine2: '', addrCity: 'Dover', addrState: 'DE', addrPostal: '19901' }
+	const NOT_DECLARED = { ...cipWith(ssn({ can_start: false, block_reason: 'NOT_US_PERSON' })), us_person: false, ssn_itin_last4: null, addr_line1: '', addr_city: '', addr_state: '', addr_postal: '', addr_country: '', cip_status: 'incomplete' }
+	const form = (tree) => tree.root.findByType(CipSection).props.form
+	const SAVED_FORM = { ...FIRST_FORM, ssn: '' }
+
+	const saveFirstTime = async () => {
+		serveCip(NOT_DECLARED)
+		const tree = await open()
+		await editCip(tree, FIRST_FORM)
+		return tree
+	}
+	const press = async (tree) => {
+		await act(async () => { saveButton(tree).props.onPress() })
+		await settle()
+	}
+	test('mientras responde la ficha, el formulario se queda con lo guardado, sin el SSN', async () => {
+		const tree = await saveFirstTime()
+		holdCip()
+		await press(tree)
+		expect(userApi.updateUser).toHaveBeenCalledTimes(1)
+		expect(form(tree)).toEqual(SAVED_FORM)
+	})
+
+	test('si esa petición falla, también: el servidor ya lo aceptó', async () => {
+		const tree = await saveFirstTime()
+		userApi.getCip.mockResolvedValue({ success: false, error: 'red' })
+		await press(tree)
+		expect(form(tree)).toEqual(SAVED_FORM)
+	})
+
+	test('guardar otra vez sin cambios no reenvía la ficha', async () => {
+		const tree = await saveFirstTime()
+		holdCip()
+		await press(tree)
+		await press(tree)
+		expect(userApi.updateUser).toHaveBeenCalledTimes(2)
+		expect(userApi.updateUser.mock.calls[1][0]).not.toHaveProperty('cip')
+	})
+
+	test('cuando responde, manda lo del servidor y aparece el bloque', async () => {
+		const tree = await saveFirstTime()
+		serveCip(cipWith(ssn()))
+		expect(verifyButton(tree)).toBeUndefined()
+		await press(tree)
+		expect(form(tree)).toEqual({ usPerson: true, ssn: '', addrLine1: '818 Leahy Cir', addrLine2: '', addrCity: 'Dover', addrState: 'DE', addrPostal: '19901' })
+		expect(verifyButton(tree).props.disabled).toBe(false)
+	})
+
+	test('con la misma ficha en el servidor, el formulario tampoco se queda sin seguirla después', async () => {
+		serveCip(READY)
+		const tree = await open()
+		await act(async () => { byTestId(tree, 'cip-ssn')[0].props.onChangeText('123456789') })
+		await press(tree) // el mismo SSN: la ficha no cambia
+		expect(form(tree).ssn).toBe('')
+		serveCip(cipWith(ssn({ status: 'verified', can_start: false })))
+		await act(async () => { mockRefocus() })
+		await settle()
+		expect(form(tree).addrLine1).toBe('818 Leahy Cir')
+		serveCip({ ...READY, addr_line1: '2 Web St' })
+		await act(async () => { mockRefocus() })
+		await settle()
+		expect(form(tree).addrLine1).toBe('2 Web St')
+	})
+
+	test('lo que se teclea mientras responde no se pisa', async () => {
+		const tree = await saveFirstTime()
+		const answerCip = holdCip()
+		await press(tree)
+		await editCip(tree, { addrCity: 'Newark' })
+		await answerCip(cipWith(ssn()))
+		await settle()
+		expect(form(tree).addrCity).toBe('Newark')
+		expect(verifyButton(tree).props.disabled).toBe(true)
 	})
 })
 
