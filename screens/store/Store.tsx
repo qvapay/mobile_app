@@ -1,11 +1,13 @@
 import { View, Text, StyleSheet, ScrollView, Platform, Pressable, useWindowDimensions } from 'react-native'
+import { useRef } from 'react'
 import type { ReactElement } from 'react'
-import type { RefreshControlProps } from 'react-native'
+import type { RefreshControlProps, ScrollViewInstance } from 'react-native'
 import type { CompositeScreenProps } from '@react-navigation/native'
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import useContentPadding from '../../hooks/useContentPadding'
 import useTabBarClearance from '../../hooks/useTabBarClearance'
+import useTabScrollToTop from '../../hooks/useTabScrollToTop'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
@@ -56,6 +58,10 @@ const Store = ({ navigation }: StoreProps) => {
 	const textStyles = createTextStyles(theme)
 	// La barra inferior emulada flota sobre el contenido: su hueco se suma aquí (0 en iOS 26+)
 	const contentPadding = useContentPadding(30 + useTabBarClearance())
+
+	// Tocar Tienda estando ya en Tienda vuelve arriba
+	const scrollRef = useRef<ScrollViewInstance>(null)
+	useTabScrollToTop(scrollRef)
 	const { width } = useWindowDimensions()
 	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 
@@ -75,6 +81,7 @@ const Store = ({ navigation }: StoreProps) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<ScrollView
+				ref={scrollRef}
 				contentContainerStyle={contentPadding}
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}

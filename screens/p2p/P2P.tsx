@@ -1,5 +1,5 @@
 import { FlashList } from "@shopify/flash-list"
-import type { FlashListProps } from "@shopify/flash-list"
+import type { FlashListProps, FlashListRef } from "@shopify/flash-list"
 import { useEffect, useLayoutEffect, useReducer, useCallback, useMemo, useRef } from "react"
 import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ActivityIndicator } from "react-native"
 import { useTranslation } from "react-i18next"
@@ -28,6 +28,7 @@ import { DEFAULT_POPULAR_COINS, RECENT_COINS_KEY } from "./p2pQuickCoins"
 import HeaderIdentity from "../../ui/HeaderIdentity"
 import { supportsLiquidGlass } from "../../helpers/liquidGlass"
 import useTabBarClearance from "../../hooks/useTabBarClearance"
+import useTabScrollToTop from "../../hooks/useTabScrollToTop"
 import useP2PFilters, { SORT_OPTIONS } from "./useP2PFilters"
 import useP2POffers from "./useP2POffers"
 import P2PPromotedSlot from "./P2PPromotedSlot"
@@ -52,7 +53,7 @@ import { useOnlineStatus } from "../../hooks/OnlineStatusContext"
 import { useBottomBar } from "../../ui/BottomBarContext"
 
 import type { NativeScrollEvent, NativeSyntheticEvent, RefreshControlProps } from "react-native"
-import type { ComponentType, ReactElement } from "react"
+import type { ComponentType, ReactElement, Ref } from "react"
 import type { CompositeScreenProps, NavigationProp } from "@react-navigation/native"
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs"
 import type { NativeStackScreenProps } from "@react-navigation/native-stack"
@@ -86,8 +87,9 @@ type RootNav = NavigationProp<RootStackParamList>
 /**
  * FlashList 2 ya no declara `estimatedItemSize` (mide sola), pero la pantalla lo
  * sigue pasando: se preserva el runtime tal cual ensanchando el tipo del componente.
+ * `ref` hay que declararlo aquí: el cast a ComponentType pierde el que trae el genérico.
  */
-const OffersFlashList = FlashList as ComponentType<FlashListProps<P2POfferModel> & { estimatedItemSize?: number }>
+const OffersFlashList = FlashList as ComponentType<FlashListProps<P2POfferModel> & { estimatedItemSize?: number, ref?: Ref<FlashListRef<P2POfferModel>> }>
 
 function modalsReducer(state: ModalsState, action: ModalsAction): ModalsState {
 	switch (action.type) {
@@ -127,6 +129,10 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 
 	// En iOS 26+ el hueco va calibrado contra la barra nativa; en el resto la
 	// barra emulada flota sobre la lista y se le deja su sitio más un margen
+	// Tocar P2P estando ya en P2P vuelve al principio de las ofertas
+	const listRef = useRef<FlashListRef<P2POfferModel>>(null)
+	useTabScrollToTop(listRef)
+
 	const tabBarClearance = useTabBarClearance()
 	const contentPadding = useMemo(
 		() => ({ paddingBottom: supportsLiquidGlass ? 64 + insets.bottom : insets.bottom + tabBarClearance + 24 }),
@@ -538,6 +544,7 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 			</Animated.View>
 
 			<OffersFlashList
+				ref={listRef}
 				data={listedOffers}
 				renderItem={renderOffer}
 				ListHeaderComponent={<P2PPromotedSlot promoted={promoted} freeSlot={freeSlot} navigation={navigation as unknown as RootNav} marketAverages={marketAverages} />}

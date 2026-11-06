@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import type { ComponentProps, ReactElement } from 'react'
-import { useScrollToTop } from '@react-navigation/native'
 import { useSharedValue } from 'react-native-reanimated'
 import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../hooks/useContentPadding'
 import useTabBarClearance from '../../hooks/useTabBarClearance'
+import useTabScrollToTop from '../../hooks/useTabScrollToTop'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
 import type { RefreshControlProps, ScrollViewInstance } from 'react-native'
 
@@ -194,10 +194,9 @@ const Home = ({ navigation }: HomeProps) => {
 	// La barra inferior emulada flota sobre el contenido: su hueco se suma aquí (0 en iOS 26+)
 	const contentPadding = useContentPadding(20 + useTabBarClearance())
 
-	// Tocar Inicio estando ya en Inicio vuelve arriba. Hace falta con la barra emulada
-	// (Android, iOS < 26); en iOS 26+ lo resuelve la barra nativa y el hook se aparta
+	// Tocar Inicio estando ya en Inicio vuelve arriba
 	const scrollRef = useRef<ScrollViewInstance>(null)
-	useScrollToTop(scrollRef)
+	useTabScrollToTop(scrollRef)
 
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
-import type { ImageStyle, LayoutChangeEvent, RefreshControlProps, TextStyle, ViewStyle } from 'react-native'
+import type { ImageStyle, LayoutChangeEvent, RefreshControlProps, ScrollViewInstance, TextStyle, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
@@ -25,6 +25,7 @@ import { ROUTES } from '../../routes'
 // Barra inferior: nativa en iOS 26+, emulada (flotante) en el resto
 import { supportsLiquidGlass } from '../../helpers/liquidGlass'
 import useTabBarClearance from '../../hooks/useTabBarClearance'
+import useTabScrollToTop from '../../hooks/useTabScrollToTop'
 
 // Helpers
 
@@ -198,6 +199,10 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	// Fuera de iOS 26+ la barra inferior flota sobre el contenido: el final del
 	// scroll se calcula contra ella (en iOS 26+ sigue el hueco fijo del estilo)
 	const insets = useSafeAreaInsets()
+	// Tocar Cripto estando ya en Cripto vuelve arriba
+	const scrollRef = useRef<ScrollViewInstance>(null)
+	useTabScrollToTop(scrollRef)
+
 	const tabBarClearance = useTabBarClearance()
 	const scrollContent = useMemo(
 		() => (supportsLiquidGlass ? styles.scrollContent : [styles.scrollContent, { paddingBottom: insets.bottom + tabBarClearance + 24 }]),
@@ -221,6 +226,7 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<ScrollView
+				ref={scrollRef}
 				style={styles.scroll}
 				contentContainerStyle={scrollContent}
 				showsVerticalScrollIndicator={false}
