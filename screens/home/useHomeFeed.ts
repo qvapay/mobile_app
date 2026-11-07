@@ -4,10 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
-
-// APIs
-import { userApi } from '../../api/userApi'
-import { unwrap } from '../../api/unwrap'
+import { PROFILE_QUERY } from '../../hooks/useProfileRefresh'
 
 // Sonido de dinero entrante (espejo del money_out de SendSuccess)
 import useIncomingMoneySound from '../../hooks/useIncomingMoneySound'
@@ -60,10 +57,7 @@ export default function useHomeFeed() {
 
 	// El perfil se pide como query para que entre en el refresco conjunto, pero
 	// su resultado vive en AuthContext, no aquí
-	const profile = useQuery({
-		queryKey: ['home', 'profile'],
-		queryFn: async () => unwrap(await userApi.getUserProfile()),
-	})
+	const profile = useQuery(PROFILE_QUERY)
 
 	const transactions = useTransactionsQuery()
 	const quickPay = useQuickPayQuery()
