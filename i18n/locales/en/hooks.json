@@ -7,7 +7,8 @@
 		"logoutFailed": "Couldn't log out. Please try again.",
 		"registerFailed": "Couldn't complete the registration. Please try again.",
 		"confirmRegistrationFailed": "Couldn't confirm the registration",
-		"updateUserFailed": "Couldn't update user data"
+		"updateUserFailed": "Couldn't update user data",
+		"sessionExpired": "Your session ended. Log in again."
 	},
 	"pinCountdown": {
 		"requestPin": "Request PIN"

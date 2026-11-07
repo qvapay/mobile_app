@@ -5,7 +5,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 // API
 import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
-import { setAuthToken, removeAuthToken, getAuthToken } from '../api/client'
+import { setAuthToken, removeAuthToken, getAuthToken, registerSessionExpiredHandler } from '../api/client'
+
+// Notifications
+import { toast } from 'sonner-native'
 
 // Push propias: registro/baja del token del dispositivo en el backend
 import { syncPushToken, unregisterPush } from '../push'
@@ -157,6 +160,29 @@ export default function useAuthState() {
 	// AuthProvider" segundos después de arrancar
 	const userRef = useRef<User | null>(null)
 	useEffect(() => { userRef.current = user }, [user])
+
+	// El servidor mató la sesión (caducó, o el correo de la cuenta cambió y se cerraron
+	// todas). El interceptor ya borró el token; sin esto la app seguiría abierta con cada
+	// petición fallando hasta reiniciarla. Sin la llamada al logout del backend: esa
+	// sesión ya no existe. El espejo hace de un solo disparo: suelen llegar varios 401 juntos
+	const sessionActiveRef = useRef(false)
+	useEffect(() => { sessionActiveRef.current = isAuthenticated }, [isAuthenticated])
+	useEffect(() => {
+		registerSessionExpiredHandler(() => {
+			if (!sessionActiveRef.current) { return }
+			sessionActiveRef.current = false
+			toast.error(i18n.t('hooks.authState.sessionExpired'))
+			// Con el token borrado, unregisterPush solo hace su limpieza local
+			unregisterPush().then(clearAuthData).finally(() => {
+				setUser(null)
+				setToken(null)
+				setIsAuthenticated(false)
+				setError(null)
+			})
+		})
+		return () => registerSessionExpiredHandler(null)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
 
 	// Initialize auth state on app start
 	useEffect(() => {
@@ -406,6 +432,9 @@ export default function useAuthState() {
 	const logout = async () => {
 
 		try {
+
+			// Salir a propósito con la sesión ya muerta no es un «tu sesión terminó»
+			sessionActiveRef.current = false
 
 			// Baja del token de push ANTES de revocar la sesión: el endpoint exige el bearer
 			await unregisterPush()

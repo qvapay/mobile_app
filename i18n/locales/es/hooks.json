@@ -7,7 +7,8 @@
 		"logoutFailed": "No se pudo cerrar la sesión. Inténtalo de nuevo.",
 		"registerFailed": "No se pudo completar el registro. Inténtalo de nuevo.",
 		"confirmRegistrationFailed": "No se pudo confirmar el registro",
-		"updateUserFailed": "No se pudieron actualizar los datos del usuario"
+		"updateUserFailed": "No se pudieron actualizar los datos del usuario",
+		"sessionExpired": "Tu sesión terminó. Inicia sesión de nuevo."
 	},
 	"pinCountdown": {
 		"requestPin": "Solicitar PIN"
