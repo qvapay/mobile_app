@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { CipPayload, DepositEligibility, LightningAddressAction, LightningAddressState, User, UserCip } from '../types/domain'
+import type { CipPayload, DepositEligibility, EmailChangePending, EmailChangeProof, EmailChangeProofType, EmailChangeState, LightningAddressAction, LightningAddressState, User, UserCip } from '../types/domain'
 
 /**
  * Resultado de `userApi.requestKYCSession`: el éxito trae `sessionToken` extra
@@ -129,6 +129,32 @@ export type TwoFactorActivatedPayload = {
 	result: string
 	message?: string
 	recovery_codes: string[]
+}
+
+/** Éxito de `action: 'start'`: el correo ya viene enmascarado y `methods` manda sobre el GET. */
+export type EmailChangeStarted = { ok: true, new_email: string, methods: EmailChangeProofType[] }
+
+/** Éxito de `action: 'confirm'` (201): el pedido abierto, todavía sin `cancel_methods`. */
+export type EmailChangeConfirmed = { ok: true, pending: Pick<EmailChangePending, 'uuid' | 'new_email' | 'execute_after'> }
+
+/**
+ * Todas las escrituras del cambio de correo (`POST /user/update/email`, por `action`).
+ *
+ * El fallo conserva el cuerpo entero en `details`: la pantalla decide por `details.code`,
+ * nunca por el status.
+ */
+const postEmailChange = async <T>(body: Record<string, unknown>): Promise<ApiResult<T>> => {
+	try {
+		const response = await apiClient.post('/user/update/email', body)
+		return { success: true, data: response.data, status: response.status }
+	} catch (err) {
+		const error = err as ApiClientError
+		if (error.response?.data) {
+			const errorData = error.response.data
+			return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.emailChangeFailed'), details: errorData, status: error.response.status }
+		}
+		return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+	}
 }
 
 /** Body de `POST /user/gold/validate-receipt`. */
@@ -921,6 +947,69 @@ export const userApi = {
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
+
+	/**
+	 * State of the account email change (`GET /user/update/email`). With `enabled: false`
+	 * no other field arrives. Only a login session reads it: a scoped token gets a 403.
+	 *
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	getEmailChangeState: async (): Promise<ApiResult<EmailChangeState>> => {
+		try {
+			const response = await apiClient.get('/user/update/email')
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.emailChangeFailed'), details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Step 1: password + new email (`action: 'start'`). Sends a 6-digit code to the new
+	 * address and, on accounts without a factor, another one to the current address.
+	 *
+	 * @param data - The request data
+	 * @param data.new_email - The new email address
+	 * @param data.password - The account password
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	startEmailChange: ({ new_email, password }: { new_email: string, password: string }) => postEmailChange<EmailChangeStarted>({ action: 'start', new_email, password }),
+
+	/**
+	 * Asks for a proof code (`action: 'send_code'`): through Telegram while requesting
+	 * the change, or through Telegram or the current mailbox while cancelling it.
+	 *
+	 * @param data - The channel data
+	 * @param data.channel - `telegram` or `old_email`
+	 * @param [data.purpose] - `cancel` when the code is for cancelling; defaults to the request
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	sendEmailChangeCode: ({ channel, purpose }: { channel: Exclude<EmailChangeProofType, 'totp'>, purpose?: 'cancel' }) => postEmailChange<{ ok: true }>({ action: 'send_code', channel, ...(purpose && { purpose }) }),
+
+	/**
+	 * Step 2: opens the request and pauses the money (`action: 'confirm'`, responds 201).
+	 *
+	 * @param data - The confirmation data
+	 * @param data.new_email_code - The 6-digit code sent to the new address
+	 * @param data.proof - The extra proof (`totp` also takes a recovery code)
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	confirmEmailChange: ({ new_email_code, proof }: { new_email_code: string, proof: EmailChangeProof }) => postEmailChange<EmailChangeConfirmed>({ action: 'confirm', new_email_code, proof }),
+
+	/**
+	 * Cancels the request in progress (`action: 'cancel'`) with the same proof that opened
+	 * it. Cancelling with a session does not freeze the account.
+	 *
+	 * @param data - The cancellation data
+	 * @param data.proof - One of `pending.cancel_methods` plus its code
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	cancelEmailChange: ({ proof }: { proof: EmailChangeProof }) => postEmailChange<{ ok: true }>({ action: 'cancel', proof }),
+
 
 	/**
 	 * Validates an in-app-purchase receipt for the Gold Check subscription

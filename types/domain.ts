@@ -1252,3 +1252,35 @@ export type MiniAppAuthorization = { init_data: string, hash: string, scopes: Mi
 
 /** Resultado de pagar una factura desde una mini-app. */
 export type MiniAppPayment = { transaction_uuid: string, status: 'paid' }
+
+/** Prueba extra del cambio de correo. `totp` acepta también un código de recuperación. */
+export type EmailChangeProofType = 'totp' | 'telegram' | 'old_email'
+
+export type EmailChangeProof = { type: EmailChangeProofType, code: string }
+
+/** Pedido en curso: el correo viene enmascarado y las fechas son ISO. */
+export type EmailChangePending = {
+	uuid: string
+	new_email: string
+	execute_after: string
+	requested_at?: string
+	cancel_methods: EmailChangeProofType[]
+}
+
+/** Por qué no se puede pedir el cambio ahora. `until` = a partir de cuándo se podrá. */
+export type EmailChangeProblem = { code: string, message: string, until: string | null }
+
+/**
+ * `GET /user/update/email`. El servidor decide todo: con `enabled: false` no llega nada
+ * más, así que la app no tiene ningún interruptor propio.
+ */
+export type EmailChangeState =
+	| { enabled: false }
+	| {
+		enabled: true
+		can_start: boolean
+		problem: EmailChangeProblem | null
+		methods: EmailChangeProofType[]
+		hold_hours: number
+		pending: EmailChangePending | null
+	}

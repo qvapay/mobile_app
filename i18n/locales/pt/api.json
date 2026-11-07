@@ -42,7 +42,8 @@
 		"unblockFailed": "Não foi possível desbloquear o usuário",
 		"reportFailed": "Não foi possível enviar a denúncia",
 		"lightningAddressLoadFailed": "Não foi possível carregar a Lightning Address",
-		"lightningAddressActionFailed": "Não foi possível atualizar a Lightning Address"
+		"lightningAddressActionFailed": "Não foi possível atualizar a Lightning Address",
+		"emailChangeFailed": "Não foi possível concluir a alteração de e-mail"
 	},
 	"p2p": {
 		"offersLoadFailed": "Não foi possível obter as ofertas P2P",

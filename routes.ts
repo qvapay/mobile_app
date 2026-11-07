@@ -78,6 +78,7 @@ export const ROUTES = {
 	FONT_SIZE: "FontSize",
 	LANGUAGE: "Language",
 	USERDATA: "Userdata",
+	EMAIL_CHANGE: "EmailChange",
 	PHONE: "Phone",
 	TELEGRAM: "Telegram",
 	PASSWORD: "Password",

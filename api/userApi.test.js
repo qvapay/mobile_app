@@ -575,6 +575,74 @@ describe('userApi 2FA', () => {
 	})
 })
 
+describe('userApi email change', () => {
+
+	test('getEmailChangeState reads the state', async () => {
+		const data = { enabled: false }
+		apiClient.get.mockResolvedValue(ok(data))
+
+		expect(await userApi.getEmailChangeState()).toEqual({ success: true, data, status: 200 })
+		expect(apiClient.get).toHaveBeenCalledWith('/user/update/email')
+	})
+
+	test('startEmailChange posts the email and the password', async () => {
+		const data = { ok: true, new_email: 'nu***@e***.com', methods: ['totp'] }
+		apiClient.post.mockResolvedValue(ok(data))
+
+		const result = await userApi.startEmailChange({ new_email: 'nuevo@ejemplo.com', password: 'secreta' })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'start', new_email: 'nuevo@ejemplo.com', password: 'secreta' })
+		expect(result.data).toEqual(data)
+	})
+
+	test('sendEmailChangeCode leaves the purpose out of the request flow', async () => {
+		apiClient.post.mockResolvedValue(ok({ ok: true }))
+
+		await userApi.sendEmailChangeCode({ channel: 'telegram' })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'send_code', channel: 'telegram' })
+	})
+
+	test('sendEmailChangeCode marks the code for cancelling', async () => {
+		apiClient.post.mockResolvedValue(ok({ ok: true }))
+
+		await userApi.sendEmailChangeCode({ channel: 'old_email', purpose: 'cancel' })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'send_code', channel: 'old_email', purpose: 'cancel' })
+	})
+
+	test('confirmEmailChange posts both codes and takes the 201 as a success', async () => {
+		const data = { ok: true, pending: { uuid: 'u', new_email: 'nu***@e***.com', execute_after: '2026-11-08T20:00:00.000Z' } }
+		apiClient.post.mockResolvedValue({ data, status: 201 })
+
+		const result = await userApi.confirmEmailChange({ new_email_code: '123456', proof: { type: 'totp', code: '654321' } })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'confirm', new_email_code: '123456', proof: { type: 'totp', code: '654321' } })
+		expect(result).toEqual({ success: true, data, status: 201 })
+	})
+
+	test('cancelEmailChange posts the proof', async () => {
+		apiClient.post.mockResolvedValue(ok({ ok: true }))
+
+		await userApi.cancelEmailChange({ proof: { type: 'telegram', code: '111222' } })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'cancel', proof: { type: 'telegram', code: '111222' } })
+	})
+
+	test('a failure keeps the code and the date the screen needs', async () => {
+		const body = { error: 'Solo puedes cambiarlo cada 30 días.', code: 'EMAIL_CHANGE_TOO_SOON', until: '2026-12-01T00:00:00.000Z' }
+		apiClient.post.mockRejectedValue(apiError(409, body))
+
+		expect(await userApi.startEmailChange({ new_email: 'a@b.co', password: 'x' })).toEqual({ success: false, error: body.error, details: body, status: 409 })
+	})
+
+	test('a connection failure arrives without a code', async () => {
+		apiClient.post.mockRejectedValue(Object.assign(new Error(), { message: '' }))
+
+		expect(await userApi.cancelEmailChange({ proof: { type: 'totp', code: '123456' } })).toEqual({ success: false, error: 'Ha ocurrido un error de red', status: undefined })
+	})
+})
+
 describe('userApi.uploadAvatar', () => {
 
 	test('posts multipart form data with the file and default avatar type', async () => {
