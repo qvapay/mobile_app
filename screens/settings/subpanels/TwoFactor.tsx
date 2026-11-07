@@ -1,6 +1,7 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer, useCallback } from 'react'
 import { StyleSheet, Text, View, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useNavigation, usePreventRemove } from '@react-navigation/native'
 import i18n from '../../../i18n'
 
 // Theme
@@ -12,6 +13,8 @@ import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
 import QPKeyboardView from '../../../ui/QPKeyboardView'
 import TwoFactorSetupView from './TwoFactorSetupView'
+import TwoFactorRecoveryCodesView from './TwoFactorRecoveryCodesView'
+import TwoFactorDeactivateView from './TwoFactorDeactivateView'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -21,6 +24,8 @@ import { toast } from 'sonner-native'
 
 // User AuthContext
 import { useAuth } from '../../../auth/AuthContext'
+import useProfileRefresh from '../../../hooks/useProfileRefresh'
+import usePullRefresh from '../../../hooks/usePullRefresh'
 
 // Clipboard
 import { copyTextToClipboard } from '../../../helpers'
@@ -62,37 +67,50 @@ const TwoFactor = () => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const navigation = useNavigation()
 	// States
 	const [isLoading, setIsLoading] = useState(false)
 	const [isLoadingData, setIsLoadingData] = useState(true)
 	const [is2FAEnabled, setIs2FAEnabled] = useState(false)
+	// Códigos de recuperación: el servidor los da UNA vez, al activar. Solo viven aquí
+	const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
+	// Desactivar pide el código en pantalla: `null` = no se está desactivando
+	const [deactivateCode, setDeactivateCode] = useState<string | null>(null)
 
 	// Setup flow state
 	const [setup, dispatchSetup] = useReducer(setupReducer, initialSetup)
 	const { active: isSettingUp, secret, otpauthUrl, code: verificationCode } = setup
 
-	// Load user data on component mount
-	useEffect(() => {
-		loadUserData()
-	}, [])
+	// Salir sin guardarlos los pierde para siempre: se avisa antes de cerrar la pantalla
+	usePreventRemove(recoveryCodes.length > 0, ({ data }) => {
+		Alert.alert(
+			t('settings.twoFactor.recovery.leaveTitle'),
+			t('settings.twoFactor.recovery.leaveBody'),
+			[
+				{ text: t('common.actions.cancel'), style: 'cancel' },
+				{ text: t('settings.twoFactor.recovery.leaveConfirm'), style: 'destructive', onPress: () => navigation.dispatch(data.action) },
+			]
+		)
+	})
 
-	// Load user data from API
-	const loadUserData = async () => {
+	// El estado sale del perfil, que se vuelca también en el AuthContext: Enviar y Retirar
+	// deciden por él si piden el código de la app
+	const refreshProfile = useProfileRefresh()
+	const loadUserData = useCallback(async () => {
 		try {
-			setIsLoadingData(true)
-			const result = await userApi.getUserProfile()
-			if (result.success && result.data) {
-				// Check if 2FA is enabled (two_factor_secret is '***' if enabled)
-				setIs2FAEnabled(result.data.two_factor_secret === '***')
-			}
-		} catch (error) {
+			const profile = await refreshProfile()
+			// Check if 2FA is enabled (two_factor_secret is '***' if enabled)
+			if (profile) { setIs2FAEnabled(profile.two_factor_secret === '***') }
 			// i18n.t en call-time: mantiene loadUserData estable para exhaustive-deps
-			// (la t del hook la volvería reactiva y exigiría relanzar el efecto de montaje)
-			toast.error(i18n.t('settings.twoFactor.toasts.loadFailed'), { description: (error as Error).message })
+			else { toast.error(i18n.t('settings.twoFactor.toasts.loadFailed')) }
 		} finally {
 			setIsLoadingData(false)
 		}
-	}
+	}, [refreshProfile])
+
+	// Load user data on component mount
+	useEffect(() => { loadUserData() }, [loadUserData])
+	const refreshControl = usePullRefresh(loadUserData)
 
 	// Generate 2FA secret
 	const handleGenerate2FA = async () => {
@@ -127,6 +145,7 @@ const TwoFactor = () => {
 
 			if (result.success) {
 				setIs2FAEnabled(true)
+				setRecoveryCodes(result.data?.recovery_codes ?? [])
 				dispatchSetup({ type: 'reset' })
 
 				// Update user context
@@ -145,42 +164,33 @@ const TwoFactor = () => {
 		}
 	}
 
-	// Deactivate 2FA
+	// Deactivate 2FA: exige el factor (TOTP o código de recuperación), con la sesión no basta
 	const handleDeactivate2FA = async () => {
-		Alert.alert(
-			t('settings.twoFactor.alerts.deactivateTitle'),
-			t('settings.twoFactor.alerts.deactivateBody'),
-			[
-				{ text: t('common.actions.cancel'), style: 'cancel' },
-				{
-					text: t('settings.twoFactor.alerts.deactivateConfirm'),
-					style: 'destructive',
-					onPress: async () => {
-						try {
-							setIsLoading(true)
-							const result = await userApi.deactivate2FA()
+		try {
+			setIsLoading(true)
+			const result = await userApi.deactivate2FA({ code: (deactivateCode ?? '').trim() })
 
-							if (result.success) {
-								setIs2FAEnabled(false)
+			if (result.success) {
+				setIs2FAEnabled(false)
+				setDeactivateCode(null)
 
-								// Update user context
-								if (updateUser) {
-									updateUser({ two_factor_secret: null })
-								}
-
-								toast.success(t('settings.twoFactor.toasts.deactivated'), { description: t('settings.twoFactor.toasts.deactivatedDescription') })
-							} else {
-								toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: result.error || t('settings.twoFactor.toasts.deactivateFailed') })
-							}
-						} catch (error) {
-							toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: (error as Error).message })
-						} finally {
-							setIsLoading(false)
-						}
-					}
+				// Update user context
+				if (updateUser) {
+					updateUser({ two_factor_secret: null })
 				}
-			]
-		)
+
+				toast.success(t('settings.twoFactor.toasts.deactivated'), { description: t('settings.twoFactor.toasts.deactivatedDescription') })
+			} else if ((result.details as { code?: string } | undefined)?.code === 'OTP_REQUIRED') {
+				setDeactivateCode('')
+				toast.error(t('settings.twoFactor.toasts.invalidCode'), { description: t('settings.twoFactor.toasts.invalidCodeDescription') })
+			} else {
+				toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: result.error || t('settings.twoFactor.toasts.deactivateFailed') })
+			}
+		} catch (error) {
+			toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: (error as Error).message })
+		} finally {
+			setIsLoading(false)
+		}
 	}
 
 	// Cancel setup
@@ -195,16 +205,33 @@ const TwoFactor = () => {
 	// Loading state
 	if (isLoadingData) { return <QPLoader /> }
 
+	// 2FA recién activado: los códigos de recuperación, que no se vuelven a ver
+	if (recoveryCodes.length > 0) {
+		return <TwoFactorRecoveryCodesView codes={recoveryCodes} onDone={() => setRecoveryCodes([])} />
+	}
+
+	// Desactivar: pedir el código
+	if (is2FAEnabled && deactivateCode !== null) {
+		return (
+			<TwoFactorDeactivateView
+				code={deactivateCode}
+				onChangeCode={setDeactivateCode}
+				onConfirm={handleDeactivate2FA}
+				onCancel={() => setDeactivateCode(null)}
+				isLoading={isLoading}
+			/>
+		)
+	}
+
 	// 2FA is enabled - show status
 	if (is2FAEnabled && !isSettingUp) {
 		return (
 			<QPKeyboardView
+				scrollViewProps={{ refreshControl }}
 				actions={
 					<QPButton
 						title={t('settings.twoFactor.deactivateButton')}
-						onPress={handleDeactivate2FA}
-						loading={isLoading}
-						disabled={isLoading}
+						onPress={() => setDeactivateCode('')}
 						style={{ backgroundColor: theme.colors.danger }}
 						textStyle={{ color: theme.colors.almostWhite }}
 					/>
@@ -260,6 +287,7 @@ const TwoFactor = () => {
 	// 2FA not enabled - show setup option
 	return (
 		<QPKeyboardView
+				scrollViewProps={{ refreshControl }}
 			actions={
 				<QPButton
 					title={t('settings.twoFactor.setupButton')}

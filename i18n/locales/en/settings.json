@@ -857,11 +857,6 @@
 			"enterCode": "Enter the 6-digit code from your app:",
 			"activateButton": "Enable 2FA"
 		},
-		"alerts": {
-			"deactivateTitle": "Disable 2FA",
-			"deactivateBody": "Are you sure you want to disable two-factor authentication? Your account will be less secure.",
-			"deactivateConfirm": "Disable"
-		},
 		"toasts": {
 			"loadFailed": "Couldn't load your data",
 			"secretGenerated": "Secret generated",
@@ -878,6 +873,21 @@
 			"deactivateFailed": "Couldn't disable 2FA",
 			"copiedTitle": "Copied",
 			"copiedDescription": "Secret copied to clipboard"
+		},
+		"recovery": {
+			"title": "Save your recovery codes",
+			"subtitle": "You'll need them if you lose your authenticator app. Each one works once and you won't see them again.",
+			"copied": "Codes copied to clipboard",
+			"doneButton": "I've saved them",
+			"leaveTitle": "Leave without saving them?",
+			"leaveBody": "You won't be able to see these codes again.",
+			"leaveConfirm": "Leave"
+		},
+		"deactivate": {
+			"title": "Turn off 2FA",
+			"body": "Your account will be less secure.",
+			"codeLabel": "Code from your app or a recovery code",
+			"confirmButton": "Turn off"
 		}
 	},
 	"userdata": {

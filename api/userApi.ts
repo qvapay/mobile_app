@@ -117,11 +117,18 @@ export type PaymentMethodUpdateInput = {
  */
 export type PaymentMethodUpdateResult = { success: boolean, data?: unknown, status?: number } | (ApiFailure & { reason?: 'backendTooOld' })
 
-/** Secreto TOTP recién generado (`POST /auth/create-2fa` sin body). */
+/** Secreto TOTP recién generado (`POST /user/update/password` con body vacío). */
 export type TwoFactorSecretPayload = {
 	secret: string
 	/** Para pintar el QR en el authenticator. */
 	otpauth_url: string
+}
+
+/** Respuesta al activar el 2FA. `recovery_codes` llega UNA sola vez: el servidor no vuelve a darlos. */
+export type TwoFactorActivatedPayload = {
+	result: string
+	message?: string
+	recovery_codes: string[]
 }
 
 /** Body de `POST /user/gold/validate-receipt`. */
@@ -846,7 +853,7 @@ export const userApi = {
 	},
 
 	/**
-	 * Generates a new TOTP secret for 2FA enrollment (`POST /auth/create-2fa`
+	 * Generates a new TOTP secret for 2FA enrollment (`POST /user/update/password`
 	 * with an empty body, requires auth). Nothing is persisted yet — the secret
 	 * only sticks after `activate2FA` verifies a code against it.
 	 *
@@ -854,7 +861,7 @@ export const userApi = {
 	 */
 	generate2FA: async (): Promise<ApiResult<TwoFactorSecretPayload>> => {
 		try {
-			const response = await apiClient.post('/auth/create-2fa', {})
+			const response = await apiClient.post('/user/update/password', {})
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -867,18 +874,19 @@ export const userApi = {
 	},
 
 	/**
-	 * Activates 2FA (`POST /auth/create-2fa` with `code` + `secret`).
-	 * The backend verifies the TOTP code against the secret from `generate2FA`
-	 * and saves it; from then on login requires a 6-digit TOTP instead of the email PIN.
+	 * Activates 2FA (`POST /user/update/password` with `code` + `secret`). The backend
+	 * verifies the TOTP code against the secret from `generate2FA` and saves it; from
+	 * then on login requires a 6-digit TOTP instead of the email PIN.
 	 *
 	 * @param data - The 2FA activation data
 	 * @param data.code - The 6-digit TOTP code from the authenticator app
 	 * @param data.secret - The secret returned by `generate2FA`
-	 * @returns `{ success, data?, error?, status? }`
+	 * @returns `{ success, data?, error?, status? }` — `data.recovery_codes` are the 8
+	 *   one-shot recovery codes; the server never returns them again.
 	 */
-	activate2FA: async ({ code, secret }: { code: string, secret: string }): Promise<ApiResult<unknown>> => {
+	activate2FA: async ({ code, secret }: { code: string, secret: string }): Promise<ApiResult<TwoFactorActivatedPayload>> => {
 		try {
-			const response = await apiClient.post('/auth/create-2fa', { code, secret })
+			const response = await apiClient.post('/user/update/password', { code, secret })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -891,14 +899,18 @@ export const userApi = {
 	},
 
 	/**
-	 * Deactivates TOTP 2FA for the current user (`POST /auth/reset-2fa`, requires auth).
-	 * Login falls back to the emailed 4-digit PIN afterwards.
+	 * Deactivates TOTP 2FA (`POST /user/update/password` with `delete: true`). It demands
+	 * the factor itself: with the session alone a stolen token could switch it off.
+	 * A wrong code fails with `details.code === 'OTP_REQUIRED'`. Login falls back to the
+	 * emailed 4-digit PIN afterwards.
 	 *
-	 * @returns `{ success, data?, error?, status? }`
+	 * @param data - The deactivation proof
+	 * @param data.code - TOTP from the authenticator app, or a recovery code
+	 * @returns `{ success, data?, error?, status?, details? }`
 	 */
-	deactivate2FA: async (): Promise<ApiResult<unknown>> => {
+	deactivate2FA: async ({ code }: { code: string }): Promise<ApiResult<unknown>> => {
 		try {
-			const response = await apiClient.post('/auth/reset-2fa', {})
+			const response = await apiClient.post('/user/update/password', { delete: true, code })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -909,7 +921,6 @@ export const userApi = {
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
-
 
 	/**
 	 * Validates an in-app-purchase receipt for the Gold Check subscription

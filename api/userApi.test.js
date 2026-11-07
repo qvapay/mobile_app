@@ -511,7 +511,7 @@ describe('userApi 2FA', () => {
 
 		const result = await userApi.generate2FA()
 
-		expect(apiClient.post).toHaveBeenCalledWith('/auth/create-2fa', {})
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/password', {})
 		expect(result).toEqual({ success: true, data, status: 200 })
 	})
 
@@ -531,7 +531,7 @@ describe('userApi 2FA', () => {
 
 		const result = await userApi.activate2FA({ code: '123456', secret: 'ABC123' })
 
-		expect(apiClient.post).toHaveBeenCalledWith('/auth/create-2fa', { code: '123456', secret: 'ABC123' })
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/password', { code: '123456', secret: 'ABC123' })
 		expect(result).toEqual({ success: true, data: { activated: true }, status: 200 })
 	})
 
@@ -541,19 +541,30 @@ describe('userApi 2FA', () => {
 		expect((await userApi.activate2FA({ code: '000000', secret: 's' })).error).toBe('No se pudo activar el 2FA')
 	})
 
-	test('deactivate2FA posts an empty body to /auth/reset-2fa', async () => {
-		apiClient.post.mockResolvedValue(ok({ reset: true }))
+	test('deactivate2FA proves the factor on /user/update/password', async () => {
+		apiClient.post.mockResolvedValue(ok({ result: 'OK' }))
 
-		const result = await userApi.deactivate2FA()
+		const result = await userApi.deactivate2FA({ code: 'ABCD-2345' })
 
-		expect(apiClient.post).toHaveBeenCalledWith('/auth/reset-2fa', {})
-		expect(result).toEqual({ success: true, data: { reset: true }, status: 200 })
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/password', { delete: true, code: 'ABCD-2345' })
+		expect(result).toEqual({ success: true, data: { result: 'OK' }, status: 200 })
+	})
+
+	test('deactivate2FA keeps the code of a wrong proof in details', async () => {
+		apiClient.post.mockRejectedValue(apiError(422, { error: 'Código incorrecto', code: 'OTP_REQUIRED' }))
+
+		expect(await userApi.deactivate2FA({ code: '000000' })).toEqual({
+			success: false,
+			error: 'Código incorrecto',
+			details: { error: 'Código incorrecto', code: 'OTP_REQUIRED' },
+			status: 422,
+		})
 	})
 
 	test('deactivate2FA returns the network fallback on a connection error', async () => {
 		apiClient.post.mockRejectedValue(Object.assign(new Error(), { message: '' }))
 
-		expect(await userApi.deactivate2FA()).toEqual({ success: false, error: 'Ha ocurrido un error de red', status: undefined })
+		expect(await userApi.deactivate2FA({ code: '123456' })).toEqual({ success: false, error: 'Ha ocurrido un error de red', status: undefined })
 	})
 })
 

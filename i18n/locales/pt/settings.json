@@ -857,11 +857,6 @@
 			"enterCode": "Digite o código de 6 dígitos do seu app:",
 			"activateButton": "Ativar 2FA"
 		},
-		"alerts": {
-			"deactivateTitle": "Desativar 2FA",
-			"deactivateBody": "Tem certeza de que quer desativar a autenticação de dois fatores? Sua conta ficará menos segura.",
-			"deactivateConfirm": "Desativar"
-		},
 		"toasts": {
 			"loadFailed": "Erro ao carregar os dados",
 			"secretGenerated": "Segredo gerado",
@@ -878,6 +873,21 @@
 			"deactivateFailed": "Não foi possível desativar o 2FA",
 			"copiedTitle": "Copiado",
 			"copiedDescription": "Segredo copiado para a área de transferência"
+		},
+		"recovery": {
+			"title": "Guarde seus códigos de recuperação",
+			"subtitle": "Eles servem se você perder seu app autenticador. Cada um funciona uma vez e você não os verá de novo.",
+			"copied": "Códigos copiados para a área de transferência",
+			"doneButton": "Já guardei",
+			"leaveTitle": "Sair sem guardá-los?",
+			"leaveBody": "Você não poderá ver estes códigos de novo.",
+			"leaveConfirm": "Sair"
+		},
+		"deactivate": {
+			"title": "Desativar 2FA",
+			"body": "Sua conta ficará menos segura.",
+			"codeLabel": "Código do app ou de recuperação",
+			"confirmButton": "Desativar"
 		}
 	},
 	"userdata": {
