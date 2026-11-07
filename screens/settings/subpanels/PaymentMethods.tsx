@@ -29,6 +29,7 @@ import useCoins from '../../../hooks/useCoins'
 import { userApi } from '../../../api/userApi'
 import { useCashZonesQuery } from '../../withdraw/withdrawQueries'
 import { PAYMENT_METHODS_KEY } from '../../../hooks/usePaymentMethodsQuery'
+import usePullRefresh from '../../../hooks/usePullRefresh'
 
 // Helpers
 import { keyFromFieldName } from '../../withdraw/withdrawFees'
@@ -247,6 +248,8 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 		finally { setRefreshing(false) }
 	}
 
+	const refreshControl = usePullRefresh(refresh)
+
 	// Open create modal
 	const openCreate = () => {
 		dispatchCreate({ type: 'open' })
@@ -421,7 +424,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
 
 				<Text style={textStyles.h1}>{t('settings.paymentMethods.title')}</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('settings.paymentMethods.subtitle')}</Text>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Text, View, ScrollView, Alert, Linking } from 'react-native'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Text, View, ScrollView, Alert, Linking, AppState } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Theme
@@ -16,6 +16,8 @@ import { userApi } from '../../../api/userApi'
 
 // User AuthContext
 import { useAuth } from '../../../auth/AuthContext'
+import useProfileRefresh from '../../../hooks/useProfileRefresh'
+import usePullRefresh from '../../../hooks/usePullRefresh'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -42,10 +44,37 @@ const Telegram = () => {
     const [telegram, setTelegram] = useState('')
     const [telegram_id, setTelegramId] = useState('')
 
+    // El perfil se relee en el AuthContext y no solo aquí: vincular ocurre en el bot, fuera
+    // de la app, y sin esto el P2P seguía pidiendo Telegram hasta reiniciar
+    const refreshProfile = useProfileRefresh()
+    const loadUserData = useCallback(async () => {
+        try {
+            const profile = await refreshProfile()
+            if (profile) {
+                // `User` (types/domain) declara `telegram` en su índice unknown y
+                // `telegram_id` como string|number|null — aquí ambos se guardan como texto.
+                setTelegram(profile.telegram as string)
+                setTelegramId(profile.telegram_id as string)
+            }
+        } finally { setIsLoadingData(false) }
+    }, [refreshProfile])
+
     // Load user data on component mount
+    useEffect(() => { loadUserData() }, [loadUserData])
+
+    // Al volver del bot se relee: es justo cuando el vínculo acaba de cambiar
+    const botOpenedRef = useRef(false)
     useEffect(() => {
-        loadUserData()
-    }, [])
+        const sub = AppState.addEventListener('change', (state) => {
+            if (state === 'active' && botOpenedRef.current) {
+                botOpenedRef.current = false
+                loadUserData()
+            }
+        })
+        return () => sub.remove()
+    }, [loadUserData])
+
+    const refreshControl = usePullRefresh(loadUserData)
 
     // Verify Telegram
     const handleVerifyTelegram = async () => {
@@ -58,6 +87,7 @@ const Telegram = () => {
                 const payload = result.data as { verificationLink?: string, link?: string, url?: string, data?: { verificationLink?: string } }
                 const link = payload.verificationLink || payload.link || payload.url || payload.data?.verificationLink
                 if (link) {
+                    botOpenedRef.current = true
                     await Linking.openURL(link)
                 } else {
                     toast.error(t('settings.telegram.toasts.linkFailed'))
@@ -98,27 +128,12 @@ const Telegram = () => {
         )
     }
 
-    // Load user data from API
-    const loadUserData = async () => {
-        try {
-            setIsLoadingData(true)
-            const result = await userApi.getUserProfile()
-            if (result.success && result.data) {
-                // `User` (types/domain) declara `telegram` en su índice unknown y
-                // `telegram_id` como string|number|null — aquí ambos se guardan como texto.
-                setTelegram(result.data.telegram as string)
-                setTelegramId(result.data.telegram_id as string)
-            }
-        } catch (error) { /* error loading */ }
-        finally { setIsLoadingData(false) }
-    }
-
     // Loading state
     if (isLoadingData) { return (<QPLoader />) }
 
     return (
         <View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
-            <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
 
                 <Text style={textStyles.h1}>Telegram</Text>
                 <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>

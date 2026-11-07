@@ -523,7 +523,7 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 		// también sin los requisitos del P2P (sin filtro al elegir moneda)
 		return (
 			<>
-				<P2PRequirementsGate user={user!} navigation={navigation as unknown as RootNav} theme={theme} textStyles={textStyles} containerStyles={containerStyles} serverMissing={requirement} />
+				<P2PRequirementsGate user={user!} navigation={navigation as unknown as RootNav} theme={theme} textStyles={textStyles} containerStyles={containerStyles} serverMissing={requirement} onRecheck={requirement ? onRefresh : undefined} />
 				<P2PMarketModal visible={showMarketModal} onClose={() => setShowMarketModal(false)} onSelectCoin={() => setShowMarketModal(false)} />
 				<P2PHeaderMenu visible={showHeaderMenu} items={menuItems} onSelect={runFromMenu} onClose={() => setShowHeaderMenu(false)} onDismiss={onMenuDismiss} />
 			</>

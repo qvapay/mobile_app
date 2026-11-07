@@ -1,4 +1,6 @@
 import { Text, View, ScrollView } from 'react-native'
+import type { ReactElement } from 'react'
+import type { RefreshControlProps } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 import QPButton from '../../../ui/particles/QPButton'
@@ -9,6 +11,8 @@ import type { Theme } from '../../../theme/ThemeContext'
 import type { TextStyles, ContainerStyles } from '../../../theme/themeUtils'
 
 type PhoneVerifiedViewProps = {
+	/** Tirar para releer el estado (lo arma Phone). */
+	refreshControl?: ReactElement<RefreshControlProps>
 	userPhone?: string | null
 	onRemove: () => void
 	isLoading?: boolean
@@ -18,11 +22,11 @@ type PhoneVerifiedViewProps = {
 }
 
 // Verified-phone state: shows the number + a remove action.
-const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, containerStyles }: PhoneVerifiedViewProps) => {
+const PhoneVerifiedView = ({ refreshControl, userPhone, onRemove, isLoading, theme, textStyles, containerStyles }: PhoneVerifiedViewProps) => {
 	const { t } = useTranslation()
 	return (
 	<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
-		<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+		<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
 
 			<Text style={textStyles.h1}>{t('settings.phone.verified.title')}</Text>
 			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>

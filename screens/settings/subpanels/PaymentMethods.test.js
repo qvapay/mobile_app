@@ -30,6 +30,8 @@ jest.mock('../../../hooks/useCoins', () => ({
 	default: () => ({ coins: mockCoinCatalog, isLoading: mockCoinsLoading }),
 }))
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
+// El texto de la pantalla se lee con JSON.stringify(toJSON()): un RefreshControl en las props lo haría circular
+jest.mock('../../../hooks/usePullRefresh', () => () => undefined)
 
 import React from 'react'
 import { ActivityIndicator, Alert, Modal } from 'react-native'

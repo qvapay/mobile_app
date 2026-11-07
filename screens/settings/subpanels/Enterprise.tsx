@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 // React Query
 import { useQuery } from '@tanstack/react-query'
+import usePullRefresh from '../../../hooks/usePullRefresh'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -116,6 +117,7 @@ const Enterprise = ({ navigation }: NativeStackScreenProps<SettingsStackParamLis
 		placeholderData: previous => previous,
 	})
 	const companies = data?.companies ?? []
+	const refreshControl = usePullRefresh(refetch)
 	const hasApproved = companies.some((company: Company) => company.status === 'approved')
 
 	// Re-check al volver del navegador (registro o re-aplicación en la web)
@@ -193,7 +195,7 @@ const Enterprise = ({ navigation }: NativeStackScreenProps<SettingsStackParamLis
 	// Con solicitudes: tarjeta por empresa + gestión de tiendas si hay aprobada
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
 
 				<Text style={textStyles.h1}>{t('settings.enterprise.title')}</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
