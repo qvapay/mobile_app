@@ -503,6 +503,73 @@ describe('nivel ssn: tarjeta y PayPal con cupo de $500 por 30 días', () => {
 			expect(rendered(tree)).toContain('te quedan $182 de cupo')
 		})
 
+		describe('una orden que se come todo el cupo y no se paga', () => {
+			const MINUTE = 60 * 1000
+			const generateLast = async (tree) => {
+				remaining = 318
+				await pickCoinAndAmount(tree, CARD, '300') // $318 con el fee
+				remaining = 0 // el servidor ya cuenta la orden pendiente
+				await pressGenerate(tree)
+				await flush()
+				expect(rendered(tree)).toContain('Vuelve a tener cupo')
+				expect(tree.root.findByType('QPButton').props.disabled).toBe(true)
+			}
+			const released = (tree) => {
+				expect(rendered(tree)).toContain('Te quedan $318 de $500')
+				expect(tree.root.findByType('QPButton').props.disabled).toBe(false)
+			}
+
+			test.each(['expired', 'failed'])('con el modal abierto, el cupo vuelve en cuanto llega %s', async (status) => {
+				const tree = await renderAdd()
+				await flush()
+				await generateLast(tree)
+				remaining = 318
+				await act(async () => { sseCallback(status) })
+				await flush()
+				released(tree)
+			})
+
+			test('con el modal cerrado, vuelve al caducar la orden', async () => {
+				const tree = await renderAdd()
+				await flush()
+				await generateLast(tree)
+				await act(async () => { tree.root.findByType('DepositDetailsModal').props.onClose() })
+				remaining = 318
+				await act(async () => { await jest.advanceTimersByTimeAsync(29 * MINUTE) })
+				expect(rendered(tree)).toContain('Vuelve a tener cupo')
+				await act(async () => { await jest.advanceTimersByTimeAsync(1 * MINUTE) })
+				await flush()
+				released(tree)
+			})
+
+			test('y si el servidor la cuenta la hora entera, vuelve al acabar esa hora', async () => {
+				const tree = await renderAdd()
+				await flush()
+				await generateLast(tree)
+				await act(async () => { tree.root.findByType('DepositDetailsModal').props.onClose() })
+				await act(async () => { await jest.advanceTimersByTimeAsync(30 * MINUTE) })
+				await flush()
+				expect(rendered(tree)).toContain('Vuelve a tener cupo')
+				remaining = 318
+				await act(async () => { await jest.advanceTimersByTimeAsync(30 * MINUTE) })
+				await flush()
+				released(tree)
+			})
+
+			test('sin cupo de por medio no se vuelve a pedir', async () => {
+				mockGets({ eligibility: ELIGIBILITY })
+				const tree = await renderAdd()
+				await flush()
+				await pickCoinAndAmount(tree, CARD, '50')
+				await pressGenerate(tree)
+				await flush()
+				apiClient.get.mockClear()
+				await act(async () => { sseCallback('expired') })
+				await act(async () => { await jest.advanceTimersByTimeAsync(61 * MINUTE) })
+				expect(apiClient.get).not.toHaveBeenCalledWith('/user/deposit-eligibility', { silent: true })
+			})
+		})
+
 		test('el aviso del 400 sigue en pantalla cuando llega el cupo nuevo', async () => {
 			const tree = await renderAdd()
 			await flush()
