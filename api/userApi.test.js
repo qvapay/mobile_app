@@ -267,10 +267,17 @@ describe('userApi gold', () => {
 		expect(result).toEqual({ success: true, data: { message: 'Gold activado' }, status: 200 })
 	})
 
-	test('purchaseGold returns error.message and status on failure', async () => {
-		apiClient.post.mockRejectedValue(apiError(402, { error: 'Saldo insuficiente' }))
+	test('purchaseGold surfaces the server text and keeps the body on failure', async () => {
+		const body = { error: 'Tienes un cambio de correo en curso.', code: 'SECURITY_HOLD', hold: 'email_change' }
+		apiClient.post.mockRejectedValue(apiError(403, body))
 
-		expect(await userApi.purchaseGold({ uuid: 'u-1', duration: '1m' })).toEqual({ success: false, error: 'Request failed', status: 402 })
+		expect(await userApi.purchaseGold({ uuid: 'u-1', duration: '1m' })).toEqual({ success: false, error: body.error, status: 403, details: body })
+	})
+
+	test('purchaseGold falls back to the client message without a response', async () => {
+		apiClient.post.mockRejectedValue({ message: 'No se ha podido conectar' })
+
+		expect(await userApi.purchaseGold({ uuid: 'u-1', duration: '1m' })).toEqual({ success: false, error: 'No se ha podido conectar', status: undefined, details: undefined })
 	})
 
 	test('validateGoldReceipt posts the receipt payload', async () => {

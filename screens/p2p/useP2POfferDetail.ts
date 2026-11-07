@@ -642,7 +642,9 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 				// 409 sin código = otro tomó antes y ya no cabe: refrescar el disponible
 				if (res.status === 409) refetchP2P()
 				toast.error(t('p2p.offer.toasts.applyFailed'), { description: String(res.error || "") })
-				return false
+				// Una pausa de seguridad no se arregla cambiando el monto, y en Android el
+				// modal abierto taparía el aviso con su fondo oscuro
+				return code === "SECURITY_HOLD"
 			}
 			const res = await p2pApi.apply(p2p!.uuid)
 			if (res.success) {
