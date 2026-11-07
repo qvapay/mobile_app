@@ -43,7 +43,7 @@ export const useSwapFlow = ({ direction, form, pair, asset, registered, inUnsupp
 	const created = (swap: Swap) => { setReview(false); onCreated(swap) }
 	const amountUnits = form.canReview && form.amount && asset ? parseUnits(form.amount, asset.decimals) : null
 
-	const out = useSwapOut({ pairId: pair?.id ?? null, amount: form.amount ?? '', toAddress: registered, onCreated: created })
+	const out = useSwapOut({ pairId: pair?.id ?? null, amount: form.amount ?? '', toAddress: registered, onCreated: created, onHeld: () => setReview(false) })
 	const inn = useSwapIn({ pair, asset, amountUnits, amount: form.amount ?? '', onCreated: created })
 
 	// Cambiar sentido, importe o par invalida la tx preparada y el paso de PIN

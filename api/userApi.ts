@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { CipPayload, DepositEligibility, LightningAddressAction, LightningAddressState, User, UserCip } from '../types/domain'
+import type { CipPayload, DepositEligibility, EmailChangePending, EmailChangeProof, EmailChangeProofType, EmailChangeState, LightningAddressAction, LightningAddressState, User, UserCip } from '../types/domain'
 
 /**
  * Resultado de `userApi.requestKYCSession`: el éxito trae `sessionToken` extra
@@ -117,11 +117,44 @@ export type PaymentMethodUpdateInput = {
  */
 export type PaymentMethodUpdateResult = { success: boolean, data?: unknown, status?: number } | (ApiFailure & { reason?: 'backendTooOld' })
 
-/** Secreto TOTP recién generado (`POST /auth/create-2fa` sin body). */
+/** Secreto TOTP recién generado (`POST /user/update/password` con body vacío). */
 export type TwoFactorSecretPayload = {
 	secret: string
 	/** Para pintar el QR en el authenticator. */
 	otpauth_url: string
+}
+
+/** Respuesta al activar el 2FA. `recovery_codes` llega UNA sola vez: el servidor no vuelve a darlos. */
+export type TwoFactorActivatedPayload = {
+	result: string
+	message?: string
+	recovery_codes: string[]
+}
+
+/** Éxito de `action: 'start'`: el correo ya viene enmascarado y `methods` manda sobre el GET. */
+export type EmailChangeStarted = { ok: true, new_email: string, methods: EmailChangeProofType[] }
+
+/** Éxito de `action: 'confirm'` (201): el pedido abierto, todavía sin `cancel_methods`. */
+export type EmailChangeConfirmed = { ok: true, pending: Pick<EmailChangePending, 'uuid' | 'new_email' | 'execute_after'> }
+
+/**
+ * Todas las escrituras del cambio de correo (`POST /user/update/email`, por `action`).
+ *
+ * El fallo conserva el cuerpo entero en `details`: la pantalla decide por `details.code`,
+ * nunca por el status.
+ */
+const postEmailChange = async <T>(body: Record<string, unknown>): Promise<ApiResult<T>> => {
+	try {
+		const response = await apiClient.post('/user/update/email', body)
+		return { success: true, data: response.data, status: response.status }
+	} catch (err) {
+		const error = err as ApiClientError
+		if (error.response?.data) {
+			const errorData = error.response.data
+			return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.emailChangeFailed'), details: errorData, status: error.response.status }
+		}
+		return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+	}
 }
 
 /** Body de `POST /user/gold/validate-receipt`. */
@@ -545,7 +578,7 @@ export const userApi = {
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
-			return { success: false, error: error.message, status: error.response?.status }
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status, details: error.response?.data }
 		}
 	},
 
@@ -846,7 +879,7 @@ export const userApi = {
 	},
 
 	/**
-	 * Generates a new TOTP secret for 2FA enrollment (`POST /auth/create-2fa`
+	 * Generates a new TOTP secret for 2FA enrollment (`POST /user/update/password`
 	 * with an empty body, requires auth). Nothing is persisted yet — the secret
 	 * only sticks after `activate2FA` verifies a code against it.
 	 *
@@ -854,7 +887,7 @@ export const userApi = {
 	 */
 	generate2FA: async (): Promise<ApiResult<TwoFactorSecretPayload>> => {
 		try {
-			const response = await apiClient.post('/auth/create-2fa', {})
+			const response = await apiClient.post('/user/update/password', {})
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -867,18 +900,19 @@ export const userApi = {
 	},
 
 	/**
-	 * Activates 2FA (`POST /auth/create-2fa` with `code` + `secret`).
-	 * The backend verifies the TOTP code against the secret from `generate2FA`
-	 * and saves it; from then on login requires a 6-digit TOTP instead of the email PIN.
+	 * Activates 2FA (`POST /user/update/password` with `code` + `secret`). The backend
+	 * verifies the TOTP code against the secret from `generate2FA` and saves it; from
+	 * then on login requires a 6-digit TOTP instead of the email PIN.
 	 *
 	 * @param data - The 2FA activation data
 	 * @param data.code - The 6-digit TOTP code from the authenticator app
 	 * @param data.secret - The secret returned by `generate2FA`
-	 * @returns `{ success, data?, error?, status? }`
+	 * @returns `{ success, data?, error?, status? }` — `data.recovery_codes` are the 8
+	 *   one-shot recovery codes; the server never returns them again.
 	 */
-	activate2FA: async ({ code, secret }: { code: string, secret: string }): Promise<ApiResult<unknown>> => {
+	activate2FA: async ({ code, secret }: { code: string, secret: string }): Promise<ApiResult<TwoFactorActivatedPayload>> => {
 		try {
-			const response = await apiClient.post('/auth/create-2fa', { code, secret })
+			const response = await apiClient.post('/user/update/password', { code, secret })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -891,14 +925,18 @@ export const userApi = {
 	},
 
 	/**
-	 * Deactivates TOTP 2FA for the current user (`POST /auth/reset-2fa`, requires auth).
-	 * Login falls back to the emailed 4-digit PIN afterwards.
+	 * Deactivates TOTP 2FA (`POST /user/update/password` with `delete: true`). It demands
+	 * the factor itself: with the session alone a stolen token could switch it off.
+	 * A wrong code fails with `details.code === 'OTP_REQUIRED'`. Login falls back to the
+	 * emailed 4-digit PIN afterwards.
 	 *
-	 * @returns `{ success, data?, error?, status? }`
+	 * @param data - The deactivation proof
+	 * @param data.code - TOTP from the authenticator app, or a recovery code
+	 * @returns `{ success, data?, error?, status?, details? }`
 	 */
-	deactivate2FA: async (): Promise<ApiResult<unknown>> => {
+	deactivate2FA: async ({ code }: { code: string }): Promise<ApiResult<unknown>> => {
 		try {
-			const response = await apiClient.post('/auth/reset-2fa', {})
+			const response = await apiClient.post('/user/update/password', { delete: true, code })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -909,6 +947,68 @@ export const userApi = {
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
+
+	/**
+	 * State of the account email change (`GET /user/update/email`). With `enabled: false`
+	 * no other field arrives. Only a login session reads it: a scoped token gets a 403.
+	 *
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	getEmailChangeState: async (): Promise<ApiResult<EmailChangeState>> => {
+		try {
+			const response = await apiClient.get('/user/update/email')
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.emailChangeFailed'), details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Step 1: password + new email (`action: 'start'`). Sends a 6-digit code to the new
+	 * address and, on accounts without a factor, another one to the current address.
+	 *
+	 * @param data - The request data
+	 * @param data.new_email - The new email address
+	 * @param data.password - The account password
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	startEmailChange: ({ new_email, password }: { new_email: string, password: string }) => postEmailChange<EmailChangeStarted>({ action: 'start', new_email, password }),
+
+	/**
+	 * Asks for a proof code (`action: 'send_code'`): through Telegram while requesting
+	 * the change, or through Telegram or the current mailbox while cancelling it.
+	 *
+	 * @param data - The channel data
+	 * @param data.channel - `telegram` or `old_email`
+	 * @param [data.purpose] - `cancel` when the code is for cancelling; defaults to the request
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	sendEmailChangeCode: ({ channel, purpose }: { channel: Exclude<EmailChangeProofType, 'totp'>, purpose?: 'cancel' }) => postEmailChange<{ ok: true }>({ action: 'send_code', channel, ...(purpose && { purpose }) }),
+
+	/**
+	 * Step 2: opens the request and pauses the money (`action: 'confirm'`, responds 201).
+	 *
+	 * @param data - The confirmation data
+	 * @param data.new_email_code - The 6-digit code sent to the new address
+	 * @param data.proof - The extra proof (`totp` also takes a recovery code)
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	confirmEmailChange: ({ new_email_code, proof }: { new_email_code: string, proof: EmailChangeProof }) => postEmailChange<EmailChangeConfirmed>({ action: 'confirm', new_email_code, proof }),
+
+	/**
+	 * Cancels the request in progress (`action: 'cancel'`) with the same proof that opened
+	 * it. Cancelling with a session does not freeze the account.
+	 *
+	 * @param data - The cancellation data
+	 * @param data.proof - One of `pending.cancel_methods` plus its code
+	 * @returns `{ success, data?, error?, status?, details? }`
+	 */
+	cancelEmailChange: ({ proof }: { proof: EmailChangeProof }) => postEmailChange<{ ok: true }>({ action: 'cancel', proof }),
 
 
 	/**

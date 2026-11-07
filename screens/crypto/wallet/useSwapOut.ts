@@ -25,9 +25,11 @@ type Args = {
 	/** La `stx` registrada del usuario (el backend exige que coincida). */
 	toAddress: string | null
 	onCreated: (swap: Swap) => void
+	/** Una pausa de seguridad corta el retiro: la hoja no sirve de nada y taparía el aviso en Android. */
+	onHeld: () => void
 }
 
-export default function useSwapOut({ pairId, amount, toAddress, onCreated }: Args) {
+export default function useSwapOut({ pairId, amount, toAddress, onCreated, onHeld }: Args) {
 
 	const { t } = useTranslation()
 	const { user, updateUser } = useAuth()
@@ -76,6 +78,7 @@ export default function useSwapOut({ pairId, amount, toAddress, onCreated }: Arg
 					toast.error(failure?.error || t('crypto.wallet.swap.errors.createFailed'))
 					const code = (failure?.details as { code?: string } | undefined)?.code
 					if (code === 'CODE_INVALID' || code === 'CODE_FORMAT' || code === 'OTP_REQUIRED') setPin('')
+					if (code === 'SECURITY_HOLD') { setShowPinStep(false); setPin(''); onHeld() }
 				}
 			}
 		} catch {

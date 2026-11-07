@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
+import usePullRefresh from '../../../hooks/usePullRefresh'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { toast } from 'sonner-native'
 
@@ -29,6 +30,7 @@ const ConnectedMiniApps = () => {
 	const queryClient = useQueryClient()
 
 	const { data, isPending, isError, refetch } = useMiniAppGrants()
+	const refreshControl = usePullRefresh(refetch)
 	const [revoking, setRevoking] = useState<string | null>(null)
 
 	const revoke = async (grant: MiniAppGrant) => {
@@ -50,7 +52,7 @@ const ConnectedMiniApps = () => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
 
 				<Text style={textStyles.h1}>{t('miniapps.connected.title')}</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('miniapps.connected.subtitle')}</Text>

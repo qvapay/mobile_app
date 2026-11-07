@@ -28,6 +28,7 @@ import type { LeakedModalState } from './login/LeakedPasswordModal'
 
 // Biometric utilities
 import { getSupportedBiometryType, hasBiometricCredentials, getBiometricCredentials, setBiometricCredentials, removeBiometricCredentials } from '../../api/client'
+import { biometricsOutdatedFor } from '../../helpers/biometricEmailChange'
 
 // Notifications
 import { toast } from 'sonner-native'
@@ -168,6 +169,12 @@ const LoginScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 
 
 		const type = await getSupportedBiometryType()
 		if (!type) return
+		// Tras cambiar el correo la credencial guardada ya no entra, aunque exista
+		if (await biometricsOutdatedFor(loginEmail)) {
+			await removeBiometricCredentials()
+			setHasBiometrics(false)
+			await updateSettings('security', { biometricsEnabled: false })
+		}
 		const has = await hasBiometricCredentials()
 		if (has) return
 

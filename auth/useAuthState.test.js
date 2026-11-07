@@ -33,7 +33,10 @@ jest.mock('../api/client', () => ({
 	setAuthToken: jest.fn(),
 	getAuthToken: jest.fn(),
 	removeAuthToken: jest.fn(),
+	registerSessionExpiredHandler: jest.fn(),
 }))
+
+jest.mock('sonner-native', () => ({ toast: { error: jest.fn() } }))
 
 jest.mock('../push', () => ({
 	syncPushToken: jest.fn(),
@@ -65,7 +68,8 @@ import { sweepCachedFiles } from '../helpers/openAuthedFile'
 import { Passkey } from 'react-native-passkey'
 import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
-import { setAuthToken, getAuthToken, removeAuthToken } from '../api/client'
+import { setAuthToken, getAuthToken, removeAuthToken, registerSessionExpiredHandler } from '../api/client'
+import { toast } from 'sonner-native'
 import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
 import { clearMiniAppQuickActions } from '../helpers/miniAppShortcuts'
 import useAuthState from './useAuthState'
@@ -228,6 +232,69 @@ describe('initializeAuth', () => {
 		const { result } = await renderHook()
 		expect(result.current.isAuthenticated).toBe(true)
 		expect(result.current.user).toBeNull()
+	})
+})
+
+describe('session expired by the server', () => {
+
+	const expire = () => registerSessionExpiredHandler.mock.calls[0][0]()
+
+	test('ends the local session without calling the backend logout', async () => {
+		const { result } = await renderAuthenticatedHook()
+
+		await act(async () => { expire() })
+
+		expect(result.current.isAuthenticated).toBe(false)
+		expect(result.current.user).toBeNull()
+		expect(result.current.token).toBeNull()
+		expect(unregisterPush).toHaveBeenCalledTimes(1)
+		expect(authApi.logout).not.toHaveBeenCalled()
+		expect(toast.error).toHaveBeenCalledTimes(1)
+	})
+
+	test('several 401 at once end it only once', async () => {
+		await renderAuthenticatedHook()
+
+		await act(async () => { expire(); expire(); expire() })
+
+		expect(toast.error).toHaveBeenCalledTimes(1)
+		expect(unregisterPush).toHaveBeenCalledTimes(1)
+	})
+
+	test('does nothing without a session', async () => {
+		const { result } = await renderHook()
+
+		await act(async () => { expire() })
+
+		expect(result.current.isAuthenticated).toBe(false)
+		expect(toast.error).not.toHaveBeenCalled()
+	})
+
+	test('a new login arms it again', async () => {
+		const { result } = await renderAuthenticatedHook()
+		await act(async () => { expire() })
+
+		await act(async () => { await result.current.login(CREDENTIALS) })
+		await act(async () => { expire() })
+
+		expect(result.current.isAuthenticated).toBe(false)
+		expect(toast.error).toHaveBeenCalledTimes(2)
+	})
+
+	test('logging out on purpose with a dead session does not announce it', async () => {
+		const { result } = await renderAuthenticatedHook()
+
+		await act(async () => { await result.current.logout(); expire() })
+
+		expect(toast.error).not.toHaveBeenCalled()
+	})
+
+	test('stops listening when the provider goes away', async () => {
+		const { root } = await renderAuthenticatedHook()
+
+		await act(async () => { root.unmount() })
+
+		expect(registerSessionExpiredHandler).toHaveBeenLastCalledWith(null)
 	})
 })
 

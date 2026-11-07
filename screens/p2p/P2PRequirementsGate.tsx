@@ -1,4 +1,6 @@
+import { useCallback } from 'react'
 import { View, Text, ScrollView, StyleSheet } from 'react-native'
+import { useFocusEffect } from '@react-navigation/native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ROUTES } from '../../routes'
 import { supportsLiquidGlass } from '../../helpers/liquidGlass'
 import useTabBarClearance from '../../hooks/useTabBarClearance'
+import useProfileRefresh from '../../hooks/useProfileRefresh'
+import usePullRefresh from '../../hooks/usePullRefresh'
 import QPPressable from '../../ui/particles/QPPressable'
 import { missingP2PRequirements } from './p2pRequirements'
 
@@ -30,13 +34,22 @@ type P2PRequirementsGateProps = {
 	 * cacheada del usuario diga que está hecho.
 	 */
 	serverMissing?: P2PRequirementKey | null
+	/** Vuelve a preguntar al servidor (el gate de su 400); el perfil se relee aquí. */
+	onRecheck?: () => void
 }
 
 // Shown when the user hasn't met the P2P requirements (KYC + phone + telegram).
 // Shared by the P2P marketplace and the create-offer screens.
-const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerStyles, serverMissing = null }: P2PRequirementsGateProps) => {
+const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerStyles, serverMissing = null, onRecheck }: P2PRequirementsGateProps) => {
 
 	const { t } = useTranslation()
+
+	// Cada paso se completa en otra pantalla, y Telegram incluso fuera de la app: al volver
+	// se relee el perfil, que es de donde salen los checks. Sin esto el gate no se iba
+	// hasta reiniciar
+	const refreshProfile = useProfileRefresh()
+	useFocusEffect(useCallback(() => { refreshProfile() }, [refreshProfile]))
+	const refreshControl = usePullRefresh(async () => { await refreshProfile(); onRecheck?.() })
 
 	const isPending = (key: P2PRequirementKey, localPassed: boolean) => !localPassed || serverMissing === key
 
@@ -59,7 +72,7 @@ const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerSty
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView contentContainerStyle={[styles.requirementsContainer, !supportsLiquidGlass && { paddingBottom: 30 + insets.bottom + tabBarClearance }]} showsVerticalScrollIndicator={false}>
+			<ScrollView contentContainerStyle={[styles.requirementsContainer, !supportsLiquidGlass && { paddingBottom: 30 + insets.bottom + tabBarClearance }]} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
 				<FontAwesome6 name="triangle-exclamation" size={40} color={theme.colors.warning} iconStyle="solid" />
 				<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 16 }]}>{t('p2p.requirements.title')}</Text>
 				<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6, marginBottom: 24 }]}>

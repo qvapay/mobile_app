@@ -16,6 +16,8 @@ import GoldUpsell from './gold/GoldUpsell'
 
 // Estado + compras de la suscripción (saldo, hoja nativa IAP y restaurar)
 import useGoldSubscription, { plans } from './gold/useGoldSubscription'
+import useProfileRefresh from '../../../hooks/useProfileRefresh'
+import usePullRefresh from '../../../hooks/usePullRefresh'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -48,10 +50,16 @@ const GoldCheck = ({ navigation: _navigation }: NativeStackScreenProps<SettingsS
 		handleSubscribe,
 		handleSubscribeIAP,
 		handleRestore,
+		refreshStatus,
 	} = useGoldSubscription()
 
+	// Una compra en la web llega al releer: la suscripción y el perfil, del que salen los
+	// badges GOLD del resto de la app
+	const refreshProfile = useProfileRefresh()
+	const refreshControl = usePullRefresh(() => Promise.all([refreshStatus(), refreshProfile()]))
+
 	return (
-		<ScrollView style={[containerStyles.container, { paddingHorizontal: theme.spacing.md }]}>
+		<ScrollView style={[containerStyles.container, { paddingHorizontal: theme.spacing.md }]} refreshControl={refreshControl}>
 
 			<View style={containerStyles.scrollContainer}>
 

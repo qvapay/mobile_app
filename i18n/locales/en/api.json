@@ -42,7 +42,8 @@
 		"unblockFailed": "Couldn't unblock the user",
 		"reportFailed": "Couldn't send the report",
 		"lightningAddressLoadFailed": "Could not load the Lightning Address",
-		"lightningAddressActionFailed": "Could not update the Lightning Address"
+		"lightningAddressActionFailed": "Could not update the Lightning Address",
+		"emailChangeFailed": "Couldn't complete the email change"
 	},
 	"p2p": {
 		"offersLoadFailed": "Couldn't load P2P offers",

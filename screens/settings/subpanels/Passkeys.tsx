@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { View, Text, ScrollView, Alert, Pressable } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
+import usePullRefresh from '../../../hooks/usePullRefresh'
 import { useTranslation } from 'react-i18next'
 
 // i18n (call-time para el helper de módulo + locale de fechas)
@@ -71,6 +72,7 @@ const Passkeys = () => {
     }, [])
 
     useFocusEffect(useCallback(() => { fetchPasskeys() }, [fetchPasskeys]))
+    const refreshControl = usePullRefresh(fetchPasskeys)
 
     // Register a new passkey
     const handleRegisterPasskey = async () => {
@@ -132,7 +134,7 @@ const Passkeys = () => {
 
     return (
         <View style={containerStyles.subContainer}>
-            <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
 
                 <Text style={textStyles.h1}>{t('settings.passkeys.title')}</Text>
                 <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>

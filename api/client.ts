@@ -31,6 +31,19 @@ const APP_LOCK_SERVICE = 'com.qvapay.applock'
 let _loadingStart: (() => void) | null = null
 let _loadingStop: (() => void) | null = null
 
+// Aviso de sesión muerta: lo registra useAuthState, que vive fuera de este módulo
+let _onSessionExpired: (() => void) | null = null
+
+/**
+ * Registers who reacts to a dead session, or clears it with `null`. Called by
+ * `useAuthState`: the client only knows a 401 happened, the session state lives there.
+ *
+ * @param handler - Invoked after a request that carried the bearer got a real 401.
+ */
+export const registerSessionExpiredHandler = (handler: (() => void) | null) => {
+	_onSessionExpired = handler
+}
+
 /**
  * Wires the global loading bar (LoadingContext) into this client.
  * Called by `LoadingBridge` in App.tsx; every non-silent request then
@@ -110,10 +123,24 @@ apiClient.interceptors.request.use(
 )
 
 /**
+ * ¿Este 401 habla de la sesión actual? Una petición puede tardar hasta 20 s en responder:
+ * si entretanto el usuario volvió a entrar, su 401 es del token viejo y actuar sobre él
+ * borraría la sesión buena. Una petición que salió sin bearer tampoco dice nada de ella.
+ *
+ * @param reqConfig - Config de la petición que recibió el 401.
+ * @returns true solo si llevaba el token que sigue guardado.
+ */
+const isCurrentSession = async (reqConfig: AxiosError['config']) => {
+	const current = await getAuthToken()
+	return !!current && reqConfig?.headers?.Authorization === `Bearer ${current}`
+}
+
+/**
  * Response interceptor.
  * Stops the global loading bar and normalizes errors:
- *   401 → clears the Keychain token (next cold start lands on Welcome), except
- *         on anonymous requests, which never carried it
+ *   401 → clears the Keychain token and tells `useAuthState` the session is dead,
+ *         only when the request carried the token still stored: anonymous requests
+ *         never had it, and a late 401 speaks of an older session
  *   403/422 → passed through untouched for the screen to handle
  *   500 → rejects with a generic localized support message
  *   no response (network/timeout) → rejects with a localized connectivity message
@@ -133,14 +160,16 @@ apiClient.interceptors.response.use(
 			switch (status) {
 				case 401:
 					// Invalid/expired/revoked token (authentication). The backend uses 401 ONLY
-					// for this. Clear the token: on the next launch initializeAuth sees a null
-					// token and routes to Welcome (the same logout mechanism that already exists).
+					// for this: a mistyped password or code is a 422. Clear the token and hand
+					// over to useAuthState, which ends the local session: without that the app
+					// stays open with no token and every request fails until it is restarted.
 					// An anonymous request carried no token, so its 401 says nothing about it
 					// (the wallet exchange answers WALLET_ID_REQUIRED with a 401).
-					if (error.config?.anonymous) { break }
+					if (error.config?.anonymous || !(await isCurrentSession(error.config))) { break }
 					try {
 						await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE })
 					} catch (clearError) { /* token clear failed */ }
+					_onSessionExpired?.()
 					break
 				case 403:
 				case 422:

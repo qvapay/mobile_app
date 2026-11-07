@@ -23,6 +23,7 @@ import Theme from './subpanels/Theme'
 import FontSize from './subpanels/FontSize'
 import Language from './subpanels/Language'
 import Userdata from './subpanels/Userdata'
+import EmailChange from './subpanels/EmailChange'
 import Phone from './subpanels/Phone'
 import Telegram from './subpanels/Telegram'
 import Password from './subpanels/Password'
@@ -76,6 +77,7 @@ const SettingsStack = ({ navigation: _navigation }: NativeStackScreenProps<RootS
 			<Stack.Screen name={ROUTES.FONT_SIZE} component={FontSize} />
 			<Stack.Screen name={ROUTES.LANGUAGE} component={Language} />
 			<Stack.Screen name={ROUTES.USERDATA} component={Userdata} />
+			<Stack.Screen name={ROUTES.EMAIL_CHANGE} component={EmailChange} />
 			<Stack.Screen name={ROUTES.PHONE} component={Phone} />
 			<Stack.Screen name={ROUTES.TELEGRAM} component={Telegram} />
 			<Stack.Screen name={ROUTES.PASSWORD} component={Password} />

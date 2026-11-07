@@ -46,6 +46,7 @@ export type SettingsStackParamList = {
 	FontSize: undefined
 	Language: undefined
 	Userdata: undefined
+	EmailChange: undefined
 	Phone: undefined
 	Telegram: undefined
 	Password: undefined

@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer, useCallback } from 'react'
 import { Text, View, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
@@ -21,6 +21,8 @@ import { userApi } from '../../../api/userApi'
 
 // User AuthContext
 import { useAuth } from '../../../auth/AuthContext'
+import useProfileRefresh from '../../../hooks/useProfileRefresh'
+import usePullRefresh from '../../../hooks/usePullRefresh'
 
 // Notifications
 import { toast } from 'sonner-native'
@@ -83,31 +85,31 @@ const Phone = () => {
 	const [isLoading, setIsLoading] = useState(false)
 	const [isLoadingData, setIsLoadingData] = useState(true)
 
-	// Load user data on mount
-	useEffect(() => {
-		const loadUserData = async () => {
-			try {
-				setIsLoadingData(true)
-				const result = await userApi.getUserProfile()
-				if (result.success && result.data) {
-					// `phone_verified` viaja como boolean O como 0/1 de MySQL (BoolInt): se guarda tal cual.
-					setUserPhoneVerified((result.data.phone_verified as boolean) || false)
-					setUserPhone(result.data.phone || '')
-					if (result.data.phone) {
-						// Extract country code from phone
-						const phoneWithCode = result.data.phone
-						const countryData = countries.find(c => phoneWithCode.startsWith(c.dial_code))
-						if (countryData) {
-							setCountry(countryData.code)
-							setPhone(phoneWithCode.replace(countryData.dial_code, ''))
-						}
-					}
+	// Estado guardado del teléfono, también en el AuthContext (el P2P lo exige). La carga
+	// inicial rellena además el formulario; un tirón no pisa lo que se está tecleando
+	const refreshProfile = useProfileRefresh()
+	const loadUserData = useCallback(async ({ initial = false } = {}) => {
+		try {
+			const profile = await refreshProfile()
+			if (!profile) { return }
+			// `phone_verified` viaja como boolean O como 0/1 de MySQL (BoolInt): se guarda tal cual.
+			dispatchStatus({ type: 'set', field: 'userPhoneVerified', value: (profile.phone_verified as boolean) || false })
+			dispatchStatus({ type: 'set', field: 'userPhone', value: profile.phone || '' })
+			if (initial && profile.phone) {
+				// Extract country code from phone
+				const phoneWithCode = profile.phone
+				const countryData = countries.find(c => phoneWithCode.startsWith(c.dial_code))
+				if (countryData) {
+					dispatchForm({ type: 'set', field: 'country', value: countryData.code })
+					dispatchForm({ type: 'set', field: 'phone', value: phoneWithCode.replace(countryData.dial_code, '') })
 				}
-			} catch (error) { /* error loading user data */ }
-			finally { setIsLoadingData(false) }
-		}
-		loadUserData()
-	}, [])
+			}
+		} finally { if (initial) { setIsLoadingData(false) } }
+	}, [refreshProfile])
+
+	// Load user data on mount
+	useEffect(() => { loadUserData({ initial: true }) }, [loadUserData])
+	const refreshControl = usePullRefresh(() => loadUserData())
 
 	// Remove phone number
 	const handleRemovePhone = async () => {
@@ -209,6 +211,7 @@ const Phone = () => {
 	if (userPhoneVerified) {
 		return (
 			<PhoneVerifiedView
+				refreshControl={refreshControl}
 				userPhone={userPhone}
 				onRemove={handleRemovePhone}
 				isLoading={isLoading}
@@ -223,6 +226,7 @@ const Phone = () => {
 	return (
 		<>
 			<QPKeyboardView
+				scrollViewProps={{ refreshControl }}
 				actions={
 					!showPinInput ? (
 						<QPButton

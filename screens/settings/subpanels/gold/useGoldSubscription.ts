@@ -13,7 +13,7 @@
  * cuando liquida.
  */
 
-import { useState, useEffect, useCallback, useReducer } from 'react'
+import { useState, useEffect, useCallback, useReducer, useRef } from 'react'
 import { Platform, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
@@ -65,6 +65,8 @@ export type GoldSubscription = {
 	handleSubscribe: () => void
 	handleSubscribeIAP: () => void
 	handleRestore: () => void
+	/** Relee el estado de la suscripción (tirar para refrescar). */
+	refreshStatus: () => Promise<void>
 }
 
 // Plans — label/period viven como claves de i18n (settings.goldCheck.plans.*)
@@ -173,25 +175,26 @@ export default function useGoldSubscription(): GoldSubscription {
 		},
 	})
 
+	// Estado de la suscripción. Lo que cambie fuera (una compra en la web) llega al releer
+	const mountedRef = useRef(true)
+	useEffect(() => () => { mountedRef.current = false }, [])
+	const refreshStatus = useCallback(async () => {
+		try {
+			const result = await userApi.getGoldCheckStatus()
+			if (!mountedRef.current) return
+			if (result.success && result.data) {
+				const status = result.data as GoldPayload
+				setGoldCheckStatus(status.golden_check as boolean)
+				setGoldCheckExpire(status.golden_expire)
+			}
+		} catch (error) { /* error fetching gold check status */ }
+	}, [])
+
 	// Fetch gold status
 	useEffect(() => {
-		let cancelled = false
-		const getGoldCheckStatus = async () => {
-			setIsLoading(true)
-			try {
-				const result = await userApi.getGoldCheckStatus()
-				if (cancelled) return
-				if (result.success && result.data) {
-					const status = result.data as GoldPayload
-					setGoldCheckStatus(status.golden_check as boolean)
-					setGoldCheckExpire(status.golden_expire)
-				}
-			} catch (error) { /* error fetching gold check status */ }
-			finally { if (!cancelled) setIsLoading(false) }
-		}
-		getGoldCheckStatus()
-		return () => { cancelled = true }
-	}, [goldCheckStatus])
+		setIsLoading(true)
+		refreshStatus().finally(() => { if (mountedRef.current) setIsLoading(false) })
+	}, [goldCheckStatus, refreshStatus])
 
 	// Fetch IAP subscription products when connected
 	useEffect(() => {
@@ -350,5 +353,6 @@ export default function useGoldSubscription(): GoldSubscription {
 		handleSubscribe,
 		handleSubscribeIAP,
 		handleRestore,
+		refreshStatus,
 	}
 }

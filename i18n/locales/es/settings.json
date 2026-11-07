@@ -857,11 +857,6 @@
 			"enterCode": "Ingresa el código de 6 dígitos de tu app:",
 			"activateButton": "Activar 2FA"
 		},
-		"alerts": {
-			"deactivateTitle": "Desactivar 2FA",
-			"deactivateBody": "¿Estás seguro de que quieres desactivar la autenticación de dos factores? Tu cuenta será menos segura.",
-			"deactivateConfirm": "Desactivar"
-		},
 		"toasts": {
 			"loadFailed": "Error al cargar datos",
 			"secretGenerated": "Secreto generado",
@@ -878,6 +873,21 @@
 			"deactivateFailed": "No se pudo desactivar el 2FA",
 			"copiedTitle": "Copiado",
 			"copiedDescription": "Secreto copiado al portapapeles"
+		},
+		"recovery": {
+			"title": "Guarda tus códigos de recuperación",
+			"subtitle": "Te sirven si pierdes tu app autenticadora. Cada uno se usa una vez y no volverás a verlos.",
+			"copied": "Códigos copiados al portapapeles",
+			"doneButton": "Ya los guardé",
+			"leaveTitle": "¿Salir sin guardarlos?",
+			"leaveBody": "No podrás volver a ver estos códigos.",
+			"leaveConfirm": "Salir"
+		},
+		"deactivate": {
+			"title": "Desactivar 2FA",
+			"body": "Tu cuenta será menos segura.",
+			"codeLabel": "Código de tu app o de recuperación",
+			"confirmButton": "Desactivar"
 		}
 	},
 	"userdata": {
@@ -990,6 +1000,11 @@
 				"field": "Completar la ficha",
 				"support": "Escribir a soporte"
 			}
+		},
+		"emailChange": {
+			"change": "Cambiar",
+			"view": "Ver cambio",
+			"inProgress": "Cambio a {{email}} en curso"
 		}
 	},
 	"lightningAddress": {
@@ -1107,6 +1122,75 @@
 			"renamed": "Nombre cambiado",
 			"receiveUsd": "Tus próximos cobros entrarán en USD",
 			"receiveSats": "Tus próximos cobros entrarán en sats"
+		}
+	},
+	"emailChange": {
+		"title": "Cambiar correo",
+		"subtitle": "El correo es la llave para recuperar tu cuenta",
+		"notice": "Por seguridad, el cambio se hace {{hours}} horas después de confirmar. Mientras tanto tus retiros, envíos, compras con saldo y ventas P2P quedan pausados, y avisamos a tu correo actual.",
+		"newEmailLabel": "Correo nuevo",
+		"passwordLabel": "Contraseña",
+		"loadFailed": "No pudimos cargar el estado de tu correo. Inténtalo de nuevo.",
+		"until": "Podrás hacerlo a partir del {{date}}.",
+		"verify": {
+			"title": "Confirma el cambio",
+			"newEmailCodeLabel": "Código enviado a {{email}}",
+			"confirmButton": "Confirmar el cambio",
+			"backButton": "Usar otro correo"
+		},
+		"proof": {
+			"methods": {
+				"totp": "App autenticadora",
+				"telegram": "Telegram",
+				"old_email": "Correo actual"
+			},
+			"labels": {
+				"totp": "Código de tu app o de recuperación",
+				"telegram": "Código de Telegram",
+				"old_email": "Código de tu correo actual"
+			},
+			"sendTelegram": "Enviarme el código por Telegram",
+			"sendEmail": "Enviarme el código al correo",
+			"sendAgain": "Enviar otro código",
+			"oldEmailHint": "Te enviamos este código a tu correo actual."
+		},
+		"pending": {
+			"title": "Cambio de correo en curso",
+			"summary": "Tu correo cambiará a {{email}} el {{date}}.",
+			"paused": "Hasta entonces tus retiros, envíos, compras con saldo y ventas P2P están pausados.",
+			"sessions": "Al completarse se cerrará la sesión en todos tus dispositivos.",
+			"biometrics": "El acceso con biometría dejará de funcionar. Entra con tu correo nuevo y podrás activarlo otra vez.",
+			"cancelButton": "Cancelar el cambio",
+			"confirmCancelButton": "Confirmar cancelación"
+		},
+		"toasts": {
+			"codeSent": "Código enviado",
+			"scheduled": "Cambio de correo pedido. Te avisamos a tu correo actual.",
+			"cancelled": "Cambio de correo cancelado"
+		},
+		"errors": {
+			"generic": "No pudimos completar el cambio. Inténtalo de nuevo.",
+			"sessionRequired": "Inicia sesión de nuevo para continuar.",
+			"disabled": "El cambio de correo no está disponible para tu cuenta.",
+			"pending": "Ya tienes un cambio de correo en curso.",
+			"hold": "Tu cuenta tiene una pausa de seguridad activa. Podrás cambiar el correo cuando termine.",
+			"tooSoon": "Cambiaste tu correo hace poco.",
+			"quietPeriod": "Hubo un cambio de seguridad reciente en tu cuenta.",
+			"notPending": "Ese cambio ya no se puede cancelar.",
+			"notFound": "Ya no tienes un cambio de correo en curso.",
+			"emailSame": "Ese ya es el correo de tu cuenta.",
+			"emailInvalid": "Ese correo no sirve. Revisa que esté bien escrito y que no sea desechable.",
+			"emailTaken": "Ese correo no está disponible.",
+			"passwordInvalid": "La contraseña no es correcta.",
+			"newEmailCodeInvalid": "El código del correo nuevo no es correcto.",
+			"proofInvalid": "El código no es correcto.",
+			"proofNotAllowed": "Ese método ya no está disponible en tu cuenta.",
+			"expired": "La solicitud caducó. Empieza de nuevo.",
+			"tooManyAttempts": "Demasiados intentos. Empieza de nuevo.",
+			"rateLimited": "Demasiadas solicitudes. Espera unos minutos.",
+			"telegramUnavailable": "No pudimos escribirte por Telegram. Comprueba que no hayas bloqueado el bot o usa otro método.",
+			"emailSendFailed": "No pudimos enviar el código. Revisa el correo o inténtalo más tarde.",
+			"unavailable": "No pudimos registrar el cambio. Tu correo sigue igual: inténtalo de nuevo en unos minutos."
 		}
 	}
 }

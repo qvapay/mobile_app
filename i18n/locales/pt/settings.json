@@ -857,11 +857,6 @@
 			"enterCode": "Digite o código de 6 dígitos do seu app:",
 			"activateButton": "Ativar 2FA"
 		},
-		"alerts": {
-			"deactivateTitle": "Desativar 2FA",
-			"deactivateBody": "Tem certeza de que quer desativar a autenticação de dois fatores? Sua conta ficará menos segura.",
-			"deactivateConfirm": "Desativar"
-		},
 		"toasts": {
 			"loadFailed": "Erro ao carregar os dados",
 			"secretGenerated": "Segredo gerado",
@@ -878,6 +873,21 @@
 			"deactivateFailed": "Não foi possível desativar o 2FA",
 			"copiedTitle": "Copiado",
 			"copiedDescription": "Segredo copiado para a área de transferência"
+		},
+		"recovery": {
+			"title": "Guarde seus códigos de recuperação",
+			"subtitle": "Eles servem se você perder seu app autenticador. Cada um funciona uma vez e você não os verá de novo.",
+			"copied": "Códigos copiados para a área de transferência",
+			"doneButton": "Já guardei",
+			"leaveTitle": "Sair sem guardá-los?",
+			"leaveBody": "Você não poderá ver estes códigos de novo.",
+			"leaveConfirm": "Sair"
+		},
+		"deactivate": {
+			"title": "Desativar 2FA",
+			"body": "Sua conta ficará menos segura.",
+			"codeLabel": "Código do app ou de recuperação",
+			"confirmButton": "Desativar"
 		}
 	},
 	"userdata": {
@@ -990,6 +1000,11 @@
 				"field": "Completar o cadastro",
 				"support": "Escrever ao suporte"
 			}
+		},
+		"emailChange": {
+			"change": "Alterar",
+			"view": "Ver alteração",
+			"inProgress": "Alteração para {{email}} em andamento"
 		}
 	},
 	"lightningAddress": {
@@ -1107,6 +1122,75 @@
 			"renamed": "Nome trocado",
 			"receiveUsd": "Seus próximos pagamentos vão entrar em USD",
 			"receiveSats": "Seus próximos pagamentos vão entrar em sats"
+		}
+	},
+	"emailChange": {
+		"title": "Alterar e-mail",
+		"subtitle": "O e-mail é a chave para recuperar sua conta",
+		"notice": "Por segurança, a alteração acontece {{hours}} horas depois de confirmar. Até lá seus saques, envios, compras com saldo e vendas P2P ficam pausados, e avisamos seu e-mail atual.",
+		"newEmailLabel": "Novo e-mail",
+		"passwordLabel": "Senha",
+		"loadFailed": "Não foi possível carregar o status do seu e-mail. Tente de novo.",
+		"until": "Você poderá fazer isso a partir de {{date}}.",
+		"verify": {
+			"title": "Confirme a alteração",
+			"newEmailCodeLabel": "Código enviado para {{email}}",
+			"confirmButton": "Confirmar a alteração",
+			"backButton": "Usar outro e-mail"
+		},
+		"proof": {
+			"methods": {
+				"totp": "App autenticador",
+				"telegram": "Telegram",
+				"old_email": "E-mail atual"
+			},
+			"labels": {
+				"totp": "Código do app ou de recuperação",
+				"telegram": "Código do Telegram",
+				"old_email": "Código do seu e-mail atual"
+			},
+			"sendTelegram": "Enviar o código pelo Telegram",
+			"sendEmail": "Enviar o código por e-mail",
+			"sendAgain": "Enviar outro código",
+			"oldEmailHint": "Enviamos este código para o seu e-mail atual."
+		},
+		"pending": {
+			"title": "Alteração de e-mail em andamento",
+			"summary": "Seu e-mail mudará para {{email}} em {{date}}.",
+			"paused": "Até lá seus saques, envios, compras com saldo e vendas P2P estão pausados.",
+			"sessions": "Ao concluir, a sessão será encerrada em todos os seus dispositivos.",
+			"biometrics": "O acesso com biometria deixará de funcionar. Entre com o novo e-mail e você poderá ativá-lo de novo.",
+			"cancelButton": "Cancelar a alteração",
+			"confirmCancelButton": "Confirmar cancelamento"
+		},
+		"toasts": {
+			"codeSent": "Código enviado",
+			"scheduled": "Alteração de e-mail solicitada. Avisamos seu e-mail atual.",
+			"cancelled": "Alteração de e-mail cancelada"
+		},
+		"errors": {
+			"generic": "Não foi possível concluir a alteração. Tente de novo.",
+			"sessionRequired": "Entre de novo para continuar.",
+			"disabled": "A alteração de e-mail não está disponível para sua conta.",
+			"pending": "Você já tem uma alteração de e-mail em andamento.",
+			"hold": "Sua conta tem uma pausa de segurança ativa. Você poderá alterar o e-mail quando ela terminar.",
+			"tooSoon": "Você alterou seu e-mail há pouco tempo.",
+			"quietPeriod": "Houve uma alteração de segurança recente na sua conta.",
+			"notPending": "Essa alteração não pode mais ser cancelada.",
+			"notFound": "Você não tem mais uma alteração de e-mail em andamento.",
+			"emailSame": "Esse já é o e-mail da sua conta.",
+			"emailInvalid": "Esse e-mail não serve. Verifique se está escrito corretamente e se não é descartável.",
+			"emailTaken": "Esse e-mail não está disponível.",
+			"passwordInvalid": "A senha não está correta.",
+			"newEmailCodeInvalid": "O código do novo e-mail não está correto.",
+			"proofInvalid": "O código não está correto.",
+			"proofNotAllowed": "Esse método não está mais disponível na sua conta.",
+			"expired": "A solicitação expirou. Comece de novo.",
+			"tooManyAttempts": "Tentativas demais. Comece de novo.",
+			"rateLimited": "Solicitações demais. Aguarde alguns minutos.",
+			"telegramUnavailable": "Não foi possível falar com você pelo Telegram. Verifique se não bloqueou o bot ou use outro método.",
+			"emailSendFailed": "Não foi possível enviar o código. Verifique o e-mail ou tente mais tarde.",
+			"unavailable": "Não foi possível registrar a alteração. Seu e-mail continua o mesmo: tente de novo em alguns minutos."
 		}
 	}
 }

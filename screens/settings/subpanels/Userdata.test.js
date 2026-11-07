@@ -26,16 +26,17 @@ jest.mock('react-native/Libraries/Modal/Modal', () => ({ __esModule: true, defau
 // El useFocusEffect de React Navigation corre al enfocar la pantalla (el paquete real es
 // ESM y jest no lo transforma); `mockRefocus` es volver a ella desde otra
 let mockRefocus
+const mockNavigate = jest.fn()
 jest.mock('@react-navigation/native', () => {
 	const { useEffect } = require('react')
 	return {
-		useNavigation: () => ({ navigate: jest.fn() }),
+		useNavigation: () => ({ navigate: mockNavigate }),
 		useFocusEffect: (effect) => { useEffect(() => { mockRefocus = effect; return effect() }, [effect]) },
 	}
 })
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn(), info: jest.fn() } }))
 jest.mock('../../../api/userApi', () => ({
-	userApi: { verifySsn: jest.fn(), getCip: jest.fn(), getUserProfile: jest.fn(), updateUser: jest.fn(), getDepositEligibility: jest.fn() },
+	userApi: { verifySsn: jest.fn(), getCip: jest.fn(), getUserProfile: jest.fn(), updateUser: jest.fn(), getDepositEligibility: jest.fn(), getEmailChangeState: jest.fn() },
 }))
 jest.mock('../../../api/transferApi', () => ({ transferApi: {} }))
 
@@ -90,6 +91,7 @@ beforeEach(() => {
 	userApi.getUserProfile.mockResolvedValue({ success: true, data: { name: 'Ana', lastname: 'Diaz', username: 'ana', email: 'ana@example.invalid', bio: '' } })
 	userApi.updateUser.mockResolvedValue({ success: true, data: { name: 'Ana', lastname: 'Diaz' } })
 	userApi.getDepositEligibility.mockResolvedValue({ success: true, data: {} })
+	userApi.getEmailChangeState.mockResolvedValue({ success: true, data: { enabled: false } })
 	serveCip(NO_MATCH)
 })
 afterEach(async () => {
@@ -206,5 +208,47 @@ describe('lo que permite la ficha se refresca', () => {
 		await settle()
 		expect(byTestId(tree, 'cip-ssn')[0].props.value).toBe('987-65-4321')
 		expect(verifyButton(tree).props.disabled).toBe(true)
+	})
+})
+
+describe('cambiar el correo', () => {
+	const ENABLED = { enabled: true, can_start: true, problem: null, methods: ['totp'], hold_hours: 48, pending: null }
+	const PENDING = { uuid: 'u', new_email: 'nu***@e***.com', execute_after: '2026-11-08T20:00:00.000Z', cancel_methods: ['totp'] }
+	const entry = (tree) => tree.root.findAll(node => node.props.testID === 'userdata-email-change')
+	const serveEmailChange = (data) => userApi.getEmailChangeState.mockResolvedValue({ success: true, data })
+
+	test('sin el flujo abierto no se ofrece, y el campo sigue bloqueado', async () => {
+		const tree = await open()
+		expect(entry(tree)).toHaveLength(0)
+		expect(tree.root.findAllByType('QPInput').find(input => input.props.prefixIconName === 'envelope').props.editable).toBe(false)
+	})
+
+	test('si la consulta falla tampoco se ofrece', async () => {
+		userApi.getEmailChangeState.mockResolvedValue({ success: false, error: 'x' })
+		const tree = await open()
+		expect(entry(tree)).toHaveLength(0)
+	})
+
+	test('con el flujo abierto ofrece cambiarlo y lleva a la pantalla', async () => {
+		serveEmailChange(ENABLED)
+		const tree = await open()
+		expect(hasText(tree, 'Cambiar')).toBe(true)
+		await act(async () => { entry(tree)[0].props.onPress() })
+		expect(mockNavigate).toHaveBeenCalledWith('EmailChange')
+	})
+
+	test('con un cambio en curso enseña a qué correo y lleva a verlo', async () => {
+		serveEmailChange({ ...ENABLED, can_start: false, pending: PENDING })
+		const tree = await open()
+		expect(hasText(tree, 'Ver cambio')).toBe(true)
+		expect(hasText(tree, 'Cambio a nu***@e***.com en curso')).toBe(true)
+	})
+
+	test('al volver a la pantalla relee el estado', async () => {
+		const tree = await open()
+		serveEmailChange(ENABLED)
+		await act(async () => { mockRefocus() })
+		await settle()
+		expect(entry(tree)).toHaveLength(1)
 	})
 })

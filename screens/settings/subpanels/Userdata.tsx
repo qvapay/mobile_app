@@ -2,7 +2,7 @@ import { useState, useEffect, useReducer, useCallback } from 'react'
 import { Text, View } from 'react-native'
 import { Trans, useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 
 // i18n (call-time para el helper de módulo + locale de fechas)
 import i18n, { getDateLocale } from '../../../i18n'
@@ -18,13 +18,20 @@ import QPKeyboardView from '../../../ui/QPKeyboardView'
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
+import QPPressable from '../../../ui/particles/QPPressable'
 
 // API
 import { userApi } from '../../../api/userApi'
 
+// Routes
+import { ROUTES } from '../../../routes'
+
 // Ficha CIP («Datos de tu cuenta») y verificación del SSN
 import { USER_CIP_QUERY } from '../../../hooks/useOfacQueries'
 import { DEPOSIT_ELIGIBILITY_KEY } from '../../../hooks/useDepositEligibilityQuery'
+import useEmailChangeQuery, { EMAIL_CHANGE_KEY } from '../../../hooks/useEmailChangeQuery'
+import useProfileRefresh from '../../../hooks/useProfileRefresh'
+import usePullRefresh from '../../../hooks/usePullRefresh'
 import CipSection from './userdata/CipSection'
 import SsnVerificationBlock from './userdata/SsnVerificationBlock'
 import { EMPTY_CIP_FORM, buildCipPayload, cipFormFromProfile, isCipDirty, validateCip } from './userdata/cipForm'
@@ -41,6 +48,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Tipos
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { SettingsStackParamList } from '../../../types/navigation'
 import type { Theme } from '../../../theme/ThemeContext'
 import type { TextStyles } from '../../../theme/themeUtils'
 import type { User } from '../../../types/domain'
@@ -110,6 +119,7 @@ const Userdata = () => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const navigation = useNavigation<NativeStackNavigationProp<SettingsStackParamList>>()
 
 	// States
 	const [isLoading, setIsLoading] = useState(false)
@@ -132,6 +142,9 @@ const Userdata = () => {
 	// vuelve a sincronizar con lo que devuelva el servidor
 	const queryClient = useQueryClient()
 	const { data: cip } = useQuery(USER_CIP_QUERY)
+	// El correo no se edita aquí: el servidor dice si se ofrece el cambio y si hay uno en curso
+	const { data: emailChange } = useEmailChangeQuery()
+	const emailChangePending = emailChange?.enabled ? emailChange.pending : null
 	const [cipForm, setCipForm] = useState<CipForm>(EMPTY_CIP_FORM)
 	const [cipLoaded, setCipLoaded] = useState<CipForm>(EMPTY_CIP_FORM)
 	const [cipTouched, setCipTouched] = useState(false)
@@ -141,6 +154,7 @@ const Userdata = () => {
 	useFocusEffect(useCallback(() => {
 		// Sin cancelar la petición que ya lance el montaje con la caché caducada: serían dos
 		queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey }, { cancelRefetch: false })
+		queryClient.invalidateQueries({ queryKey: EMAIL_CHANGE_KEY }, { cancelRefetch: false })
 	}, [queryClient]))
 	useEffect(() => {
 		if (!cip) { return }
@@ -166,6 +180,25 @@ const Userdata = () => {
 	useEffect(() => {
 		loadUserData()
 	}, [])
+
+	// Tirar relee los ESTADOS (verificaciones, ficha CIP, cambio de correo), nunca el
+	// formulario: pisaría lo que se está editando
+	const refreshProfile = useProfileRefresh()
+	const refreshControl = usePullRefresh(async () => {
+		const [profile] = await Promise.all([
+			refreshProfile(),
+			queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey }),
+			queryClient.invalidateQueries({ queryKey: EMAIL_CHANGE_KEY }),
+		])
+		if (profile) {
+			setUserStatus({
+				kyc: profile.kyc || false,
+				phone_verified: profile.phone_verified || false,
+				telegram_id: profile.telegram_id || '',
+				createdAt: (profile.createdAt as string) || '',
+			})
+		}
+	})
 
 	// Load user data from API
 	const loadUserData = async () => {
@@ -252,6 +285,7 @@ const Userdata = () => {
 
 	return (
 		<QPKeyboardView
+			scrollViewProps={{ refreshControl }}
 			actions={
 				<QPButton
 					title={t('settings.userdata.submitButton')}
@@ -288,6 +322,20 @@ const Userdata = () => {
 					style={{ opacity: 0.6 }}
 					prefixIconName="envelope"
 				/>
+				{emailChange?.enabled && (
+					<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 8 }}>
+						{emailChangePending && (
+							<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1, marginRight: 12 }]}>
+								{t('settings.userdata.emailChange.inProgress', { email: emailChangePending.new_email })}
+							</Text>
+						)}
+						<QPPressable onPress={() => navigation.navigate(ROUTES.EMAIL_CHANGE)} hitSlop={8} testID="userdata-email-change">
+							<Text style={[textStyles.caption, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }]}>
+								{t(emailChangePending ? 'settings.userdata.emailChange.view' : 'settings.userdata.emailChange.change')}
+							</Text>
+						</QPPressable>
+					</View>
+				)}
 			</View>
 
 			{/* Personal info section */}

@@ -857,11 +857,6 @@
 			"enterCode": "Enter the 6-digit code from your app:",
 			"activateButton": "Enable 2FA"
 		},
-		"alerts": {
-			"deactivateTitle": "Disable 2FA",
-			"deactivateBody": "Are you sure you want to disable two-factor authentication? Your account will be less secure.",
-			"deactivateConfirm": "Disable"
-		},
 		"toasts": {
 			"loadFailed": "Couldn't load your data",
 			"secretGenerated": "Secret generated",
@@ -878,6 +873,21 @@
 			"deactivateFailed": "Couldn't disable 2FA",
 			"copiedTitle": "Copied",
 			"copiedDescription": "Secret copied to clipboard"
+		},
+		"recovery": {
+			"title": "Save your recovery codes",
+			"subtitle": "You'll need them if you lose your authenticator app. Each one works once and you won't see them again.",
+			"copied": "Codes copied to clipboard",
+			"doneButton": "I've saved them",
+			"leaveTitle": "Leave without saving them?",
+			"leaveBody": "You won't be able to see these codes again.",
+			"leaveConfirm": "Leave"
+		},
+		"deactivate": {
+			"title": "Turn off 2FA",
+			"body": "Your account will be less secure.",
+			"codeLabel": "Code from your app or a recovery code",
+			"confirmButton": "Turn off"
 		}
 	},
 	"userdata": {
@@ -990,6 +1000,11 @@
 				"field": "Complete your details",
 				"support": "Write to support"
 			}
+		},
+		"emailChange": {
+			"change": "Change",
+			"view": "View change",
+			"inProgress": "Change to {{email}} in progress"
 		}
 	},
 	"lightningAddress": {
@@ -1107,6 +1122,75 @@
 			"renamed": "Name changed",
 			"receiveUsd": "Your next payments will land in USD",
 			"receiveSats": "Your next payments will land in sats"
+		}
+	},
+	"emailChange": {
+		"title": "Change email",
+		"subtitle": "Your email is the key to recovering your account",
+		"notice": "For your security, the change happens {{hours}} hours after you confirm. Until then your withdrawals, sends, balance purchases and P2P sales are paused, and we notify your current email.",
+		"newEmailLabel": "New email",
+		"passwordLabel": "Password",
+		"loadFailed": "Couldn't load your email status. Try again.",
+		"until": "You can do it from {{date}}.",
+		"verify": {
+			"title": "Confirm the change",
+			"newEmailCodeLabel": "Code sent to {{email}}",
+			"confirmButton": "Confirm the change",
+			"backButton": "Use another email"
+		},
+		"proof": {
+			"methods": {
+				"totp": "Authenticator app",
+				"telegram": "Telegram",
+				"old_email": "Current email"
+			},
+			"labels": {
+				"totp": "Code from your app or a recovery code",
+				"telegram": "Telegram code",
+				"old_email": "Code from your current email"
+			},
+			"sendTelegram": "Send me the code on Telegram",
+			"sendEmail": "Email me the code",
+			"sendAgain": "Send another code",
+			"oldEmailHint": "We sent this code to your current email."
+		},
+		"pending": {
+			"title": "Email change in progress",
+			"summary": "Your email will change to {{email}} on {{date}}.",
+			"paused": "Until then your withdrawals, sends, balance purchases and P2P sales are paused.",
+			"sessions": "When it completes, you'll be logged out on all your devices.",
+			"biometrics": "Biometric login will stop working. Log in with your new email and you can turn it on again.",
+			"cancelButton": "Cancel the change",
+			"confirmCancelButton": "Confirm cancellation"
+		},
+		"toasts": {
+			"codeSent": "Code sent",
+			"scheduled": "Email change requested. We notified your current email.",
+			"cancelled": "Email change cancelled"
+		},
+		"errors": {
+			"generic": "Couldn't complete the change. Try again.",
+			"sessionRequired": "Log in again to continue.",
+			"disabled": "Email change isn't available for your account.",
+			"pending": "You already have an email change in progress.",
+			"hold": "Your account has an active security pause. You can change your email when it ends.",
+			"tooSoon": "You changed your email recently.",
+			"quietPeriod": "There was a recent security change on your account.",
+			"notPending": "That change can no longer be cancelled.",
+			"notFound": "You no longer have an email change in progress.",
+			"emailSame": "That's already your account email.",
+			"emailInvalid": "That email won't work. Check it's spelled correctly and isn't disposable.",
+			"emailTaken": "That email isn't available.",
+			"passwordInvalid": "That password isn't correct.",
+			"newEmailCodeInvalid": "The code from your new email isn't correct.",
+			"proofInvalid": "That code isn't correct.",
+			"proofNotAllowed": "That method is no longer available on your account.",
+			"expired": "The request expired. Start again.",
+			"tooManyAttempts": "Too many attempts. Start again.",
+			"rateLimited": "Too many requests. Wait a few minutes.",
+			"telegramUnavailable": "Couldn't reach you on Telegram. Check you haven't blocked the bot, or use another method.",
+			"emailSendFailed": "Couldn't send the code. Check the email or try again later.",
+			"unavailable": "Couldn't register the change. Your email stays the same: try again in a few minutes."
 		}
 	}
 }

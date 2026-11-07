@@ -38,6 +38,7 @@ import axios from 'axios'
 import * as Keychain from 'react-native-keychain'
 import {
 	registerLoadingCallbacks,
+	registerSessionExpiredHandler,
 	unregisterLoadingCallbacks,
 	setAuthToken,
 	getAuthToken,
@@ -150,17 +151,59 @@ describe('response interceptor', () => {
 		expect(stop).not.toHaveBeenCalled()
 	})
 
-	test('401 clears the Keychain token and rejects with the original error', async () => {
-		Keychain.resetGenericPassword.mockResolvedValue()
-		const err = { config: {}, response: { status: 401 } }
-		await expect(onResponseError(err)).rejects.toBe(err)
-		expect(Keychain.resetGenericPassword).toHaveBeenCalledWith(AUTH_SERVICE)
-	})
+	describe('401', () => {
 
-	test('a 401 on an anonymous request does NOT clear the token (it never carried it)', async () => {
-		const err = { config: { anonymous: true }, response: { status: 401 } }
-		await expect(onResponseError(err)).rejects.toBe(err)
-		expect(Keychain.resetGenericPassword).not.toHaveBeenCalled()
+		const unauthorized = (headers = { Authorization: 'Bearer tok-1' }, extra = {}) => ({ config: { headers, ...extra }, response: { status: 401, data: { error: 'Unauthorized' } } })
+		const storedToken = (password) => Keychain.getGenericPassword.mockResolvedValue(password ? { password } : false)
+		let onExpired
+
+		beforeEach(() => {
+			Keychain.getGenericPassword.mockReset()
+			Keychain.resetGenericPassword.mockReset()
+			Keychain.resetGenericPassword.mockResolvedValue()
+			onExpired = jest.fn()
+			registerSessionExpiredHandler(onExpired)
+		})
+		afterEach(() => { registerSessionExpiredHandler(null) })
+
+		test('with the current token it clears it, reports it and rejects with the original error', async () => {
+			storedToken('tok-1')
+			const err = unauthorized()
+			await expect(onResponseError(err)).rejects.toBe(err)
+			expect(Keychain.resetGenericPassword).toHaveBeenCalledWith(AUTH_SERVICE)
+			expect(onExpired).toHaveBeenCalledTimes(1)
+		})
+
+		test('a late 401 from an older session leaves the new one alone', async () => {
+			storedToken('tok-2')
+			const err = unauthorized({ Authorization: 'Bearer tok-1' })
+			await expect(onResponseError(err)).rejects.toBe(err)
+			expect(Keychain.resetGenericPassword).not.toHaveBeenCalled()
+			expect(onExpired).not.toHaveBeenCalled()
+		})
+
+		test('a request without the bearer says nothing about the session', async () => {
+			storedToken('tok-1')
+			const err = unauthorized({})
+			await expect(onResponseError(err)).rejects.toBe(err)
+			expect(Keychain.resetGenericPassword).not.toHaveBeenCalled()
+			expect(onExpired).not.toHaveBeenCalled()
+		})
+
+		test('with no token left there is nothing to end (requests in flight after the first 401)', async () => {
+			storedToken(null)
+			const err = unauthorized()
+			await expect(onResponseError(err)).rejects.toBe(err)
+			expect(onExpired).not.toHaveBeenCalled()
+		})
+
+		test('an anonymous request does NOT clear the token (it never carried it)', async () => {
+			const err = unauthorized({}, { anonymous: true })
+			await expect(onResponseError(err)).rejects.toBe(err)
+			expect(Keychain.getGenericPassword).not.toHaveBeenCalled()
+			expect(Keychain.resetGenericPassword).not.toHaveBeenCalled()
+			expect(onExpired).not.toHaveBeenCalled()
+		})
 	})
 
 	test('403 and 422 pass through WITHOUT touching the token (screen handles them)', async () => {

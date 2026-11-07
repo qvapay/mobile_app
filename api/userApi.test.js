@@ -267,10 +267,17 @@ describe('userApi gold', () => {
 		expect(result).toEqual({ success: true, data: { message: 'Gold activado' }, status: 200 })
 	})
 
-	test('purchaseGold returns error.message and status on failure', async () => {
-		apiClient.post.mockRejectedValue(apiError(402, { error: 'Saldo insuficiente' }))
+	test('purchaseGold surfaces the server text and keeps the body on failure', async () => {
+		const body = { error: 'Tienes un cambio de correo en curso.', code: 'SECURITY_HOLD', hold: 'email_change' }
+		apiClient.post.mockRejectedValue(apiError(403, body))
 
-		expect(await userApi.purchaseGold({ uuid: 'u-1', duration: '1m' })).toEqual({ success: false, error: 'Request failed', status: 402 })
+		expect(await userApi.purchaseGold({ uuid: 'u-1', duration: '1m' })).toEqual({ success: false, error: body.error, status: 403, details: body })
+	})
+
+	test('purchaseGold falls back to the client message without a response', async () => {
+		apiClient.post.mockRejectedValue({ message: 'No se ha podido conectar' })
+
+		expect(await userApi.purchaseGold({ uuid: 'u-1', duration: '1m' })).toEqual({ success: false, error: 'No se ha podido conectar', status: undefined, details: undefined })
 	})
 
 	test('validateGoldReceipt posts the receipt payload', async () => {
@@ -511,7 +518,7 @@ describe('userApi 2FA', () => {
 
 		const result = await userApi.generate2FA()
 
-		expect(apiClient.post).toHaveBeenCalledWith('/auth/create-2fa', {})
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/password', {})
 		expect(result).toEqual({ success: true, data, status: 200 })
 	})
 
@@ -531,7 +538,7 @@ describe('userApi 2FA', () => {
 
 		const result = await userApi.activate2FA({ code: '123456', secret: 'ABC123' })
 
-		expect(apiClient.post).toHaveBeenCalledWith('/auth/create-2fa', { code: '123456', secret: 'ABC123' })
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/password', { code: '123456', secret: 'ABC123' })
 		expect(result).toEqual({ success: true, data: { activated: true }, status: 200 })
 	})
 
@@ -541,19 +548,98 @@ describe('userApi 2FA', () => {
 		expect((await userApi.activate2FA({ code: '000000', secret: 's' })).error).toBe('No se pudo activar el 2FA')
 	})
 
-	test('deactivate2FA posts an empty body to /auth/reset-2fa', async () => {
-		apiClient.post.mockResolvedValue(ok({ reset: true }))
+	test('deactivate2FA proves the factor on /user/update/password', async () => {
+		apiClient.post.mockResolvedValue(ok({ result: 'OK' }))
 
-		const result = await userApi.deactivate2FA()
+		const result = await userApi.deactivate2FA({ code: 'ABCD-2345' })
 
-		expect(apiClient.post).toHaveBeenCalledWith('/auth/reset-2fa', {})
-		expect(result).toEqual({ success: true, data: { reset: true }, status: 200 })
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/password', { delete: true, code: 'ABCD-2345' })
+		expect(result).toEqual({ success: true, data: { result: 'OK' }, status: 200 })
+	})
+
+	test('deactivate2FA keeps the code of a wrong proof in details', async () => {
+		apiClient.post.mockRejectedValue(apiError(422, { error: 'Código incorrecto', code: 'OTP_REQUIRED' }))
+
+		expect(await userApi.deactivate2FA({ code: '000000' })).toEqual({
+			success: false,
+			error: 'Código incorrecto',
+			details: { error: 'Código incorrecto', code: 'OTP_REQUIRED' },
+			status: 422,
+		})
 	})
 
 	test('deactivate2FA returns the network fallback on a connection error', async () => {
 		apiClient.post.mockRejectedValue(Object.assign(new Error(), { message: '' }))
 
-		expect(await userApi.deactivate2FA()).toEqual({ success: false, error: 'Ha ocurrido un error de red', status: undefined })
+		expect(await userApi.deactivate2FA({ code: '123456' })).toEqual({ success: false, error: 'Ha ocurrido un error de red', status: undefined })
+	})
+})
+
+describe('userApi email change', () => {
+
+	test('getEmailChangeState reads the state', async () => {
+		const data = { enabled: false }
+		apiClient.get.mockResolvedValue(ok(data))
+
+		expect(await userApi.getEmailChangeState()).toEqual({ success: true, data, status: 200 })
+		expect(apiClient.get).toHaveBeenCalledWith('/user/update/email')
+	})
+
+	test('startEmailChange posts the email and the password', async () => {
+		const data = { ok: true, new_email: 'nu***@e***.com', methods: ['totp'] }
+		apiClient.post.mockResolvedValue(ok(data))
+
+		const result = await userApi.startEmailChange({ new_email: 'nuevo@ejemplo.com', password: 'secreta' })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'start', new_email: 'nuevo@ejemplo.com', password: 'secreta' })
+		expect(result.data).toEqual(data)
+	})
+
+	test('sendEmailChangeCode leaves the purpose out of the request flow', async () => {
+		apiClient.post.mockResolvedValue(ok({ ok: true }))
+
+		await userApi.sendEmailChangeCode({ channel: 'telegram' })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'send_code', channel: 'telegram' })
+	})
+
+	test('sendEmailChangeCode marks the code for cancelling', async () => {
+		apiClient.post.mockResolvedValue(ok({ ok: true }))
+
+		await userApi.sendEmailChangeCode({ channel: 'old_email', purpose: 'cancel' })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'send_code', channel: 'old_email', purpose: 'cancel' })
+	})
+
+	test('confirmEmailChange posts both codes and takes the 201 as a success', async () => {
+		const data = { ok: true, pending: { uuid: 'u', new_email: 'nu***@e***.com', execute_after: '2026-11-08T20:00:00.000Z' } }
+		apiClient.post.mockResolvedValue({ data, status: 201 })
+
+		const result = await userApi.confirmEmailChange({ new_email_code: '123456', proof: { type: 'totp', code: '654321' } })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'confirm', new_email_code: '123456', proof: { type: 'totp', code: '654321' } })
+		expect(result).toEqual({ success: true, data, status: 201 })
+	})
+
+	test('cancelEmailChange posts the proof', async () => {
+		apiClient.post.mockResolvedValue(ok({ ok: true }))
+
+		await userApi.cancelEmailChange({ proof: { type: 'telegram', code: '111222' } })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/user/update/email', { action: 'cancel', proof: { type: 'telegram', code: '111222' } })
+	})
+
+	test('a failure keeps the code and the date the screen needs', async () => {
+		const body = { error: 'Solo puedes cambiarlo cada 30 días.', code: 'EMAIL_CHANGE_TOO_SOON', until: '2026-12-01T00:00:00.000Z' }
+		apiClient.post.mockRejectedValue(apiError(409, body))
+
+		expect(await userApi.startEmailChange({ new_email: 'a@b.co', password: 'x' })).toEqual({ success: false, error: body.error, details: body, status: 409 })
+	})
+
+	test('a connection failure arrives without a code', async () => {
+		apiClient.post.mockRejectedValue(Object.assign(new Error(), { message: '' }))
+
+		expect(await userApi.cancelEmailChange({ proof: { type: 'totp', code: '123456' } })).toEqual({ success: false, error: 'Ha ocurrido un error de red', status: undefined })
 	})
 })
 
