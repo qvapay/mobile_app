@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { useQueryClient } from '@tanstack/react-query'
@@ -16,9 +16,6 @@ import { useContainerStyles, useTextStyles } from '../../../../theme/themeUtils'
 import QPKeyboardView from '../../../../ui/QPKeyboardView'
 import QPButton from '../../../../ui/particles/QPButton'
 
-// Icons
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-
 // Auth
 import { useAuth } from '../../../../auth/AuthContext'
 import { forgetEmailBeforeChange, rememberEmailBeforeChange } from '../../../../helpers/biometricEmailChange'
@@ -29,6 +26,7 @@ import { EMAIL_CHANGE_KEY } from '../../../../hooks/useEmailChangeQuery'
 
 // Paso compartido + reglas
 import EmailChangeProofField from './EmailChangeProofField'
+import EmailChangeInfoRow from './EmailChangeInfoRow'
 import useEmailChangeFailure from './useEmailChangeFailure'
 import { formatEmailChangeDate, pickMethod, proofIsComplete } from './emailChangeRules'
 
@@ -127,17 +125,19 @@ const EmailChangePending = ({ pending, refreshControl }: { pending: Pending, ref
 			}
 		>
 			<Text style={textStyles.h1}>{t('settings.emailChange.pending.title')}</Text>
-			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-				{t('settings.emailChange.pending.summary', { email: pending.new_email, date })}
-			</Text>
+			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('settings.emailChange.pending.subtitle')}</Text>
 
-			<View style={[containerStyles.card, { marginTop: 20 }]}>
-				{items.map(({ icon, text }, index) => (
-					<View key={icon} style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: index ? 12 : 0 }}>
-						<FontAwesome6 name={icon} size={16} color={theme.colors.primary} iconStyle="solid" />
-						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>{text}</Text>
-					</View>
-				))}
+			{/* Correo y fecha en su propia tarjeta: dentro de una frase, el correo enmascarado se partía en «.com» */}
+			<View style={[containerStyles.card, styles.firstCard]}>
+				<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{t('settings.emailChange.pending.newEmailLabel')}</Text>
+				<Text style={[textStyles.h5, styles.value]} numberOfLines={1} testID="email-change-pending-email">{pending.new_email}</Text>
+				<View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+				<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{t('settings.emailChange.pending.dateLabel')}</Text>
+				<Text style={[textStyles.h5, styles.value]} testID="email-change-pending-date">{date}</Text>
+			</View>
+
+			<View style={[containerStyles.card, styles.list]}>
+				{items.map(({ icon, text }) => <EmailChangeInfoRow key={icon} icon={icon} text={text} />)}
 			</View>
 
 			{cancelling && method && (
@@ -160,3 +160,20 @@ const EmailChangePending = ({ pending, refreshControl }: { pending: Pending, ref
 }
 
 export default EmailChangePending
+
+const styles = StyleSheet.create({
+	firstCard: {
+		marginTop: 20,
+	},
+	value: {
+		marginTop: 4,
+	},
+	divider: {
+		height: StyleSheet.hairlineWidth,
+		opacity: 0.5,
+		marginVertical: 14,
+	},
+	list: {
+		gap: 16,
+	},
+})

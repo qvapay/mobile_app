@@ -1156,7 +1156,9 @@
 		},
 		"pending": {
 			"title": "Cambio de correo en curso",
-			"summary": "Tu correo cambiará a {{email}} el {{date}}.",
+			"subtitle": "Puedes cancelarlo hasta esa fecha",
+			"newEmailLabel": "Correo nuevo",
+			"dateLabel": "Fecha del cambio",
 			"paused": "Hasta entonces tus retiros, envíos, compras con saldo y ventas P2P están pausados.",
 			"sessions": "Al completarse se cerrará la sesión en todos tus dispositivos.",
 			"biometrics": "El acceso con biometría dejará de funcionar. Entra con tu correo nuevo y podrás activarlo otra vez.",

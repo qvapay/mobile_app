@@ -326,7 +326,7 @@ describe('paso 2', () => {
 		await type('email-change-proof', '654321')
 		userApi.getEmailChangeState.mockResolvedValue({ success: false, error: 'x' })
 		await press('email-change-confirm')
-		expect(hasText('Tu correo cambiará a nu***@e***.com')).toBe(true)
+		expect(hasText('nu***@e***.com')).toBe(true)
 		expect(toast.success).toHaveBeenCalledTimes(1)
 	})
 
@@ -398,7 +398,8 @@ describe('cambio en curso', () => {
 
 	test('avisa de lo que va a pasar', async () => {
 		await open()
-		expect(hasText('Tu correo cambiará a nu***@e***.com')).toBe(true)
+		expect(one('email-change-pending-email').props.children).toBe('nu***@e***.com')
+		expect(one('email-change-pending-date').props.children).toMatch(/noviembre/)
 		expect(hasText('Al completarse se cerrará la sesión')).toBe(true)
 		expect(hasText('El acceso con biometría dejará de funcionar')).toBe(true)
 	})

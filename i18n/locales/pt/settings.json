@@ -1156,7 +1156,9 @@
 		},
 		"pending": {
 			"title": "Alteração de e-mail em andamento",
-			"summary": "Seu e-mail mudará para {{email}} em {{date}}.",
+			"subtitle": "Você pode cancelá-la até essa data",
+			"newEmailLabel": "Novo e-mail",
+			"dateLabel": "Data da alteração",
 			"paused": "Até lá seus saques, envios, compras com saldo e vendas P2P estão pausados.",
 			"sessions": "Ao concluir, a sessão será encerrada em todos os seus dispositivos.",
 			"biometrics": "O acesso com biometria deixará de funcionar. Entre com o novo e-mail e você poderá ativá-lo de novo.",

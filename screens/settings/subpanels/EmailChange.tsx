@@ -15,9 +15,6 @@ import QPKeyboardView from '../../../ui/QPKeyboardView'
 import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
 
-// Icons
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-
 // Estado
 import useEmailChangeQuery from '../../../hooks/useEmailChangeQuery'
 import usePullRefresh from '../../../hooks/usePullRefresh'
@@ -25,6 +22,7 @@ import usePullRefresh from '../../../hooks/usePullRefresh'
 // Vistas + reglas
 import EmailChangePending from './emailchange/EmailChangePending'
 import EmailChangeRequest from './emailchange/EmailChangeRequest'
+import EmailChangeInfoRow from './emailchange/EmailChangeInfoRow'
 import { emailChangeView, formatEmailChangeDate, problemMessageKey } from './emailchange/emailChangeRules'
 
 // Tipos
@@ -47,12 +45,8 @@ const EmailChangeBlocked = ({ problem, refreshControl }: { problem: EmailChangeP
 	return (
 		<QPKeyboardView scrollViewProps={{ refreshControl }}>
 			<Text style={textStyles.h1}>{t('settings.emailChange.title')}</Text>
-			<View style={[containerStyles.card, { flexDirection: 'row', alignItems: 'flex-start', marginTop: 20 }]}>
-				<FontAwesome6 name="circle-info" size={16} color={theme.colors.warning} iconStyle="solid" />
-				<View style={{ flex: 1, marginLeft: 12 }}>
-					<Text style={[textStyles.body, { color: theme.colors.primaryText }]}>{message}</Text>
-					{!!date && <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginTop: 6 }]}>{t('settings.emailChange.until', { date })}</Text>}
-				</View>
+			<View style={[containerStyles.card, { marginTop: 20 }]}>
+				<EmailChangeInfoRow icon="circle-info" tint={theme.colors.warning} text={message} detail={date ? t('settings.emailChange.until', { date }) : undefined} strong />
 			</View>
 		</QPKeyboardView>
 	)
