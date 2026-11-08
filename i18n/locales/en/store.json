@@ -173,6 +173,12 @@
 			"expiresAt": "Expires",
 			"instructions": "Instructions"
 		},
+		"extraCode": {
+			"accessNumber": "Access Number",
+			"securityCode": "Security code",
+			"pin": "PIN",
+			"reference": "Reference number"
+		},
 		"toasts": {
 			"loadError": "Couldn't load the details"
 		}

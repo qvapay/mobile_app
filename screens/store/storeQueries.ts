@@ -93,6 +93,9 @@ export type StorePurchase = {
 	amount?: number | string | null
 }
 
+/** Tipo del segundo dato de una gift card (`service_data.extra_code_kind`). */
+export type ExtraCodeKind = 'access_number' | 'security_code' | 'pin' | 'reference'
+
 /** Recibo de `GET /store/my/{id}` (los valores se pintan crudos con `String()`). */
 export type StorePurchaseDetail = {
 	id?: number | string
@@ -108,6 +111,10 @@ export type StorePurchaseDetail = {
 		providerTransactionId?: string | null
 		providerStatus?: string | null
 		receipt?: Record<string, unknown> | null
+		/** Qué es `receipt.extraCode` (Access Number de Target, número de serie…); null si no hay */
+		extra_code_kind?: ExtraCodeKind | null
+		/** Etiqueta en español del backend, para tipos que la app aún no conoce */
+		extra_code_label?: string | null
 	} | null
 	transaction?: { uuid?: string } | null
 }
