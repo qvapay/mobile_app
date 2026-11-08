@@ -69,6 +69,19 @@ const receiptLabelKeys: Record<string, string> = {
 	instructions: 'store.purchaseDetail.receiptLabels.instructions',
 }
 
+// `receipt.extraCode` es el segundo dato de la tarjeta: el Access Number que
+// Target pide junto al número de tarjeta, o un número de serie (`reference`).
+// Su etiqueta depende de `service_data.extra_code_kind`.
+const extraCodeLabelKeys: Record<string, string> = {
+	access_number: 'store.purchaseDetail.extraCode.accessNumber',
+	security_code: 'store.purchaseDetail.extraCode.securityCode',
+	pin: 'store.purchaseDetail.extraCode.pin',
+	reference: 'store.purchaseDetail.extraCode.reference',
+}
+
+// Valores del recibo que se copian con un toque
+const COPIABLE_RECEIPT_KEYS = new Set(['voucherId', 'epin', 'confirmationNumber', 'extraCode'])
+
 /**
  * Receipt view for a single store purchase (top-up or gift card).
  * Expects `route.params.purchaseId` and fetches `GET /store/my/{id}`.
@@ -180,6 +193,17 @@ const PurchaseDetail = ({ route, navigation }: NativeStackScreenProps<RootStackP
 	const logoUrl = getLogoUrl(purchase.service?.logo)
 	const serviceData = purchase.service_data || {}
 	const receipt = serviceData.receipt || {}
+	// Sin vacíos ni campos internos ANTES de pintar, así la última fila visible
+	// es la que pierde el borde (antes lo perdía una fila vacía)
+	const receiptRows = Object.entries(receipt).filter(([key, val]) => val && key !== 'currencyDivisor' && key !== 'accountId')
+	const receiptLabel = (key: string): string => {
+		if (key === 'extraCode') {
+			const kindKey = extraCodeLabelKeys[serviceData.extra_code_kind || '']
+			if (kindKey) return t(kindKey)
+			return serviceData.extra_code_label || t(extraCodeLabelKeys.reference)
+		}
+		return receiptLabelKeys[key] ? t(receiptLabelKeys[key]) : key
+	}
 	const statusColor = getStatusColor(purchase.status, theme)
 
 	return (
@@ -229,21 +253,16 @@ const PurchaseDetail = ({ route, navigation }: NativeStackScreenProps<RootStackP
 				</View>
 
 				{/* Receipt Card - only if there's receipt data with non-empty values */}
-				{Object.keys(receipt).length > 0 && (
+				{receiptRows.length > 0 && (
 					<View style={[styles.detailsCard, { backgroundColor: theme.colors.surface, marginTop: 16 }]}>
 						<CardHeader
 							icon="receipt"
 							title={t('store.purchaseDetail.receipt')}
 							color={theme.colors.successText}
 						/>
-						{Object.entries(receipt).map(([key, val], index, arr) => {
-							// Skip empty values and internal fields
-							if (!val || val === '' || key === 'currencyDivisor' || key === 'accountId') return null
-							const label = receiptLabelKeys[key] ? t(receiptLabelKeys[key]) : key
-							const isLast = index === arr.length - 1
-							const copiable = key === 'voucherId' || key === 'epin' || key === 'confirmationNumber'
-							return (<DetailRow key={key} label={`${label}:`} value={String(val)} last={isLast} copiable={copiable} />)
-						})}
+						{receiptRows.map(([key, val], index) => (
+							<DetailRow key={key} label={`${receiptLabel(key)}:`} value={String(val)} last={index === receiptRows.length - 1} copiable={COPIABLE_RECEIPT_KEYS.has(key)} />
+						))}
 					</View>
 				)}
 
