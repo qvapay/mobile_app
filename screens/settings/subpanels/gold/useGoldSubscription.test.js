@@ -5,7 +5,13 @@
  * @jest-environment node
  */
 let mockUser
-const mockUpdateUser = jest.fn(async (patch) => { mockUser = { ...mockUser, ...patch } })
+// Como el de verdad: copia el usuario, espera a guardarlo en disco y solo entonces lo aplica
+let mockStorageWrite
+const mockUpdateUser = jest.fn(async (patch) => {
+	const next = { ...mockUser, ...patch }
+	await mockStorageWrite()
+	mockUser = next
+})
 jest.mock('../../../../auth/AuthContext', () => ({ useAuth: () => ({ user: mockUser, updateUser: mockUpdateUser }) }))
 let mockIap
 const mockFinishTransaction = jest.fn(async () => {})
@@ -75,6 +81,7 @@ beforeEach(() => {
 	jest.clearAllMocks()
 	platform = jest.replaceProperty(Platform, 'OS', 'android')
 	mockUser = { uuid: 'me', username: 'ana', balance: 100, golden_check: false, golden_expire: null }
+	mockStorageWrite = async () => {}
 	serverGold = false
 	userApi.getGoldCheckStatus.mockImplementation(async () => ({ success: true, data: { golden_check: serverGold, golden_expire: serverGold ? EXPIRE : null } }))
 	userApi.purchaseGold.mockImplementation(async () => { serverGold = true; return { success: true, data: { golden_expire: EXPIRE } } })
@@ -159,6 +166,22 @@ describe('comprar GOLD llega al resto de la app', () => {
 		expect(userApi.getUserProfile).toHaveBeenCalledTimes(2)
 		// Ninguna escritura vuelve a decir que no es GOLD: si llegaran en otro orden, no importaría
 		expect(mockUpdateUser.mock.calls.filter(([patch]) => 'golden_check' in patch && !patch.golden_check)).toEqual([])
+		expect(mockUser.golden_check).toBeTruthy()
+		expect(mockUser.balance).toBe(94.01)
+	})
+
+	test('el perfil se relee cuando GOLD ya está guardado: esa escritura lenta no pisa el saldo nuevo', async () => {
+		await open()
+		let finishWrite
+		mockStorageWrite = () => new Promise((resolve) => {
+			finishWrite = resolve
+			mockStorageWrite = async () => {}
+		})
+		await payWithBalance()
+		expect(userApi.getUserProfile).not.toHaveBeenCalled()
+		await act(async () => { finishWrite() })
+		await settle()
+		expect(userApi.getUserProfile).toHaveBeenCalledTimes(1)
 		expect(mockUser.golden_check).toBeTruthy()
 		expect(mockUser.balance).toBe(94.01)
 	})

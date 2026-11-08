@@ -134,7 +134,8 @@ export default function useGoldSubscription(): GoldSubscription {
 		// La caché va primero: al cancelar la lectura, quien la esperaba recibe lo que haya en ella
 		queryClient.setQueryData<User>(PROFILE_QUERY.queryKey, cached => cached && { ...cached, golden_check: true, golden_expire: expire })
 		await queryClient.cancelQueries({ queryKey: PROFILE_QUERY.queryKey })
-		updateUser({ golden_check: true, golden_expire: expire })
+		// Primero se guarda: updateUser aplica su copia del usuario al terminar, y pisaría el perfil releído
+		await updateUser({ golden_check: true, golden_expire: expire })
 		refreshProfile()
 	}, [queryClient, updateUser, refreshProfile])
 
