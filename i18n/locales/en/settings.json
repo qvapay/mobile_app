@@ -1156,7 +1156,9 @@
 		},
 		"pending": {
 			"title": "Email change in progress",
-			"summary": "Your email will change to {{email}} on {{date}}.",
+			"subtitle": "You can cancel it until then",
+			"newEmailLabel": "New email",
+			"dateLabel": "Change date",
 			"paused": "Until then your withdrawals, sends, balance purchases and P2P sales are paused.",
 			"sessions": "When it completes, you'll be logged out on all your devices.",
 			"biometrics": "Biometric login will stop working. Log in with your new email and you can turn it on again.",

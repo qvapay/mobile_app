@@ -14,15 +14,13 @@ import QPButton from '../../../../ui/particles/QPButton'
 import QPCodeInput from '../../../../ui/particles/QPCodeInput'
 import QPInput from '../../../../ui/particles/QPInput'
 
-// Icons
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-
 // API
 import { userApi } from '../../../../api/userApi'
 import { EMAIL_CHANGE_KEY, EMAIL_CHANGE_QUERY } from '../../../../hooks/useEmailChangeQuery'
 
 // Paso compartido + reglas
 import EmailChangeProofField from './EmailChangeProofField'
+import EmailChangeInfoRow from './EmailChangeInfoRow'
 import useEmailChangeFailure from './useEmailChangeFailure'
 import { looksLikeEmail, pickMethod, proofIsComplete } from './emailChangeRules'
 import type { EmailChangeAction, EmailChangeField } from './emailChangeRules'
@@ -93,11 +91,8 @@ const EmailChangeForm = ({ email, onEmail, holdHours, onStarted, refreshControl 
 			<Text style={textStyles.h1}>{t('settings.emailChange.title')}</Text>
 			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('settings.emailChange.subtitle')}</Text>
 
-			<View style={[containerStyles.card, { flexDirection: 'row', alignItems: 'flex-start', marginTop: 20 }]}>
-				<FontAwesome6 name="shield-halved" size={16} color={theme.colors.warning} iconStyle="solid" />
-				<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-					{t('settings.emailChange.notice', { hours: holdHours })}
-				</Text>
+			<View style={[containerStyles.card, { marginTop: 20 }]}>
+				<EmailChangeInfoRow icon="shield-halved" tint={theme.colors.warning} text={t('settings.emailChange.notice', { hours: holdHours })} />
 			</View>
 
 			<View style={{ marginTop: 12 }}>
