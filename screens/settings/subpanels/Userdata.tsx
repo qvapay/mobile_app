@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer, useCallback } from 'react'
+import { useState, useEffect, useReducer, useCallback, useRef } from 'react'
 import { Text, View } from 'react-native'
 import { Trans, useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -156,8 +156,11 @@ const Userdata = () => {
 		queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey }, { cancelRefetch: false })
 		queryClient.invalidateQueries({ queryKey: EMAIL_CHANGE_KEY }, { cancelRefetch: false })
 	}, [queryClient]))
+	// La ficha en caché al guardar: es la de ANTES, y hasta que llegue otra (o si la petición
+	// falla) el formulario se queda con lo que el servidor ya aceptó
+	const cipBeforeSaveRef = useRef<typeof cip>(undefined)
 	useEffect(() => {
-		if (!cip) { return }
+		if (!cip || cip === cipBeforeSaveRef.current) { return }
 		const loaded = cipFormFromProfile(cip)
 		setCipLoaded(loaded)
 		if (!cipTouched) { setCipForm(loaded) }
@@ -261,8 +264,10 @@ const Userdata = () => {
 				if (sendCip) {
 					// La ficha nueva (y el estado de la verificación, que un SSN distinto
 					// reinicia) la trae el servidor; el SSN tecleado no se queda en pantalla
+					cipBeforeSaveRef.current = cip
 					setCipTouched(false)
 					setCipForm(prev => ({ ...prev, ssn: '' }))
+					setCipLoaded({ ...cipForm, ssn: '' })
 					queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey })
 					queryClient.invalidateQueries({ queryKey: DEPOSIT_ELIGIBILITY_KEY })
 				}

@@ -77,6 +77,11 @@ function setFieldReducer<S extends object>(state: S, action: FieldAction): S {
 	}
 }
 
+/** La orden vive 30 min: la cuenta atrás del modal. */
+const ORDER_TTL_S = 1800
+/** El cupo del nivel ssn cuenta lo pendiente de la última hora (doc `user/ssn-verification`). */
+const PENDING_WINDOW_MS = 60 * 60 * 1000
+
 /** Slice del flujo de depósito: modal, orden creada y estado en vivo. */
 type DepositState = { showDepositModal: boolean, topupData: TopupOrder | null, depositStatus: DepositStatus }
 
@@ -134,8 +139,15 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 	useEffect(() => { prefetchUsPerson() }, [prefetchUsPerson])
 
 	// Countdown timer state
-	const [countdown, setCountdown] = useState(1800)
+	const [countdown, setCountdown] = useState(ORDER_TTL_S)
 	const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+	// Una orden con cupo lo baja mientras está pendiente, y lo devuelve al fallar o caducar.
+	// Con el modal cerrado no llega su estado por SSE: se vuelve a pedir al caducar y, por si
+	// el servidor la cuenta la hora entera, al acabar esa hora
+	const refreshCap = useCallback(() => { queryClient.invalidateQueries({ queryKey: DEPOSIT_ELIGIBILITY_KEY }) }, [queryClient])
+	const capTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+	useEffect(() => () => { capTimersRef.current.forEach(clearTimeout) }, [])
 
 	// SSE connection for real-time deposit status updates
 	const handleDepositStatusChange = useCallback((newStatus: DepositStatus) => {
@@ -166,8 +178,12 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 		} else if (newStatus === 'expired') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			setCountdown(0)
-		} else if (newStatus === 'failed') { if (countdownRef.current) clearInterval(countdownRef.current) }
-	}, [queryClient, t, topupData?.transaction_uuid, sounds?.enabled, sounds?.transactionSound])
+			if (ssnCap) { refreshCap() }
+		} else if (newStatus === 'failed') {
+			if (countdownRef.current) clearInterval(countdownRef.current)
+			if (ssnCap) { refreshCap() }
+		}
+	}, [queryClient, t, topupData?.transaction_uuid, sounds?.enabled, sounds?.transactionSound, ssnCap, refreshCap])
 
 	const { isConnected: sseConnected } = useTransactionSSE(
 		showDepositModal ? topupData?.transaction_uuid : null,
@@ -248,6 +264,11 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 				setTopupData(data)
 				setDepositStatus('pending')
 				setShowDepositModal(true)
+				// El cupo cuenta también lo pendiente de la última hora: esta orden ya lo baja, se pague o no
+				if (ssnCap) {
+					refreshCap()
+					capTimersRef.current.push(setTimeout(refreshCap, ORDER_TTL_S * 1000), setTimeout(refreshCap, PENDING_WINDOW_MS))
+				}
 				if (data?.client_secret) {
 					launchCardSheet(data)
 				} else if (data?.redirect_url) {
@@ -281,7 +302,7 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 	// Start countdown when deposit modal opens
 	useEffect(() => {
 		if (showDepositModal) {
-			setCountdown(1800)
+			setCountdown(ORDER_TTL_S)
 			// El updater se mantiene PURO — React puede invocarlo más de una vez,
 			// así que solo calcula el siguiente valor. Parar el intervalo al
 			// llegar a 0 es un efecto aparte (abajo).
