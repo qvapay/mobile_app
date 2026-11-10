@@ -18,7 +18,7 @@ jest.mock('@react-navigation/native', () => {
 	return { useFocusEffect: (effect) => { useEffect(() => effect(), [effect]) } }
 })
 jest.mock('../../auth/AuthContext', () => ({
-	useAuth: () => ({ user: { uuid: 'me', p2p_enabled: 1, kyc: 1, phone_verified: 1, telegram_id: '1', created_at: '2026-09-04T00:00:00Z', trustscore: 0 } }),
+	useAuth: () => ({ user: { uuid: 'me', p2p_enabled: 1, kyc: 1, phone_verified: 1, telegram_id: '1', createdAt: '2026-09-04T00:00:00Z', trustscore: 0 } }),
 }))
 jest.mock('../p2p/p2pQueries', () => ({ useP2pMarketAveragesQuery: () => ({ data: {} }) }))
 jest.mock('../p2p/usePeerProfile', () => ({ usePeerProfile: () => ({ data: null }) }))

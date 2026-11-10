@@ -251,7 +251,7 @@ describe('depósito con tarjeta (CARD)', () => {
 		kyc: true,
 		telegram_id: '1',
 		phone_verified: true,
-		created_at: new Date(Date.now() - 60 * 86_400_000).toISOString(),
+		createdAt: new Date(Date.now() - 60 * 86_400_000).toISOString(),
 		vip: false,
 		trustscore: 95,
 	}

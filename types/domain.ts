@@ -82,7 +82,7 @@ export type User = {
 	kyc_status?: KycStatus
 	telegram_id?: string | number | null
 	trustscore?: number
-	created_at?: string
+	createdAt?: string
 	vip?: boolean | BoolInt
 	golden_check?: boolean | BoolInt
 	golden_expire?: string | null

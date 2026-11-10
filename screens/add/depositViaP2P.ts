@@ -131,8 +131,8 @@ export const accountDaysSince = (createdAt: string | null | undefined, now = Dat
  * /p2p/user/{uuid}`: la MISMA caché de operaciones y rating que usa el
  * backend al evaluar) más el TrustScore y la antigüedad de la sesión.
  */
-export const applicantStatsFrom = (profile: PeerProfilePayload | null | undefined, user: Pick<User, 'created_at' | 'trustscore'> | null | undefined, now = Date.now()): ApplicantStats => {
-	const createdAt = (profile?.user?.createdAt as string | undefined) ?? user?.created_at
+export const applicantStatsFrom = (profile: PeerProfilePayload | null | undefined, user: Pick<User, 'createdAt' | 'trustscore'> | null | undefined, now = Date.now()): ApplicantStats => {
+	const createdAt = (profile?.user?.createdAt as string | undefined) ?? user?.createdAt
 	return {
 		completed: Number(profile?.stats?.completedP2P) || 0,
 		rating: Number(profile?.stats?.averageRating) || 0,
