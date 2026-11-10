@@ -64,7 +64,7 @@ const mapMeToUser = (me: Me, email?: string) => ({
 	telegram_id: me.telegram_id,
 	// Insumos del fee de CARD (helpers/cardFeeMode) y del perfil en Ajustes
 	trustscore: me.trustscore,
-	created_at: me.createdAt,
+	createdAt: me.createdAt,
 	vip: me.vip,
 	golden_check: me.golden_check,
 	golden_expire: me.golden_expire,

@@ -29,7 +29,7 @@ import DepositViaP2PBlock from './DepositViaP2PBlock'
 const { theme } = jest.requireMock('../../theme/ThemeContext').useTheme()
 const ETECSA = { tick: 'ETECSA', name: 'Saldo ETECSA', enabled_in: 0 }
 // Perfil con acceso completo al P2P (los 4 gates), cuenta de hace 60 días
-const FULL_USER = { uuid: 'me', p2p_enabled: 1, kyc: 1, phone_verified: 1, telegram_id: '1', created_at: '2026-09-04T00:00:00Z', trustscore: 0 }
+const FULL_USER = { uuid: 'me', p2p_enabled: 1, kyc: 1, phone_verified: 1, telegram_id: '1', createdAt: '2026-09-04T00:00:00Z', trustscore: 0 }
 const offer = (uuid, extra = {}) => ({ uuid, coin: 'ETECSA', type: 'sell', requirements: { min_completed: 10, min_rating: 4, min_account_days: 30 }, ...extra })
 
 let clients = []

@@ -98,8 +98,8 @@ describe('requisitos', () => {
 	test('applicantStatsFrom: perfil público + trustscore de la sesión, con la fecha de la sesión de respaldo', () => {
 		const now = Date.UTC(2026, 10, 3)
 		const profile = { user: { createdAt: '2026-10-04T00:00:00Z' }, stats: { completedP2P: '12', averageRating: 4.6 } }
-		expect(applicantStatsFrom(profile, { trustscore: 70, created_at: '2020-01-01' }, now)).toEqual({ completed: 12, rating: 4.6, accountDays: 30, trustscore: 70 })
-		expect(applicantStatsFrom({ stats: {} }, { created_at: '2026-10-04T00:00:00Z' }, now)).toEqual({ completed: 0, rating: 0, accountDays: 30, trustscore: 0 })
+		expect(applicantStatsFrom(profile, { trustscore: 70, createdAt: '2020-01-01' }, now)).toEqual({ completed: 12, rating: 4.6, accountDays: 30, trustscore: 70 })
+		expect(applicantStatsFrom({ stats: {} }, { createdAt: '2026-10-04T00:00:00Z' }, now)).toEqual({ completed: 0, rating: 0, accountDays: 30, trustscore: 0 })
 		expect(applicantStatsFrom(null, null, now)).toEqual({ completed: 0, rating: 0, accountDays: 0, trustscore: 0 })
 	})
 
