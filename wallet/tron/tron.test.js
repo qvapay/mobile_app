@@ -26,6 +26,7 @@ import {
 	signTronTransaction,
 	tronTxId,
 	TRON_TX_RPC,
+	TRON_TX_VALIDITY_MS,
 	TronVerifyError,
 	verifyTronTransaction,
 } from './tx'
@@ -249,6 +250,24 @@ describe('prepareTronSend / broadcast (nodo simulado)', () => {
 		expect(prepared.fee.burnSun).toBe(6_428_500n)
 		expect(prepared.fee.bandwidthNeeded).toBe(BigInt(FIXTURE.raw_data_hex.length / 2) + 69n)
 		expect(prepared.raw.contracts[0].type).toBe('TriggerSmartContract')
+	}, 10_000)
+
+	test('la vigencia se cuenta en el reloj del teléfono: uno adelantado no ve la tx caducada', async () => {
+		// `expiration` es hora de la CADENA; este teléfono va una hora por delante de ella
+		const phone = Number(decodeTronRaw(FIXTURE.raw_data_hex).expiration) + 3_600_000
+		const clock = jest.spyOn(Date, 'now').mockReturnValue(phone)
+		mockNode({
+			'/wallet/getchainparameters': chainParams,
+			'/wallet/getaccountresource': () => ({ freeNetLimit: 600, freeNetUsed: 0 }),
+			'/wallet/triggerconstantcontract': () => ({ result: { result: true }, energy_used: 64_285 }),
+			'/wallet/triggersmartcontract': (body) => {
+				const raw_data_hex = withFeeLimit(FIXTURE.raw_data_hex, BigInt(body.fee_limit))
+				return { result: { result: true }, transaction: { txID: tronTxId(raw_data_hex), raw_data_hex } }
+			},
+		})
+		const prepared = await prepareTronSend(RPC, INTENT)
+		clock.mockRestore()
+		expect(prepared.expiresAt).toBe(phone + TRON_TX_VALIDITY_MS)
 	}, 10_000)
 
 	test('TRC-20: un nodo que devuelve OTRA tx (o un fee_limit inflado) no pasa la verificación', async () => {

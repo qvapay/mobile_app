@@ -16,7 +16,7 @@ import { deriveAddresses, derivePrivateKey } from '../derive'
 import { mnemonicToSeed } from '../seed'
 import { parseTronAccount, tronCommittedSun, tronPowerSun, tronToHex20, tronVotesUsed } from '../chains/tron'
 import { concatBytes, encodeBytesField, encodeVarintField, hexToBytes } from './protobuf'
-import { decodeTronRaw, tronTxId, TronVerifyError, TRON_STAKE_CONTRACT_TYPES } from './tx'
+import { decodeTronRaw, tronTxId, TronVerifyError, TRON_STAKE_CONTRACT_TYPES, TRON_TX_VALIDITY_MS } from './tx'
 import {
 	broadcastTronStake,
 	buildLocalVoteTx,
@@ -331,6 +331,25 @@ describe('cobrar, votar, descongelar y retirar', () => {
 		await expect(prepareTronStake(RPC, { action: 'claim', owner: OWNER }, { now: () => 2000 })).rejects.toThrow('24 h')
 		mockNode({ '/wallet/getReward': () => ({ reward: 0 }) })
 		await expect(prepareTronStake(RPC, { action: 'claim', owner: OWNER })).rejects.toThrow('no hay recompensas')
+	})
+
+	describe('vigencia con el reloj del teléfono desajustado', () => {
+		// `expiration` es hora de la CADENA; este teléfono va una hora por delante de ella
+		const phone = 1790788260000 + 3_600_000
+
+		test('cobrar: un teléfono adelantado no ve la tx caducada nada más construirla', async () => {
+			mockNode()
+			const prepared = await prepareTronStake(RPC, { action: 'claim', owner: OWNER }, { now: () => phone })
+			expect(Number(prepared.txs[0].raw.expiration)).toBeLessThan(phone)
+			expect(prepared.expiresAt).toBe(phone + TRON_TX_VALIDITY_MS)
+		})
+
+		test('stake: el voto local, con su timestamp del teléfono, no descuadra la vigencia', async () => {
+			mockNode()
+			const prepared = await prepareTronStake(RPC, { action: 'stake', owner: OWNER, amount: 5_000_000n, sr: P2P }, { now: () => phone })
+			expect(prepared.txs.map(t => t.step)).toEqual(['freeze', 'vote'])
+			expect(prepared.expiresAt).toBe(phone + TRON_TX_VALIDITY_MS)
+		})
 	})
 
 	test('votar: todo el poder al SR elegido; sin poder no hay voto', async () => {

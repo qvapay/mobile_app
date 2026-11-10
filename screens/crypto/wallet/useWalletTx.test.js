@@ -81,7 +81,7 @@ const baseArgs = (chain, submit, extra = {}) => ({
 	sign: chain.sign,
 	submit,
 	onSent: jest.fn(),
-	describeError: (err) => (err?.name === 'TxUnconfirmedError' ? 'unconfirmed' : String(err?.message ?? err)),
+	describeError: (err) => (err?.name === 'TxUnconfirmedError' ? 'unconfirmed' : err?.name === 'TxExpiredError' ? 'expired' : String(err?.message ?? err)),
 	lookup: chain.lookup,
 	...extra,
 })
@@ -180,6 +180,35 @@ test('una tx que la red ya no puede incluir se reconstruye y se firma de nuevo (
 	chain.pastExpiry = true // la cadena ya pasó su vigencia y no la tiene
 	await retry(out)
 	expect(out.tx.phase).toBe('ready')
+	await confirm(out)
+
+	expect(chain.executed).toEqual(['tx-2'])
+	expectSentOnce(args.onSent, 'tx-2', false)
+	unmount()
+})
+
+test('la tx caducó antes de poner el PIN: se avisa, no se firma, y Reintentar la prepara de nuevo', async () => {
+	// Antes la reconstruía en silencio: el usuario ponía el PIN y la pantalla volvía a «Confirmar»
+	const chain = makeChain()
+	const sign = jest.fn(chain.sign)
+	const submit = jest.fn(async (_prepared, signed) => {
+		chain.execute(signed.txid)
+		return { txid: signed.txid, duplicate: false }
+	})
+	const args = baseArgs(chain, submit, { sign })
+	const { out, unmount } = mount(args)
+	await settle()
+
+	clock += VALIDITY_MS + 1_000
+	await confirm(out)
+	expect(out.tx.phase).toBe('error')
+	expect(out.tx.error).toBe('expired')
+	expect(sign).not.toHaveBeenCalled()
+	expect(submit).not.toHaveBeenCalled()
+
+	await retry(out)
+	expect(out.tx.phase).toBe('ready')
+	expect(chain.built).toBe(2)
 	await confirm(out)
 
 	expect(chain.executed).toEqual(['tx-2'])

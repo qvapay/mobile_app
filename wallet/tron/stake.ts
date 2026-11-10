@@ -33,6 +33,7 @@ import {
 	SUN_PER_TRX,
 	TRON_STAKE_CONTRACT_TYPES,
 	TRON_TX_RPC,
+	TRON_TX_VALIDITY_MS,
 	tronTxId,
 	TronVerifyError,
 } from './tx'
@@ -299,7 +300,8 @@ const bandwidthFee = async (rpc: Rpc, owner: string, txs: TronNodeTx[], signal?:
 
 export const prepareTronStake = async (rpc: Rpc, intent: TronStakeIntent, deps: Deps = {}): Promise<PreparedTronStake> => {
 	const { signal } = deps
-	const now = (deps.now ?? Date.now)()
+	const clock = deps.now ?? Date.now
+	const now = clock()
 	const { owner } = intent
 	if (!isValidTronAddress(owner)) throw invalid('dirección propia inválida')
 	const state = await getTronAccount(rpc, owner, signal)
@@ -309,7 +311,12 @@ export const prepareTronStake = async (rpc: Rpc, intent: TronStakeIntent, deps: 
 	let amount: bigint | null = null
 	let waitMs: number | null = null
 	let powerNeededSun: bigint | null = null
-	const push = (step: Step, tx: TronNodeTx) => txs.push({ step, tx, raw: decodeTronRaw(tx.raw_data_hex) })
+	let builtAt = now
+	const push = (step: Step, tx: TronNodeTx) => {
+		// La primera tx siempre la construye el nodo y es la que antes caduca (el voto local dura 10 min)
+		if (txs.length === 0) builtAt = clock()
+		txs.push({ step, tx, raw: decodeTronRaw(tx.raw_data_hex) })
+	}
 
 	if (intent.action === 'stake' || intent.action === 'vote') {
 		if (!isValidTronAddress(intent.sr)) throw invalid('SR inválido')
@@ -362,7 +369,7 @@ export const prepareTronStake = async (rpc: Rpc, intent: TronStakeIntent, deps: 
 
 	const prepared: PreparedTronStake = {
 		intent, txs, votes, amount, feeSun, waitMs, notices, powerNeededSun,
-		expiresAt: Math.min(...txs.map(t => Number(t.raw.expiration))),
+		expiresAt: builtAt + TRON_TX_VALIDITY_MS,
 	}
 	verifyTronStake(prepared)
 	return prepared

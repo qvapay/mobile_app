@@ -28,6 +28,7 @@ import {
 	decodeTronRaw,
 	getTronChainParams,
 	getTronResources,
+	TRON_TX_VALIDITY_MS,
 	tronTxId,
 	SIGNATURE_OVERHEAD_BYTES,
 	TronVerifyError,
@@ -223,8 +224,7 @@ export const prepareTronSwapStep = async (rpc: RegistryRpc, intent: TronSwapInte
 	const raw = verifyTronCall(tx, { owner: intent.owner, contract, callValue, data: TRON_SWAP_FUNCTIONS[fn].selector + parameter, feeLimitSun })
 	const bandwidthNeeded = BigInt(tx.raw_data_hex.length / 2) + SIGNATURE_OVERHEAD_BYTES
 	const partial = { energyNeeded, bandwidthNeeded, activatesAccount: false }
-	// La tx de TRON caduca a los ~60 s de construirse: se reconstruye un poco antes
-	const expiresAt = Math.min(Number(raw.expiration) - 5_000, now() + 55_000)
+	const expiresAt = now() + TRON_TX_VALIDITY_MS
 
 	return {
 		step, remaining: step === 'approve' ? 1 : 0, intent, tx, raw, resources, params,

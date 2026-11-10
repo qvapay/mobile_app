@@ -7,9 +7,10 @@
  * - Lo que la pantalla muestra sale de la tx CONSTRUIDA (`prepared.summary`).
  * - La firma se retiene en un ref para re-difundir la MISMA tx (mismo hash)
  *   cuando la difusión falla por red; un doble tap nunca firma dos veces.
- * - Si la tx tiene vigencia (TRON ~60 s, blockhash de Solana) y expiró, se
- *   reconstruye antes de firmar: firmar una tx caducada es tirar la firma. Y si es la RED
- *   la que la da por caducada al difundir (antes que nuestro reloj), también.
+ * - Si la tx tiene vigencia (TRON ~60 s, blockhash de Solana) y expiró antes del PIN, no se
+ *   firma: firmar una tx caducada es tirar la firma. Se avisa y «Reintentar» la reconstruye
+ *   (lo que el usuario autorizó ya no es lo que saldría). Si es la RED la que la da por
+ *   caducada al difundir (antes que nuestro reloj), se reconstruye sin más.
  * - Pero una firma que YA salió hacia la red no se tira sin preguntar a la cadena qué fue de
  *   ella (`lookup`): un fallo de red al difundir es ambiguo (el nodo pudo aceptarla y perderse
  *   la respuesta), "caducada" al re-difundir no prueba que no se ejecutara (java-tron valida la
@@ -23,7 +24,10 @@ import { isExpiredBroadcastError } from './txExpiry'
 
 export type TxPhase = 'preparing' | 'ready' | 'waitingEnergy' | 'signing' | 'broadcasting' | 'error'
 
-/** Lo mínimo que el núcleo necesita saber de una tx preparada. */
+/**
+ * Lo mínimo que el núcleo necesita saber de una tx preparada. `expiresAt` se compara con
+ * `Date.now()`: tiene que estar en el reloj del TELÉFONO, nunca ser una hora de la cadena.
+ */
 export type PreparedTx = { summary: { expiresAt: number | null } }
 
 /**
@@ -39,6 +43,11 @@ const UNKNOWN: TxLookup = { status: 'unknown' }
 /** La tx anterior quizá se ejecutó y aún no se puede saber: no se firma otra todavía. */
 export class TxUnconfirmedError extends Error {
 	constructor() { super('wallet: la transacción anterior pudo enviarse; aún no se puede confirmar'); this.name = 'TxUnconfirmedError' }
+}
+
+/** La tx caducó antes de que el usuario la autorizara: no se firmó nada. */
+export class TxExpiredError extends Error {
+	constructor() { super('wallet: la transacción caducó antes de firmarse'); this.name = 'TxExpiredError' }
 }
 
 /**
@@ -195,7 +204,12 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 		if (!prepared || inFlightRef.current) return
 		inFlightRef.current = true
 		try {
-			if (isExpired(prepared)) { await prepare(); return }
+			// Reconstruirla aquí en silencio devolvía la pantalla a «Confirmar» tras el PIN, sin decir nada
+			if (isExpired(prepared)) {
+				setPhase('error')
+				setError(describeError(new TxExpiredError()))
+				return
+			}
 			lockedRef.current = true
 			// Lo que se estuviera construyendo ya no se ofrece: se firma la tx de pantalla
 			prepareGenRef.current += 1
@@ -213,7 +227,7 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			lockedRef.current = false
 			inFlightRef.current = false
 		}
-	}, [prepared, prepare, sign, broadcast, isExpired, describeError])
+	}, [prepared, sign, broadcast, isExpired, describeError])
 
 	/**
 	 * Reconstruye SIEMPRE, tirando la firma retenida. `retry()` no vale para
