@@ -100,7 +100,7 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier
 		const amount = contract.type === 'TransferContract' ? contract.amount : intent.amount
 		return {
 			kind: 'tron', chain, intent, inner,
-			summary: { amount, feeEstimated: inner.fee.burnSun, feeMax: inner.fee.feeLimitSun > 0n ? inner.fee.feeLimitSun : null, activatesAccount: inner.fee.activatesAccount, expiresAt: Number(inner.raw.expiration), feeTier: null, feeOptions: [] },
+			summary: { amount, feeEstimated: inner.fee.burnSun, feeMax: inner.fee.feeLimitSun > 0n ? inner.fee.feeLimitSun : null, activatesAccount: inner.fee.activatesAccount, expiresAt: inner.expiresAt, feeTier: null, feeOptions: [] },
 		}
 	}
 	if (chain.kind === 'evm') {

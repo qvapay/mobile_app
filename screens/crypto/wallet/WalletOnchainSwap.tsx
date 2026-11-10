@@ -25,7 +25,7 @@ import { OnchainSwapMismatchError, planOnchainSwap } from './onchainSwapModel'
 import type { OnchainSwapPlan } from './onchainSwapModel'
 import { broadcastOnchainSwap, lookupOnchainSwap, prepareOnchainSwap, signOnchainSwap, waitForApproval } from './walletSwapActions'
 import type { PreparedOnchainSwap, SignedOnchainSwap } from './walletSwapActions'
-import useWalletTx, { TxUnconfirmedError } from './useWalletTx'
+import useWalletTx, { TxExpiredError, TxUnconfirmedError } from './useWalletTx'
 import type { TxPhase } from './useWalletTx'
 
 // API
@@ -144,6 +144,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const describeError = useCallback((err: unknown): string => {
 		if (err instanceof AllRpcsFailedError) return t(`${KEY}errors.noNodes`)
 		if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
+		if (err instanceof TxExpiredError) return t('crypto.wallet.send.errors.expired')
 		if (err instanceof TxUnconfirmedError) return t('crypto.wallet.send.errors.unconfirmed')
 		if (err instanceof Error && /VerifyError$/.test(err.name)) return t(`${KEY}errors.verify`)
 		const message = (err as Error)?.message ?? ''

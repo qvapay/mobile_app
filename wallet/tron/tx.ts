@@ -42,6 +42,17 @@ export const TRON_TX_RPC = (rpc: RegistryRpc): boolean => rpc.api !== 'jsonrpc'
 /** 1 TRX = 1e6 sun. */
 export const SUN_PER_TRX = 1_000_000n
 
+/**
+ * Cuánto se da por buena una tx de TRON desde que el nodo la entrega, en el reloj del TELÉFONO.
+ *
+ * El nodo le pone `expiration` = su bloque de cabeza + 60 s (medido en mainnet: quedan 57-59 s
+ * al recibirla), pero eso es hora de la CADENA: compararla con `Date.now()` hacía que un teléfono
+ * adelantado más de un minuto viera caducada toda tx nada más construirla, y después del PIN no
+ * pasaba nada. Por eso se cuenta el tiempo transcurrido desde aquí. Se queda en 45 s para que
+ * firmar (PBKDF2, segundos en gama baja) y difundir quepan dentro de la vigencia real.
+ */
+export const TRON_TX_VALIDITY_MS = 45_000
+
 /** Tope duro del fee_limit: nunca se autoriza quemar más TRX que esto en una tx. */
 export const MAX_FEE_LIMIT_SUN = 100n * SUN_PER_TRX
 
@@ -302,6 +313,8 @@ export type PreparedTronSend = {
 	resources: TronResources
 	/** Precios de la red con los que se calculó el quemado. */
 	params: TronChainParams
+	/** Hasta cuándo se puede firmar, en el reloj del teléfono (`TRON_TX_VALIDITY_MS`). */
+	expiresAt: number
 }
 
 type Deps = { signal?: AbortSignal, headers?: Record<string, string> }
@@ -439,10 +452,11 @@ export const prepareTronSend = async (rpc: RegistryRpc, intent: TronSendIntent, 
 			tronAccountExists(rpc, intent.to, deps),
 		])
 		if (!tx?.raw_data_hex) throw nodeError(decodeNodeMessage(tx?.Error) || 'tron: el nodo no construyó la transacción')
+		const expiresAt = Date.now() + TRON_TX_VALIDITY_MS
 		const raw = verifyTronTransaction(tx, intent, 0n)
 		const bandwidthNeeded = BigInt(tx.raw_data_hex.length / 2) + SIGNATURE_OVERHEAD_BYTES
 		const partial = { energyNeeded: 0n, bandwidthNeeded, activatesAccount: !exists }
-		return { intent, tx, raw, resources, params, fee: { ...partial, burnSun: computeTronBurn(partial, resources, params), feeLimitSun: 0n } }
+		return { intent, tx, raw, resources, params, expiresAt, fee: { ...partial, burnSun: computeTronBurn(partial, resources, params), feeLimitSun: 0n } }
 	}
 
 	const parameter = encodeTrc20TransferParams(intent.to, intent.amount)
@@ -460,10 +474,11 @@ export const prepareTronSend = async (rpc: RegistryRpc, intent: TronSendIntent, 
 	}, deps)
 	const tx = built?.transaction
 	if (built?.result?.result === false || !tx?.raw_data_hex) throw nodeError(decodeNodeMessage(built?.result?.message) || 'tron: el nodo no construyó la transacción')
+	const expiresAt = Date.now() + TRON_TX_VALIDITY_MS
 	const raw = verifyTronTransaction(tx, intent, feeLimitSun)
 	const bandwidthNeeded = BigInt(tx.raw_data_hex.length / 2) + SIGNATURE_OVERHEAD_BYTES
 	const partial = { energyNeeded, bandwidthNeeded, activatesAccount: false }
-	return { intent, tx, raw, resources, params, fee: { ...partial, burnSun: computeTronBurn(partial, resources, params), feeLimitSun } }
+	return { intent, tx, raw, resources, params, expiresAt, fee: { ...partial, burnSun: computeTronBurn(partial, resources, params), feeLimitSun } }
 }
 
 // ---------------------------------------------------------------------------

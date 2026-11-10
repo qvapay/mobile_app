@@ -19,6 +19,7 @@ import {
 	TRON_SWAP_FUNCTIONS,
 	WTRX,
 } from './swap'
+import { decodeTronRaw, TRON_TX_VALIDITY_MS } from './tx'
 
 const VECTORS = {
 	"owner": "TV6MuMXfmLbBqPZvBHdwFsDnQeVfnmiuSi",
@@ -142,6 +143,14 @@ describe('preparar contra un nodo simulado', () => {
 		expect(prepared.step).toBe('approve')
 		expect(prepared.remaining).toBe(1)
 		expect(prepared.fee.energyNeeded).toBe(240_000n)
+	})
+
+	test('la vigencia se cuenta en el reloj del teléfono: uno adelantado no ve la tx caducada', async () => {
+		// `expiration` es hora de la CADENA; este teléfono va una hora por delante de ella
+		const phone = Number(decodeTronRaw(VECTORS.approve.raw_data_hex).expiration) + 3_600_000
+		mockNode({ allowance: 0n, tx: VECTORS.approve })
+		const prepared = await prepareTronSwapStep(RPC, SELL_USDT, { now: () => phone })
+		expect(prepared.expiresAt).toBe(phone + TRON_TX_VALIDITY_MS)
 	})
 
 	test('con permiso: el mínimo de la tx es getAmountsOut − 0,5%, y el nodo devolvió exactamente eso', async () => {
