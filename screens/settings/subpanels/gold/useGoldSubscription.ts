@@ -29,7 +29,7 @@ import { userApi } from '../../../../api/userApi'
 import { toast } from 'sonner-native'
 
 // IAP
-import { useIAP } from 'react-native-iap'
+import { useIAP, getReceiptDataIOS } from 'react-native-iap'
 import { IAP_SKUS, getProductId, getAndroidOfferToken, getIAPErrorMessage } from '../../../../helpers/iap'
 
 // Tipos
@@ -71,6 +71,15 @@ export type GoldSubscription = {
 	/** Relee el estado de la suscripción (tirar para refrescar). */
 	refreshStatus: () => Promise<void>
 }
+
+/**
+ * El recibo que valida qpweb. En iOS es el de la app en base64, el que espera `verifyReceipt`:
+ * `transactionReceipt` ya no existe en react-native-iap y `purchaseToken` es un JWS que ese
+ * endpoint no acepta. Lee del dispositivo y lanza si el recibo no está.
+ */
+const storeReceiptFor = async (purchase: { purchaseToken?: string | null }) => (
+	Platform.OS === 'ios' ? getReceiptDataIOS() : purchase.purchaseToken
+)
 
 // Plans — label/period viven como claves de i18n (settings.goldCheck.plans.*)
 // y las resuelve GoldUpsell en render por la clave de cada entrada
@@ -150,10 +159,8 @@ export default function useGoldSubscription(): GoldSubscription {
 			try {
 				// `Purchase` es una unión iOS/Android: los campos por plataforma solo
 				// existen en su rama, así que se leen por una forma local.
-				const p = purchase as Purchase & { transactionReceipt?: string, purchaseToken?: string, id?: string }
-				const receipt = Platform.OS === 'ios'
-					? p.transactionReceipt
-					: p.purchaseToken
+				const p = purchase as Purchase & { purchaseToken?: string, id?: string }
+				const receipt = await storeReceiptFor(p)
 
 				if (!receipt) return
 
@@ -326,10 +333,8 @@ export default function useGoldSubscription(): GoldSubscription {
 
 			// Send the most recent purchase to backend for validation
 			// getAvailablePurchases llega por require() sin tipos: forma local.
-			const latest = purchases[purchases.length - 1] as { transactionReceipt?: string, purchaseToken?: string, productId?: string, transactionId?: string, id?: string }
-			const receipt = Platform.OS === 'ios'
-				? latest.transactionReceipt
-				: latest.purchaseToken
+			const latest = purchases[purchases.length - 1] as { purchaseToken?: string, productId?: string, transactionId?: string, id?: string }
+			const receipt = await storeReceiptFor(latest)
 
 			const result = await userApi.validateGoldReceipt({
 				receipt: receipt as string,

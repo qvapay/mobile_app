@@ -16,6 +16,7 @@ jest.mock('../../../../auth/AuthContext', () => ({ useAuth: () => ({ user: mockU
 let mockIap
 const mockFinishTransaction = jest.fn(async () => {})
 const mockGetAvailablePurchases = jest.fn()
+const mockGetReceiptDataIOS = jest.fn()
 jest.mock('react-native-iap', () => ({
 	useIAP: (options) => {
 		mockIap = options
@@ -23,6 +24,7 @@ jest.mock('react-native-iap', () => ({
 	},
 	finishTransaction: (...args) => mockFinishTransaction(...args),
 	getAvailablePurchases: (...args) => mockGetAvailablePurchases(...args),
+	getReceiptDataIOS: (...args) => mockGetReceiptDataIOS(...args),
 }))
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn(), info: jest.fn() } }))
 jest.mock('../../../../api/userApi', () => ({
@@ -230,5 +232,45 @@ describe('sin compra confirmada no se activa nada', () => {
 		await act(async () => { await mockIap.onPurchaseSuccess(IAP_PURCHASE) })
 		await settle()
 		expect(mockUpdateUser).not.toHaveBeenCalled()
+	})
+})
+
+describe('en iOS se valida con el recibo de la app', () => {
+	// La forma que entrega la librería en iOS: `purchaseToken` es un JWS y no hay `transactionReceipt`
+	const IOS_PURCHASE = { id: '2000', transactionId: '2000', purchaseToken: 'jws.de.la.tienda', productId: 'com.qvapay.goldcheck.monthly', store: 'apple', platform: 'ios' }
+	const APP_RECEIPT = 'recibo-de-la-app-en-base64'
+
+	beforeEach(() => {
+		platform.replaceValue('ios')
+		mockGetReceiptDataIOS.mockResolvedValue(APP_RECEIPT)
+	})
+
+	test('al comprar: valida, activa GOLD y cierra la compra', async () => {
+		await open()
+		await act(async () => { await mockIap.onPurchaseSuccess(IOS_PURCHASE) })
+		await settle()
+		expect(userApi.validateGoldReceipt).toHaveBeenCalledWith(expect.objectContaining({ receipt: APP_RECEIPT, platform: 'ios', productId: IOS_PURCHASE.productId }))
+		expect(mockUpdateUser).toHaveBeenNthCalledWith(1, ACTIVATED)
+		expect(mockFinishTransaction).toHaveBeenCalledTimes(1)
+	})
+
+	test('al restaurar: valida con el recibo de la app', async () => {
+		mockGetAvailablePurchases.mockResolvedValue([IOS_PURCHASE])
+		await open()
+		await act(async () => { await api.handleRestore() })
+		await settle()
+		expect(userApi.validateGoldReceipt).toHaveBeenCalledWith(expect.objectContaining({ receipt: APP_RECEIPT, platform: 'ios' }))
+		expect(mockUpdateUser).toHaveBeenNthCalledWith(1, ACTIVATED)
+	})
+
+	test('si no se puede leer el recibo, avisa y deja la compra sin cerrar para reintentarla', async () => {
+		mockGetReceiptDataIOS.mockRejectedValue(new Error('sin recibo'))
+		await open()
+		await act(async () => { await mockIap.onPurchaseSuccess(IOS_PURCHASE) })
+		await settle()
+		expect(userApi.validateGoldReceipt).not.toHaveBeenCalled()
+		expect(mockFinishTransaction).not.toHaveBeenCalled()
+		expect(mockUpdateUser).not.toHaveBeenCalled()
+		expect(toast.error).toHaveBeenCalledTimes(1)
 	})
 })
