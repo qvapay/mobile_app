@@ -35,6 +35,7 @@
 		"completed": "Completed",
 		"open": "Open",
 		"paid": "Paid",
+		"paused": "Paused",
 		"pending": "Pending",
 		"processing": "Processing",
 		"received": "Received",

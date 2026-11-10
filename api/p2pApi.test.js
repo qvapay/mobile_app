@@ -236,6 +236,35 @@ describe('p2pApi.cancel', () => {
 	})
 })
 
+describe('p2pApi.pause', () => {
+
+	test('sends the wanted state in the body and returns the resulting pause', async () => {
+		const data = { message: 'Oferta pausada', p2p: 'abc-123', pause: { reason: 'owner', until: null } }
+		apiClient.post.mockResolvedValue({ data, status: 200 })
+
+		const result = await p2pApi.pause('abc-123', true)
+
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/abc-123/pause', { paused: true })
+		expect(result).toEqual({ success: true, data, status: 200 })
+	})
+
+	test('resuming sends paused: false', async () => {
+		apiClient.post.mockResolvedValue({ data: { pause: null }, status: 200 })
+
+		await p2pApi.pause('abc-123', false)
+
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/abc-123/pause', { paused: false })
+	})
+
+	test('a refusal keeps the server message and status', async () => {
+		apiClient.post.mockRejectedValue(apiError(409, { error: 'La oferta está cancelada' }))
+
+		const result = await p2pApi.pause('abc-123', true)
+
+		expect(result).toEqual({ success: false, error: 'La oferta está cancelada', details: { error: 'La oferta está cancelada' }, status: 409 })
+	})
+})
+
 describe('p2pApi.markPaid', () => {
 
 	test('posts the optional tx_id, defaulting to an empty string', async () => {

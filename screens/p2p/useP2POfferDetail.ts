@@ -25,6 +25,7 @@ import {
 	toServerRating, fromEditResponse, applyOptimisticRating,
 } from "./p2pRating"
 import type { MyRating, RatingForm } from "./p2pRating"
+import { activePause } from "./p2pPause"
 
 // Toast
 import { toast } from "sonner-native"
@@ -57,11 +58,11 @@ function offerReducer(state: OfferState, action: OfferAction): OfferState {
 }
 
 /** Un flag por acción de trade: dos botones nunca comparten spinner. */
-export type TradeActionLoading = { apply: boolean, cancel: boolean, received: boolean, markPaid: boolean, rate: boolean }
+export type TradeActionLoading = { apply: boolean, cancel: boolean, received: boolean, markPaid: boolean, rate: boolean, pause: boolean }
 
 type LoadingAction = { type: "set", field: keyof TradeActionLoading, value: boolean }
 
-const initialLoading: TradeActionLoading = { apply: false, cancel: false, received: false, markPaid: false, rate: false }
+const initialLoading: TradeActionLoading = { apply: false, cancel: false, received: false, markPaid: false, rate: false, pause: false }
 function loadingReducer(state: TradeActionLoading, action: LoadingAction): TradeActionLoading {
 	switch (action.type) {
 		case "set": return { ...state, [action.field]: action.value }
@@ -176,6 +177,7 @@ function editReducer(state: EditState, action: EditAction): EditState {
  *   `confirmModal`/`closeConfirmModal`/`confirmModalAction` — the themed
  *   confirmation flow for cancel/mark-paid/release (handlers only open it);
  *   `rateTarget`/`openRateSheet`/`closeRateSheet`/`submitRate` — the rating sheet;
+ *   `pause`/`pausedLocked`/`togglePause` — the offer's pause (owner toggles it, nobody else can apply);
  *   actions — `onRefresh`, `openPeerProfile`, `handleCancel`, `handleMarkPaid`,
  *   `handleConfirmReceived`, `handleApply`, `handleApplyConfirm`, `handleShareIntent`,
  *   `openEditModal`, `handleEdit`.
@@ -386,19 +388,24 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		return null
 	}, [status, isPayer, isReceiver, selectedOrder, theme, t])
 
+	// Pausa: sigue `open`, pero fuera del mercado y sin poder tomarse. El dueño la alterna;
+	// para el resto manda sobre los demás bloqueos: nadie puede tomarla, cumpla o no
+	const pause = activePause(p2p)
+	const pausedLocked = !!pause && !isOwner && !isPeer
+
 	// canApply: only non-owner/non-peer users can apply to an open offer.
 	// Por rango: además tiene que poder tomarlas (VIP), quedar al menos el mínimo
 	// por orden y no tener ya una orden viva (con una, la pantalla ya está en ella)
 	const flexibleTakeable = !!rawP2p && isFlexible && (() => { const b = takeBounds(rawP2p); return b.maxCents > 0 && b.maxCents >= b.minCents })()
 	// Requisitos del maker que el servidor dice que NO cumplo (`requirements_met`, solo
 	// llega con requisitos y sin ser el dueño): se ve la oferta, no el botón
-	const requirementsLocked = status === "open" && !isOwner && !isPeer && (!isFlexible || isFlexibleOverview) && rawP2p?.requirements_met === false
+	const requirementsLocked = !pausedLocked && status === "open" && !isOwner && !isPeer && (!isFlexible || isFlexibleOverview) && rawP2p?.requirements_met === false
 	const requirementsMissing = useMemo(() => rawP2p?.requirements_missing ?? [], [rawP2p?.requirements_missing])
-	const canApply = !requirementsLocked && (isFlexible
+	const canApply = !pausedLocked && !requirementsLocked && (isFlexible
 		? isFlexibleOverview && status === "open" && !isOwner && rawP2p?.can_take_flexible !== false && flexibleTakeable && !myActiveOrder
 		: status === "open" && !isOwner && !isPeer)
 	// Por rango sin permiso: en vez del botón, "disponible para cuentas VIP"
-	const flexibleLocked = isFlexibleOverview && status === "open" && !isOwner && rawP2p?.can_take_flexible === false
+	const flexibleLocked = !pausedLocked && isFlexibleOverview && status === "open" && !isOwner && rawP2p?.can_take_flexible === false
 	// Taker mirando una orden ya cerrada: puede volver a la oferta (y tomar otra parte)
 	const canBackToOffer = !!selectedOrder && !isOwner && !isActiveOrder(selectedOrder)
 
@@ -602,6 +609,26 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 	const handleConfirmReceived = () => setConfirmModal("received")
 	const closeConfirmModal = () => setConfirmModal(null)
 
+	// Pausar o reactivar: es reversible, así que va sin modal de confirmación (como en la web)
+	const togglePause = async () => {
+		if (!rawP2p) return
+		const paused = !activePause(rawP2p)
+		try {
+			setLoading("pause", true)
+			const res = await p2pApi.pause(rawP2p.uuid, paused)
+			if (res.success) {
+				setP2p({ ...rawP2p, pause: res.data?.pause ?? null })
+				toast.success(t(paused ? 'p2p.offer.toasts.paused' : 'p2p.offer.toasts.resumed'))
+				refetchP2P()
+			} else {
+				// 409 = ya la cancelaron (otra sesión, la web): refrescar enseña el estado real
+				if (res.status === 409) refetchP2P()
+				toast.error(t(paused ? 'p2p.offer.toasts.pauseFailed' : 'p2p.offer.toasts.resumeFailed'), { description: String(res.error || "") })
+			}
+		} catch (e) { toast.error(t('p2p.common.errorTitle'), { description: (e as Error).message }) }
+		finally { setLoading("pause", false) }
+	}
+
 	// Execute whichever action the open modal is confirming, then close it
 	const confirmModalAction = async () => {
 		try {
@@ -643,14 +670,19 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 				if (res.status === 409) refetchP2P()
 				toast.error(t('p2p.offer.toasts.applyFailed'), { description: String(res.error || "") })
 				// Una pausa de seguridad no se arregla cambiando el monto, y en Android el
-				// modal abierto taparía el aviso con su fondo oscuro
-				return code === "SECURITY_HOLD"
+				// modal abierto taparía el aviso con su fondo oscuro. Tampoco una oferta
+				// que su dueño acaba de pausar
+				return code === "SECURITY_HOLD" || code === "OFFER_PAUSED"
 			}
 			const res = await p2pApi.apply(p2p!.uuid)
 			if (res.success) {
 				toast.success(t('p2p.offer.toasts.applied'))
 				refetchP2P()
-			} else { toast.error(t('p2p.offer.toasts.applyFailed'), { description: String(res.error || "") }) }
+			} else {
+				// 409 = la tomaron o la pausaron entre el último poll y el toque
+				if (res.status === 409) refetchP2P()
+				toast.error(t('p2p.offer.toasts.applyFailed'), { description: String(res.error || "") })
+			}
 			return true
 		} catch (e) {
 			toast.error(t('p2p.common.errorTitle'), { description: (e as Error).message })
@@ -787,6 +819,8 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		applyAmount, setApplyAmount, openOrder, backToOffer,
 		// maker requirements the viewer doesn't meet (server-evaluated)
 		requirementsLocked, requirementsMissing,
+		// pause
+		pause, pausedLocked, hasLiveOrders, togglePause,
 		// derived
 		isOwner, isPeer, isPayer, isReceiver, status, counterparty,
 		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating, canEditMyRating, markedAsPaid,

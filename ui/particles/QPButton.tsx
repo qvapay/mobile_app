@@ -35,6 +35,8 @@ type QPButtonProps = {
 	loadingColor?: string
 	danger?: boolean
 	outlined?: boolean
+	/** Título en UNA línea, encogiéndose si no cabe (botones en un hueco estrecho). */
+	fitTitle?: boolean
 	/** Identificador para E2E (Maestro): accessibilityIdentifier en iOS, resource-id en Android. */
 	testID?: string
 }
@@ -54,7 +56,7 @@ type QPButtonProps = {
  * @param [props.danger=false] - Destructive styling.
  * @param [props.outlined=false] - With `danger`, renders the outlined variant.
  */
-const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid', iconColor, disabled = false, loading = false, loadingColor, danger = false, outlined = false, testID }: QPButtonProps) => {
+const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid', iconColor, disabled = false, loading = false, loadingColor, danger = false, outlined = false, fitTitle = false, testID }: QPButtonProps) => {
 
     // Contexts
     const { theme } = useTheme()
@@ -84,7 +86,7 @@ const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid',
                 <>
                     {/* El icono va del MISMO color que el texto (buttonText): primaryText es casi negro en claro y pintaba iconos negros sobre texto blanco */}
                     {icon && <FontAwesome6 name={icon} size={18} color={iconColor || textColor} iconStyle={iconStyle} />}
-                    {title && <Text style={[{ fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold, color: textColor }, textStyle, { marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
+                    {title && <Text {...(fitTitle ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.7 } : null)} style={[{ fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold, color: textColor }, textStyle, { marginLeft: icon ? 8 : 0 }, fitTitle && { flexShrink: 1 }]}>{title}</Text>}
                 </>
             )}
         </QPPressable>

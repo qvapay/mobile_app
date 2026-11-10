@@ -39,6 +39,10 @@ type P2PActionBarProps = {
 	requirementsLocked?: boolean
 	/** Lo que falta (`requirements_missing` del detalle). */
 	requirementsMissing?: { key: string, required: number, actual: number }[]
+	/** La oferta del dueño está en pausa: el botón Pausar pasa a Reactivar. */
+	paused?: boolean
+	/** En pausa y quien mira no es el dueño: aviso en lugar del botón de aplicar. */
+	pausedLocked?: boolean
 	/** La pantalla muestra una orden de una oferta por rango (no la oferta entera). */
 	isOrder?: boolean
 	loading: TradeActionLoading
@@ -50,6 +54,7 @@ type P2PActionBarProps = {
 	onConfirmReceived: () => void
 	onEdit: () => void
 	onShare: () => void
+	onTogglePause?: () => void
 	/** Abre la hoja: al crear, con las estrellas que se tocaron ya marcadas. */
 	onRate: (stars?: number) => void
 	onDispute?: () => void
@@ -62,15 +67,15 @@ type P2PActionBarProps = {
 }
 
 // Fixed bottom action bar — surfaces only the actions valid for the viewer's role
-// and the offer's current status (apply / cancel / mark-paid / confirm / edit+share / rate).
+// and the offer's current status (apply / cancel / mark-paid / confirm / pause+edit+share / rate).
 // Rating opens the rating sheet; once rated, the viewer's own stars show and, while the
 // backend's edit window is open, tapping them reopens the sheet to change the rating.
 const P2PActionBar = ({
 	p2p, isOwner, isPayer, isReceiver,
 	canApply, canCancel, canMarkPaid, canConfirmReceived, canRatePeer, myRating = null, canEditRating = false, rateUsername = null,
-	canDispute = false, canBackToOffer = false, flexibleLocked = false, requirementsLocked = false, requirementsMissing = [], isOrder = false,
+	canDispute = false, canBackToOffer = false, flexibleLocked = false, requirementsLocked = false, requirementsMissing = [], paused = false, pausedLocked = false, isOrder = false,
 	loading, markPaidReady,
-	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onRate, onDispute, onBackToOffer,
+	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onTogglePause, onRate, onDispute, onBackToOffer,
 	keyboardVisible, insets, theme, textStyles, containerStyles,
 }: P2PActionBarProps) => {
 
@@ -123,6 +128,13 @@ const P2PActionBar = ({
 				</View>
 			)}
 
+			{pausedLocked && (
+				<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 56 }} testID="paused-locked">
+					<FontAwesome6 name="pause" size={14} color={theme.colors.warning} iconStyle="solid" />
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', flexShrink: 1 }]}>{t('p2p.actionBar.pausedLocked')}</Text>
+				</View>
+			)}
+
 			{canDispute && (
 				<QPButton
 					title={t('p2p.flexible.openDispute')}
@@ -164,10 +176,22 @@ const P2PActionBar = ({
 				/>
 			)}
 
-			{/* Edit + Share - Owner of open offer */}
+			{/* Pause + Edit + Share - Owner of open offer */}
 			{p2p?.status === "open" && isOwner && (
 				<>
-					<View style={{ flex: 1 }} />
+					<QPButton
+						title={paused ? t('p2p.actionBar.resume') : t('p2p.actionBar.pause')}
+						onPress={onTogglePause}
+						style={[{ backgroundColor: paused ? theme.colors.primary : theme.colors.surface, paddingHorizontal: 8 }, styles.actionButton]}
+						textStyle={{ color: paused ? theme.colors.almostWhite : theme.colors.primaryText }}
+						icon={paused ? "play" : "pause"}
+						iconColor={paused ? theme.colors.almostWhite : theme.colors.primaryText}
+						iconStyle="solid"
+						loading={loading.pause}
+						loadingColor={paused ? theme.colors.almostWhite : theme.colors.primaryText}
+						fitTitle
+						testID="p2p-pause-toggle"
+					/>
 					<QPButton
 						title=""
 						onPress={onEdit}

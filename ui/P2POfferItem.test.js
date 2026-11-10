@@ -106,6 +106,20 @@ describe('rendered content', () => {
 		expect(plainText(renderItem(makeOffer({ only_vip: 1 }), { show_buttons: false }))).toContain('Solo VIP')
 	})
 
+	test('una oferta en pausa se marca en la lista, no en el detalle ni sobre mi orden', () => {
+		const pause = { reason: 'owner', until: null }
+		expect(plainText(renderItem(makeOffer()))).not.toContain('En pausa')
+		expect(plainText(renderItem(makeOffer({ pause })))).toContain('En pausa')
+		expect(plainText(renderItem(makeOffer({ pause }), { show_buttons: false }))).not.toContain('En pausa')
+		const my_order = { uuid: 'ord-1', amount: '2', receive: '10', status: 'processing', created_at: '2026-07-01T10:00:00Z' }
+		expect(plainText(renderItem(makeOffer({ pause, my_order })))).not.toContain('En pausa')
+	})
+
+	test('una pausa automática ya vencida no se marca', () => {
+		const pause = { reason: 'taker_left', until: new Date(Date.now() - 60000).toISOString() }
+		expect(plainText(renderItem(makeOffer({ pause })))).not.toContain('En pausa')
+	})
+
 	test('no hay badge KYC', () => {
 		expect(plainText(renderItem(makeOffer({ only_kyc: 1 })))).not.toContain('KYC')
 	})

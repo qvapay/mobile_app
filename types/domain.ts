@@ -552,6 +552,16 @@ export type P2POffer = {
 	my_order?: { uuid: string, amount: Decimal, receive: Decimal, status: P2POrderStatus, created_at: string } | null
 	/** Banco del método (CUP y similares). Hueco reservado: el backend aún no lo envía. */
 	bank?: string | null
+	/** Detalle y lista con `my`: la pausa vigente, o null. La oferta sigue `open`. */
+	pause?: P2POfferPause | null
+}
+
+/** Pausa de una oferta: fuera del mercado y sin poder tomarse (`POST /p2p/{uuid}/pause`). */
+export type P2POfferPause = {
+	/** `owner` = la pausó su dueño · `taker_left` = automática tras irse quien la tomó. */
+	reason: 'owner' | 'taker_left'
+	/** ISO: cuándo vuelve sola al mercado; null = hasta que el dueño la reactive. */
+	until: string | null
 }
 
 export type P2PRequirements = {

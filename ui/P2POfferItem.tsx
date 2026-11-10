@@ -43,6 +43,7 @@ import {
 	cardAction, viewerPays, remainingPct, activeRequirements, formatStamp,
 } from '../screens/p2p/p2pOfferCard'
 import type { CardAction, RateTrend } from '../screens/p2p/p2pOfferCard'
+import { activePause } from '../screens/p2p/p2pPause'
 
 /** Ancho fijo del botón de operar: la columna derecha de la card. */
 const ACTION_WIDTH = 112
@@ -180,7 +181,10 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 			]
 	const remaining = rangeView ? remainingPct(offer) : null
 	const showVipInChips = !!offer.only_vip && !show_buttons
-	const hasChips = remaining != null || !!offer.private || showVipInChips
+	// Solo en listas (el detalle ya lo dice en el título y el aviso), y no sobre la orden
+	// que YO tomé: esa sigue su curso aunque la oferta esté en pausa
+	const showPaused = show_buttons && !myOrder && !!activePause(offer)
+	const hasChips = remaining != null || !!offer.private || showVipInChips || showPaused
 
 	const card = (
 		<>
@@ -298,6 +302,12 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 							<View style={[styles.chip, { backgroundColor: theme.colors.gold + '26', borderColor: theme.colors.gold + '4D' }]}>
 								<FontAwesome6 name="gem" size={small} color={vipColor} iconStyle="solid" />
 								<Text style={{ color: vipColor, fontSize: small, fontFamily: theme.typography.fontFamily.semiBold }}>{t('ui.offerItem.vipOnly')}</Text>
+							</View>
+						)}
+						{showPaused && (
+							<View style={[styles.chip, { backgroundColor: theme.colors.warning + '1A', borderColor: theme.colors.warning + '33' }]}>
+								<FontAwesome6 name="pause" size={small} color={theme.colors.warning} iconStyle="solid" />
+								<Text style={{ color: theme.colors.warning, fontSize: small, fontFamily: theme.typography.fontFamily.semiBold }}>{t('ui.offerItem.pausedBadge')}</Text>
 							</View>
 						)}
 						{!!offer.private && (
