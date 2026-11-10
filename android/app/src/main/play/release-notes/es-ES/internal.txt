@@ -1,7 +1,6 @@
-Novedades de QvaPay 3.14.1:
-• Tira hacia abajo para actualizar las pantallas de Ajustes y los requisitos del P2P.
-• Al vincular Telegram, el P2P lo detecta sin reiniciar la app.
-• Cambia el correo de tu cuenta desde Datos personales. Por seguridad se hace a las 48 horas.
-• 2FA: activarlo y desactivarlo ya funciona, con códigos de recuperación.
-• Si tu sesión termina, la app te lleva a iniciar sesión.
+Novedades de QvaPay 3.15.0:
+• Si estás en Brasil, ya puedes pagar tus recargas con PIX, en reales.
+• P2P: pausa y reanuda tus ofertas cuando quieras.
+• Al comprar GOLD, la app lo refleja al momento.
+• El detalle de las gift cards enseña el Access Number y deja copiarlo.
 • Arreglos y estabilidad.
