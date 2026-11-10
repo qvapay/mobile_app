@@ -88,27 +88,38 @@ export default function useCartCheckout({ payable, anyPhysical, useNewAddress, s
 		return idemRef.current[key]
 	}
 
+	/**
+	 * Dirección de la compra, también para el pago con PIX. Una nueva se crea UNA vez y todas las
+	 * órdenes físicas la reusan (mandar new_address por orden duplicaría la dirección en cada compra).
+	 *
+	 * @returns `{ uuid }` (null si la compra no la necesita), o null si no se pudo guardar.
+	 */
+	const resolveAddress = async (): Promise<{ uuid: string | null } | null> => {
+		const uuid = !useNewAddress ? selectedUuid : null
+		if (!anyPhysical || uuid || !useNewAddress) return { uuid }
+		// `buildAddressBody` normaliza phone/line2 a `null` y añade `country`, y el
+		// input de shopApi los declara `string?` sin `country`: incompatibilidad
+		// REAL entre módulos ya migrados — se castea aquí, el body viaja intacto
+		const res = await shopApi.createShippingAddress(buildAddressBody(form) as unknown as Parameters<typeof shopApi.createShippingAddress>[0])
+		// `shopApi.createShippingAddress` devuelve `unknown`: solo se lee `address`
+		const createdUuid = res.success ? (res.data as { address?: ShippingAddress } | undefined)?.address?.uuid : null
+		if (!createdUuid) {
+			toast.error(t('market.cart.toasts.addressErrorTitle'), { description: (res as ApiFailure).error || t('market.cart.toasts.addressSaveFailed') })
+			return null
+		}
+		onAddressCreated((res as ApiSuccess<{ address: ShippingAddress }>).data!.address)
+		return { uuid: createdUuid }
+	}
+
 	const payAll = async () => {
 		setPaying(true)
 
-		// Dirección nueva: se crea UNA vez y todas las órdenes físicas la reusan
-		// (mandar new_address por orden duplicaría la dirección en cada compra)
-		let addressUuid = !useNewAddress ? selectedUuid : null
-		if (anyPhysical && !addressUuid && useNewAddress) {
-			// `buildAddressBody` normaliza phone/line2 a `null` y añade `country`, y el
-			// input de shopApi los declara `string?` sin `country`: incompatibilidad
-			// REAL entre módulos ya migrados — se castea aquí, el body viaja intacto
-			const res = await shopApi.createShippingAddress(buildAddressBody(form) as unknown as Parameters<typeof shopApi.createShippingAddress>[0])
-			// `shopApi.createShippingAddress` devuelve `unknown`: solo se lee `address`
-			const createdUuid = res.success ? (res.data as { address?: ShippingAddress } | undefined)?.address?.uuid : null
-			if (!createdUuid) {
-				toast.error(t('market.cart.toasts.addressErrorTitle'), { description: (res as ApiFailure).error || t('market.cart.toasts.addressSaveFailed') })
-				setPaying(false)
-				return
-			}
-			addressUuid = createdUuid
-			onAddressCreated((res as ApiSuccess<{ address: ShippingAddress }>).data!.address)
+		const address = await resolveAddress()
+		if (!address) {
+			setPaying(false)
+			return
 		}
+		const addressUuid = address.uuid
 
 		let succeeded = 0
 		let failed = 0
@@ -167,5 +178,5 @@ export default function useCartCheckout({ payable, anyPhysical, useNewAddress, s
 		}
 	}
 
-	return { paying, succeededCount, payAll }
+	return { paying, succeededCount, payAll, resolveAddress }
 }

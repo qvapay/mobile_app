@@ -15,6 +15,9 @@ import { ROUTES } from '../../routes'
 // Data (React Query)
 import { useMyPurchasesQuery } from './storeQueries'
 
+// PIX
+import { formatBrl } from './pix/pixRules'
+
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
@@ -32,6 +35,31 @@ import i18n from '../../i18n'
 import type { Theme } from '../../theme/ThemeContext'
 import type { RootStackParamList } from '../../types/navigation'
 import type { StorePurchase } from './storeQueries'
+import type { PixCharge } from '../../types/domain'
+
+/**
+ * Compras pagadas con PIX que se están verificando: aún no existen como compra, así que van
+ * aparte de la lista. Sin toque: no hay detalle que abrir hasta que se entregan.
+ */
+const PixHoldsSection = ({ holds }: { holds: PixCharge[] }) => {
+
+	const { t } = useTranslation()
+	const { theme } = useTheme()
+	const textStyles = createTextStyles(theme)
+
+	return (
+		<View style={[styles.holds, { backgroundColor: theme.colors.surface }]} testID="pix-holds">
+			<Text style={[textStyles.h5, { fontWeight: '600' }]}>{t('store.pix.holds.title')}</Text>
+			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 4 }]}>{t('store.pix.holds.body')}</Text>
+			{holds.map(hold => (
+				<View key={hold.uuid} style={styles.holdRow}>
+					<Text style={[textStyles.h6, styles.holdText]} numberOfLines={1}>{hold.description || t('store.pix.checkout.fallbackDescription')}</Text>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{formatBrl(hold.total_brl)}</Text>
+				</View>
+			))}
+		</View>
+	)
+}
 
 // Status colors (same pattern as Transaction.jsx)
 const getStatusColor = (status: string | undefined, theme: Theme): string => {
@@ -60,7 +88,8 @@ const MyPurchases = ({ navigation }: NativeStackScreenProps<RootStackParamList, 
 	// Data: la query hace el fetch, la persistencia en frío y conserva la
 	// última lista buena si la red falla
 	const query = useMyPurchasesQuery()
-	const purchases = query.data || []
+	const purchases = query.data?.purchases || []
+	const pixHolds = query.data?.pixHolds || []
 	const isLoading = query.isPending
 	const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -112,7 +141,7 @@ const MyPurchases = ({ navigation }: NativeStackScreenProps<RootStackParamList, 
 	if (isLoading) { return <View style={containerStyles.subContainer} /> }
 
 	// Empty state
-	if (purchases.length === 0) {
+	if (purchases.length === 0 && pixHolds.length === 0) {
 		return (
 			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('store.myPurchases.empty')}</Text>
@@ -126,6 +155,7 @@ const MyPurchases = ({ navigation }: NativeStackScreenProps<RootStackParamList, 
 				data={purchases}
 				keyExtractor={(item) => String(item.id)}
 				renderItem={renderItem}
+				ListHeaderComponent={pixHolds.length > 0 ? <PixHoldsSection holds={pixHolds} /> : undefined}
 				contentContainerStyle={styles.listContent}
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(isRefreshing, onRefresh) as ReactElement<RefreshControlProps>}
@@ -157,6 +187,21 @@ const styles = StyleSheet.create({
 	itemContent: {
 		flex: 1,
 		gap: 2,
+	},
+	holds: {
+		padding: 14,
+		borderRadius: 12,
+		marginBottom: 8,
+	},
+	holdRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		gap: 12,
+		marginTop: 10,
+	},
+	holdText: {
+		flex: 1,
 	},
 	statusBadge: {
 		paddingHorizontal: 10,

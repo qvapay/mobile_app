@@ -18,6 +18,9 @@ export type { UserCip } from '../types/domain'
 /** Éxito de `POST /user/cip/verify-ssn` (desenvuelto de `data`). */
 export type SsnVerifyResult = { status: 'verified', verified_at: string, attempts_left: number }
 
+/** Éxito de `POST /user/cip/verify-cpf` (desenvuelto de `data`). */
+export type CpfVerifyResult = { status: 'verified', verified_at: string, cpf_last2: string, attempts_left: number }
+
 /** Body de `POST /user/update`: campos sueltos del perfil y, opcionalmente, la ficha CIP. */
 export type UserUpdateInput = Record<string, unknown> & { cip?: CipPayload }
 
@@ -310,6 +313,24 @@ export const userApi = {
 	verifySsn: async (): Promise<ApiResult<SsnVerifyResult>> => {
 		try {
 			const response = await apiClient.post('/user/cip/verify-ssn', {})
+			return { success: true, data: response.data?.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || error.message, status: error.response?.status, details: error.response?.data }
+		}
+	},
+
+	/**
+	 * Verifica el CPF contra el registro de Brasil (`POST /user/cip/verify-cpf`), síncrono: es
+	 * lo que habilita pagar con PIX. Solo viaja el número: el nombre y la fecha salen del documento
+	 * verificado. Límite de 3 llamadas cada 10 minutos; cada consulta con respuesta gasta un intento.
+	 *
+	 * @param cpf - CPF, con o sin puntos y guion.
+	 * @returns `{ success, data?, error?, status?, details? }` — `data` is `CpfVerifyResult`
+	 */
+	verifyCpf: async (cpf: string): Promise<ApiResult<CpfVerifyResult>> => {
+		try {
+			const response = await apiClient.post('/user/cip/verify-cpf', { cpf }, { silent: true })
 			return { success: true, data: response.data?.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError

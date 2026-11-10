@@ -17,6 +17,7 @@ import i18n from '../../i18n'
 import type { CatalogCountry } from '../../ui/store/CountryPicker'
 import type { CatalogBrand } from '../../ui/store/BrandTile'
 import type { MarketShop } from './market/marketQueries'
+import type { PixCharge } from '../../types/domain'
 
 // ---------------------------------------------------------------------------
 // Formas del catálogo Zendit. No están en types/domain: se declaran aquí a
@@ -198,10 +199,19 @@ export const useTopupBrandDetailQuery = (countryCode: string | undefined, brandS
 	placeholderData: previous => previous,
 })
 
+/** Lo que devuelve `GET /store/my`: `pixHolds` son compras por PIX en verificación, que aún no están en `purchases`. */
+export type MyPurchases = { purchases: StorePurchase[], pixHolds: PixCharge[] }
+
+/** Clave propia (no `['store', 'purchases']`): una caché persistida vieja traería un array pelado. */
+export const MY_PURCHASES_KEY = ['store', 'my-purchases'] as const
+
 /** Compras del usuario en la tienda (vouchers + recargas). */
-export const useMyPurchasesQuery = (): UseQueryResult<StorePurchase[]> => useQuery({
-	queryKey: ['store', 'purchases'],
-	queryFn: async () => (unwrap(await storeApi.getMyPurchases()) as { data?: StorePurchase[] } | null)?.data || [],
+export const useMyPurchasesQuery = (): UseQueryResult<MyPurchases> => useQuery({
+	queryKey: MY_PURCHASES_KEY,
+	queryFn: async () => {
+		const body = unwrap(await storeApi.getMyPurchases()) as { data?: StorePurchase[], pix_holds?: PixCharge[] } | null
+		return { purchases: body?.data || [], pixHolds: body?.pix_holds || [] }
+	},
 	placeholderData: previous => previous,
 })
 

@@ -744,3 +744,23 @@ describe('userApi.registerCompany', () => {
 		})
 	})
 })
+
+describe('userApi.verifyCpf', () => {
+
+	test('manda solo el número y desenvuelve data', async () => {
+		apiClient.post.mockResolvedValueOnce({ data: { result: 'OK', data: { status: 'verified', cpf_last2: '25' } }, status: 200 })
+		const result = await userApi.verifyCpf('529.982.247-25')
+		expect(apiClient.post).toHaveBeenCalledWith('/user/cip/verify-cpf', { cpf: '529.982.247-25' }, { silent: true })
+		expect(result).toEqual({ success: true, data: { status: 'verified', cpf_last2: '25' }, status: 200 })
+	})
+
+	test('un rechazo conserva el código y los intentos que quedan', async () => {
+		apiClient.post.mockRejectedValueOnce({ response: { status: 409, data: { error: 'No coincide', code: 'CPF_NO_MATCH', attempts_left: 1 } } })
+		expect(await userApi.verifyCpf('529.982.247-25')).toEqual({
+			success: false,
+			error: 'No coincide',
+			status: 409,
+			details: { error: 'No coincide', code: 'CPF_NO_MATCH', attempts_left: 1 },
+		})
+	})
+})

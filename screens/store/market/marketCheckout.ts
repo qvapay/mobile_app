@@ -34,7 +34,8 @@ export type FreshProduct = {
 	option_axes?: string[] | null
 	variants?: FreshVariant[] | null
 	ship_to?: ShipTo | null
-	shop?: { slug?: string | null, name?: string | null, active?: boolean } | null
+	/** `balance_only`: tienda de proveedor, solo se paga con saldo. */
+	shop?: { slug?: string | null, name?: string | null, active?: boolean, balance_only?: boolean } | null
 }
 
 /** Dirección de envío evaluable (guardada o el formulario nuevo). */
@@ -209,6 +210,38 @@ export function mapOrderError(status: number | undefined, error: string | undefi
  */
 export function isAbortingOrderError(error: string | undefined): boolean {
 	return /saldo insuficiente/i.test(String(error || ''))
+}
+
+/** Máximo de líneas de un cobro externo (`MAX_ITEMS` de qpweb `checkout-batch.js`). */
+export const PIX_CART_MAX_ITEMS = 20
+
+/**
+ * ¿Este carrito se puede pagar con PIX? Un pago reversible no compra gift cards, que emiten códigos
+ * al instante, ni tiendas de proveedor, que se pagan al despachar.
+ *
+ * @param payable - Líneas pagables.
+ */
+export function isPixPayableCart(payable: CartEntry[]): boolean {
+	if (payable.length === 0 || payable.length > PIX_CART_MAX_ITEMS) return false
+	return !payable.some((e) => (e.fresh?.kind || e.item.kind) === 'giftcard' || !!e.fresh?.shop?.balance_only)
+}
+
+/**
+ * Campos de `POST /pix/checkout` con `source: 'market'`: UN cobro por todo el carrito, al contrario
+ * que el pago con saldo, y la dirección ya guardada.
+ *
+ * @param payable - Líneas a pagar.
+ * @param addressUuid - Dirección de envío, si hay físicos.
+ */
+export function buildMarketPixBody(payable: CartEntry[], addressUuid: string | null) {
+	return {
+		items: payable.map((e) => ({
+			product_uuid: e.item.product_uuid,
+			...(e.item.variant_uuid ? { variant_uuid: e.item.variant_uuid } : {}),
+			quantity: e.qty,
+		})),
+		...(addressUuid && payable.some((e) => e.isPhysical) ? { shipping_address_id: addressUuid } : {}),
+	}
 }
 
 /**

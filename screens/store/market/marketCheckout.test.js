@@ -10,6 +10,9 @@ import {
 	mapOrderError,
 	isAbortingOrderError,
 	makeIdemKey,
+	isPixPayableCart,
+	buildMarketPixBody,
+	PIX_CART_MAX_ITEMS,
 } from './marketCheckout'
 
 const cartItem = (overrides = {}) => ({
@@ -175,5 +178,48 @@ describe('marketCheckout', () => {
 		it('covers every problem code', () => {
 			expect(Object.keys(PROBLEM_LABELS).sort()).toEqual(['gone', 'soldout', 'variant_required'])
 		})
+	})
+})
+
+describe('pago del carrito con PIX', () => {
+	const entry = ({ fresh = null, item = {}, ...rest } = {}) => ({
+		key: item.product_uuid || 'p1',
+		item: cartItem({ kind: 'digital', ...item }),
+		fresh,
+		qty: 1,
+		isPhysical: false,
+		...rest,
+	})
+
+	test('un carrito normal se puede pagar', () => {
+		expect(isPixPayableCart([entry(), entry({ item: { product_uuid: 'p2' } })])).toBe(true)
+	})
+
+	test('sin líneas o con más de las que admite un cobro, no', () => {
+		expect(isPixPayableCart([])).toBe(false)
+		expect(isPixPayableCart(Array.from({ length: PIX_CART_MAX_ITEMS + 1 }, () => entry()))).toBe(false)
+		expect(isPixPayableCart(Array.from({ length: PIX_CART_MAX_ITEMS }, () => entry()))).toBe(true)
+	})
+
+	test('las gift cards no: emiten códigos al instante y el pago es reversible', () => {
+		expect(isPixPayableCart([entry(), entry({ fresh: { kind: 'giftcard' } })])).toBe(false)
+		expect(isPixPayableCart([entry({ item: { kind: 'giftcard' } })])).toBe(false)
+	})
+
+	test('las tiendas de proveedor tampoco: solo aceptan saldo', () => {
+		expect(isPixPayableCart([entry({ fresh: { kind: 'digital', shop: { balance_only: true } } })])).toBe(false)
+	})
+
+	test('el cuerpo es UN cobro por todo el carrito', () => {
+		const body = buildMarketPixBody([
+			entry({ item: { product_uuid: 'p1', variant_uuid: 'v1' }, qty: 2 }),
+			entry({ item: { product_uuid: 'p2' } }),
+		], null)
+		expect(body).toEqual({ items: [{ product_uuid: 'p1', variant_uuid: 'v1', quantity: 2 }, { product_uuid: 'p2', quantity: 1 }] })
+	})
+
+	test('la dirección solo viaja si hay físicos', () => {
+		expect(buildMarketPixBody([entry({ isPhysical: true })], 'addr-1').shipping_address_id).toBe('addr-1')
+		expect(buildMarketPixBody([entry()], 'addr-1').shipping_address_id).toBeUndefined()
 	})
 })

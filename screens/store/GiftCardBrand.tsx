@@ -17,6 +17,7 @@ import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
 import OperatorAvatar from '../../ui/store/OperatorAvatar'
 import SatsDiscountRow from '../../ui/store/SatsDiscountRow'
+import PixMethodPicker from './pix/PixMethodPicker'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { useAuth } from '../../auth/AuthContext'
@@ -26,6 +27,7 @@ import { tinyfiNumber } from '../../helpers'
 import { sanitizeAmountInput } from '../../helpers/amountInput'
 import useSatsDiscount from './useSatsDiscount'
 import type { StorePurchaseResult } from './useSatsDiscount'
+import usePixPayment from './pix/usePixPayment'
 
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
@@ -248,20 +250,32 @@ const GiftCardBrand = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 		dispatchPurchase({ type: 'set', field: 'step', value: 2 })
 	}, [selectedOffer, rangeAmount])
 
+	// Los campos de la compra: los mismos con saldo y con PIX. `offer_id`/`country`/`brand` son
+	// opcionales en los tipos del catálogo pero el endpoint los exige; quien llama garantiza que
+	// hay oferta elegida
+	const purchaseFields = useCallback((): VoucherPurchaseInput => ({
+		offer_id: selectedOffer?.offer_id as string,
+		country: countryCode as string,
+		brand,
+		...(selectedOffer?.price_type === 'RANGE' ? { amount: parseFloat(rangeAmount) } : {}),
+	}), [selectedOffer, countryCode, brand, rangeAmount])
+
+	const { setEnabled: setSatsEnabled } = satsDiscount
+	const turnSatsOff = useCallback(() => setSatsEnabled(false), [setSatsEnabled])
+	const pix = usePixPayment({
+		surface: 'voucher',
+		base: offerPrice,
+		enabled: step === 2 && !!selectedOffer,
+		buildBody: purchaseFields,
+		doneDepth: 2,
+		onChoose: turnSatsOff,
+	})
+
 	const handleConfirm = useCallback(async () => {
 		if (!selectedOffer) return
 		if (!hasBalance) { toast.error(i18n.t('store.toasts.insufficientBalance')); return }
 		setSubmitting(true)
-		// `offer_id`/`country`/`brand` son opcionales en los tipos del catálogo pero
-		// el endpoint los exige; el guard de arriba garantiza que hay oferta elegida
-		const body: VoucherPurchaseInput = {
-			offer_id: selectedOffer.offer_id as string,
-			country: countryCode as string,
-			brand,
-		}
-		if (selectedOffer.price_type === 'RANGE') body.amount = parseFloat(rangeAmount)
-		if (satsDiscount.enabled) body.use_satoshis = true
-		const res = await storeApi.purchaseVoucher(body)
+		const res = await storeApi.purchaseVoucher({ ...purchaseFields(), ...(satsDiscount.enabled ? { use_satoshis: true } : {}) })
 		setSubmitting(false)
 		if (res.success) {
 			// Reflejar el gasto real (cash_paid) y los sats restantes sin refetch
@@ -271,7 +285,7 @@ const GiftCardBrand = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 		} else {
 			toast.error(i18n.t('store.toasts.error'), { description: res.error })
 		}
-	}, [selectedOffer, hasBalance, countryCode, brand, rangeAmount, satsDiscount, offerPrice, navigation])
+	}, [selectedOffer, hasBalance, purchaseFields, satsDiscount, offerPrice, navigation])
 
 	if (loading) {
 		return (
@@ -364,6 +378,7 @@ const GiftCardBrand = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 								<SatsDiscountRow
 									enabled={satsDiscount.enabled}
 									onToggle={satsDiscount.setEnabled}
+									disabled={pix.selected}
 									sats={satsDiscount.sats}
 									satsUsd={satsDiscount.satsUsd}
 									theme={theme}
@@ -378,11 +393,13 @@ const GiftCardBrand = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 							)}
 							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.yourBalance')} value={`$${Number(user?.balance ?? 0).toFixed(2)} USD`} />
 						</View>
-						{!hasBalance && (
+						{!hasBalance && !pix.selected && (
 							<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
 								{t('store.common.insufficientBalanceNote')}
 							</Text>
 						)}
+
+						<PixMethodPicker pix={pix} balance={Number(user?.balance ?? 0)} />
 					</View>
 				)}
 
@@ -396,15 +413,19 @@ const GiftCardBrand = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 					) : (
 						<View style={{ flexDirection: 'row', gap: 10 }}>
 							<View style={{ flex: 1 }}>
-								<QPButton title={t('store.common.back')} onPress={() => dispatchPurchase({ type: 'set', field: 'step', value: 1 })} disabled={submitting} />
+								<QPButton title={t('store.common.back')} onPress={() => dispatchPurchase({ type: 'set', field: 'step', value: 1 })} disabled={submitting || pix.starting} />
 							</View>
 							<View style={{ flex: 2 }}>
-								<QPButton
-									title={submitting ? t('store.common.processing') : t('common.actions.confirm')}
-									onPress={handleConfirm}
-									disabled={submitting || !hasBalance}
-									loading={submitting}
-								/>
+								{pix.selected
+									? <QPButton title={pix.payLabel} onPress={pix.pay} loading={pix.starting} disabled={pix.starting} testID="pix-pay" />
+									: (
+										<QPButton
+											title={submitting ? t('store.common.processing') : t('common.actions.confirm')}
+											onPress={handleConfirm}
+											disabled={submitting || !hasBalance}
+											loading={submitting}
+										/>
+									)}
 							</View>
 						</View>
 					)}

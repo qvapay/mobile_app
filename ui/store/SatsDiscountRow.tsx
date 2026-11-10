@@ -12,6 +12,8 @@ const SATS_COLOR = '#F7931A'
 type Props = {
 	enabled: boolean
 	onToggle: (value: boolean) => void
+	/** Forma de pago sin descuento en sats (PIX): el interruptor se apaga y lo dice. */
+	disabled?: boolean
 	sats: number
 	satsUsd: number
 	theme: Theme
@@ -23,22 +25,26 @@ type Props = {
  * sats balance with its approximate USD value and an on/off switch that applies
  * them as a discount (min(sats value, total), up to 100% of the purchase).
  */
-const SatsDiscountRow = ({ enabled, onToggle, sats, satsUsd, theme, textStyles }: Props) => {
+const SatsDiscountRow = ({ enabled, onToggle, disabled = false, sats, satsUsd, theme, textStyles }: Props) => {
 	const { t } = useTranslation()
 	return (
-		<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, gap: 12 }}>
-			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
-				<FontAwesome6 name="bolt" size={12} color={SATS_COLOR} iconStyle="solid" />
-				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontWeight: '500', flexShrink: 1 }]} numberOfLines={1}>
-					{t('ui.satsDiscountRow.label', { sats: sats.toLocaleString(), satsUsd: satsUsd.toFixed(2) })}
-				</Text>
+		<View style={{ paddingVertical: 6 }}>
+			<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+					<FontAwesome6 name="bolt" size={12} color={SATS_COLOR} iconStyle="solid" />
+					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontWeight: '500', flexShrink: 1 }]} numberOfLines={1}>
+						{t('ui.satsDiscountRow.label', { sats: sats.toLocaleString(), satsUsd: satsUsd.toFixed(2) })}
+					</Text>
+				</View>
+				<Switch
+					value={enabled && !disabled}
+					onValueChange={onToggle}
+					disabled={disabled}
+					trackColor={{ false: theme.colors.elevation, true: SATS_COLOR }}
+					thumbColor={theme.colors.almostWhite}
+				/>
 			</View>
-			<Switch
-				value={enabled}
-				onValueChange={onToggle}
-				trackColor={{ false: theme.colors.elevation, true: SATS_COLOR }}
-				thumbColor={theme.colors.almostWhite}
-			/>
+			{disabled && <Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{t('store.pix.satsUnavailable')}</Text>}
 		</View>
 	)
 }

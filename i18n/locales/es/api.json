@@ -140,5 +140,11 @@
 	"wallet": {
 		"gaslessQuoteFailed": "No se pudo comprobar el envío gratis",
 		"gaslessSubmitFailed": "No se pudo completar el envío patrocinado"
+	},
+	"pix": {
+		"eligibilityFailed": "No se pudo comprobar el pago con PIX",
+		"checkoutFailed": "No se pudo iniciar el pago con PIX",
+		"statusFailed": "No se pudo obtener el estado del pago",
+		"cancelFailed": "No se pudo cancelar el PIX"
 	}
 }

@@ -135,6 +135,8 @@ import GiftCards from './screens/store/GiftCards'
 import GiftCardBrand from './screens/store/GiftCardBrand'
 import MyPurchases from './screens/store/MyPurchases'
 import PurchaseDetail from './screens/store/PurchaseDetail'
+import PixCheckout from './screens/store/pix/PixCheckout'
+import CpfVerification from './screens/store/pix/CpfVerification'
 
 // Marketplace (tiendas de comercios aprobados) Screens
 import MarketStores from './screens/store/market/MarketStores'
@@ -349,6 +351,10 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	// My Purchases Screens
 	{ name: ROUTES.MY_PURCHASES, component: MyPurchases, options: getHeaderOptions(t('navigation.headers.myPurchases')) },
 	{ name: ROUTES.PURCHASE_DETAIL, component: PurchaseDetail, options: getHeaderOptions('') },
+
+	// Pago de compras con PIX
+	{ name: ROUTES.PIX_CHECKOUT, component: PixCheckout, options: getHeaderOptions(t('navigation.headers.payWithPix')) },
+	{ name: ROUTES.CPF_VERIFICATION, component: CpfVerification, options: getHeaderOptions(t('navigation.headers.cpfVerification')) },
 
 	// Marketplace (tiendas de comercios aprobados) Screens
 	{ name: ROUTES.MARKET_STORES, component: MarketStores, options: getHeaderOptions(t('navigation.headers.stores'), { headerRight: () => <CartHeaderButton /> }) },

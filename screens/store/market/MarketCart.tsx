@@ -16,6 +16,7 @@ import AddressPicker from '../../../ui/store/AddressPicker'
 import NewAddressForm from '../../../ui/store/NewAddressForm'
 import { formatAddress, EMPTY_US_ADDRESS, validateUsAddress } from '../../../ui/store/shippingAddress'
 import MarketCartShopGroup from './MarketCartShopGroup'
+import PixMethodPicker from '../pix/PixMethodPicker'
 
 // Routes & API
 import { ROUTES } from '../../../routes'
@@ -25,7 +26,8 @@ import { shopApi } from '../../../api/shopApi'
 // Cart core
 import useMarketCart from './useMarketCart'
 import useCartCheckout from './useCartCheckout'
-import { enrichCartItems, groupByShop } from './marketCheckout'
+import usePixPayment from '../pix/usePixPayment'
+import { buildMarketPixBody, enrichCartItems, groupByShop, isPixPayableCart } from './marketCheckout'
 
 import type { Theme } from '../../../theme/ThemeContext'
 import type { TextStyles } from '../../../theme/themeUtils'
@@ -199,7 +201,7 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 	const revalidating = freshMap === null && !offline && items.length > 0
 
 	// Checkout: una orden por línea, secuencial e idempotente
-	const { paying, succeededCount, payAll } = useCartCheckout({
+	const { paying, succeededCount, payAll, resolveAddress } = useCartCheckout({
 		payable, anyPhysical, useNewAddress, selectedUuid, form, navigation, setStatuses,
 		remove, revalidate,
 		onAddressCreated: (address) => {
@@ -208,7 +210,23 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 		},
 	})
 
-	const canPay = !paying && !revalidating && !offline && payable.length > 0 && enoughBalance && addressReady && !anyShipBlocked
+	// PIX: UN cobro por todo el carrito. El carrito no cotiza el envío y el servidor sí lo cobra, así
+	// que con físicos el precio en reales es una estimación hasta generar el QR
+	const pix = usePixPayment({
+		surface: 'market',
+		base: total,
+		enabled: payable.length > 0,
+		excluded: !isPixPayableCart(payable),
+		estimate: anyPhysical,
+		cartKeys: payable.map(e => e.key),
+		buildBody: async () => {
+			const address = await resolveAddress()
+			return address ? buildMarketPixBody(payable, address.uuid) : null
+		},
+	})
+
+	const canCheckout = !paying && !pix.starting && !revalidating && !offline && payable.length > 0 && addressReady && !anyShipBlocked
+	const canPay = canCheckout && enoughBalance
 
 	// ── Vacío ──
 	if (items.length === 0) {
@@ -313,7 +331,7 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 						<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontWeight: '600' }]}>{money(balance)}</Text>
 					</View>
 
-					{!enoughBalance && (
+					{!enoughBalance && !pix.selected && (
 						<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
 							{t('market.cart.insufficientBalance')}
 						</Text>
@@ -335,14 +353,20 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 					)}
 				</View>
 
-				<QPButton
-					title={paying ? t('market.cart.processingPurchases') : failedCount > 0 ? t('market.cart.retryPayment', { failed: failedCount }) : t('market.cart.payAmount', { amount: money(total) })}
-					icon="lock"
-					onPress={() => setConfirmVisible(true)}
-					loading={paying}
-					disabled={!canPay}
-					style={{ marginTop: 16 }}
-				/>
+				<PixMethodPicker pix={pix} balance={balance} />
+
+				{pix.selected
+					? <QPButton title={pix.payLabel} onPress={pix.pay} loading={pix.starting} disabled={!canCheckout} style={{ marginTop: 16 }} testID="pix-pay" />
+					: (
+						<QPButton
+							title={paying ? t('market.cart.processingPurchases') : failedCount > 0 ? t('market.cart.retryPayment', { failed: failedCount }) : t('market.cart.payAmount', { amount: money(total) })}
+							icon="lock"
+							onPress={() => setConfirmVisible(true)}
+							loading={paying}
+							disabled={!canPay}
+							style={{ marginTop: 16 }}
+						/>
+					)}
 
 				<Pressable disabled={paying} onPress={clear} style={{ marginTop: 12, alignSelf: 'center' }}>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{t('market.cart.clearCart')}</Text>

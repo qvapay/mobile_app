@@ -140,6 +140,9 @@ export const resolvePushTarget = (data: PushData): PushTarget | null => {
 
 	if (type.startsWith('savings')) return { screen: ROUTES.SAVINGS_SCREEN }
 
+	// Compra pagada con PIX: retenida, liberada o devuelta. Su `/shop/my` no es un deep link
+	if (type === 'pix_purchase') return { screen: ROUTES.MY_PURCHASES }
+
 	return null
 }
 
