@@ -40,7 +40,9 @@
 		"miniApps": "Mini-apps",
 		"stocksHome": "Ações",
 		"xstockBuy": "Comprar",
-		"xstockSell": "Vender"
+		"xstockSell": "Vender",
+		"payWithPix": "Pagar com PIX",
+		"cpfVerification": "Verificar CPF"
 	},
 	"tabs": {
 		"home": "Início",

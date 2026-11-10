@@ -44,6 +44,8 @@ export const ROUTES = {
 	GIFT_CARD_BRAND: "GiftCardBrand",
 	MY_PURCHASES: "MyPurchases",
 	PURCHASE_DETAIL: "PurchaseDetail",
+	PIX_CHECKOUT: "PixCheckout",
+	CPF_VERIFICATION: "CpfVerification",
 	P2P_SCREEN: "P2P",
 	P2P_CREATE_SCREEN: "P2PCreate",
 	P2P_OFFER_SCREEN: "P2POffer",

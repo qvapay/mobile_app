@@ -17,7 +17,7 @@
 import type { StakeAction } from '../wallet/staking/types'
 import type { NavigatorScreenParams } from '@react-navigation/native'
 import type { WalletTx } from './domain'
-import type { Coin, EnergyDuration, EnrichedCoin, Transaction } from './domain'
+import type { Coin, EnergyDuration, EnrichedCoin, PixCharge, Transaction } from './domain'
 
 /** Metadatos de país que viajan a las pantallas de marca (forma variable: catálogo completo o `{ code, ...country_meta }`). */
 export type CountryParam = { code?: string } & Record<string, unknown>
@@ -191,6 +191,12 @@ export type RootStackParamList = {
 	GiftCardBrand: { country?: CountryParam, countryCode?: string, brandSlug?: string } | undefined
 	MyPurchases: undefined
 	PurchaseDetail: { purchaseId: number | string }
+	/**
+	 * QR de un cobro por PIX. `doneDepth` = pantallas que salen al terminar pagado, contando el QR
+	 * (2 = también el wizard de la compra); `cartKeys` = líneas del carrito que paga.
+	 */
+	PixCheckout: { charge: PixCharge, holdHours?: number, doneDepth?: number, cartKeys?: string[] }
+	CpfVerification: undefined
 
 	// ── Marketplace (Seller Shops) ────────────────────────────────────────
 	/** `category` se lee pero ningún call site lo manda aún. */
