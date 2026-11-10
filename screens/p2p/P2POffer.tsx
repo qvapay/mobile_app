@@ -45,6 +45,7 @@ import P2PTradeProgress from "./P2PTradeProgress"
 import P2PTradeAttachments, { P2PProofPickers, P2PProofRows } from "./P2PTradeAttachments"
 import P2PActionBar from "./P2PActionBar"
 import P2PFlexibleOrders from "./P2PFlexibleOrders"
+import P2PPausedNotice from "./P2PPausedNotice"
 import P2PRateSheet from "./P2PRateSheet"
 import P2PUserModerationSheet from "./P2PUserModerationSheet"
 import useUserModeration from "./useUserModeration"
@@ -123,6 +124,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 		p2p, rawP2p, isLoading, error, refreshing,
 		isFlexible, isFlexibleOverview, selectedOrder, flexibleLocked, canBackToOffer,
 		requirementsLocked, requirementsMissing,
+		pause, pausedLocked, hasLiveOrders, togglePause,
 		applyAmount, setApplyAmount, openOrder, backToOffer,
 		isOwner, isPayer, isReceiver, status, counterparty,
 		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating, canEditMyRating,
@@ -162,14 +164,15 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 	const headerAmount = header?.amount ?? ""
 	const coinLogo = header?.coinLogo ?? null
 	const coinName = header?.coinName ?? ""
+	const paused = !!pause
 	useLayoutEffect(() => {
 		navigation.setOptions({
 			headerTitleAlign: "center",
 			headerTitle: side
-				? () => <P2PHeaderTitle side={side} amount={headerAmount} coinLogo={coinLogo} coinName={coinName} status={status} expiresAt={windowExpiresAt} />
+				? () => <P2PHeaderTitle side={side} amount={headerAmount} coinLogo={coinLogo} coinName={coinName} status={status} expiresAt={windowExpiresAt} paused={paused} />
 				: "",
 		})
-	}, [navigation, side, headerAmount, coinLogo, coinName, status, windowExpiresAt])
+	}, [navigation, side, headerAmount, coinLogo, coinName, status, windowExpiresAt, paused])
 
 	// Loading state check - only show loader if no cached data
 	if (isLoading && !p2p) { return (<QPLoader />) }
@@ -271,7 +274,9 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 
 							<P2PFlexibleOrders offer={rawP2p} isOwner={isOwner} currentUserUuid={user?.uuid} onOpenOrder={openOrder} onRateOrder={openRateSheet} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
 
-							{isOwner && status === "open" && !(rawP2p.Orders || []).length ? (
+							{isOwner && pause ? (
+								<P2PPausedNotice pause={pause} hasLiveOrders={hasLiveOrders} theme={theme} textStyles={textStyles} />
+							) : isOwner && status === "open" && !(rawP2p.Orders || []).length ? (
 								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
 									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>{t('p2p.flexible.searchingTakers')}</Text>
 									<LottieView source={require("../../assets/lotties/searching.json")} autoPlay loop style={{ width: 250, height: 250 }} />
@@ -283,12 +288,14 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 							) : null}
 						</>
 					) : status === "open" ? (
-						isOwner ? (
+						isOwner ? (pause ? (
+							<P2PPausedNotice pause={pause} theme={theme} textStyles={textStyles} />
+						) : (
 							<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
 								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>{t('p2p.offer.searchingPeer')}</Text>
 								<LottieView source={require("../../assets/lotties/searching.json")} autoPlay loop style={{ width: 250, height: 250 }} />
 							</View>
-						) : (
+						)) : (
 							<>
 								{p2p?.User && (
 									<P2PPeerRow
@@ -314,9 +321,11 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 									</View>
 								) : null}
 
-								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
-									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>{t('p2p.offer.applyQuestion')}</Text>
-								</View>
+								{!pausedLocked && (
+									<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
+										<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>{t('p2p.offer.applyQuestion')}</Text>
+									</View>
+								)}
 							</>
 						)
 					) : (
@@ -465,6 +474,8 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					flexibleLocked={flexibleLocked}
 					requirementsLocked={requirementsLocked}
 					requirementsMissing={requirementsMissing}
+					paused={paused}
+					pausedLocked={pausedLocked}
 					isOrder={!!selectedOrder}
 					onDispute={handleDispute}
 					onBackToOffer={backToOffer}
@@ -476,6 +487,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					onConfirmReceived={handleConfirmReceived}
 					onEdit={openEditModal}
 					onShare={handleShareIntent}
+					onTogglePause={togglePause}
 					onRate={(stars) => openRateSheet(undefined, stars)}
 					keyboardVisible={keyboardVisible}
 					insets={insets}

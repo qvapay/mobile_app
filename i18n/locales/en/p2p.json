@@ -174,7 +174,17 @@
 			"invalidValueTitle": "Invalid value",
 			"invalidValueBody": "The amount to receive must be greater than 0",
 			"insufficientBalanceTitle": "Insufficient balance",
-			"insufficientBalanceBody": "You don't have enough balance to increase the amount"
+			"insufficientBalanceBody": "You don't have enough balance to increase the amount",
+			"paused": "Offer paused",
+			"resumed": "Offer resumed",
+			"pauseFailed": "Couldn't pause",
+			"resumeFailed": "Couldn't resume"
+		},
+		"paused": {
+			"title": "Offer paused",
+			"body": "It isn't listed on the market and nobody can take it until you resume it.",
+			"takerLeft": "Whoever took it left. We paused it until {{time}} so you can check the rate before someone else takes it.",
+			"ordersContinue": "Orders in progress carry on as usual."
 		},
 		"share": {
 			"title": "P2P offer",
@@ -187,7 +197,10 @@
 		"markPaid": "I've paid",
 		"paymentReceived": "Payment received",
 		"offerCancelled": "Offer cancelled",
-		"requirementsNotMet": "You don't meet yet: {{list}}"
+		"requirementsNotMet": "You don't meet yet: {{list}}",
+		"pause": "Pause",
+		"resume": "Resume",
+		"pausedLocked": "The owner paused this offer. Try again later."
 	},
 	"applyModal": {
 		"title": "Apply to the offer",

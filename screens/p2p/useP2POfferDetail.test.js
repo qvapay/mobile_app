@@ -33,6 +33,7 @@ jest.mock('../../api/p2pApi', () => ({
 		markPaid: jest.fn(),
 		confirmReceived: jest.fn(),
 		apply: jest.fn(),
+		pause: jest.fn(),
 		edit: jest.fn(),
 		rateOffer: jest.fn(),
 		editRating: jest.fn(),
@@ -731,5 +732,125 @@ describe('range offers (offer_kind flexible)', () => {
 		act(() => { result.current.backToOffer() })
 		expect(result.current.isFlexibleOverview).toBe(true)
 		expect(result.current.canApply).toBe(true)
+	})
+})
+
+describe('pause', () => {
+	const OWNER_PAUSE = { reason: 'owner', until: null }
+	const STRANGER = { uuid: 'stranger' }
+	const inMinutes = (n) => new Date(Date.now() + n * 60000).toISOString()
+	const RANGE = {
+		type: 'sell', amount: '10.00', receive: '5000', offer_kind: 'flexible',
+		available_amount: '10.00', reserved_amount: '0.00', order_min: '1.00', order_max: '10.00',
+		can_take_flexible: true, OrdersSummary: null, Peer: {},
+	}
+
+	test('the owner pauses at once, with no confirmation, and the screen flips', async () => {
+		p2pApi.pause.mockResolvedValue({ success: true, data: { pause: OWNER_PAUSE } })
+		const { result } = await renderDetail({ offer: makeOffer(), viewer: CREATOR })
+		expect(result.current.pause).toBeNull()
+		await act(async () => { await result.current.togglePause() })
+		expect(p2pApi.pause).toHaveBeenCalledWith('offer-1', true)
+		expect(result.current.confirmModal).toBeNull()
+		expect(toast.success).toHaveBeenCalledWith('Oferta pausada')
+		expect(p2pApi.show).toHaveBeenCalledTimes(2) // carga + refresco tras pausar
+		expect(result.current.loading.pause).toBe(false)
+	})
+
+	test('shows the pause the server answers before the refresh lands', async () => {
+		p2pApi.pause.mockResolvedValue({ success: true, data: { pause: OWNER_PAUSE } })
+		const { result } = await renderDetail({ offer: makeOffer(), viewer: CREATOR })
+		p2pApi.show.mockReturnValue(new Promise(() => { })) // el refresco no llega
+		await act(async () => { await result.current.togglePause() })
+		expect(result.current.pause).toEqual(OWNER_PAUSE)
+	})
+
+	test('the owner resumes a paused offer, also the automatic pause', async () => {
+		p2pApi.pause.mockResolvedValue({ success: true, data: { pause: null } })
+		const { result } = await renderDetail({ offer: makeOffer({ pause: { reason: 'taker_left', until: inMinutes(5) } }), viewer: CREATOR })
+		expect(result.current.pause.reason).toBe('taker_left')
+		await act(async () => { await result.current.togglePause() })
+		expect(p2pApi.pause).toHaveBeenCalledWith('offer-1', false)
+		expect(toast.success).toHaveBeenCalledWith('Oferta reactivada')
+	})
+
+	test('a refusal keeps the state and tells why', async () => {
+		p2pApi.pause.mockResolvedValue({ success: false, status: 429, error: 'Demasiadas solicitudes, espera un momento' })
+		const { result } = await renderDetail({ offer: makeOffer(), viewer: CREATOR })
+		await act(async () => { await result.current.togglePause() })
+		expect(result.current.pause).toBeNull()
+		expect(toast.error).toHaveBeenCalledWith('No se pudo pausar', { description: 'Demasiadas solicitudes, espera un momento' })
+		expect(p2pApi.show).toHaveBeenCalledTimes(1)
+	})
+
+	test('a 409 (already cancelled) refreshes to show the real state', async () => {
+		p2pApi.pause.mockResolvedValue({ success: false, status: 409, error: 'La oferta está cancelada' })
+		const { result } = await renderDetail({ offer: makeOffer({ pause: OWNER_PAUSE }), viewer: CREATOR })
+		await act(async () => { await result.current.togglePause() })
+		expect(toast.error).toHaveBeenCalledWith('No se pudo reactivar', { description: 'La oferta está cancelada' })
+		expect(p2pApi.show).toHaveBeenCalledTimes(2)
+	})
+
+	test('nobody else can apply, and the pause outranks the other locks', async () => {
+		const { result } = await renderDetail({ offer: makeOffer({ pause: OWNER_PAUSE, requirements_met: false }), viewer: STRANGER })
+		expect(result.current.pausedLocked).toBe(true)
+		expect(result.current.canApply).toBe(false)
+		expect(result.current.requirementsLocked).toBe(false)
+	})
+
+	test('the owner is not locked out of their own paused offer', async () => {
+		const { result } = await renderDetail({ offer: makeOffer({ pause: OWNER_PAUSE }), viewer: CREATOR })
+		expect(result.current.pausedLocked).toBe(false)
+		expect(result.current.canCancel).toBe(true)
+	})
+
+	test('an automatic pause already over does not count, even from the cache', async () => {
+		const { result } = await renderDetail({ offer: makeOffer({ pause: { reason: 'taker_left', until: inMinutes(-1) } }), viewer: STRANGER })
+		expect(result.current.pause).toBeNull()
+		expect(result.current.canApply).toBe(true)
+	})
+
+	test('applying to an offer paused since the last poll refreshes the screen', async () => {
+		p2pApi.apply.mockResolvedValue({ success: false, status: 409, error: 'El dueño pausó esta oferta.', details: { code: 'OFFER_PAUSED' } })
+		const { result } = await renderDetail({ offer: makeOffer(), viewer: STRANGER })
+		act(() => { result.current.setShowApplyConfirm(true) })
+		await act(async () => { await result.current.handleApplyConfirm() })
+		expect(p2pApi.show).toHaveBeenCalledTimes(2)
+		expect(result.current.showApplyConfirm).toBe(false)
+	})
+
+	describe('range offers', () => {
+		const order = { uuid: 'ord-1', status: 'processing', amount: '2.00', receive: '1000', Taker: PEER }
+
+		test('blocks taking a new part while paused', async () => {
+			const { result } = await renderDetail({ offer: makeOffer({ ...RANGE, Orders: [], pause: OWNER_PAUSE }), viewer: STRANGER })
+			expect(result.current.isFlexibleOverview).toBe(true)
+			expect(result.current.pausedLocked).toBe(true)
+			expect(result.current.canApply).toBe(false)
+			expect(result.current.flexibleLocked).toBe(false)
+		})
+
+		test('an order already in progress is not paused: it keeps its trade room', async () => {
+			const { result } = await renderDetail({ offer: makeOffer({ ...RANGE, Orders: [order], pause: OWNER_PAUSE }), viewer: CREATOR, orderUuid: 'ord-1' })
+			expect(result.current.selectedOrder.uuid).toBe('ord-1')
+			expect(result.current.pause).toBeNull()
+			expect(result.current.pausedLocked).toBe(false)
+		})
+
+		test('the owner overview reports the live orders that carry on', async () => {
+			const { result } = await renderDetail({ offer: makeOffer({ ...RANGE, Orders: [order], pause: OWNER_PAUSE }), viewer: CREATOR })
+			expect(result.current.isFlexibleOverview).toBe(true)
+			expect(result.current.pause).toEqual(OWNER_PAUSE)
+			expect(result.current.hasLiveOrders).toBe(true)
+		})
+
+		test('a taker who just lost the race leaves the amount modal', async () => {
+			p2pApi.apply.mockResolvedValue({ success: false, status: 409, error: 'El dueño pausó esta oferta.', details: { code: 'OFFER_PAUSED' } })
+			const { result } = await renderDetail({ offer: makeOffer({ ...RANGE, Orders: [] }), viewer: { uuid: 'stranger', balance: '100' } })
+			act(() => { result.current.setShowApplyConfirm(true); result.current.setApplyAmount('5') })
+			await act(async () => { await result.current.handleApplyConfirm() })
+			expect(p2pApi.apply).toHaveBeenCalledWith('offer-1', 5)
+			expect(result.current.showApplyConfirm).toBe(false)
+		})
 	})
 })

@@ -90,6 +90,7 @@
 		"sell": "Sell",
 		"buy": "Buy",
 		"privateBadge": "Private",
+		"pausedBadge": "Paused",
 		"vipOnly": "VIP only",
 		"amount": "Amount",
 		"available": "Available",

@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { P2PAttachment, P2PAttachmentList, P2PIndexEnvelope, P2PFeatured, P2PMarketAverages, P2POffer, P2POfferKind, P2PPromoBid, P2PPromoOfferType, P2PPromoPayload, P2PPromoSlot, P2PPromoted, P2PRatingTag } from '../types/domain'
+import type { P2PAttachment, P2PAttachmentList, P2PIndexEnvelope, P2PFeatured, P2PMarketAverages, P2POffer, P2POfferKind, P2POfferPause, P2PPromoBid, P2PPromoOfferType, P2PPromoPayload, P2PPromoSlot, P2PPromoted, P2PRatingTag } from '../types/domain'
 
 /** Filtros de `GET /p2p/index`. */
 export type P2PIndexFilters = {
@@ -294,6 +294,23 @@ export const p2pApi = {
 	cancel: async (p2p_uuid: string, order?: string | null): Promise<ApiResult<{ status?: string } & Record<string, unknown>>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/cancel${orderQuery(order)}`)
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) { return failure(err) }
+	},
+
+	/**
+	 * Pauses or resumes the caller's own offer (`POST /p2p/{uuid}/pause`). The
+	 * offer stays `open` but leaves the market and `apply` answers 409
+	 * `OFFER_PAUSED`; live orders of a range offer carry on. `paused: false` also
+	 * lifts the automatic pause left when a taker walks away.
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @param {boolean} paused - `true` pauses, `false` resumes
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`, with the resulting `pause` in `data`
+	 */
+	pause: async (p2p_uuid: string, paused: boolean): Promise<ApiResult<{ pause: P2POfferPause | null }>> => {
+		try {
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/pause`, { paused })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) { return failure(err) }
 	},

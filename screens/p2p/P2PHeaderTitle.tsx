@@ -30,6 +30,8 @@ type P2PHeaderTitleProps = TradeHeaderModel & {
 	status: P2PStatus
 	/** ISO del fin de la ventana de pago: con ella, la cuenta atrás ocupa el lugar del estado. */
 	expiresAt?: string | null
+	/** Oferta en pausa: sigue `open`, pero «Abierta» sería mentira. */
+	paused?: boolean
 }
 
 /**
@@ -37,7 +39,7 @@ type P2PHeaderTitleProps = TradeHeaderModel & {
  * y debajo el lado del trato con su estado o la cuenta atrás de la ventana de
  * pago. Los colores son los del mercado: Comprar rojo, Vender verde.
  */
-const P2PHeaderTitle = ({ side, amount, coinLogo, coinName, status, expiresAt }: P2PHeaderTitleProps) => {
+const P2PHeaderTitle = ({ side, amount, coinLogo, coinName, status, expiresAt, paused = false }: P2PHeaderTitleProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -46,7 +48,7 @@ const P2PHeaderTitle = ({ side, amount, coinLogo, coinName, status, expiresAt }:
 
 	const buying = side === "buy"
 	const sideLabel = buying ? t("common.p2pType.buy") : t("common.p2pType.sell")
-	const stateLabel = statusLabel(status, t)
+	const stateLabel = paused ? t("common.status.paused") : statusLabel(status, t)
 
 	return (
 		<View
@@ -74,7 +76,7 @@ const P2PHeaderTitle = ({ side, amount, coinLogo, coinName, status, expiresAt }:
 					<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>·</Text>
 					{expiresAt
 						? <P2PHeaderTimer expiresAt={expiresAt} />
-						: <Text style={[textStyles.h7, { color: theme.colors.secondaryText }]} numberOfLines={1}>{stateLabel}</Text>}
+						: <Text style={[textStyles.h7, { color: paused ? theme.colors.warning : theme.colors.secondaryText }]} numberOfLines={1}>{stateLabel}</Text>}
 				</View>
 			</View>
 		</View>

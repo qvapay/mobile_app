@@ -58,6 +58,15 @@ test('without a payment window the second line shows the status', () => {
 	expect(dump(renderTitle({ status: 'revision' }))).toContain('Revisión')
 })
 
+test('a paused offer stays open for the API but reads «En pausa», also to VoiceOver', () => {
+	const tree = renderTitle({ status: 'open', paused: true })
+	const out = dump(tree)
+	expect(out).toContain('En pausa')
+	expect(out).not.toContain('Abierta')
+	expect(out).toContain(theme.colors.warning)
+	expect(tree.toJSON().props.accessibilityLabel).toBe('Compra, 3353.39 CUP, En pausa')
+})
+
 describe('during the payment window', () => {
 	beforeEach(() => { jest.useFakeTimers() })
 	afterEach(() => { jest.useRealTimers() })
