@@ -15,7 +15,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }))
 jest.mock('sonner-native', () => ({ toast: { error: jest.fn() } }))
 jest.mock('../../api/storeApi', () => ({
-	storeApi: { getTopupCatalog: jest.fn(), getVoucherCatalog: jest.fn() },
+	storeApi: { getTopupCatalog: jest.fn(), getVoucherCatalog: jest.fn(), getMyPurchases: jest.fn() },
 }))
 jest.mock('../../api/marketApi', () => ({
 	marketApi: { getStores: jest.fn() },
@@ -29,7 +29,7 @@ import { toast } from 'sonner-native'
 
 import { storeApi } from '../../api/storeApi'
 import { marketApi } from '../../api/marketApi'
-import { useStoreCatalog } from './storeQueries'
+import { useMyPurchasesQuery, useStoreCatalog } from './storeQueries'
 
 const ok = (data) => ({ success: true, data, status: 200 })
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -139,5 +139,32 @@ describe('refresco', () => {
 		expect(marketApi.getStores).toHaveBeenCalled()
 		const modes = storeApi.getTopupCatalog.mock.calls.map(([p]) => p.countries ? 'countries' : p.country)
 		expect(new Set(modes)).toEqual(new Set(['countries', 'CU']))
+	})
+})
+
+describe('useMyPurchasesQuery', () => {
+
+	const purchasesOf = async () => {
+		const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+		let result
+		const Probe = () => { result = useMyPurchasesQuery(); return null }
+		let tree
+		await act(async () => { tree = create(<QueryClientProvider client={client}><Probe /></QueryClientProvider>) })
+		await settle()
+		const { data } = result
+		await act(async () => { tree.unmount() })
+		client.clear()
+		return data
+	}
+
+	test('separa las compras de lo pagado con PIX que aún se verifica', async () => {
+		const hold = { uuid: 'c1', stage: 'verifying', total_brl: 57.78 }
+		storeApi.getMyPurchases.mockResolvedValueOnce(ok({ message: 'ok', data: [{ id: 1 }], pix_holds: [hold] }))
+		expect(await purchasesOf()).toEqual({ purchases: [{ id: 1 }], pixHolds: [hold] })
+	})
+
+	test('un backend sin PIX no manda pix_holds', async () => {
+		storeApi.getMyPurchases.mockResolvedValueOnce(ok({ message: 'ok', data: [{ id: 1 }] }))
+		expect(await purchasesOf()).toEqual({ purchases: [{ id: 1 }], pixHolds: [] })
 	})
 })

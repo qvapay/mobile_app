@@ -112,6 +112,14 @@ describe('resolvePushTarget', () => {
 	})
 })
 
+describe('compra pagada con PIX', () => {
+
+	test('abre Mis compras: el `/shop/my` que trae no es un deep link de la app', () => {
+		const data = { type: 'pix_purchase', deeplink: 'qvapay://shop/my', url: 'https://www.qvapay.com/shop/my' }
+		expect(resolvePushNavigation(data)).toEqual({ screen: ROUTES.MY_PURCHASES })
+	})
+})
+
 describe('puesto promocionado', () => {
 	test.each(['p2p_promo_outbid', 'p2p_promo_won', 'p2p_promo_expired', 'p2p_promo_ending'])('%s abre la pantalla del puesto aunque no traiga p2p_uuid', (type) => {
 		expect(resolvePushTarget({ type })).toEqual({ screen: ROUTES.P2P_PROMOTE, params: {} })
