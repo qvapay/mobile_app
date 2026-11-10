@@ -182,5 +182,117 @@
 		"toasts": {
 			"loadError": "Couldn't load the details"
 		}
+	},
+	"pix": {
+		"method": {
+			"title": "Payment method",
+			"balance": "QvaPay balance",
+			"pix": "PIX",
+			"priceNote": "The price in reais includes the exchange rate and the processor fee. Your bank adds the IOF tax (3.5%) when you pay.",
+			"shippingNote": "If your order has shipping, it's added when the QR is generated.",
+			"holdNote": "Your first purchase from a new Pix account can take up to {{hours}} h to be delivered."
+		},
+		"cpfPrompt": {
+			"title": "Pay with PIX?",
+			"body": "Verify your CPF once to turn it on.",
+			"goldBody": "Go GOLD to verify your CPF and turn it on."
+		},
+		"payAmount": "Pay with PIX · {{amount}}",
+		"satsUnavailable": "The sats discount doesn't apply to a PIX payment.",
+		"errors": {
+			"generic": "Couldn't start the PIX payment",
+			"capTitle": "This goes over your 30-day PIX limit",
+			"capBody": "You have {{amount}} left. The limit resets on {{date}}.",
+			"capRemaining": "You have {{amount}} left.",
+			"RATE_LIMITED": "Wait a few seconds and try again.",
+			"PIX_BUSY": "Another PIX purchase is in progress. Try again.",
+			"PIX_UNAVAILABLE": "PIX payment isn't available right now.",
+			"PIX_NOT_ELIGIBLE": "PIX payment isn't available for this account.",
+			"PIX_SURFACE_OFF": "This purchase can't be paid with PIX yet.",
+			"PIX_P2P_PACKAGE": "This package can't be paid with PIX.",
+			"PIX_BRAND_BLOCKED": "This card can't be paid with PIX.",
+			"PIX_SELLER_LINKED": "This store can't be paid with PIX. Use another payment method.",
+			"GIFTCARD_CARD_BLOCKED": "Gift cards can only be bought with your QvaPay balance.",
+			"SUPPLIER_CARD_BLOCKED": "This store only accepts your QvaPay balance."
+		},
+		"checkout": {
+			"fallbackDescription": "Purchase paid with PIX",
+			"expiresIn": "Expires in {{time}}",
+			"expired": "This code has expired",
+			"instructions": "Copy the code and paste it into Pix in your bank's app, or scan the QR from another phone. This screen updates by itself once you pay.",
+			"copy": "Copy Pix code",
+			"cancel": "Cancel PIX",
+			"cancelling": "Cancelling…",
+			"notCancellable": "This PIX can't be cancelled: the payment just came in.",
+			"seePurchases": "See my purchases",
+			"finished": {
+				"delivered": {
+					"title": "Payment received!",
+					"body": "Your purchase is on its way."
+				},
+				"verifying": {
+					"title": "We got your payment",
+					"body": "We're verifying it. Your first purchase from a new Pix account can take up to {{hours}} h; we'll let you know when it's done."
+				},
+				"refunded": {
+					"title": "Payment refunded",
+					"body": "We sent {{amount}} back to the Pix account that paid."
+				},
+				"expired": {
+					"title": "The code expired",
+					"body": "You weren't charged. You can generate another one."
+				},
+				"cancelled": {
+					"title": "PIX cancelled",
+					"body": "You weren't charged."
+				},
+				"failed": {
+					"title": "Couldn't create the charge",
+					"body": "You weren't charged. Try again."
+				}
+			}
+		},
+		"holds": {
+			"title": "Being verified",
+			"body": "We got your PIX payment. The first purchase from a new Pix account is verified before delivery; we'll let you know when it's done."
+		},
+		"cpf": {
+			"title": "Verify your CPF",
+			"hint": "We check it against Brazil's registry using the name and date of birth on your verified document. You only need to do this once.",
+			"label": "CPF",
+			"button": "Verify CPF",
+			"verifying": "Verifying…",
+			"attempts_one": "{{count}} attempt left.",
+			"attempts_other": "{{count}} attempts left.",
+			"verified": {
+				"title": "CPF verified",
+				"body": "You can now pay for your purchases with PIX from Brazil."
+			},
+			"actions": {
+				"gold": "Go GOLD",
+				"kyc": "Verify my identity",
+				"support": "Contact support"
+			},
+			"errors": {
+				"generic": "We couldn't verify your CPF",
+				"invalid": "This CPF isn't valid. Check the 11 digits.",
+				"no_match": "The details don't match Brazil's registry.",
+				"partial": "We couldn't confirm your CPF: the match is partial or it isn't in good standing.",
+				"in_use": "This CPF is already linked to another account. Contact support if it's yours.",
+				"rate_limited": "Too many attempts in a row. Wait a few minutes.",
+				"unavailable": "The registry didn't respond. No attempt was used; try again."
+			},
+			"block": {
+				"GOLD_REQUIRED": "CPF verification is available for GOLD accounts.",
+				"KYC_REQUIRED": "First verify your identity with your document.",
+				"DOCUMENT_REQUIRED": "We need the name and date of birth on your verified document. Verify your identity again.",
+				"MINOR": "You must be of legal age to pay with PIX.",
+				"UNAVAILABLE": "PIX payment isn't available right now.",
+				"GEO_BR_REQUIRED": "CPF verification is only available from Brazil.",
+				"ATTEMPTS_EXHAUSTED": "You've used all your verification attempts for the last 30 days. Contact support.",
+				"SDN_BLOCKED": "Not available for this account.",
+				"STAFF_ACCOUNT": "Not available for this account."
+			}
+		}
 	}
 }

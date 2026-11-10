@@ -123,6 +123,31 @@ export type SsnVerification = {
 	message: string | null
 }
 
+export type CpfVerificationStatus = 'none' | 'verified' | 'partial' | 'no_match' | 'conflict'
+
+/** Por qué no puede empezar la verificación (403 de verify-cpf y `block_reason` de la ficha). */
+export type CpfBlockReason =
+	| 'GOLD_REQUIRED' | 'KYC_REQUIRED' | 'DOCUMENT_REQUIRED' | 'MINOR' | 'UNAVAILABLE' | 'GEO_BR_REQUIRED'
+	| 'ATTEMPTS_EXHAUSTED' | 'SDN_BLOCKED' | 'STAFF_ACCOUNT'
+
+/**
+ * Verificación del CPF contra el registro de Brasil: la llave del pago con PIX. Se contrasta con
+ * el nombre y la fecha del DOCUMENTO verificado, nunca con lo tecleado, así que solo se envía el
+ * número. `can_start` decide el formulario; `block_reason` + `message` dicen por qué no.
+ */
+export type CpfVerification = {
+	status: CpfVerificationStatus
+	verified_at: string | null
+	/** Los dos últimos dígitos del CPF verificado: lo único que vuelve del servidor. */
+	cpf_last2: string | null
+	/** Intentos CON respuesta del registro que quedan en los últimos 30 días. */
+	attempts_left: number
+	attempts_max: number
+	can_start: boolean
+	block_reason: CpfBlockReason | null
+	message: string | null
+}
+
 /**
  * Ficha CIP del titular. Respuesta PLANA de `GET /user/cip` (sin sobre `data`).
  * `us_person` es la autodeclaración y la ÚNICA fuente de "US person" del backend
@@ -140,6 +165,8 @@ export type UserCip = {
 	cip_status: 'complete' | 'incomplete'
 	has_document_hash: boolean
 	ssn_verification: SsnVerification
+	/** Opcional: un qpweb sin PIX aún no la manda. */
+	cpf_verification?: CpfVerification
 }
 
 /**
@@ -156,6 +183,67 @@ export type CipPayload = {
 	addr_state?: string
 	addr_postal?: string
 	addr_country?: string
+}
+
+// ---------------------------------------------------------------------------
+// Pago de compras con PIX (`/pix/*`): paga compras, nunca fondea el saldo
+// ---------------------------------------------------------------------------
+
+/** Compras que se pueden pagar con PIX. La app no vende eSIM: el `esim` del contrato no se usa aquí. */
+export type PixSurface = 'cuba' | 'topup' | 'esim' | 'voucher' | 'market'
+
+/** Por qué no se puede pagar ahora. Solo `CPF_REQUIRED` se le enseña al usuario. */
+export type PixIneligibleReason = 'DISABLED' | 'GEO' | 'KYC_REQUIRED' | 'CPF_REQUIRED' | 'RATE_UNAVAILABLE'
+
+/**
+ * Con qué se cotiza. `surcharge_pct` = lo que gana QvaPay sobre la base; `provider_pct` = lo que el
+ * procesador retiene del TOTAL. `null` si la cuenta aún no puede pagar.
+ */
+export type PixRate = { usd_per_brl: number, surcharge_pct: number, provider_pct?: number }
+
+/** Respuesta de `GET /pix/eligibility` (desenvuelta de `data`). */
+export type PixEligibility = {
+	eligible: boolean
+	reason: PixIneligibleReason | null
+	/** Falta el CPF y la cuenta no es GOLD, así que todavía no puede verificarlo. */
+	gold_required?: boolean
+	/** Compras abiertas ahora mismo. */
+	surfaces: PixSurface[]
+	quote: PixRate | null
+	cap: { cap: number, used: number, remaining: number, resets_at: string | null, window_days: number }
+	/** Lo que puede tardar la primera compra desde una cuenta Pix nueva. */
+	hold_hours: number
+	instant_max_usd: number
+}
+
+/** Lo que ve el comprador. No distingue revisión, disputa ni reembolso fallido: es `verifying`. */
+export type PixStage = 'awaiting_payment' | 'verifying' | 'delivered' | 'refunded' | 'expired' | 'cancelled' | 'failed'
+
+/** El QR del cobro: `data` es el código Pix «copia y pega». */
+export type PixQr = {
+	data: string
+	image_url_png?: string | null
+	hosted_instructions_url?: string | null
+	/** Unix en segundos; la cuenta atrás usa `expires_at` del cobro. */
+	expires_at?: number | null
+}
+
+/**
+ * Un cobro por PIX (`POST`/`GET /pix/checkout`, `charge` del 409 y `pix_holds` de `GET /store/my`).
+ * Recién reservado puede llegar con `stage: awaiting_payment` pero sin `qr` ni `expires_at`.
+ */
+export type PixCharge = {
+	uuid: string
+	surface: PixSurface
+	stage: PixStage
+	description: string | null
+	total_usd: number
+	total_brl: number
+	refunded_brl: number
+	expires_at: string | null
+	paid_at: string | null
+	clearing_until: string | null
+	qr: PixQr | null
 }
 
 // ---------------------------------------------------------------------------

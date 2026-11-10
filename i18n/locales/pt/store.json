@@ -182,5 +182,117 @@
 		"toasts": {
 			"loadError": "Não foi possível obter os detalhes"
 		}
+	},
+	"pix": {
+		"method": {
+			"title": "Forma de pagamento",
+			"balance": "Saldo QvaPay",
+			"pix": "PIX",
+			"priceNote": "O preço em reais inclui a cotação e a tarifa do processador. Seu banco acrescenta o IOF (3,5%) ao pagar.",
+			"shippingNote": "Se a compra tiver frete, ele é somado ao gerar o QR.",
+			"holdNote": "A primeira compra feita com uma conta Pix nova pode levar até {{hours}} h para ser entregue."
+		},
+		"cpfPrompt": {
+			"title": "Pagar com PIX?",
+			"body": "Verifique seu CPF uma única vez para ativar.",
+			"goldBody": "Assine o GOLD para verificar seu CPF e ativar."
+		},
+		"payAmount": "Pagar com PIX · {{amount}}",
+		"satsUnavailable": "O desconto em sats não se aplica a um pagamento com PIX.",
+		"errors": {
+			"generic": "Não foi possível iniciar o pagamento com PIX",
+			"capTitle": "Você ultrapassa o limite de PIX de 30 dias",
+			"capBody": "Restam {{amount}}. O limite é renovado em {{date}}.",
+			"capRemaining": "Restam {{amount}}.",
+			"RATE_LIMITED": "Aguarde alguns segundos e tente de novo.",
+			"PIX_BUSY": "Outra compra com PIX está em andamento. Tente de novo.",
+			"PIX_UNAVAILABLE": "O pagamento com PIX não está disponível no momento.",
+			"PIX_NOT_ELIGIBLE": "O pagamento com PIX não está disponível para esta conta.",
+			"PIX_SURFACE_OFF": "Esta compra ainda não pode ser paga com PIX.",
+			"PIX_P2P_PACKAGE": "Este pacote não pode ser pago com PIX.",
+			"PIX_BRAND_BLOCKED": "Este cartão não pode ser pago com PIX.",
+			"PIX_SELLER_LINKED": "Esta loja não pode ser paga com PIX. Use outra forma de pagamento.",
+			"GIFTCARD_CARD_BLOCKED": "Gift cards só podem ser comprados com saldo QvaPay.",
+			"SUPPLIER_CARD_BLOCKED": "Esta loja só aceita pagamento com saldo QvaPay."
+		},
+		"checkout": {
+			"fallbackDescription": "Compra paga com PIX",
+			"expiresIn": "Expira em {{time}}",
+			"expired": "Este código expirou",
+			"instructions": "Copie o código e cole no Pix, no app do seu banco, ou escaneie o QR de outro celular. Esta tela se atualiza sozinha ao pagar.",
+			"copy": "Copiar código Pix",
+			"cancel": "Cancelar PIX",
+			"cancelling": "Cancelando…",
+			"notCancellable": "Este PIX não pode mais ser cancelado: o pagamento acabou de entrar.",
+			"seePurchases": "Ver minhas compras",
+			"finished": {
+				"delivered": {
+					"title": "Pagamento recebido!",
+					"body": "Sua compra já está em andamento."
+				},
+				"verifying": {
+					"title": "Recebemos seu pagamento",
+					"body": "Estamos verificando. A primeira compra feita com uma conta Pix nova pode levar até {{hours}} h; avisaremos quando terminar."
+				},
+				"refunded": {
+					"title": "Pagamento devolvido",
+					"body": "Devolvemos {{amount}} para a conta Pix que pagou."
+				},
+				"expired": {
+					"title": "O código expirou",
+					"body": "Nada foi cobrado. Você pode gerar outro."
+				},
+				"cancelled": {
+					"title": "PIX cancelado",
+					"body": "Nada foi cobrado."
+				},
+				"failed": {
+					"title": "Não foi possível criar a cobrança",
+					"body": "Nada foi cobrado. Tente de novo."
+				}
+			}
+		},
+		"holds": {
+			"title": "Em verificação",
+			"body": "Recebemos seu pagamento com PIX. A primeira compra feita com uma conta Pix nova é verificada antes da entrega; avisaremos quando terminar."
+		},
+		"cpf": {
+			"title": "Verifique seu CPF",
+			"hint": "Conferimos no registro do Brasil com o nome e a data de nascimento do seu documento verificado. Só é preciso fazer isso uma vez.",
+			"label": "CPF",
+			"button": "Verificar CPF",
+			"verifying": "Verificando…",
+			"attempts_one": "Resta {{count}} tentativa.",
+			"attempts_other": "Restam {{count}} tentativas.",
+			"verified": {
+				"title": "CPF verificado",
+				"body": "Agora você pode pagar suas compras com PIX a partir do Brasil."
+			},
+			"actions": {
+				"gold": "Assinar o GOLD",
+				"kyc": "Verificar minha identidade",
+				"support": "Falar com o suporte"
+			},
+			"errors": {
+				"generic": "Não foi possível verificar seu CPF",
+				"invalid": "Este CPF não é válido. Confira os 11 dígitos.",
+				"no_match": "Os dados não coincidem com o registro do Brasil.",
+				"partial": "Não foi possível confirmar seu CPF: a coincidência é parcial ou ele não está regular.",
+				"in_use": "Este CPF já está vinculado a outra conta. Fale com o suporte se ele for seu.",
+				"rate_limited": "Muitas tentativas seguidas. Aguarde alguns minutos.",
+				"unavailable": "O registro não respondeu. Nenhuma tentativa foi gasta; tente de novo."
+			},
+			"block": {
+				"GOLD_REQUIRED": "A verificação do CPF está disponível para contas GOLD.",
+				"KYC_REQUIRED": "Primeiro verifique sua identidade com seu documento.",
+				"DOCUMENT_REQUIRED": "Precisamos do nome e da data de nascimento do seu documento verificado. Verifique sua identidade de novo.",
+				"MINOR": "Você precisa ser maior de idade para pagar com PIX.",
+				"UNAVAILABLE": "O pagamento com PIX não está disponível no momento.",
+				"GEO_BR_REQUIRED": "A verificação do CPF só está disponível a partir do Brasil.",
+				"ATTEMPTS_EXHAUSTED": "Você esgotou as tentativas de verificação dos últimos 30 dias. Fale com o suporte.",
+				"SDN_BLOCKED": "Não disponível para esta conta.",
+				"STAFF_ACCOUNT": "Não disponível para esta conta."
+			}
+		}
 	}
 }

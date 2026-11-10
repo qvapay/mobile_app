@@ -140,5 +140,11 @@
 	"wallet": {
 		"gaslessQuoteFailed": "Couldn't check the free send",
 		"gaslessSubmitFailed": "Couldn't complete the sponsored send"
+	},
+	"pix": {
+		"eligibilityFailed": "Couldn't check PIX payment",
+		"checkoutFailed": "Couldn't start the PIX payment",
+		"statusFailed": "Couldn't get the payment status",
+		"cancelFailed": "Couldn't cancel the PIX"
 	}
 }
