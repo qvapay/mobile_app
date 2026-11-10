@@ -85,7 +85,7 @@ const Password = () => {
 					await updateSettings('security', { biometricsEnabled: false })
 					toast.info(t('settings.password.toasts.biometricsDisabled'), { description: t('settings.password.toasts.biometricsDisabledDescription') })
 				}
-			}
+			} else { toast.error(t('settings.password.toasts.changeFailed'), { description: result.error }) }
 		} catch (error) { toast.error(t('settings.password.toasts.changeFailed'), { description: (error as Error).message }) }
 		finally { setIsLoading(false) }
 	}
