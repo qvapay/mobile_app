@@ -18,6 +18,7 @@ import QPInput from '../../ui/particles/QPInput'
 import OperatorAvatar from '../../ui/store/OperatorAvatar'
 import SatsDiscountRow from '../../ui/store/SatsDiscountRow'
 import PhoneTopupStep1 from './PhoneTopupStep1'
+import PixMethodPicker from './pix/PixMethodPicker'
 
 import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
@@ -25,6 +26,8 @@ import { useTopupBrandDetailQuery } from './storeQueries'
 import { tinyfiNumber } from '../../helpers'
 import useSatsDiscount from './useSatsDiscount'
 import type { StorePurchaseResult } from './useSatsDiscount'
+import usePixPayment from './pix/usePixPayment'
+import type { PixPurchaseFields } from './pix/usePixPayment'
 
 // Destinatario de recargas a Cuba (US persons, requisito del CCO)
 import { useOfacChecks } from '../../hooks/useOfacQueries'
@@ -202,33 +205,51 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 		setStep(2)
 	}, [phoneValid, selectedOffer, rangeAmount, resolveUsPerson])
 
+	// Los campos de la compra: los mismos con saldo y con PIX
+	const withRecipient = selectedOffer?.source === 'cuba' && needsRecipient
+	const cubaFields = useCallback((): PhonePackagePurchaseInput => ({
+		phone_package_id: Number(selectedOffer?.phone_package_id),
+		phone_number: fullPhoneNumber,
+		...(withRecipient ? { recipient_name: normalizeRecipientName(recipientName) } : {}),
+	}), [selectedOffer, fullPhoneNumber, withRecipient, recipientName])
+	// `offer_id`/`country` son opcionales en los tipos del catálogo pero el
+	// endpoint los exige; quien llama garantiza que hay plan elegido
+	const topupFields = useCallback((): TopupPurchaseInput => ({
+		offer_id: selectedOffer?.offer_id as string,
+		phone_number: fullPhoneNumber,
+		country: countryCode as string,
+		...(selectedOffer?.price_type === 'RANGE' ? { amount: parseFloat(rangeAmount) } : {}),
+	}), [selectedOffer, fullPhoneNumber, countryCode, rangeAmount])
+
+	const buildPixBody = useCallback((): PixPurchaseFields | null => {
+		if (withRecipient && !recipientValid) { toast.error(i18n.t('store.topupBrand.recipient.invalid')); return null }
+		return selectedOffer?.source === 'cuba' ? cubaFields() : topupFields()
+	}, [selectedOffer, withRecipient, recipientValid, cubaFields, topupFields])
+
+	// Un paquete de Cuba entregado por P2P no se paga con PIX: un peer cobraría saldo retirable
+	const { setEnabled: setSatsEnabled } = satsDiscount
+	const turnSatsOff = useCallback(() => setSatsEnabled(false), [setSatsEnabled])
+	const askRecipient = useCallback(() => setNeedsRecipient(true), [])
+	const pix = usePixPayment({
+		surface: selectedOffer?.source === 'cuba' ? 'cuba' : 'topup',
+		base: offerPrice,
+		enabled: step === 2 && !!selectedOffer,
+		excluded: selectedOffer?.source === 'cuba' && !selectedOffer.external,
+		buildBody: buildPixBody,
+		doneDepth: 2,
+		onChoose: turnSatsOff,
+		onRecipientRequired: askRecipient,
+	})
+
 	const handleConfirm = useCallback(async () => {
 		if (!selectedOffer) return
 		if (!hasBalance) { toast.error(i18n.t('store.toasts.insufficientBalance')); return }
-		const withRecipient = selectedOffer.source === 'cuba' && needsRecipient
 		if (withRecipient && !recipientValid) { toast.error(i18n.t('store.topupBrand.recipient.invalid')); return }
 		setSubmitting(true)
-		let res: ApiResult<unknown>
-		if (selectedOffer.source === 'cuba') {
-			const body: PhonePackagePurchaseInput = {
-				phone_package_id: Number(selectedOffer.phone_package_id),
-				phone_number: fullPhoneNumber,
-			}
-			if (satsDiscount.enabled) body.use_satoshis = true
-			if (withRecipient) body.recipient_name = normalizeRecipientName(recipientName)
-			res = await storeApi.purchasePhonePackage(body)
-		} else {
-			// `offer_id`/`country` son opcionales en los tipos del catálogo pero el
-			// endpoint los exige; el guard de arriba garantiza que hay plan elegido
-			const body: TopupPurchaseInput = {
-				offer_id: selectedOffer.offer_id as string,
-				phone_number: fullPhoneNumber,
-				country: countryCode as string,
-			}
-			if (selectedOffer.price_type === 'RANGE') body.amount = parseFloat(rangeAmount)
-			if (satsDiscount.enabled) body.use_satoshis = true
-			res = await storeApi.purchaseTopup(body)
-		}
+		const sats = satsDiscount.enabled ? { use_satoshis: true } : {}
+		const res: ApiResult<unknown> = selectedOffer.source === 'cuba'
+			? await storeApi.purchasePhonePackage({ ...cubaFields(), ...sats })
+			: await storeApi.purchaseTopup({ ...topupFields(), ...sats })
 		setSubmitting(false)
 		if (res.success) {
 			// Reflejar el gasto real (cash_paid) y los sats restantes sin refetch
@@ -242,7 +263,7 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 		} else {
 			toast.error(i18n.t('store.toasts.error'), { description: res.error })
 		}
-	}, [selectedOffer, fullPhoneNumber, hasBalance, countryCode, rangeAmount, satsDiscount, offerPrice, navigation, needsRecipient, recipientValid, recipientName])
+	}, [selectedOffer, hasBalance, withRecipient, recipientValid, cubaFields, topupFields, satsDiscount, offerPrice, navigation])
 
 	if (loading) {
 		return (
@@ -316,6 +337,7 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 								<SatsDiscountRow
 									enabled={satsDiscount.enabled}
 									onToggle={satsDiscount.setEnabled}
+									disabled={pix.selected}
 									sats={satsDiscount.sats}
 									satsUsd={satsDiscount.satsUsd}
 									theme={theme}
@@ -330,7 +352,7 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 							)}
 							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.yourBalance')} value={`$${Number(user?.balance ?? 0).toFixed(2)} USD`} />
 						</View>
-						{!hasBalance && (
+						{!hasBalance && !pix.selected && (
 							<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
 								{t('store.common.insufficientBalanceNote')}
 							</Text>
@@ -354,6 +376,8 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 								</Text>
 							</View>
 						)}
+
+						<PixMethodPicker pix={pix} balance={Number(user?.balance ?? 0)} />
 					</View>
 				)}
 
@@ -368,15 +392,19 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 					) : (
 						<View style={{ flexDirection: 'row', gap: 10 }}>
 							<View style={{ flex: 1 }}>
-								<QPButton title={t('store.common.back')} onPress={() => setStep(1)} disabled={submitting} />
+								<QPButton title={t('store.common.back')} onPress={() => setStep(1)} disabled={submitting || pix.starting} />
 							</View>
 							<View style={{ flex: 2 }}>
-								<QPButton
-									title={submitting ? t('store.common.processing') : t('common.actions.confirm')}
-									onPress={handleConfirm}
-									disabled={submitting || !hasBalance || (selectedOffer?.source === 'cuba' && needsRecipient && !recipientValid)}
-									loading={submitting}
-								/>
+								{pix.selected
+									? <QPButton title={pix.payLabel} onPress={pix.pay} loading={pix.starting} disabled={pix.starting || (withRecipient && !recipientValid)} testID="pix-pay" />
+									: (
+										<QPButton
+											title={submitting ? t('store.common.processing') : t('common.actions.confirm')}
+											onPress={handleConfirm}
+											disabled={submitting || !hasBalance || (withRecipient && !recipientValid)}
+											loading={submitting}
+										/>
+									)}
 							</View>
 						</View>
 					)}
