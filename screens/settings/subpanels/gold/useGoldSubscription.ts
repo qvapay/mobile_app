@@ -16,9 +16,11 @@
 import { useState, useEffect, useCallback, useReducer, useRef } from 'react'
 import { Platform, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
 
 // User AuthContext
 import { useAuth } from '../../../../auth/AuthContext'
+import useProfileRefresh, { PROFILE_QUERY } from '../../../../hooks/useProfileRefresh'
 
 // API
 import { userApi } from '../../../../api/userApi'
@@ -33,6 +35,7 @@ import { IAP_SKUS, getProductId, getAndroidOfferToken, getIAPErrorMessage } from
 // Tipos
 import type { Purchase, ProductSubscription } from 'react-native-iap'
 import type { GoldPlan, IapErrorLike } from '../../../../helpers/iap'
+import type { User } from '../../../../types/domain'
 
 /** Acción genérica de "setear un campo", compartida por los dos slices. */
 type SetFieldAction = { type: 'set', field: string, value: unknown }
@@ -120,6 +123,22 @@ export default function useGoldSubscription(): GoldSubscription {
 	const setIsPurchasingIAP = (value: boolean) => dispatchBusy({ type: 'set', field: 'isPurchasingIAP', value })
 	const setIsRestoringPurchases = (value: boolean) => dispatchBusy({ type: 'set', field: 'isRestoringPurchases', value })
 
+	// Compra confirmada. El resto de la app lee `golden_check` del AuthContext; el perfil se
+	// relee además por lo demás que cambió con el cobro, como el saldo si se pagó con él
+	const queryClient = useQueryClient()
+	const refreshProfile = useProfileRefresh()
+	const activateGold = useCallback(async (expire?: string) => {
+		dispatchGold({ type: 'set', field: 'goldCheckStatus', value: true })
+		dispatchGold({ type: 'set', field: 'goldCheckExpire', value: expire })
+		// Una lectura del perfil ya en vuelo puede ser de antes de que el servidor activara GOLD.
+		// La caché va primero: al cancelar la lectura, quien la esperaba recibe lo que haya en ella
+		queryClient.setQueryData<User>(PROFILE_QUERY.queryKey, cached => cached && { ...cached, golden_check: true, golden_expire: expire })
+		await queryClient.cancelQueries({ queryKey: PROFILE_QUERY.queryKey })
+		// Primero se guarda: updateUser aplica su copia del usuario al terminar, y pisaría el perfil releído
+		await updateUser({ golden_check: true, golden_expire: expire })
+		refreshProfile()
+	}, [queryClient, updateUser, refreshProfile])
+
 	// IAP hook with callbacks
 	const {
 		connected,
@@ -150,11 +169,10 @@ export default function useGoldSubscription(): GoldSubscription {
 				// Los módulos de gold declaran `ApiResult<unknown>`: forma local del envelope.
 				const payload = (result as { data?: unknown }).data as GoldPayload | undefined
 				if (result.success && payload?.success) {
+					activateGold(payload!.golden_expire)
 					const { finishTransaction: finish } = require('react-native-iap')
-					await finish({ purchase })
-					setGoldCheckStatus(true)
-					setGoldCheckExpire(payload!.golden_expire)
-					updateUser({ ...user, gold_check: true, gold_expire: payload!.golden_expire })
+					// El servidor ya activó GOLD: un fallo al cerrarla en la tienda no es un fallo de la compra
+					try { await finish({ purchase }) } catch (error) { console.warn('[gold] finishTransaction failed', (error as { code?: string })?.code) }
 					toast.success(t('settings.goldCheck.toasts.activated'))
 				} else if (payload?.pending || result.status === 202) {
 					// Deferred payment (cash/carrier) not yet settled — do NOT finish; the store re-notifies on settle.
@@ -243,9 +261,7 @@ export default function useGoldSubscription(): GoldSubscription {
 
 							if (result.success) {
 								const purchased = result.data as GoldPayload | undefined
-								setGoldCheckStatus(true)
-								setGoldCheckExpire(purchased!.golden_expire)
-								updateUser({ ...user, gold_check: true, gold_expire: purchased!.golden_expire })
+								activateGold(purchased!.golden_expire)
 								toast.success(t('settings.goldCheck.toasts.subscribed'))
 							} else { toast.error(result.error || t('settings.goldCheck.toasts.subscribeFailed')) }
 
@@ -325,9 +341,7 @@ export default function useGoldSubscription(): GoldSubscription {
 			// Los módulos de gold declaran `ApiResult<unknown>`: forma local del envelope.
 			const payload = (result as { data?: unknown }).data as GoldPayload | undefined
 			if (result.success && payload?.success) {
-				setGoldCheckStatus(true)
-				setGoldCheckExpire(payload!.golden_expire)
-				updateUser({ ...user, gold_check: true, gold_expire: payload!.golden_expire })
+				activateGold(payload!.golden_expire)
 				toast.success(t('settings.goldCheck.toasts.restored'))
 			} else if (payload?.pending || result.status === 202) {
 				toast.info(t('settings.goldCheck.toasts.paymentPending'))
@@ -339,7 +353,7 @@ export default function useGoldSubscription(): GoldSubscription {
 		} finally {
 			setIsRestoringPurchases(false)
 		}
-	}, [user, updateUser, t])
+	}, [activateGold, t])
 
 	return {
 		selectedPlan,
