@@ -63,10 +63,10 @@ describe('userApi.searchUser', () => {
 		expect(result).toEqual({ success: true, data: { uuid: 'u-1', username: 'erich' }, status: 200 })
 	})
 
-	test('returns error.message and the response status on failure', async () => {
+	test('returns the API error text and the response status on failure', async () => {
 		apiClient.post.mockRejectedValue(apiError(404, { error: 'No encontrado' }))
 
-		expect(await userApi.searchUser('nope')).toEqual({ success: false, error: 'Request failed', status: 404 })
+		expect(await userApi.searchUser('nope')).toEqual({ success: false, error: 'No encontrado', status: 404 })
 	})
 
 	test('survives a network error with undefined status', async () => {
@@ -178,6 +178,12 @@ describe('userApi profile', () => {
 
 		expect(await userApi.changePassword({ old_password: 'a', new_password: 'b' })).toEqual({ success: false, error: 'Request failed', status: 422 })
 	})
+
+	test('changePassword returns the text from the API when there is one', async () => {
+		apiClient.put.mockRejectedValue(apiError(400, { error: 'La contraseña actual es incorrecta' }))
+
+		expect(await userApi.changePassword({ old_password: 'a', new_password: 'b' })).toEqual({ success: false, error: 'La contraseña actual es incorrecta', status: 400 })
+	})
 })
 
 describe('userApi phone and telegram verification', () => {
@@ -195,6 +201,18 @@ describe('userApi phone and telegram verification', () => {
 		apiClient.post.mockRejectedValue(apiError(400, {}))
 
 		expect(await userApi.verifyPhone({ phone: 'x', country: 'CU' })).toEqual({ success: false, error: 'Request failed', status: 400 })
+	})
+
+	test('verifyPhone returns the text from the API when there is one', async () => {
+		apiClient.post.mockRejectedValue(apiError(403, { error: 'Completa la verificación de identidad antes de verificar tu teléfono.', code: 'KYC_REQUIRED' }))
+
+		expect(await userApi.verifyPhone({ phone: 'x', country: 'CU' })).toEqual({ success: false, error: 'Completa la verificación de identidad antes de verificar tu teléfono.', status: 403 })
+	})
+
+	test('verifyPhone falls back to the API message field', async () => {
+		apiClient.post.mockRejectedValue(apiError(400, { message: 'El teléfono ya está verificado.' }))
+
+		expect(await userApi.verifyPhone({ phone: 'x', country: 'CU' })).toEqual({ success: false, error: 'El teléfono ya está verificado.', status: 400 })
 	})
 
 	test('removePhone uses PUT on the verification path', async () => {

@@ -214,7 +214,7 @@ export const userApi = {
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
-			return { success: false, error: error.message, status: error.response?.status }
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
 		}
 	},
 
@@ -412,7 +412,7 @@ export const userApi = {
 			}
 		} catch (err) {
 			const error = err as ApiClientError
-			return { success: false, error: error.message, status: error.response?.status }
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
 		}
 	},
 
@@ -480,7 +480,7 @@ export const userApi = {
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
-			return { success: false, error: error.message, status: error.response?.status }
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
 		}
 	},
 
