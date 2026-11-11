@@ -73,6 +73,7 @@ import useP2PChatSSE from './useP2PChatSSE'
 const INIT_TIMEOUT_MS = 5000
 const FALLBACK_POLL_MS = 10000
 const SSE_RETRY_MS = 60000
+const FAST_RETRY_MS = 1500
 
 // Minimal hook harness: renders the hook inside a throwaway component and
 // exposes its latest return value through `result.current`.
@@ -128,6 +129,21 @@ describe('connection', () => {
 		expect(EventSource.instances).toHaveLength(0)
 	})
 
+	test('stays idle when the viewer is not a party (enabled: false), whatever the status', async () => {
+		const { result } = await renderHook({ ...props, enabled: false })
+		await advance(SSE_RETRY_MS * 2)
+		expect(EventSource.instances).toHaveLength(0)
+		expect(props.fetchChat).not.toHaveBeenCalled()
+		expect(result.current.isStreamConnected).toBe(false)
+	})
+
+	test('opens the stream once the viewer turns out to be a party', async () => {
+		const { rerender } = await renderHook({ ...props, enabled: false })
+		expect(EventSource.instances).toHaveLength(0)
+		await rerender({ ...props, enabled: true })
+		expect(EventSource.instances).toHaveLength(1)
+	})
+
 	test.each(['open', 'processing', 'paid', 'revision'])('connects on active status %s', async (status) => {
 		await renderHook({ ...props, status })
 		expect(EventSource.instances).toHaveLength(1)
@@ -180,7 +196,6 @@ describe('error fallback', () => {
 	test('KNOWN GOTCHA: a stream error defers the close one tick — closing synchronously inside the error listener would leave a zombie reconnect', async () => {
 		const { result } = await renderHook(props)
 		const es = lastStream()
-		await emit(es, 'init')
 		await emit(es, 'error')
 		// disconnected immediately, but the close itself must NOT have happened yet
 		expect(result.current.isStreamConnected).toBe(false)
@@ -229,6 +244,135 @@ describe('error fallback', () => {
 		expect(result.current.isStreamConnected).toBe(false)
 		await advance(FALLBACK_POLL_MS)
 		expect(props.fetchChat).toHaveBeenCalledTimes(1)
+	})
+})
+
+describe('fast reconnect after a healthy stream', () => {
+	test('the first drop after init reconnects in 1.5s without fetching the chat and stays "connected"', async () => {
+		const { result } = await renderHook(props)
+		const first = lastStream()
+		await emit(first, 'init')
+		props.fetchChat.mockClear()
+		await emit(first, 'error', { xhrStatus: 0 })
+		// the offer poll must not see the stream as down during the gap
+		expect(props.connectedRef.current).toBe(true)
+		expect(result.current.isStreamConnected).toBe(true)
+		// the dying stream is still closed one tick later (zombie gotcha)
+		expect(first.close).not.toHaveBeenCalled()
+		await advance(0)
+		expect(first.close).toHaveBeenCalledTimes(1)
+		await advance(FAST_RETRY_MS - 1)
+		expect(EventSource.instances).toHaveLength(1)
+		await advance(1)
+		expect(EventSource.instances).toHaveLength(2)
+		expect(props.fetchChat).not.toHaveBeenCalled()
+		// the new stream's init catches up on the gap: one fetch, no polling
+		await emit(lastStream(), 'init')
+		expect(props.fetchChat).toHaveBeenCalledTimes(1)
+		await advance(SSE_RETRY_MS)
+		expect(props.fetchChat).toHaveBeenCalledTimes(1)
+	})
+
+	test('if the fast retry fails too, the usual fallback takes over (10s polling, 60s retry)', async () => {
+		const { result } = await renderHook(props)
+		await emit(lastStream(), 'init')
+		await emit(lastStream(), 'error')
+		await advance(FAST_RETRY_MS)
+		props.fetchChat.mockClear()
+		await emit(lastStream(), 'error')
+		expect(props.connectedRef.current).toBe(false)
+		expect(result.current.isStreamConnected).toBe(false)
+		await advance(FALLBACK_POLL_MS)
+		expect(props.fetchChat).toHaveBeenCalledTimes(1)
+		expect(EventSource.instances).toHaveLength(2)
+		await advance(SSE_RETRY_MS - FALLBACK_POLL_MS)
+		expect(EventSource.instances).toHaveLength(3)
+	})
+
+	test('a fast retry that never gets init falls back after 5s', async () => {
+		await renderHook(props)
+		await emit(lastStream(), 'init')
+		await emit(lastStream(), 'error')
+		await advance(FAST_RETRY_MS)
+		props.fetchChat.mockClear()
+		await advance(INIT_TIMEOUT_MS)
+		expect(props.connectedRef.current).toBe(false)
+		await advance(FALLBACK_POLL_MS)
+		expect(props.fetchChat).toHaveBeenCalledTimes(1)
+	})
+
+	test('every init restores the fast-retry budget', async () => {
+		await renderHook(props)
+		for (let round = 1; round <= 3; round++) {
+			await emit(lastStream(), 'init')
+			await emit(lastStream(), 'error')
+			await advance(FAST_RETRY_MS)
+			expect(EventSource.instances).toHaveLength(round + 1)
+		}
+		await emit(lastStream(), 'init')
+		await advance(SSE_RETRY_MS)
+		// four inits (three blips), four catch-up fetches, no fallback polling
+		expect(props.fetchChat).toHaveBeenCalledTimes(4)
+	})
+
+	test("a dying stream's second error (LOADING then DONE) doesn't spend the next stream's budget", async () => {
+		await renderHook(props)
+		const first = lastStream()
+		await emit(first, 'init')
+		await emit(first, 'error', { xhrStatus: 502, xhrState: 3 })
+		await emit(first, 'error', { xhrStatus: 502, xhrState: 4 })
+		await advance(FAST_RETRY_MS)
+		expect(EventSource.instances).toHaveLength(2)
+		expect(props.connectedRef.current).toBe(true)
+		props.fetchChat.mockClear()
+		await advance(FALLBACK_POLL_MS - FAST_RETRY_MS - 1)
+		expect(props.fetchChat).not.toHaveBeenCalled()
+	})
+
+	test('a 429 skips the fast retry: the server asks to slow down', async () => {
+		await renderHook(props)
+		await emit(lastStream(), 'init')
+		await emit(lastStream(), 'error', { xhrStatus: 429 })
+		expect(props.connectedRef.current).toBe(false)
+		await advance(FAST_RETRY_MS)
+		expect(EventSource.instances).toHaveLength(1)
+		props.fetchChat.mockClear()
+		await advance(FALLBACK_POLL_MS)
+		expect(props.fetchChat).toHaveBeenCalledTimes(1)
+	})
+})
+
+describe('refusals (a "no", not a drop)', () => {
+	test.each([401, 403, 404])('a %s neither retries nor falls back to polling', async (xhrStatus) => {
+		const { result } = await renderHook(props)
+		const es = lastStream()
+		await emit(es, 'error', { xhrStatus, xhrState: 4 })
+		expect(result.current.isStreamConnected).toBe(false)
+		await advance(0)
+		expect(es.close).toHaveBeenCalledTimes(1)
+		await advance(SSE_RETRY_MS * 3)
+		expect(props.fetchChat).not.toHaveBeenCalled()
+		expect(EventSource.instances).toHaveLength(1)
+	})
+
+	test('a refusal even right after a healthy init does not spend a fast retry', async () => {
+		await renderHook(props)
+		await emit(lastStream(), 'init')
+		props.fetchChat.mockClear()
+		await emit(lastStream(), 'error', { xhrStatus: 403 })
+		await advance(SSE_RETRY_MS * 2)
+		expect(EventSource.instances).toHaveLength(1)
+		expect(props.fetchChat).not.toHaveBeenCalled()
+	})
+
+	test('after a refusal, coming back to the foreground does not reconnect or fetch', async () => {
+		await renderHook(props)
+		await emit(lastStream(), 'error', { xhrStatus: 403 })
+		await act(async () => { AppState.emitChange('background') })
+		await act(async () => { AppState.emitChange('active') })
+		await advance(SSE_RETRY_MS)
+		expect(EventSource.instances).toHaveLength(1)
+		expect(props.fetchChat).not.toHaveBeenCalled()
 	})
 })
 

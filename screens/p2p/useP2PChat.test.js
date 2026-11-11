@@ -50,7 +50,8 @@ const renderHook = async (initialProps = { p2p_uuid: 'offer-1' }) => {
 	}
 	let root
 	await act(async () => { root = create(React.createElement(Harness, initialProps)) })
-	return { result, root }
+	const rerender = async (props) => { await act(async () => { root.update(React.createElement(Harness, props)) }) }
+	return { result, root, rerender }
 }
 
 const message = (id, createdAt, body = `msg-${id}`) => ({ id, created_at: createdAt, message: body })
@@ -107,6 +108,22 @@ describe('history load', () => {
 		expect(result.current.chatError).toBe('network down')
 		expect(result.current.chatLoading).toBe(false)
 		expect(toast.error).toHaveBeenCalledWith('Error', { description: 'network down' })
+	})
+
+	test('enabled: false (not a party) loads no history and fetchChat is a no-op', async () => {
+		const { result } = await renderHook({ p2p_uuid: 'offer-1', enabled: false })
+		expect(p2pApi.getChat).not.toHaveBeenCalled()
+		await act(async () => { await result.current.fetchChat() })
+		expect(p2pApi.getChat).not.toHaveBeenCalled()
+		expect(result.current.messages).toEqual([])
+	})
+
+	test('turning enabled (the viewer becomes a party) loads the history', async () => {
+		const { result, rerender } = await renderHook({ p2p_uuid: 'offer-1', enabled: false })
+		p2pApi.getChat.mockResolvedValue({ success: true, data: { chat: [message(1, '2026-07-07T10:00:00Z')] } })
+		await rerender({ p2p_uuid: 'offer-1', enabled: true })
+		expect(p2pApi.getChat).toHaveBeenCalledWith('offer-1', null)
+		expect(result.current.messages.map((m) => m.id)).toEqual([1])
 	})
 })
 
