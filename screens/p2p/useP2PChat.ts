@@ -119,6 +119,9 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
  * @param params.p2p_uuid - Offer UUID whose chat to load.
  * @param params.order - Order UUID of a range offer: every order has its own chat
  *   (`?order=`); switching orders empties the thread before the new history arrives.
+ * @param params.enabled - Only the deal's parties (owner/peer of what the screen shows)
+ *   can read the chat; anyone else gets 403. While false, `fetchChat` is a no-op and no
+ *   history loads; turning true loads it.
  * @returns Chat API for the P2POffer screen:
  *   state — `messages` (ascending), `chatLoading`, `chatError`, `chatText`,
  *   `selectedImage`, `sendingImage`, `showStickerPanel`, `visibleTimestamps`;
@@ -129,7 +132,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
  *   `toggleTimestamp`; scroll handlers — `onChatScrollBeginDrag`, `onChatScroll`,
  *   `onChatMomentumScrollEnd`, `onChatContentSizeChange`.
  */
-export default function useP2PChat({ p2p_uuid, order = null }: { p2p_uuid: string, order?: string | null }) {
+export default function useP2PChat({ p2p_uuid, order = null, enabled = true }: { p2p_uuid: string, order?: string | null, enabled?: boolean }) {
 
 	const [chat, dispatch] = useReducer(chatReducer, initialChat)
 	const set = useCallback(<K extends keyof ChatState>(field: K, value: ChatState[K]) => dispatch({ type: "set", field, value } as ChatAction), [])
@@ -138,8 +141,9 @@ export default function useP2PChat({ p2p_uuid, order = null }: { p2p_uuid: strin
 	const messageAnimations = useRef<Record<ChatMessage['id'], Animated.Value>>({})
 	const autoScrollRef = useRef(true)
 
-	// Fetch chat
+	// Fetch chat (sin ser parte, nada: el servidor respondería 403)
 	const fetchChat = useCallback(async () => {
+		if (!enabled) return
 		try {
 			set("loading", true)
 			set("error", null)
@@ -154,7 +158,7 @@ export default function useP2PChat({ p2p_uuid, order = null }: { p2p_uuid: strin
 			set("error", (err as Error).message)
 			toast.error(i18n.t('p2p.common.errorTitle'), { description: (err as Error).message })
 		} finally { set("loading", false) }
-	}, [p2p_uuid, order, set])
+	}, [p2p_uuid, order, enabled, set])
 
 	// Append a single message pushed over SSE (deduped by id, kept in ascending order)
 	const appendMessage = useCallback((message: ChatMessage) => dispatch({ type: "appendMessage", message }), [])
@@ -163,7 +167,8 @@ export default function useP2PChat({ p2p_uuid, order = null }: { p2p_uuid: strin
 	// order's messages while the new history loads
 	useEffect(() => { set("messages", []) }, [order, set])
 
-	// Load chat on mount (and reload if the offer being viewed changes)
+	// Load chat on mount (and reload if the offer being viewed changes, or once the
+	// viewer turns out to be a party: fetchChat changes identity with `enabled`)
 	useEffect(() => {
 		fetchChat()
 	}, [fetchChat])

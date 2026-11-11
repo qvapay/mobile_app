@@ -3,13 +3,27 @@
  * theme, presence and storage mocked (see keypadAmount.test.js for why node env).
  * @jest-environment node
  */
-jest.mock('react-native', () => ({
-	Share: {
-		share: jest.fn(),
-		sharedAction: 'sharedAction',
-		dismissedAction: 'dismissedAction',
-	},
-}))
+jest.mock('react-native', () => {
+	const listeners = []
+	const AppState = {
+		currentState: 'active',
+		addEventListener: jest.fn((type, handler) => {
+			listeners.push(handler)
+			return { remove: jest.fn(() => { const i = listeners.indexOf(handler); if (i !== -1) listeners.splice(i, 1) }) }
+		}),
+		// Test helpers (not part of the real API)
+		emitChange: (next) => { AppState.currentState = next; [...listeners].forEach((h) => h(next)) },
+		reset: () => { listeners.length = 0; AppState.currentState = 'active' },
+	}
+	return {
+		AppState,
+		Share: {
+			share: jest.fn(),
+			sharedAction: 'sharedAction',
+			dismissedAction: 'dismissedAction',
+		},
+	}
+})
 jest.mock('@react-native-async-storage/async-storage', () => ({
 	getItem: jest.fn(),
 	setItem: jest.fn(),
@@ -45,7 +59,7 @@ jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn(
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
-import { Share } from 'react-native'
+import { AppState, Share } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { p2pApi } from '../../api/p2pApi'
 import { maybeRequestReview } from '../../helpers/inAppReview'
@@ -69,32 +83,35 @@ const makeOffer = (overrides = {}) => ({
 	...overrides,
 })
 
-const renderDetail = async ({ offer, viewer, chatLive = false, orderUuid = null, promptRate = false } = {}) => {
+const renderDetail = async ({ offer, viewer, chatLive = false, orderUuid = null, promptRate = false, focused = true, envelope = {} } = {}) => {
 	const result = { current: null }
 	const fetchChat = jest.fn()
 	const navigation = { navigate: jest.fn(), dispatch: jest.fn() }
 	const chatStreamLiveRef = { current: chatLive }
-	p2pApi.show.mockResolvedValue({ success: true, data: { p2p: offer } })
-	const Harness = () => {
+	p2pApi.show.mockResolvedValue({ success: true, data: { p2p: offer, ...envelope } })
+	const Harness = ({ focused: isFocused }) => {
 		result.current = useP2POfferDetail({
 			p2p_uuid: offer.uuid,
 			orderUuid,
 			promptRate,
 			user: viewer,
 			navigation,
+			focused: isFocused,
 			fetchChat,
 			chatStreamLiveRef,
 		})
 		return null
 	}
 	let root
-	await act(async () => { root = create(<Harness />) })
-	return { result, fetchChat, navigation, root }
+	await act(async () => { root = create(<Harness focused={focused} />) })
+	const setFocused = async (value) => { await act(async () => { root.update(<Harness focused={value} />) }) }
+	return { result, fetchChat, navigation, root, setFocused }
 }
 
 beforeEach(() => {
 	jest.clearAllMocks()
 	jest.useFakeTimers()
+	AppState.reset()
 	AsyncStorage.getItem.mockResolvedValue(null)
 	AsyncStorage.setItem.mockResolvedValue()
 	p2pApi.peerProfile.mockResolvedValue({ success: false })
@@ -212,16 +229,19 @@ describe('status messages', () => {
 	})
 })
 
-describe('5s polling on active statuses', () => {
+describe('offer polling', () => {
+	const showCalls = () => p2pApi.show.mock.calls.length
+	const advance = async (ms) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
 	test('polls the offer and the chat while the SSE stream is down', async () => {
 		const { fetchChat } = await renderDetail({
 			offer: makeOffer({ status: 'processing', Peer: PEER }),
 			viewer: CREATOR,
 			chatLive: false,
 		})
-		const showCalls = p2pApi.show.mock.calls.length
-		await act(async () => { jest.advanceTimersByTime(5000) })
-		expect(p2pApi.show.mock.calls.length).toBe(showCalls + 1)
+		const before = showCalls()
+		await advance(5000)
+		expect(showCalls()).toBe(before + 1)
 		expect(fetchChat).toHaveBeenCalled()
 	})
 
@@ -231,17 +251,155 @@ describe('5s polling on active statuses', () => {
 			viewer: CREATOR,
 			chatLive: true,
 		})
-		const showCalls = p2pApi.show.mock.calls.length
-		await act(async () => { jest.advanceTimersByTime(5000) })
-		expect(p2pApi.show.mock.calls.length).toBe(showCalls + 1)
+		const before = showCalls()
+		await advance(5000)
+		expect(showCalls()).toBe(before + 1)
 		expect(fetchChat).not.toHaveBeenCalled()
 	})
 
 	test('does not poll terminal statuses', async () => {
 		await renderDetail({ offer: makeOffer({ status: 'completed', Peer: PEER }), viewer: CREATOR })
-		const showCalls = p2pApi.show.mock.calls.length
-		await act(async () => { jest.advanceTimersByTime(30000) })
-		expect(p2pApi.show.mock.calls.length).toBe(showCalls)
+		const before = showCalls()
+		await advance(30000)
+		expect(showCalls()).toBe(before)
+	})
+
+	test('an open offer polls every 15s, for its owner and for whoever just looks', async () => {
+		for (const viewer of [CREATOR, { uuid: 'stranger' }]) {
+			const { root } = await renderDetail({ offer: makeOffer(), viewer })
+			const before = showCalls()
+			await advance(14999)
+			expect(showCalls()).toBe(before)
+			await advance(1)
+			expect(showCalls()).toBe(before + 1)
+			await act(async () => { root.unmount() })
+		}
+	})
+
+	test('a party of a live range order polls every 5s; the owner of an open one with no live orders, every 15s', async () => {
+		const range = { type: 'sell', amount: '10.00', receive: '5000', offer_kind: 'flexible', available_amount: '6.00', order_min: '2.00', order_max: '5.00', can_take_flexible: true, Peer: {} }
+		const live = makeOffer({ ...range, Orders: [{ uuid: 'ord-1', status: 'paid', amount: '4.00', receive: '2000', Taker: PEER }] })
+		for (const viewer of [CREATOR, PEER]) {
+			const { root } = await renderDetail({ offer: live, viewer })
+			const before = showCalls()
+			await advance(5000)
+			expect(showCalls()).toBe(before + 1)
+			await act(async () => { root.unmount() })
+		}
+		await renderDetail({ offer: makeOffer({ ...range, Orders: [] }), viewer: CREATOR })
+		const before = showCalls()
+		await advance(5000)
+		expect(showCalls()).toBe(before)
+		await advance(10000)
+		expect(showCalls()).toBe(before + 1)
+	})
+
+	test('whoever is not a party never fetches the chat from the poll', async () => {
+		const { fetchChat, result } = await renderDetail({ offer: makeOffer(), viewer: { uuid: 'stranger' } })
+		expect(result.current.isChatParty).toBe(false)
+		await advance(60000)
+		expect(fetchChat).not.toHaveBeenCalled()
+	})
+
+	test('the overview of a range offer is not a chat (each order has its own)', async () => {
+		const offer = makeOffer({ type: 'sell', offer_kind: 'flexible', available_amount: '10.00', order_min: '2.00', order_max: '5.00', Orders: [], Peer: {} })
+		const { result, fetchChat } = await renderDetail({ offer, viewer: CREATOR })
+		expect(result.current.isFlexibleOverview).toBe(true)
+		expect(result.current.isChatParty).toBe(false)
+		await advance(30000)
+		expect(fetchChat).not.toHaveBeenCalled()
+	})
+
+	test('without focus it does not poll; on focus it refetches at once and keeps the rhythm', async () => {
+		const { setFocused } = await renderDetail({ offer: makeOffer({ status: 'processing', Peer: PEER }), viewer: CREATOR })
+		await setFocused(false)
+		const before = showCalls()
+		await advance(60000)
+		expect(showCalls()).toBe(before)
+		await setFocused(true)
+		expect(showCalls()).toBe(before + 1)
+		await advance(5000)
+		expect(showCalls()).toBe(before + 2)
+	})
+
+	test('mounted without focus it does not poll until focused', async () => {
+		const { setFocused } = await renderDetail({ offer: makeOffer({ status: 'processing', Peer: PEER }), viewer: CREATOR, focused: false })
+		const before = showCalls() // the initial load still happens
+		await advance(30000)
+		expect(showCalls()).toBe(before)
+		await setFocused(true)
+		expect(showCalls()).toBe(before + 1)
+	})
+
+	test('with the app in the background it does not poll; back to active, one refetch at once', async () => {
+		await renderDetail({ offer: makeOffer({ status: 'processing', Peer: PEER }), viewer: CREATOR })
+		await act(async () => { AppState.emitChange('background') })
+		const before = showCalls()
+		await advance(60000)
+		expect(showCalls()).toBe(before)
+		await act(async () => { AppState.emitChange('active') })
+		expect(showCalls()).toBe(before + 1)
+		await advance(5000)
+		expect(showCalls()).toBe(before + 2)
+	})
+
+	test.each([404, 403])('a %s on the poll stops it and shows the server error', async (status) => {
+		const { result } = await renderDetail({ offer: makeOffer(), viewer: { uuid: 'stranger' } })
+		p2pApi.show.mockResolvedValue({ success: false, status, error: 'No tienes permisos para ver esta oferta' })
+		await advance(15000)
+		expect(result.current.error).toBe('No tienes permisos para ver esta oferta')
+		const after = showCalls()
+		await advance(120000)
+		expect(showCalls()).toBe(after)
+	})
+
+	test('a network failure or a 5xx is not a refusal: the poll carries on', async () => {
+		const { result } = await renderDetail({ offer: makeOffer({ status: 'processing', Peer: PEER }), viewer: CREATOR })
+		p2pApi.show.mockResolvedValueOnce({ success: false, error: 'No se ha podido conectar con el servidor' })
+		p2pApi.show.mockResolvedValueOnce({ success: false, status: 500, error: 'Ha ocurrido un error' })
+		await advance(10000)
+		expect(result.current.error).toBeNull()
+		const before = showCalls()
+		await advance(5000)
+		expect(showCalls()).toBe(before + 1)
+	})
+
+	test('poll_after_ms from the server sets the rhythm', async () => {
+		await renderDetail({ offer: makeOffer(), viewer: CREATOR, envelope: { poll_after_ms: 30000 } })
+		const before = showCalls()
+		await advance(15000)
+		expect(showCalls()).toBe(before)
+		await advance(15000)
+		expect(showCalls()).toBe(before + 1)
+	})
+
+	test('poll_after_ms is clamped to 3–60s, and 0 stops the poll', async () => {
+		const low = await renderDetail({ offer: makeOffer(), viewer: CREATOR, envelope: { poll_after_ms: 100 } })
+		let before = showCalls()
+		await advance(2999)
+		expect(showCalls()).toBe(before)
+		await advance(1)
+		expect(showCalls()).toBe(before + 1)
+		await act(async () => { low.root.unmount() })
+
+		const high = await renderDetail({ offer: makeOffer(), viewer: CREATOR, envelope: { poll_after_ms: 3600000 } })
+		before = showCalls()
+		await advance(60000)
+		expect(showCalls()).toBe(before + 1)
+		await act(async () => { high.root.unmount() })
+
+		await renderDetail({ offer: makeOffer({ status: 'processing', Peer: PEER }), viewer: CREATOR, envelope: { poll_after_ms: 0 } })
+		before = showCalls()
+		await advance(120000)
+		expect(showCalls()).toBe(before)
+	})
+
+	test('the cached snapshot never sets the rhythm: only a fresh response does', async () => {
+		AsyncStorage.getItem.mockResolvedValue(JSON.stringify(makeOffer({ poll_after_ms: 0 })))
+		await renderDetail({ offer: makeOffer(), viewer: CREATOR })
+		const before = showCalls()
+		await advance(15000)
+		expect(showCalls()).toBe(before + 1)
 	})
 })
 

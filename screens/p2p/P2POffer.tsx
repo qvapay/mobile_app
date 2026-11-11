@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigation } from "@react-navigation/native"
+import { useIsFocused, useNavigation } from "@react-navigation/native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { View, Text, ScrollView, useWindowDimensions } from "react-native"
 
@@ -68,9 +68,10 @@ import type { RootStackParamList } from "../../types/navigation"
  * Range offers: `route.params.order` (list rows, pushes) opens one order — its own
  * trade room, chat and dispute; without it the screen is the offer overview.
  * `route.params.rate` (push of a closed deal) pops the rating sheet once the deal can be rated.
- * The offer polls `GET /p2p/{uuid}` every 5s while active (status has no SSE); chat is
- * real-time over SSE (`useP2PChatSSE`) with a polling fallback, and trade actions drive
- * `/p2p/{uuid}/apply|paid|received|cancel|rate`.
+ * The offer polls `GET /p2p/{uuid}` while active and focused (status has no SSE): 5s for
+ * a party of a live trade, 15s otherwise. Chat is real-time over SSE (`useP2PChatSSE`)
+ * with a polling fallback, and only for the deal's parties (owner/peer — the server
+ * answers 403 to anyone else); trade actions drive `/p2p/{uuid}/apply|paid|received|cancel|rate`.
  * The share header item is configured in App.tsx — iOS 26 liquid-glass via
  * `unstable_headerRightItems`, `headerRight` fallback on Android.
  */
@@ -79,6 +80,8 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 	const { t } = useTranslation()
 	const { user } = useAuth()
 	const navigation = useNavigation()
+	// Sin foco (otra pantalla encima) la ficha no consulta: al volver, una consulta al momento
+	const focused = useIsFocused()
 
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -100,21 +103,24 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 	// Offer lifecycle, derived flags and trade actions (chat fetch injected for polling/refresh)
 	// `useNavigation()` devuelve el prop tipado por la declaración global, cuyo
 	// getState() se estrecha distinto al NavigationProp<RootStackParamList> puro
-	const offer = useP2POfferDetail({ p2p_uuid, orderUuid: routeOrder, promptRate, user, navigation: navigation as unknown as NavigationProp<RootStackParamList>, fetchChat, chatStreamLiveRef })
+	const offer = useP2POfferDetail({ p2p_uuid, orderUuid: routeOrder, promptRate, user, navigation: navigation as unknown as NavigationProp<RootStackParamList>, focused, fetchChat, chatStreamLiveRef })
 	const chatOrder = offer.selectedOrder?.uuid ?? null
 
-	// Chat (messages, composer, stickers, auto-scroll ref)
-	const chat = useP2PChat({ p2p_uuid, order: chatOrder })
+	// Chat (messages, composer, stickers, auto-scroll ref): solo para las partes del trato
+	// que se ve. Sin rol todavía (la oferta cargando) no se pide nada
+	const chat = useP2PChat({ p2p_uuid, order: chatOrder, enabled: offer.isChatParty })
 	// La vista de una oferta por rango no tiene chat (cada orden tiene el suyo):
 	// sin esto el poll de 5s pediría el chat de la oferta madre en vano
 	useEffect(() => {
 		fetchChatRef.current = offer.isFlexibleOverview ? () => { } : chat.fetchChat
 	}, [offer.isFlexibleOverview, chat.fetchChat])
 
-	// Real-time chat over SSE while the trade is active; falls back to polling if the stream drops
+	// Real-time chat over SSE while the trade is active, for its parties only; falls back to
+	// polling if the stream drops
 	useP2PChatSSE({
 		p2p_uuid,
 		order: chatOrder,
+		enabled: offer.isChatParty,
 		status: offer.isFlexibleOverview ? undefined : offer.p2p?.status,
 		appendMessage: chat.appendMessage,
 		fetchChat: chat.fetchChat,

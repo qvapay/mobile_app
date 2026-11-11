@@ -1,6 +1,6 @@
 import { useReducer, useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { Share } from "react-native"
+import { AppState, Share } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
 import { ROUTES } from "../../routes"
@@ -26,6 +26,7 @@ import {
 } from "./p2pRating"
 import type { MyRating, RatingForm } from "./p2pRating"
 import { activePause } from "./p2pPause"
+import { offerPollDelay, readPollAfterMs, isRefusalStatus } from "./p2pPolling"
 
 // Toast
 import { toast } from "sonner-native"
@@ -135,13 +136,20 @@ function editReducer(state: EditState, action: EditAction): EditState {
  *
  * Loading is cache-first: the AsyncStorage snapshot (`p2p_cache_{uuid}`) renders
  * instantly, then `GET /p2p/{uuid}` (p2pApi.show) refreshes it and rewrites the cache.
- * While the offer status is open/processing/paid, a 5s interval:
- * - always refetches the offer silently (offer status has no SSE — polling is the
- *   only status transport), and
- * - calls the injected `fetchChat` ONLY when `chatStreamLiveRef.current` is false.
- *   That ref is the `connectedRef` handed to useP2PChatSSE, which mirrors the stream
- *   state into it; reading a ref (not state) lets the interval skip the chat fetch
- *   without re-creating itself on every connect/disconnect.
+ * While the offer status is open/processing/paid (offer status has no SSE — polling
+ * is the only status transport), an interval refetches the offer silently:
+ * - only with the screen focused (`focused`) and the app active; coming back to
+ *   either refetches at once and resumes the rhythm;
+ * - every 5s for a party of a live trade, 15s otherwise (an open offer: the owner
+ *   waiting gets a push when it's taken). `poll_after_ms` from the server overrides
+ *   both (`offerPollDelay`, p2pPolling.ts);
+ * - a refusal (403/404…: the offer is no longer visible to the viewer) stops it and
+ *   the screen shows the server's error;
+ * - it calls the injected `fetchChat` ONLY for a chat party (`isChatParty`) and when
+ *   `chatStreamLiveRef.current` is false. That ref is the `connectedRef` handed to
+ *   useP2PChatSSE, which mirrors the stream state into it; reading a ref (not state)
+ *   lets the interval skip the chat fetch without re-creating itself on every
+ *   connect/disconnect.
  * Pull-to-refresh (`onRefresh`) refetches offer + chat unconditionally. The peer
  * profile (`GET /p2p/user/{uuid}` via p2pApi.peerProfile) is fetched for whichever
  * user the viewer is evaluating (creator on open offers, counterparty otherwise).
@@ -165,11 +173,12 @@ function editReducer(state: EditState, action: EditAction): EditState {
  * @param params.promptRate - Route `rate` param (push of a closed deal): open the rating sheet once it can be rated.
  * @param params.user - Authenticated user (uuid + balance) for role flags and edit validation.
  * @param params.navigation - React Navigation object (peer profile pushes).
- * @param params.fetchChat - From useP2PChat: full chat refetch, used by the 5s poll and pull-to-refresh.
+ * @param params.focused - Whether the screen is focused (`useIsFocused`); the poll only runs while it is.
+ * @param params.fetchChat - From useP2PChat: full chat refetch, used by the poll and pull-to-refresh.
  * @param params.chatStreamLiveRef - Ref mirroring the SSE connected state (shared with useP2PChatSSE as `connectedRef`).
  * @returns Offer API for the screen:
  *   state — `p2p`, `isLoading`, `error`, `refreshing`;
- *   derived — `isOwner`, `isPeer`, `isPayer`, `isReceiver`, `status`, `counterparty`,
+ *   derived — `isOwner`, `isPeer`, `isChatParty`, `isPayer`, `isReceiver`, `status`, `counterparty`,
  *   `canCancel`, `canMarkPaid`, `canConfirmReceived`, `canRatePeer`, `myRating`, `markedAsPaid`,
  *   `canApply`, `statusMessage`, `peerStats`, `peerReviewsCount`, `isUserOnline`;
  *   per-action `loading` flags; `txIdInput`/`setTxIdInput` (mark-paid tx id);
@@ -182,12 +191,13 @@ function editReducer(state: EditState, action: EditAction): EditState {
  *   `handleConfirmReceived`, `handleApply`, `handleApplyConfirm`, `handleShareIntent`,
  *   `openEditModal`, `handleEdit`.
  */
-export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRate = false, user, navigation, fetchChat, chatStreamLiveRef }: {
+export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRate = false, user, navigation, focused = true, fetchChat, chatStreamLiveRef }: {
 	p2p_uuid: string
 	orderUuid?: string | null
 	promptRate?: boolean
 	user: User | null
 	navigation: NavigationProp<RootStackParamList>
+	focused?: boolean
 	fetchChat: () => void | Promise<void>
 	chatStreamLiveRef?: MutableRefObject<boolean>
 }) {
@@ -211,6 +221,8 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 	const setEdit: SetEditField = (field, value) => dispatchEdit({ type: "set", field, value } as EditAction)
 
 	const [peerProfile, setPeerProfile] = useState<PeerProfilePayload | null>(null)
+	// `poll_after_ms` de la última respuesta FRESCA (nunca de la caché de AsyncStorage)
+	const [serverPollMs, setServerPollMs] = useState<number | null>(null)
 	const [txIdInput, setTxIdInput] = useState("")
 	const [showApplyConfirm, setShowApplyConfirm] = useState(false)
 	// Por rango: la parte que el taker quiere tomar (input del modal de aplicar)
@@ -238,6 +250,7 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 				// El detalle llega pelado o envuelto en `{ p2p }` (P2PShowPayload)
 				const payload = ((response.data as { p2p?: P2POffer } | undefined)?.p2p || response.data) as P2POffer | null
 				setP2p(payload)
+				setServerPollMs(readPollAfterMs(response.data))
 				// Save fresh data to cache
 				try { await AsyncStorage.setItem(cacheKey, JSON.stringify(payload)) } catch { /* ignore */ }
 			} else { dispatchOffer({ type: "set", field: "error", value: response.error }) }
@@ -265,7 +278,9 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		loadP2PData()
 	}, [loadP2PData])
 
-	// Refetch and update cache (no loader)
+	// Refetch and update cache (no loader). Una caída (red, 5xx, 429) se ignora y el
+	// siguiente poll lo vuelve a intentar; un «no» del servidor (403/404: la tomó otro, se
+	// canceló, es privada…) es definitivo: la pantalla enseña su error y el poll se para
 	const refetchP2P = useCallback(async () => {
 		const cacheKey = `${P2P_CACHE_KEY}${p2p_uuid}`
 		try {
@@ -273,10 +288,13 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 			if (response.success) {
 				const payload = ((response.data as { p2p?: P2POffer } | undefined)?.p2p || response.data) as P2POffer | null
 				setP2p(payload)
+				setServerPollMs(readPollAfterMs(response.data))
 				try { await AsyncStorage.setItem(cacheKey, JSON.stringify(payload)) } catch { /* ignore */ }
+			} else if (isRefusalStatus(response.status)) {
+				dispatchOffer({ type: "set", field: "error", value: response.error || t('p2p.offer.loadFailed') })
 			}
 		} catch (e) { /* ignore */ }
-	}, [p2p_uuid, setP2p])
+	}, [p2p_uuid, setP2p, t])
 
 	// ── Range offers: which order the screen is showing ──────────────────────
 	const isFlexible = isFlexibleOffer(rawP2p)
@@ -294,17 +312,6 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 	const isFlexibleOverview = isFlexible && !selectedOrder
 	const p2p = useMemo(() => (rawP2p && selectedOrder ? projectOrder(rawP2p, selectedOrder) : rawP2p), [rawP2p, selectedOrder])
 	const hasLiveOrders = isFlexible && (rawP2p?.Orders || []).some(isActiveOrder)
-
-	// Auto-polling every 5s for active statuses (a range offer also while any order is live)
-	const pollActive = !!p2p && (["open", "processing", "paid"].includes(p2p.status) || (isFlexible && (hasLiveOrders || ["open", "processing", "paid"].includes(rawP2p?.status || ""))))
-	useEffect(() => {
-		if (!pollActive) return
-		const interval = setInterval(() => {
-			refetchP2P() // offer status has no SSE — always poll
-			if (!chatStreamLiveRef?.current) fetchChat()
-		}, 5000)
-		return () => clearInterval(interval)
-	}, [pollActive, p2p_uuid, refetchP2P, fetchChat, chatStreamLiveRef])
 
 	// Derived booleans
 	const isOwner = useMemo(() => !!(user?.uuid && p2p?.User?.uuid && user.uuid === p2p.User.uuid), [user?.uuid, p2p?.User?.uuid])
@@ -351,6 +358,41 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 	// Offer Status dynamics
 	const status: P2PStatus = p2p?.status || "open"
 	const counterparty = isOwner ? p2p?.Peer : p2p?.User
+
+	// Chat: solo el dueño o el peer de lo que se ve (en una por rango, de la orden elegida;
+	// la vista de la oferta no tiene chat). El servidor responde 403 a cualquier otro
+	const isChatParty = !isFlexibleOverview && (isOwner || isPeer)
+
+	// ── Poll de la oferta (su estado no tiene stream) ─────────────────────────
+	// Activa en open/processing/paid (una por rango, también mientras tenga órdenes vivas)
+	const pollActive = !!p2p && (["open", "processing", "paid"].includes(p2p.status) || (isFlexible && (hasLiveOrders || ["open", "processing", "paid"].includes(rawP2p?.status || ""))))
+	// Parte de un trato vivo: 5 s. Por rango, de una orden viva (el dueño lo es de todas;
+	// el taker, de las suyas). El resto (oferta abierta, quien solo mira): 15 s
+	const liveParty = isFlexible
+		? (rawP2p?.Orders || []).some((o) => isActiveOrder(o) && (isOfferOwner || (!!user?.uuid && o.Taker?.uuid === user.uuid)))
+		: (isOwner || isPeer) && (status === "processing" || status === "paid")
+	const pollDelay = offerPollDelay({ active: pollActive, liveParty, serverMs: serverPollMs })
+	const [appActive, setAppActive] = useState(() => AppState.currentState !== "background" && AppState.currentState !== "inactive")
+	useEffect(() => {
+		const sub = AppState.addEventListener("change", (next) => setAppActive(next === "active"))
+		return () => sub.remove()
+	}, [])
+	// Sin foco, con la app detrás o tras un «no» del servidor no se consulta
+	const canPoll = focused && appActive && !error
+	const pollPausedRef = useRef(false)
+	useEffect(() => {
+		if (pollDelay == null) return
+		if (!canPoll) { pollPausedRef.current = true; return }
+		// De vuelta a la pantalla o a la app: una consulta al momento y sigue el ritmo.
+		// Sin chat: el stream sigue abierto bajo otra pantalla, y al volver de segundo
+		// plano useP2PChatSSE ya pide el suyo
+		if (pollPausedRef.current) { pollPausedRef.current = false; refetchP2P() }
+		const interval = setInterval(() => {
+			refetchP2P()
+			if (isChatParty && !chatStreamLiveRef?.current) fetchChat()
+		}, pollDelay)
+		return () => clearInterval(interval)
+	}, [pollDelay, canPoll, isChatParty, refetchP2P, fetchChat, chatStreamLiveRef])
 
 	// Actions Buttons
 	// Una orden: quien paga el fiat cancela, quien lo recibe abre disputa (orderCancelKind).
@@ -822,7 +864,7 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		// pause
 		pause, pausedLocked, hasLiveOrders, togglePause,
 		// derived
-		isOwner, isPeer, isPayer, isReceiver, status, counterparty,
+		isOwner, isPeer, isChatParty, isPayer, isReceiver, status, counterparty,
 		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating, canEditMyRating, markedAsPaid,
 		canApply, statusMessage, peerStats, peerReviewsCount, isUserOnline,
 		// loading flags
