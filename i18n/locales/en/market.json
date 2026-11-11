@@ -43,7 +43,10 @@
 			"shipToBlocked": "The seller doesn't ship to your address",
 			"duplicate": "Duplicate purchase: check your purchases",
 			"busy": "The service is busy. Try again in a few seconds.",
-			"generic": "Couldn't process the purchase"
+			"generic": "Couldn't process the purchase",
+			"identificationRequired": "The address needs the recipient's ID card number (11 digits).",
+			"supplierPaused": "This store isn't taking orders right now. Try again later.",
+			"attestationRequired": "This purchase needs the OFAC certification."
 		}
 	},
 	"stores": {
@@ -113,7 +116,7 @@
 		"itemShipBlocked": "The seller doesn't ship to the chosen address",
 		"processing": "Processing…",
 		"shippingAddress": "Shipping address",
-		"shippingAddressHint": "Used for every physical product in the cart. For now we only ship within the United States.",
+		"shippingAddressHint": "Used for every physical product in the cart. Some stores only deliver in Cuba and others only in the US.",
 		"availableBalance": "Available balance",
 		"insufficientBalance": "Insufficient balance for this purchase.",
 		"unavailable_one": "One product is no longer available and won't be included.",
@@ -131,6 +134,16 @@
 			"partial_one": "{{count}} purchase confirmed · {{failed}} failed. Check the remaining items.",
 			"partial_other": "{{count}} purchases confirmed · {{failed}} failed. Check the remaining items.",
 			"allFailed": "Couldn't complete any purchase. Check the errors."
+		},
+		"reasons": {
+			"onlyCuba": "This store only delivers in Cuba.",
+			"onlyUs": "This store only ships within the United States.",
+			"region": "The seller doesn't ship to {{region}}."
+		},
+		"mixedCountries": "Your cart mixes stores that deliver in Cuba with others that only ship to the US, and one address can't serve both. Remove the products from one of them and buy them separately.",
+		"completeAddress": {
+			"title": "Complete the address",
+			"subtitle": "Home deliveries in Cuba need a municipality from the list and the recipient's ID card."
 		}
 	},
 	"orders": {
