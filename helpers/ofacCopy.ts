@@ -68,6 +68,7 @@ const ES: OfacCopy = {
 	contexts: {
 		withdraw: { intro: 'Este retiro tiene como destino Cuba.', footer: 'QvaPay almacenará este consentimiento junto con los datos de la extracción.' },
 		transfer: { intro: 'El destinatario de esta transferencia es un nacional cubano.', footer: 'QvaPay almacenará este consentimiento junto con los datos de la transferencia.' },
+		market: { intro: 'Esta compra se entrega a domicilio a un tercero en Cuba.', footer: 'QvaPay almacenará este consentimiento junto con los datos de la compra.' },
 		topup: {
 			intro: 'Eres una persona sujeta a la jurisdicción de EE. UU. (US person). QvaPay opera transferencias con destino Cuba, por lo que debes certificar el uso previsto de los fondos que depositas.',
 			footer: 'QvaPay almacenará este consentimiento junto con los datos del depósito.',
@@ -119,6 +120,7 @@ const EN: OfacCopy = {
 	contexts: {
 		withdraw: { intro: 'This withdrawal is destined for Cuba.', footer: 'QvaPay will store this consent together with the withdrawal data.' },
 		transfer: { intro: 'The recipient of this transfer is a Cuban national.', footer: 'QvaPay will store this consent together with the transfer data.' },
+		market: { intro: 'This purchase is delivered to a third party in Cuba.', footer: 'QvaPay will store this consent together with the purchase data.' },
 		topup: {
 			intro: 'You are a person subject to U.S. jurisdiction (U.S. person). QvaPay operates transfers destined for Cuba, so you must certify the intended use of the funds you deposit.',
 			footer: 'QvaPay will store this consent together with the deposit data.',

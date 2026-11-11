@@ -7,7 +7,9 @@
 
 import i18n from '../../../i18n'
 import { cartItemKey } from './cartCore'
+import { mergeDeliveryMunicipalities, provinceName, supplierAddressIssue, supplierNeedsIdentification } from '../../../ui/store/cubaAddress'
 import type { CartItem, ShipTo } from './cartCore'
+import type { SupplierInfo } from '../../../ui/store/cubaAddress'
 
 /** Variante fresca del catálogo (solo lo que lee el carrito). */
 export type FreshVariant = {
@@ -36,10 +38,19 @@ export type FreshProduct = {
 	ship_to?: ShipTo | null
 	/** `balance_only`: tienda de proveedor, solo se paga con saldo. */
 	shop?: { slug?: string | null, name?: string | null, active?: boolean, balance_only?: boolean } | null
+	/**
+	 * Tienda cumplida por un proveedor: `ship_country` dice si entrega a domicilio en Cuba
+	 * (municipio + carnet) o solo en EE. UU., y `delivery_municipalities` qué municipios cubre.
+	 * Va DENTRO del producto, no en su raíz de envío (`ship_to`).
+	 */
+	supplier?: SupplierInfo | null
 }
 
 /** Dirección de envío evaluable (guardada o el formulario nuevo). */
-export type ShippableAddress = { country?: string | null, state?: string | null }
+export type ShippableAddress = { country?: string | null, state?: string | null, city?: string | null, identification?: string | null }
+
+/** Dirección elegida en el carrito: una guardada, el formulario de una nueva o una cubana guardada que se está completando. */
+export type ShippingChoice = { kind: 'saved', uuid: string } | { kind: 'new' } | { kind: 'edit', uuid: string }
 
 /** Código de línea no comprable. */
 export type CartProblem = keyof typeof PROBLEM_LABELS
@@ -59,6 +70,8 @@ export type CartEntry = {
 	qty: number
 	isPhysical: boolean
 	shipBlocked: boolean
+	/** Por qué la dirección elegida no sirve para esta línea (null si sirve o no se puede evaluar). */
+	shipReason: string | null
 	status: CartLineStatus
 }
 
@@ -115,7 +128,7 @@ export function addressEligible(addr: ShippableAddress | null | undefined, shipT
  * @param freshMap - `{ [product_uuid]: freshProduct }` from the batch endpoint, or null while revalidating (no problems are flagged then).
  * @param selectedAddress - Chosen shipping address (or null).
  * @param statuses - `{ [key]: 'paying' | 'done' | { error } }` per-line checkout state.
- * @returns Entries `{ item, key, fresh, problem, variant, unitPrice, maxQty, qty, isPhysical, shipBlocked, status }`.
+ * @returns Entries `{ item, key, fresh, problem, variant, unitPrice, maxQty, qty, isPhysical, shipBlocked, shipReason, status }`.
  */
 export function enrichCartItems(
 	items: CartItem[],
@@ -154,12 +167,148 @@ export function enrichCartItems(
 
 		const qty = Math.max(1, Math.min(Number(item.qty) || 1, problem ? 999 : maxQty))
 		const isPhysical = (fresh?.kind || item.kind) === 'physical'
-		const shipTo = fresh ? fresh.ship_to : undefined
-		// Elegibilidad geográfica solo evaluable con datos frescos y dirección elegida.
-		const shipBlocked = !problem && isPhysical && !!selectedAddress && shipTo !== undefined && !addressEligible(selectedAddress, shipTo)
+		// Elegibilidad geográfica solo evaluable con datos frescos y dirección elegida: el
+		// `ship_to` del producto y, en una tienda de proveedor, municipio y carnet.
+		const shipReason = !problem && isPhysical && !!selectedAddress && fresh ? shipIssue(fresh, selectedAddress) : null
 
-		return { item, key, fresh, problem, variant, unitPrice, maxQty, qty, isPhysical, shipBlocked, status: statuses[key] || null }
+		return { item, key, fresh, problem, variant, unitPrice, maxQty, qty, isPhysical, shipBlocked: !!shipReason, shipReason, status: statuses[key] || null }
 	})
+}
+
+/**
+ * País al que tiene que ir un producto, si solo admite uno: el de su proveedor (`'US'` o, si
+ * no, Cuba) o el único país de su `ship_to`. null = varios países o cualquiera.
+ *
+ * @param fresh - Producto fresco.
+ * @returns Código de país o null.
+ */
+export function requiredCountry(fresh: FreshProduct | null | undefined): string | null {
+	if (!fresh) return null
+	if (fresh.supplier) return supplierNeedsIdentification(fresh.supplier) ? 'CU' : 'US'
+	const countries = fresh.ship_to ? Object.keys(fresh.ship_to) : []
+	return countries.length === 1 ? countries[0].toUpperCase() : null
+}
+
+/**
+ * Por qué una dirección no sirve para un producto físico (null = sirve). Primero el `ship_to`
+ * (país y provincia) y luego las reglas de la tienda de proveedor (municipio cubierto y carnet,
+ * o dirección en EE. UU.). Mensajes de i18n en call time.
+ *
+ * @param fresh - Producto fresco.
+ * @param addr - Dirección elegida (guardada o el formulario).
+ * @returns Mensaje para la línea, o null.
+ */
+export function shipIssue(fresh: FreshProduct, addr: ShippableAddress): string | null {
+	if (!addressEligible(addr, fresh.ship_to)) {
+		const only = requiredCountry(fresh)
+		const country = String(addr?.country || '').toUpperCase()
+		if (only === 'CU' && country !== 'CU') return i18n.t('market.cart.reasons.onlyCuba')
+		if (only === 'US' && country !== 'US') return i18n.t('market.cart.reasons.onlyUs')
+		// País admitido pero provincia o estado fuera de la lista
+		if (country && fresh.ship_to && Object.prototype.hasOwnProperty.call(fresh.ship_to, country) && addr?.state) {
+			return i18n.t('market.cart.reasons.region', { region: country === 'CU' ? provinceName(addr.state) : String(addr.state).toUpperCase() })
+		}
+		return i18n.t('market.cart.itemShipBlocked')
+	}
+	return supplierAddressIssue(fresh.supplier, addr)
+}
+
+/** Líneas físicas pagables con datos frescos: las únicas que deciden sobre la dirección. */
+const physicalFresh = (entries: CartEntry[]): (CartEntry & { fresh: FreshProduct })[] =>
+	entries.filter((e): e is CartEntry & { fresh: FreshProduct } => !e.problem && e.status !== 'done' && e.isPhysical && !!e.fresh)
+
+/**
+ * Por qué una dirección no sirve para el carrito: el motivo de la primera línea física que no
+ * la acepta (null = sirve para todas). Lo usan el selector de direcciones guardadas y la
+ * preselección.
+ *
+ * @param entries - Líneas enriquecidas (con o sin dirección).
+ * @param addr - Dirección a evaluar.
+ * @returns Mensaje o null.
+ */
+export function cartAddressIssue(entries: CartEntry[], addr: ShippableAddress | null | undefined): string | null {
+	if (!addr) return null
+	for (const e of physicalFresh(entries)) {
+		const issue = shipIssue(e.fresh, addr)
+		if (issue) return issue
+	}
+	return null
+}
+
+/**
+ * Países que exigen las líneas físicas del carrito. Con más de uno (una tienda que entrega en
+ * Cuba y otra que solo envía a EE. UU.) ninguna dirección sirve para todo el carrito.
+ *
+ * @param entries - Líneas enriquecidas.
+ * @returns Países exigidos, sin repetir.
+ */
+export function requiredCountries(entries: CartEntry[]): string[] {
+	const out: string[] = []
+	for (const e of physicalFresh(entries)) {
+		const cc = requiredCountry(e.fresh)
+		if (cc && !out.includes(cc)) out.push(cc)
+	}
+	return out
+}
+
+/**
+ * Provincias y municipios de Cuba que cubren TODAS las líneas físicas: lo que puede ofrecer el
+ * formulario de una dirección cubana. null en cada campo = sin restricción (o no hay ninguno
+ * común, y entonces lo dirá el motivo de cada línea).
+ *
+ * @param entries - Líneas enriquecidas.
+ * @returns `{ provinces, municipalities }`.
+ */
+export function cartCubaCoverage(entries: CartEntry[]): { provinces: string[] | null, municipalities: Record<string, string[]> | null } {
+	const lines = physicalFresh(entries)
+	const merged = mergeDeliveryMunicipalities(lines.map(e => e.fresh.supplier?.delivery_municipalities))
+	const municipalities = merged && Object.keys(merged).length > 0 ? merged : null
+	let provinces: string[] | null = null
+	for (const e of lines) {
+		const list = e.fresh.ship_to?.CU
+		if (!Array.isArray(list)) continue
+		const codes = list.map(p => String(p).toUpperCase())
+		provinces = provinces ? provinces.filter(p => codes.includes(p)) : codes
+	}
+	if (municipalities) {
+		const covered = Object.keys(municipalities)
+		provinces = provinces ? provinces.filter(p => covered.includes(p)) : covered
+	}
+	return { provinces: provinces && provinces.length > 0 ? provinces : null, municipalities }
+}
+
+/**
+ * Dirección guardada que se elige sola mientras el usuario no toque nada: la predeterminada si
+ * sirve, si no la primera que sirva; si ninguna sirve, la primera que se pueda completar (una
+ * cubana sin carnet, por ejemplo) y, por último, la predeterminada o la primera.
+ *
+ * @param addresses - Direcciones guardadas.
+ * @param issueFor - Motivo por el que una dirección no sirve (null = sirve).
+ * @param completable - Si una dirección que no sirve se arregla completándola.
+ * @returns La dirección, o null sin direcciones.
+ */
+export function pickShippingAddress<A extends { is_default?: boolean | number | null }>(
+	addresses: A[],
+	issueFor: (a: A) => string | null,
+	completable: (a: A) => boolean = () => false,
+): A | null {
+	if (!addresses.length) return null
+	const byDefault = [...addresses].sort((a, b) => Number(!!b.is_default) - Number(!!a.is_default))
+	return byDefault.find(a => !issueFor(a)) || byDefault.find(completable) || byDefault[0]
+}
+
+/**
+ * Orden de pago: primero las líneas de tiendas que entregan en Cuba (las que pueden pedir la
+ * atestación OFAC), así un `US_PERSON_ATTESTATION_REQUIRED` corta el recorrido antes de cobrar
+ * nada más. Partición ESTABLE: dentro de cada tienda no cambia el orden (el proveedor es por
+ * tienda), y el envío se sigue cobrando en la primera orden física de cada una.
+ *
+ * @param payable - Líneas a pagar.
+ * @returns Las mismas líneas, reordenadas.
+ */
+export function paymentSequence(payable: CartEntry[]): CartEntry[] {
+	const cuba = payable.filter(e => supplierNeedsIdentification(e.fresh?.supplier))
+	return [...cuba, ...payable.filter(e => !cuba.includes(e))]
 }
 
 /**
@@ -182,23 +331,38 @@ export function groupByShop(entries: CartEntry[]): ShopGroup[] {
 }
 
 /**
- * Maps a failed order response to a human message. The backend speaks in
- * error codes for 409s and Spanish messages for the rest (those pass through
- * verbatim; only local fallbacks are localized, via `i18n.t` at call time).
+ * Maps a failed order response to a human message. Decides by the backend `code` (it travels
+ * in `details.code`; `error` is the Spanish message) and falls back to the message, which
+ * passes through verbatim. Only local fallbacks are localized, via `i18n.t` at call time.
+ * `SHIP_TO_BLOCKED` and `IDENTIFICATION_REQUIRED` keep the server's text when it has one: it
+ * names the municipality.
  *
  * @param status - HTTP status of the failure.
- * @param error - Backend `error` field.
+ * @param error - Backend `error` field (message).
+ * @param code - Backend `code` (`details.code`).
  * @returns Localized message for the cart line.
  */
-export function mapOrderError(status: number | undefined, error: string | undefined): string {
-	const code = String(error || '')
-	if (code === 'OUT_OF_STOCK') return i18n.t('market.checkout.errors.outOfStock')
-	if (code === 'PRODUCT_GONE') return i18n.t('market.checkout.problems.gone')
-	if (code === 'VARIANT_REQUIRED') return i18n.t('market.checkout.errors.variantRequired')
-	if (code === 'SHIP_TO_BLOCKED') return i18n.t('market.checkout.errors.shipToBlocked')
-	if (code === 'DUPLICATE_REQUEST') return i18n.t('market.checkout.errors.duplicate')
+export function mapOrderError(status: number | undefined, error: string | undefined, code?: string | null): string {
+	const message = String(error || '')
+	switch (code) {
+		case 'OUT_OF_STOCK': return i18n.t('market.checkout.errors.outOfStock')
+		case 'PRODUCT_GONE': return i18n.t('market.checkout.problems.gone')
+		case 'VARIANT_REQUIRED': return i18n.t('market.checkout.errors.variantRequired')
+		case 'SHIP_TO_BLOCKED': return message || i18n.t('market.checkout.errors.shipToBlocked')
+		case 'IDENTIFICATION_REQUIRED': return message || i18n.t('market.checkout.errors.identificationRequired')
+		case 'SUPPLIER_PAUSED': return i18n.t('market.checkout.errors.supplierPaused')
+		case 'US_PERSON_ATTESTATION_REQUIRED': return i18n.t('market.checkout.errors.attestationRequired')
+		case 'DUPLICATE_REQUEST': return i18n.t('market.checkout.errors.duplicate')
+		default: break
+	}
 	if (status === 429) return i18n.t('market.checkout.errors.busy')
-	return code || i18n.t('market.checkout.errors.generic')
+	return message || i18n.t('market.checkout.errors.generic')
+}
+
+/** Código de error de una orden fallida (`details.code` del cuerpo de error). */
+export const orderErrorCode = (details: unknown): string | null => {
+	const code = (details as { code?: unknown } | null | undefined)?.code
+	return typeof code === 'string' ? code : null
 }
 
 /**

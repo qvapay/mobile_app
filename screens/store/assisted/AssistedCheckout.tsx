@@ -18,6 +18,9 @@ import AddressPicker from '../../../ui/store/AddressPicker'
 import NewAddressForm from '../../../ui/store/NewAddressForm'
 import { formatAddress, EMPTY_US_ADDRESS, validateUsAddress, buildAddressBody } from '../../../ui/store/shippingAddress'
 
+/** Las compras asistidas solo se envían a EE. UU.; una dirección sin país es de EE. UU. (default del servidor). */
+const isUsAddress = (a: ShippingAddress) => !a.country || String(a.country).toUpperCase() === 'US'
+
 // Routes & API
 import { ROUTES } from '../../../routes'
 import { shopApi } from '../../../api/shopApi'
@@ -169,8 +172,10 @@ const AssistedCheckout = ({ navigation }: Props) => {
 			if (res.success) {
 				const list = res.data?.addresses || []
 				setAddresses(list)
-				if (list.length > 0) {
-					setSelectedUuid((list.find(a => a.is_default) || list[0]).uuid)
+				// Las de Cuba (u otro país) se ven, pero no se preseleccionan
+				const usable = list.filter(isUsAddress)
+				if (usable.length > 0) {
+					setSelectedUuid((usable.find(a => a.is_default) || usable[0]).uuid)
 				} else {
 					setUseNewAddress(true)
 				}
@@ -186,7 +191,9 @@ const AssistedCheckout = ({ navigation }: Props) => {
 	// The state that drives the tax quote: saved address or the form's state.
 	const quoteState = useMemo(() => {
 		if (!useNewAddress && selectedUuid) {
-			return addresses.find(a => a.uuid === selectedUuid)?.state || null
+			const saved = addresses.find(a => a.uuid === selectedUuid)
+			// El tax es de un estado de EE. UU.: una provincia de Cuba no se cotiza
+			return saved && isUsAddress(saved) ? saved.state || null : null
 		}
 		return form.state || null
 	}, [useNewAddress, selectedUuid, addresses, form.state])
@@ -215,7 +222,7 @@ const AssistedCheckout = ({ navigation }: Props) => {
 	const balance = Number(user?.balance || 0)
 	const total = Number(quote?.total || 0)
 	const insufficient = quote ? balance < total : false
-	const canPay = !!quote && quote.meets_minimum && !insufficient && (useNewAddress ? !formError : !!selectedAddress)
+	const canPay = !!quote && quote.meets_minimum && !insufficient && (useNewAddress ? !formError : !!selectedAddress && isUsAddress(selectedAddress))
 
 	const handleConfirm = () => {
 		if (useNewAddress && formError) {
@@ -230,11 +237,9 @@ const AssistedCheckout = ({ navigation }: Props) => {
 		const body = useNewAddress
 			? { new_address: buildAddressBody(form) }
 			: { shipping_address_id: selectedUuid }
-		// Dos desajustes REALES (pre-existentes) entre módulos ya tipados, no se tocan aquí:
-		//  - `buildAddressBody` (ui/store/NewAddressForm) devuelve `phone`/`line2` como
-		//    `string | null`, mientras `ShopShippingAddressInput` los declara `string | undefined`.
-		//  - `selectedUuid` es `string | null` y `shipping_address_id` espera `string | undefined`
-		//    (en la práctica lo cubre el guard de `canPay`).
+		// Desajuste REAL (pre-existente) entre módulos ya tipados, no se toca aquí: `selectedUuid`
+		// es `string | null` y `shipping_address_id` espera `string | undefined` (en la práctica lo
+		// cubre el guard de `canPay`).
 		// El cast documenta el body tal y como viaja hoy; shopApi devuelve ApiResult<unknown>.
 		const res = await shopApi.checkout(body as ShopCheckoutInput) as ApiResult<CheckoutResponse>
 		setPaying(false)
@@ -277,6 +282,7 @@ const AssistedCheckout = ({ navigation }: Props) => {
 						selectedUuid={selectedUuid}
 						onSelectAddress={(uuid) => { setUseNewAddress(false); setSelectedUuid(uuid) }}
 						onNewAddress={() => setUseNewAddress(true)}
+						issueFor={(a) => (isUsAddress(a) ? null : t('assisted.checkout.addressNotUs'))}
 						theme={theme}
 						textStyles={textStyles}
 					/>

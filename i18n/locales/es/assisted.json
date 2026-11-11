@@ -68,7 +68,8 @@
 			"checkoutTitle": "Checkout",
 			"successTitle": "Compra realizada",
 			"successBody": "Pedido #{{id}} confirmado por {{amount}}"
-		}
+		},
+		"addressNotUs": "Las compras asistidas solo se envían a direcciones en Estados Unidos."
 	},
 	"orders": {
 		"tracking": "Tracking: {{code}}",

@@ -12,6 +12,7 @@
 		"typecheck": "tsc --noEmit",
 		"i18n:check": "node scripts/check-i18n.js",
 		"i18n:usage": "node scripts/check-i18n-usage.js",
+		"geo:cuba": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sync-cuba-geo.js",
 		"start": "react-native start",
 		"test": "jest",
 		"android:bundle": "cd android && ./gradlew bundleRelease",

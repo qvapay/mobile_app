@@ -19,8 +19,11 @@ import { isCryptoCoin } from '../screens/withdraw/withdrawDestination'
 
 export type OfacScope = 'cuba_value' | 'funding' | 'crypto_out'
 
-/** Variante de copy del bloque (CONTEXT_COPY de la web). */
-export type OfacContext = 'withdraw' | 'transfer' | 'topup' | 'deposit_bank' | 'crypto'
+/**
+ * Variante de copy del bloque (CONTEXT_COPY de la web). `market` = compra en una tienda del
+ * marketplace que entrega a domicilio en Cuba (ámbito `cuba_value`, mismos P-1…P-4).
+ */
+export type OfacContext = 'withdraw' | 'transfer' | 'market' | 'topup' | 'deposit_bank' | 'crypto'
 
 export type OfacPurposeCode = 'P-1' | 'P-2' | 'P-3' | 'P-4' | 'W-1'
 
@@ -33,7 +36,7 @@ export type OfacComplianceValue = {
 	purposeNote: string
 }
 
-/** Lo que viaja como `compliance` en /withdraw, /transaction/transfer y /topup. */
+/** Lo que viaja como `compliance` en /withdraw, /transaction/transfer, /topup y /market/order. */
 export type OfacCompliancePayload = {
 	purposeCode: OfacPurposeCode
 	attestations: Record<OfacAttestationKey, true>

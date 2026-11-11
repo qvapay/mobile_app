@@ -1,6 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiResult } from '../types/api'
+import type { OfacCompliancePayload } from '../helpers/ofacCompliance'
 
 /** Filtros de `getStores`: slug de categoría y paginación. */
 export type MarketStoresParams = { category?: string, page?: number, take?: number }
@@ -28,6 +29,13 @@ export type MarketOrderInput = {
 	shipping_address_id?: string
 	gift_card_code?: string
 	idempotency_key: string
+	/**
+	 * Lote de carrito (una por ejecución de pago, reutilizada en los reintentos): las órdenes
+	 * con la misma clave comparten despacho y el envío se cobra una vez por tienda.
+	 */
+	cart_key?: string
+	/** Atestación OFAC (`cuba_value`): la exige el servidor a un US person en una tienda que entrega en Cuba. */
+	compliance?: OfacCompliancePayload
 }
 
 /** Filtros de `getOrders`: estado y paginación. */

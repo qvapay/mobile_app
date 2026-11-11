@@ -43,3 +43,27 @@ const subscribe = (listener: () => void) => {
 
 /** `isAnyModalPresented` reactivo. */
 export const useAnyModalPresented = (): boolean => useSyncExternalStore(subscribe, isAnyModalPresented, isAnyModalPresented)
+
+/**
+ * Espera a que no quede ningún modal con puerta en pantalla (salida incluida) antes de
+ * presentar otro: en iOS, presentar un `<Modal>` mientras otro termina de irse deja un modal
+ * zombi (ver `ui/modalGate.ts`). Con tope, por si un `onDismiss` nativo no llegara nunca.
+ *
+ * @param timeoutMs - Máximo de espera.
+ * @returns Promesa que resuelve al quedar la pantalla libre (o al vencer el tope).
+ */
+export const whenNoModalPresented = (timeoutMs = 1500): Promise<void> => new Promise(resolve => {
+	if (!isAnyModalPresented()) { resolve(); return }
+	let timer: ReturnType<typeof setTimeout> | null = null
+	const listener = () => {
+		if (isAnyModalPresented()) return
+		finish()
+	}
+	const finish = () => {
+		listeners.delete(listener)
+		if (timer) clearTimeout(timer)
+		resolve()
+	}
+	listeners.add(listener)
+	timer = setTimeout(finish, timeoutMs)
+})

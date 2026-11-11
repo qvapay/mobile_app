@@ -15,7 +15,9 @@
 	"addressPicker": {
 		"addressFallback": "Dirección",
 		"defaultSuffix": " · Predeterminada",
-		"newAddress": "Nueva dirección"
+		"newAddress": "Nueva dirección",
+		"complete": "Completar dirección",
+		"completing": "Completando los datos que faltan"
 	},
 	"brandTile": {
 		"from": "desde ${{min}}",
@@ -66,7 +68,14 @@
 			"line1": "Escribe la dirección (línea 1)",
 			"city": "Escribe la ciudad",
 			"state": "Selecciona el estado",
-			"postalCode": "Código postal USA inválido (ej: 33033)"
+			"postalCode": "Código postal USA inválido (ej: 33033)",
+			"phoneCuba": "Escribe el teléfono de quien recibe (al menos 8 dígitos)",
+			"province": "Selecciona la provincia",
+			"municipality": "Elige el municipio de la lista",
+			"line1Cuba": "Escribe la calle y el número",
+			"idShort_one": "Falta {{count}} dígito (son 11)",
+			"idShort_other": "Faltan {{count}} dígitos (son 11)",
+			"idDate": "Los 6 primeros dígitos son la fecha de nacimiento (AAMMDD). Revisa el mes y el día."
 		},
 		"statePickerTitle": "Estado de destino",
 		"recipientName": "Nombre de quien recibe",
@@ -76,7 +85,28 @@
 		"city": "Ciudad",
 		"state": "Estado",
 		"statePlaceholder": "Seleccionar",
-		"postalCode": "Código postal"
+		"postalCode": "Código postal",
+		"countryCuba": "Cuba",
+		"countryUs": "Estados Unidos",
+		"cuba": {
+			"recipientPlaceholder": "Nombre y apellidos",
+			"phone": "Teléfono de quien recibe",
+			"phonePlaceholder": "5X XXX XXX",
+			"province": "Provincia",
+			"municipality": "Municipio",
+			"provinceFirst": "Elige la provincia primero",
+			"provinceUncovered": "Las tiendas de tu carrito no entregan en {{province}}.",
+			"line1": "Calle y número",
+			"line1Placeholder": "Calle 23 #456, e/ F y G",
+			"line2": "Referencia (opcional)",
+			"line2Placeholder": "Apto 4, frente al parque",
+			"identification": "Carnet de identidad del destinatario",
+			"identificationPlaceholder": "11 dígitos",
+			"identificationHelp": "11 dígitos, tal como aparece en el carnet",
+			"identificationCounter": "{{digits}}/{{total}}",
+			"provincePickerTitle": "Provincia de destino",
+			"municipalityPickerTitle": "Municipio de destino"
+		}
 	},
 	"offerItem": {
 		"status": {
@@ -184,5 +214,13 @@
 	},
 	"optionPicker": {
 		"searchPlaceholder": "Buscar…"
+	},
+	"cubaAddress": {
+		"issues": {
+			"usOnly": "Esta tienda solo envía a direcciones en Estados Unidos.",
+			"municipality": "Esta tienda no entrega en {{municipality}}.",
+			"municipalityUnknown": "Esta tienda no entrega en ese municipio.",
+			"identification": "La dirección necesita el carnet de identidad del destinatario."
+		}
 	}
 }

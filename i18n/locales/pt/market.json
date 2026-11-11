@@ -43,7 +43,10 @@
 			"shipToBlocked": "O vendedor não envia para o seu endereço",
 			"duplicate": "Compra duplicada: confira suas compras",
 			"busy": "O serviço está ocupado. Tente de novo em alguns segundos.",
-			"generic": "Não foi possível processar a compra"
+			"generic": "Não foi possível processar a compra",
+			"identificationRequired": "O endereço precisa do documento de identidade do destinatário (11 dígitos).",
+			"supplierPaused": "Esta loja não está recebendo pedidos agora. Tente mais tarde.",
+			"attestationRequired": "Esta compra precisa da certificação OFAC."
 		}
 	},
 	"stores": {
@@ -113,7 +116,7 @@
 		"itemShipBlocked": "O vendedor não envia para o endereço escolhido",
 		"processing": "Processando…",
 		"shippingAddress": "Endereço de entrega",
-		"shippingAddressHint": "Usado para todos os produtos físicos do carrinho. Por enquanto, o frete é só para os EUA.",
+		"shippingAddressHint": "Usado para todos os produtos físicos do carrinho. Algumas lojas só entregam em Cuba e outras só nos EUA.",
 		"availableBalance": "Saldo disponível",
 		"insufficientBalance": "Saldo insuficiente para esta compra.",
 		"unavailable_one": "Um produto não está mais disponível e não será incluído.",
@@ -131,6 +134,16 @@
 			"partial_one": "{{count}} compra confirmada · {{failed}} com erro. Confira os itens restantes.",
 			"partial_other": "{{count}} compras confirmadas · {{failed}} com erro. Confira os itens restantes.",
 			"allFailed": "Não foi possível concluir nenhuma compra. Confira os erros."
+		},
+		"reasons": {
+			"onlyCuba": "Esta loja só entrega em Cuba.",
+			"onlyUs": "Esta loja só envia dentro dos Estados Unidos.",
+			"region": "O vendedor não envia para {{region}}."
+		},
+		"mixedCountries": "Seu carrinho mistura lojas que entregam em Cuba com outras que só enviam para os EUA, e um endereço não serve para as duas. Remova os produtos de uma delas e compre separadamente.",
+		"completeAddress": {
+			"title": "Complete o endereço",
+			"subtitle": "As entregas em domicílio em Cuba precisam de um município da lista e do documento de quem recebe."
 		}
 	},
 	"orders": {

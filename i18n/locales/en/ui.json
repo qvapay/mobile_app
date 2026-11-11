@@ -15,7 +15,9 @@
 	"addressPicker": {
 		"addressFallback": "Address",
 		"defaultSuffix": " · Default",
-		"newAddress": "New address"
+		"newAddress": "New address",
+		"complete": "Complete address",
+		"completing": "Filling in the missing details"
 	},
 	"brandTile": {
 		"from": "from ${{min}}",
@@ -66,7 +68,14 @@
 			"line1": "Enter the address (line 1)",
 			"city": "Enter the city",
 			"state": "Select the state",
-			"postalCode": "Invalid US ZIP code (e.g. 33033)"
+			"postalCode": "Invalid US ZIP code (e.g. 33033)",
+			"phoneCuba": "Enter the recipient's phone number (at least 8 digits)",
+			"province": "Select the province",
+			"municipality": "Pick the municipality from the list",
+			"line1Cuba": "Enter the street and number",
+			"idShort_one": "{{count}} digit missing (it has 11)",
+			"idShort_other": "{{count}} digits missing (it has 11)",
+			"idDate": "The first 6 digits are the date of birth (YYMMDD). Check the month and the day."
 		},
 		"statePickerTitle": "Destination state",
 		"recipientName": "Recipient's name",
@@ -76,7 +85,28 @@
 		"city": "City",
 		"state": "State",
 		"statePlaceholder": "Select",
-		"postalCode": "ZIP code"
+		"postalCode": "ZIP code",
+		"countryCuba": "Cuba",
+		"countryUs": "United States",
+		"cuba": {
+			"recipientPlaceholder": "Full name",
+			"phone": "Recipient's phone",
+			"phonePlaceholder": "5X XXX XXX",
+			"province": "Province",
+			"municipality": "Municipality",
+			"provinceFirst": "Pick the province first",
+			"provinceUncovered": "The stores in your cart don't deliver in {{province}}.",
+			"line1": "Street and number",
+			"line1Placeholder": "Calle 23 #456, e/ F y G",
+			"line2": "Reference (optional)",
+			"line2Placeholder": "Apt 4, across from the park",
+			"identification": "Recipient's ID card number",
+			"identificationPlaceholder": "11 digits",
+			"identificationHelp": "11 digits, exactly as on the ID card",
+			"identificationCounter": "{{digits}}/{{total}}",
+			"provincePickerTitle": "Destination province",
+			"municipalityPickerTitle": "Destination municipality"
+		}
 	},
 	"offerItem": {
 		"status": {
@@ -184,5 +214,13 @@
 	},
 	"optionPicker": {
 		"searchPlaceholder": "Search…"
+	},
+	"cubaAddress": {
+		"issues": {
+			"usOnly": "This store only ships to addresses in the United States.",
+			"municipality": "This store doesn't deliver in {{municipality}}.",
+			"municipalityUnknown": "This store doesn't deliver in that municipality.",
+			"identification": "The address needs the recipient's ID card number."
+		}
 	}
 }

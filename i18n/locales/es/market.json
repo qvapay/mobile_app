@@ -43,7 +43,10 @@
 			"shipToBlocked": "El vendedor no envía a tu dirección",
 			"duplicate": "Compra duplicada: revisa tus compras",
 			"busy": "El servicio está ocupado. Intenta de nuevo en unos segundos.",
-			"generic": "No pudimos procesar la compra"
+			"generic": "No pudimos procesar la compra",
+			"identificationRequired": "La dirección necesita el carnet de identidad del destinatario (11 dígitos).",
+			"supplierPaused": "Esta tienda no está recibiendo pedidos ahora. Inténtalo más tarde.",
+			"attestationRequired": "Para esta compra tienes que completar la certificación OFAC."
 		}
 	},
 	"stores": {
@@ -113,7 +116,7 @@
 		"itemShipBlocked": "El vendedor no envía a la dirección elegida",
 		"processing": "Procesando…",
 		"shippingAddress": "Dirección de envío",
-		"shippingAddressHint": "Se usa para todos los productos físicos del carrito. Por ahora solo enviamos dentro de Estados Unidos.",
+		"shippingAddressHint": "Se usa para todos los productos físicos del carrito. Algunas tiendas solo entregan en Cuba y otras solo en EE. UU.",
 		"availableBalance": "Saldo disponible",
 		"insufficientBalance": "Saldo insuficiente para esta compra.",
 		"unavailable_one": "Un producto ya no está disponible y no se incluirá.",
@@ -131,6 +134,16 @@
 			"partial_one": "{{count}} compra confirmada · {{failed}} con error. Revisa los ítems restantes.",
 			"partial_other": "{{count}} compras confirmadas · {{failed}} con error. Revisa los ítems restantes.",
 			"allFailed": "No se pudo completar ninguna compra. Revisa los errores."
+		},
+		"reasons": {
+			"onlyCuba": "Esta tienda solo entrega en Cuba.",
+			"onlyUs": "Esta tienda solo envía dentro de Estados Unidos.",
+			"region": "El vendedor no envía a {{region}}."
+		},
+		"mixedCountries": "Tu carrito mezcla tiendas que entregan en Cuba con otras que solo envían a EE. UU., y una dirección no sirve para las dos. Quita los productos de una de ellas y cómpralos aparte.",
+		"completeAddress": {
+			"title": "Completa la dirección",
+			"subtitle": "Las entregas a domicilio en Cuba necesitan un municipio de la lista y el carnet de quien recibe."
 		}
 	},
 	"orders": {
