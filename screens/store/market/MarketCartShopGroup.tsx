@@ -28,7 +28,7 @@ type MarketCartShopGroupProps = {
 /**
  * Una tarjeta de tienda del carrito con sus líneas: imagen, título, variante,
  * selector de cantidad acotado al stock fresco y el estado por línea (problema,
- * envío bloqueado, error de la orden o "procesando").
+ * envío bloqueado con su motivo, error de la orden o "procesando").
  *
  * Extraído de `MarketCart.tsx`, donde estas ~90 líneas de JSX anidado eran la
  * mitad ilegible del render.
@@ -100,7 +100,7 @@ const MarketCartShopGroup = ({ group, paying, onSetQty, onRemove, navigation, mo
 
 							{e.shipBlocked && (
 								<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 3, fontWeight: '500' }]}>
-									{t('market.cart.itemShipBlocked')}
+									{e.shipReason || t('market.cart.itemShipBlocked')}
 								</Text>
 							)}
 							{!!errored && (

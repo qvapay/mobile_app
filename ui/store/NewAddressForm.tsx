@@ -9,12 +9,14 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 import QPInput from '../particles/QPInput'
+import QPSwitch from '../particles/QPSwitch'
 import AddressAutocomplete from '../AddressAutocomplete'
+import CubaAddressFields from './CubaAddressFields'
 import { US_STATES } from '../../screens/store/assisted/assistedConstants'
 import type { UsState } from '../../screens/store/assisted/assistedConstants'
 
 import type { Theme } from '../../theme/ThemeContext'
-import type { UsAddressForm } from './shippingAddress'
+import type { AddressCountry, AddressForm } from './shippingAddress'
 
 type StatePickerModalProps = {
 	visible: boolean
@@ -66,18 +68,27 @@ const StatePickerModal = ({ visible, currentState, onSelect, onClose, theme, tex
 
 type Props = {
 	/** Current form values. */
-	form: UsAddressForm
+	form: AddressForm
 	/** `(updater) => void`, receives a `f => next` updater like setState. */
-	onChange: (updater: (f: UsAddressForm) => UsAddressForm) => void
+	onChange: (updater: (f: AddressForm) => AddressForm) => void
+	/** Country being filled (US by default: the assisted-shopping checkout only ships there). */
+	country?: AddressCountry
+	/** With it, a «Cuba / Estados Unidos» switch on top; without it the country is fixed. */
+	onCountryChange?: (country: AddressCountry) => void
+	/** Cuba: provinces the cart can receive in (null = all). */
+	provinces?: string[] | null
+	/** Cuba: municipalities the cart can receive in, by province (null = no restriction). */
+	municipalities?: Record<string, string[]> | null
 }
 
 /**
- * New US shipping-address form: autocomplete + manual fields + state picker
- * modal, shared by the assisted-shopping checkout and the marketplace cart.
- * Controlled: the form object lives in the parent (`EMPTY_US_ADDRESS` shape),
- * validated with `validateUsAddress` and serialized with `buildAddressBody`.
+ * New shipping-address form, shared by the assisted-shopping checkout (US only) and the
+ * marketplace cart (US or Cuba). US: autocomplete + manual fields + state picker modal. Cuba:
+ * `CubaAddressFields` (province, municipality from the closed list, recipient's ID card).
+ * Controlled: the form object lives in the parent (`EMPTY_ADDRESS_FORM` shape), validated with
+ * `validateAddress` and serialized with `buildAddressBody(form, country)`.
  */
-const NewAddressForm = ({ form, onChange }: Props) => {
+const NewAddressForm = ({ form, onChange, country = 'US', onCountryChange, provinces, municipalities }: Props) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -85,10 +96,33 @@ const NewAddressForm = ({ form, onChange }: Props) => {
 	const textStyles = createTextStyles(theme) as Record<string, TextStyle>
 	const [statePickerVisible, setStatePickerVisible] = useState(false)
 
-	const setField = (field: keyof UsAddressForm) => (value: string) => onChange(f => ({ ...f, [field]: value }))
+	const setField = (field: keyof AddressForm) => (value: string) => onChange(f => ({ ...f, [field]: value }))
+
+	const countrySwitch = onCountryChange && (
+		<QPSwitch
+			value={country === 'CU' ? 'left' : 'right'}
+			leftText={t('ui.newAddressForm.countryCuba')}
+			rightText={t('ui.newAddressForm.countryUs')}
+			// Tocar el lado ya elegido lo desmarcaría (null): el país siempre tiene valor
+			onChange={(side) => { if (side) onCountryChange(side === 'left' ? 'CU' : 'US') }}
+		/>
+	)
+
+	// Un estado de otro país (si el formulario cambió de país) no se pinta como de EE. UU.
+	const usState = US_STATES.find(st => st.code === form.state) || null
+
+	if (country === 'CU') {
+		return (
+			<View style={styles.form}>
+				{countrySwitch}
+				<CubaAddressFields form={form} onChange={onChange} provinces={provinces} municipalities={municipalities} />
+			</View>
+		)
+	}
 
 	return (
-		<View style={{ marginTop: 14, gap: 10 }}>
+		<View style={styles.form}>
+			{countrySwitch}
 			<AddressAutocomplete
 				onSelect={(address: { line1?: string, city?: string, state?: string, postal_code?: string }) => onChange(f => ({
 					...f,
@@ -111,8 +145,8 @@ const NewAddressForm = ({ form, onChange }: Props) => {
 						style={[styles.statePicker, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
 						onPress={() => setStatePickerVisible(true)}
 					>
-						<Text style={[textStyles.h6, { color: form.state ? theme.colors.primaryText : theme.colors.secondaryText }]}>
-							{form.state ? `${form.state} — ${US_STATES.find(s => s.code === form.state)?.name}` : t('ui.newAddressForm.statePlaceholder')}
+						<Text style={[textStyles.h6, { color: usState ? theme.colors.primaryText : theme.colors.secondaryText }]}>
+							{usState ? `${usState.code} — ${usState.name}` : t('ui.newAddressForm.statePlaceholder')}
 						</Text>
 						<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 					</Pressable>
@@ -135,6 +169,10 @@ const NewAddressForm = ({ form, onChange }: Props) => {
 }
 
 const styles = StyleSheet.create({
+	form: {
+		marginTop: 14,
+		gap: 10,
+	},
 	stateZipRow: {
 		flexDirection: 'row',
 		gap: 10,

@@ -8,16 +8,22 @@ export type ShopAddToCartInput = { product_uuid: string, quantity?: number }
 /** Destino de `getQuote`: estado US de 2 letras o uuid de dirección guardada. */
 export type ShopQuoteInput = { state?: string, shipping_address_id?: string }
 
-/** Payload de dirección US de `createShippingAddress`. */
+/**
+ * Payload de `createShippingAddress`. EE. UU.: estado USPS y ZIP. Cuba (`country: 'CU'`):
+ * `state` = código de provincia, `city` = nombre canónico del municipio, `identification` =
+ * los 11 dígitos del carnet del destinatario y sin `postal_code`.
+ */
 export type ShopShippingAddressInput = {
 	recipient_name: string
 	line1: string
 	city: string
 	state: string
-	postal_code: string
+	postal_code?: string | null
+	country?: string
+	identification?: string | null
 	label?: string
-	phone?: string
-	line2?: string
+	phone?: string | null
+	line2?: string | null
 	is_default?: boolean
 }
 
@@ -185,19 +191,32 @@ export const shopApi = {
 	// ---------------------- SHIPPING ADDRESSES ----------------------
 
 	/**
-	 * Lists the user's saved US shipping addresses (`GET /user/shipping-addresses`).
+	 * Lists the user's saved shipping addresses, any country (`GET /user/shipping-addresses`).
 	 *
 	 * @returns `{ success, data?, error?, details?, status? }` — `data.addresses`
 	 */
 	getShippingAddresses: async (): Promise<ApiResult<unknown>> => wrap(() => apiClient.get('/user/shipping-addresses'), i18n.t('api.shop.addressesLoadFailed')),
 
 	/**
-	 * Creates a US shipping address (`POST /user/shipping-addresses`).
+	 * Creates a shipping address in the US or Cuba (`POST /user/shipping-addresses`). A 400
+	 * carries the server's first validation message in `error` (e.g. «Elige el municipio de la
+	 * lista», «Carnet de identidad inválido (11 dígitos)»).
 	 *
 	 * @param body - Address payload.
-	 * @returns `{ success, data?, error?, details?, status? }` — `data.address`
+	 * @returns `{ success, data?, error?, details?, status? }` — `data.address` (201)
 	 */
 	createShippingAddress: async (body: ShopShippingAddressInput): Promise<ApiResult<unknown>> => wrap(() => apiClient.post('/user/shipping-addresses', body), i18n.t('api.shop.addressSaveFailed')),
+
+	/**
+	 * Partially updates a saved address (`PATCH /user/shipping-addresses/{uuid}`). The server
+	 * validates the COMBINED address (saved + changes): a Cuban one whose municipality was typed
+	 * by hand fails with «Elige el municipio de la lista» unless `city` travels too.
+	 *
+	 * @param uuid - Address uuid.
+	 * @param body - Fields to change.
+	 * @returns `{ success, data?, error?, details?, status? }` — `data.address`
+	 */
+	updateShippingAddress: async (uuid: string, body: Partial<ShopShippingAddressInput>): Promise<ApiResult<unknown>> => wrap(() => apiClient.patch(`/user/shipping-addresses/${encodeURIComponent(uuid)}`, body), i18n.t('api.shop.addressSaveFailed')),
 
 	/**
 	 * Autocompletes a partial US address (`POST /user/shipping-addresses/autocomplete`).

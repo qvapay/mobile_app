@@ -14,7 +14,10 @@ import { createContainerStyles, createTextStyles, scaleType } from '../../../the
 import QPButton from '../../../ui/particles/QPButton'
 import AddressPicker from '../../../ui/store/AddressPicker'
 import NewAddressForm from '../../../ui/store/NewAddressForm'
-import { formatAddress, EMPTY_US_ADDRESS, validateUsAddress } from '../../../ui/store/shippingAddress'
+import OfacAttestationModal from '../../../ui/OfacAttestationModal'
+import { useModalGate } from '../../../ui/useModalGate'
+import { formatAddress, EMPTY_ADDRESS_FORM, formFromSavedAddress, validateAddress, validateCubaAddress } from '../../../ui/store/shippingAddress'
+import { cubaAddressNeedsCompletion } from '../../../ui/store/cubaAddress'
 import MarketCartShopGroup from './MarketCartShopGroup'
 import PixMethodPicker from '../pix/PixMethodPicker'
 
@@ -27,30 +30,41 @@ import { shopApi } from '../../../api/shopApi'
 import useMarketCart from './useMarketCart'
 import useCartCheckout from './useCartCheckout'
 import usePixPayment from '../pix/usePixPayment'
-import { buildMarketPixBody, enrichCartItems, groupByShop, isPixPayableCart } from './marketCheckout'
+import { buildMarketPixBody, cartAddressIssue, cartCubaCoverage, enrichCartItems, groupByShop, isPixPayableCart, pickShippingAddress, requiredCountries } from './marketCheckout'
 
 import type { Theme } from '../../../theme/ThemeContext'
 import type { TextStyles } from '../../../theme/themeUtils'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { ShippingAddress, UsAddressForm } from '../../../ui/store/shippingAddress'
-import type { CartLineStatus, FreshProduct } from './marketCheckout'
+import type { AddressCountry, AddressForm, ShippingAddress } from '../../../ui/store/shippingAddress'
+import type { CartLineStatus, FreshProduct, ShippableAddress, ShippingChoice } from './marketCheckout'
 
-/** Estado del bloque de envío: dirección guardada elegida o formulario nuevo. */
-type ShippingState = { selectedUuid: string | null, useNewAddress: boolean, form: UsAddressForm }
+/**
+ * Estado del bloque de envío. `choice` null = el usuario aún no eligió y manda la preselección
+ * (la predeterminada si sirve para el carrito, si no la primera que sirva); `country` null = el
+ * país del formulario nuevo lo decide el carrito (Cuba si alguna tienda entrega allí).
+ */
+type ShippingState = { choice: ShippingChoice | null, form: AddressForm, country: AddressCountry | null }
 
 /** Acciones del reducer de envío. */
 type ShippingAction =
-	| { type: 'selectExisting', value: string }
+	| { type: 'selectSaved', uuid: string }
 	| { type: 'useNew' }
-	| { type: 'setForm', value: UsAddressForm | ((prev: UsAddressForm) => UsAddressForm) }
+	| { type: 'complete', address: ShippingAddress }
+	| { type: 'setForm', value: AddressForm | ((prev: AddressForm) => AddressForm) }
+	| { type: 'setCountry', value: AddressCountry }
 
 const money = (v: number | string | null | undefined) => `$${Number(v || 0).toFixed(2)}`
 
 function shippingReducer(state: ShippingState, action: ShippingAction): ShippingState {
+	// El formulario de completar trae los datos de otra dirección: no pasan a una nueva
+	const leavingEdit = state.choice?.kind === 'edit'
 	switch (action.type) {
-		case 'selectExisting': return { ...state, selectedUuid: action.value, useNewAddress: false }
-		case 'useNew': return { ...state, useNewAddress: true }
+		case 'selectSaved': return { ...state, choice: { kind: 'saved', uuid: action.uuid }, form: leavingEdit ? EMPTY_ADDRESS_FORM : state.form }
+		case 'useNew': return { ...state, choice: { kind: 'new' }, form: leavingEdit ? EMPTY_ADDRESS_FORM : state.form }
+		case 'complete': return { ...state, choice: { kind: 'edit', uuid: action.address.uuid }, form: formFromSavedAddress(action.address) }
 		case 'setForm': return { ...state, form: typeof action.value === 'function' ? action.value(state.form) : action.value }
+		// Otro país invalida estado, ciudad y código postal (formatos distintos)
+		case 'setCountry': return { ...state, country: action.value, form: { ...state.form, state: '', city: '', postal_code: '' } }
 		default: return state
 	}
 }
@@ -67,12 +81,15 @@ type ConfirmModalProps = {
 	textStyles: TextStyles
 }
 
-// Purchase confirmation — centered card modal (house pattern)
+// Purchase confirmation — centered card modal (house pattern). Con puerta (`useModalGate`): la
+// atestación OFAC puede abrirse justo después y espera a que este termine de irse
 const ConfirmModal = ({ visible, paying, total, count, addressSummary, onPay, onClose, theme, textStyles }: ConfirmModalProps) => {
 	const { t } = useTranslation()
 	const containerStyles = createContainerStyles(theme)
+	const gate = useModalGate(visible)
+	if (!gate.mounted) return null
 	return (
-		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => { if (!paying) onClose() }}>
+		<Modal visible={gate.visible} onShow={gate.onShow} onDismiss={gate.onDismiss} transparent animationType="fade" statusBarTranslucent onRequestClose={() => { if (!paying) onClose() }}>
 			<Pressable style={containerStyles.modalOverlay} onPress={() => !paying && onClose()}>
 				<Pressable style={containerStyles.modalCard} onPress={() => { }}>
 					<View style={[styles.confirmIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
@@ -104,8 +121,10 @@ const ConfirmModal = ({ visible, paying, total, count, addressSummary, onPay, on
  * creates ONE order per line (sequential `POST /market/order`, idempotency
  * key per line reused on retries, 429 retried with backoff). Failed lines
  * stay in the cart with their error inline; an insufficient-balance error
- * aborts the remaining lines. Physical items require a US shipping address
- * (shared AddressPicker / NewAddressForm).
+ * aborts the remaining lines. Physical items require a shipping address
+ * (shared AddressPicker / NewAddressForm): in the US, or in Cuba for the stores
+ * that deliver there, with a municipality they cover and the recipient's ID
+ * card. A saved Cuban address missing data is completed in place (PATCH).
  */
 const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'MarketCart'>) => {
 
@@ -126,10 +145,9 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 	const [statuses, setStatuses] = useState<Record<string, CartLineStatus>>({})
 
 	const [addresses, setAddresses] = useState<ShippingAddress[]>([])
-	const [shipping, dispatchShipping] = useReducer(shippingReducer, { selectedUuid: null, useNewAddress: false, form: EMPTY_US_ADDRESS })
-	const { selectedUuid, useNewAddress, form } = shipping
-	const selectedSaved = selectedUuid ? addresses.find(a => a.uuid === selectedUuid) : null
-	const selectedAddress = useNewAddress ? form : selectedSaved
+	const [addressesLoaded, setAddressesLoaded] = useState(false)
+	const [shipping, dispatchShipping] = useReducer(shippingReducer, { choice: null, form: EMPTY_ADDRESS_FORM, country: null })
+	const { form } = shipping
 
 	// Revalidación batch al montar, al volver al foco y cuando cambia el set.
 	// En fallo de red NO se marca nada como 'gone': banner + pago bloqueado.
@@ -155,6 +173,29 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 		return unsubscribe
 	}, [navigation, revalidate])
 
+	// Lo que exigen las líneas a la dirección, sin dirección elegida todavía: país, provincias
+	// y municipios que cubren, y por qué una dirección guardada no les sirve
+	const baseEntries = useMemo(() => enrichCartItems(items, freshMap, null, statuses), [items, freshMap, statuses])
+	const countriesNeeded = useMemo(() => requiredCountries(baseEntries), [baseEntries])
+	const needsCuba = countriesNeeded.includes('CU')
+	const coverage = useMemo(() => cartCubaCoverage(baseEntries), [baseEntries])
+	const addressIssue = useCallback((a: ShippableAddress) => cartAddressIssue(baseEntries, a), [baseEntries])
+	// «Completar dirección» solo tiene sentido si el carrito entrega en Cuba
+	const completable = useCallback((a: ShippingAddress) => needsCuba && cubaAddressNeedsCompletion(a), [needsCuba])
+	const formCountry: AddressCountry = shipping.country ?? (needsCuba ? 'CU' : 'US')
+
+	// Preselección mientras el usuario no elija: se recalcula al llegar los datos frescos
+	const autoPick = useMemo(() => pickShippingAddress(addresses, addressIssue, completable), [addresses, addressIssue, completable])
+	const choice: ShippingChoice | null = shipping.choice ?? (autoPick ? { kind: 'saved', uuid: autoPick.uuid } : addressesLoaded ? { kind: 'new' } : null)
+	const savedUuid = choice && choice.kind !== 'new' ? choice.uuid : null
+	const selectedSaved = savedUuid ? addresses.find(a => a.uuid === savedUuid) || null : null
+	const choiceKind = choice?.kind ?? null
+	const selectedAddress = useMemo(() => {
+		if (choiceKind === 'new') return { ...form, country: formCountry }
+		if (choiceKind === 'edit') return selectedSaved ? { ...selectedSaved, ...form, country: 'CU' } : null
+		return selectedSaved
+	}, [choiceKind, form, formCountry, selectedSaved])
+
 	// Ítems enriquecidos con el estado fresco
 	const enriched = useMemo(
 		() => enrichCartItems(items, freshMap, selectedAddress, statuses),
@@ -175,25 +216,34 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 	const anyPhysical = payable.some(e => e.isPhysical)
 	const anyShipBlocked = payable.some(e => e.shipBlocked)
 
-	// Direcciones: solo cuando hay físicos en el carrito
+	const mixedCountries = countriesNeeded.length > 1
+
+	// Direcciones: solo cuando hay físicos en el carrito (la elegida la deriva `autoPick`)
 	useEffect(() => {
-		if (!anyPhysical || addresses.length > 0) return
+		if (!anyPhysical || addressesLoaded) return
 		let cancelled = false
 		;(async () => {
 			const res = await shopApi.getShippingAddresses()
 			if (cancelled || !res.success) return
 			// `shopApi.getShippingAddresses` devuelve `unknown`: solo se lee `addresses`
-			const list = (res.data as { addresses?: ShippingAddress[] } | undefined)?.addresses || []
-			setAddresses(list)
-			const preferred = list.find(a => a.is_default) || list[0]
-			if (preferred) dispatchShipping({ type: 'selectExisting', value: preferred.uuid })
-			else dispatchShipping({ type: 'useNew' })
+			setAddresses((res.data as { addresses?: ShippingAddress[] } | undefined)?.addresses || [])
+			setAddressesLoaded(true)
 		})()
 		return () => { cancelled = true }
-	}, [anyPhysical, addresses.length])
+	}, [anyPhysical, addressesLoaded])
 
-	const formError = useMemo(() => (useNewAddress ? validateUsAddress(form) : null), [useNewAddress, form])
-	const addressReady = !anyPhysical || (useNewAddress ? !formError : !!selectedSaved)
+	const formError = useMemo(() => {
+		if (choiceKind === 'new') return validateAddress(form, formCountry)
+		if (choiceKind === 'edit') return validateCubaAddress(form)
+		return null
+	}, [choiceKind, form, formCountry])
+	const addressReady = !anyPhysical || (choiceKind === 'new' || choiceKind === 'edit' ? !formError : !!selectedSaved)
+
+	// Al pagar, la preselección pasa a ser la elección: si no, cada línea cobrada cambia lo que el
+	// carrito exige y otra dirección podría ganar a mitad del pago o en el reintento
+	const pinAddress = () => {
+		if (!shipping.choice && choice?.kind === 'saved') dispatchShipping({ type: 'selectSaved', uuid: choice.uuid })
+	}
 
 	const total = payable.reduce((sum, e) => sum + e.unitPrice * e.qty, 0)
 	const balance = Number(user?.balance || 0)
@@ -201,12 +251,12 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 	const revalidating = freshMap === null && !offline && items.length > 0
 
 	// Checkout: una orden por línea, secuencial e idempotente
-	const { paying, succeededCount, payAll, resolveAddress } = useCartCheckout({
-		payable, anyPhysical, useNewAddress, selectedUuid, form, navigation, setStatuses,
+	const { paying, succeededCount, payAll, resolveAddress, ofacModalProps } = useCartCheckout({
+		payable, anyPhysical, choice, form, country: formCountry, navigation, setStatuses,
 		remove, revalidate,
-		onAddressCreated: (address) => {
-			setAddresses(prev => [...prev, address])
-			dispatchShipping({ type: 'selectExisting', value: address.uuid })
+		onAddressSaved: (address) => {
+			setAddresses(prev => (prev.some(a => a.uuid === address.uuid) ? prev.map(a => (a.uuid === address.uuid ? address : a)) : [...prev, address]))
+			dispatchShipping({ type: 'selectSaved', uuid: address.uuid })
 		},
 	})
 
@@ -303,14 +353,43 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 						</Text>
 						<AddressPicker
 							addresses={addresses}
-							useNewAddress={useNewAddress}
-							selectedUuid={selectedUuid}
-							onSelectAddress={(uuid) => dispatchShipping({ type: 'selectExisting', value: uuid })}
+							useNewAddress={choiceKind === 'new'}
+							selectedUuid={savedUuid}
+							onSelectAddress={(uuid) => dispatchShipping({ type: 'selectSaved', uuid })}
 							onNewAddress={() => dispatchShipping({ type: 'useNew' })}
+							issueFor={addressIssue}
+							needsCompletion={completable}
+							onComplete={(uuid) => {
+								const address = addresses.find(a => a.uuid === uuid)
+								if (address) dispatchShipping({ type: 'complete', address })
+							}}
+							editingUuid={choiceKind === 'edit' ? savedUuid : null}
 							theme={theme}
 							textStyles={textStyles}
 						/>
-						{useNewAddress && <NewAddressForm form={form} onChange={(value) => dispatchShipping({ type: 'setForm', value })} />}
+						{choiceKind === 'new' && (
+							<NewAddressForm
+								form={form}
+								onChange={(value) => dispatchShipping({ type: 'setForm', value })}
+								country={formCountry}
+								onCountryChange={(value) => dispatchShipping({ type: 'setCountry', value })}
+								provinces={coverage.provinces}
+								municipalities={coverage.municipalities}
+							/>
+						)}
+						{choiceKind === 'edit' && (
+							<View style={styles.completeBlock}>
+								<Text style={[textStyles.h6, styles.completeTitle]}>{t('market.cart.completeAddress.title')}</Text>
+								<Text style={[textStyles.caption, styles.completeSubtitle, { color: theme.colors.secondaryText }]}>{t('market.cart.completeAddress.subtitle')}</Text>
+								<NewAddressForm
+									form={form}
+									onChange={(value) => dispatchShipping({ type: 'setForm', value })}
+									country="CU"
+									provinces={coverage.provinces}
+									municipalities={coverage.municipalities}
+								/>
+							</View>
+						)}
 					</View>
 				)}
 
@@ -348,7 +427,7 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 					)}
 					{anyShipBlocked && (
 						<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-							{t('market.cart.shipBlockedSummary')}
+							{mixedCountries ? t('market.cart.mixedCountries') : t('market.cart.shipBlockedSummary')}
 						</Text>
 					)}
 				</View>
@@ -356,12 +435,12 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 				<PixMethodPicker pix={pix} balance={balance} />
 
 				{pix.selected
-					? <QPButton title={pix.payLabel} onPress={pix.pay} loading={pix.starting} disabled={!canCheckout} style={{ marginTop: 16 }} testID="pix-pay" />
+					? <QPButton title={pix.payLabel} onPress={() => { pinAddress(); pix.pay() }} loading={pix.starting} disabled={!canCheckout} style={{ marginTop: 16 }} testID="pix-pay" />
 					: (
 						<QPButton
 							title={paying ? t('market.cart.processingPurchases') : failedCount > 0 ? t('market.cart.retryPayment', { failed: failedCount }) : t('market.cart.payAmount', { amount: money(total) })}
 							icon="lock"
-							onPress={() => setConfirmVisible(true)}
+							onPress={() => { pinAddress(); setConfirmVisible(true) }}
 							loading={paying}
 							disabled={!canPay}
 							style={{ marginTop: 16 }}
@@ -384,11 +463,21 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 				theme={theme}
 				textStyles={textStyles}
 			/>
+			<OfacAttestationModal {...ofacModalProps} />
 		</View>
 	)
 }
 
 const styles = StyleSheet.create({
+	completeBlock: {
+		marginTop: 16,
+	},
+	completeTitle: {
+		fontWeight: '600',
+	},
+	completeSubtitle: {
+		marginTop: 4,
+	},
 	banner: {
 		padding: 12,
 		borderRadius: 12,
