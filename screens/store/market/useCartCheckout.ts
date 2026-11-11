@@ -10,6 +10,9 @@
  * en paralelo se pisan), un 429 se reintenta con espera de 5s hasta 4 intentos,
  * y un error de saldo insuficiente ABORTA las líneas restantes (fallarían igual).
  *
+ * Todas las órdenes de una ejecución llevan el mismo `cart_key` (como la web): el
+ * servidor cobra el envío una vez por tienda y despacha el lote junto.
+ *
  * Tiendas que entregan a domicilio en Cuba: a un US person el servidor le exige la
  * atestación OFAC (`cuba_value`) en cada orden de esas líneas. Se pide ANTES de cobrar
  * si `cip.us_person` lo dice; y como el servidor cuenta además a quien tiene documento
@@ -109,6 +112,13 @@ export default function useCartCheckout({ payable, anyPhysical, choice, form, co
 		return idemRef.current[key]
 	}
 
+	// El lote del carrito: uno por montaje, como la web (los reintentos lo reutilizan)
+	const cartKeyRef = useRef<string | null>(null)
+	const cartKey = () => {
+		if (!cartKeyRef.current) cartKeyRef.current = makeIdemKey()
+		return cartKeyRef.current
+	}
+
 	// Atestación del intento: viaja en cada orden de una tienda que entrega en Cuba y se
 	// reutiliza en los reintentos de esta pantalla
 	const complianceRef = useRef<OfacCompliancePayload | null>(null)
@@ -188,6 +198,7 @@ export default function useCartCheckout({ payable, anyPhysical, choice, form, co
 				product_uuid: entry.item.product_uuid,
 				quantity: entry.qty,
 				idempotency_key: idemKeyFor(entry.key),
+				cart_key: cartKey(),
 			}
 			if (entry.item.variant_uuid) payload.variant_uuid = entry.item.variant_uuid
 			if (entry.isPhysical && addressUuid) payload.shipping_address_id = addressUuid
