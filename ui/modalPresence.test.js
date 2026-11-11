@@ -6,7 +6,7 @@
 jest.mock('react-native', () => ({ Platform: { OS: 'ios' } }))
 
 import { act, create } from 'react-test-renderer'
-import { acquireModalPresence, isAnyModalPresented, useAnyModalPresented } from './modalPresence'
+import { acquireModalPresence, isAnyModalPresented, useAnyModalPresented, whenNoModalPresented } from './modalPresence'
 import { useModalGate } from './useModalGate'
 
 afterEach(() => { expect(isAnyModalPresented()).toBe(false) })
@@ -91,5 +91,39 @@ describe('useModalGate', () => {
 		const { unmount } = mount(false)
 		expect(isAnyModalPresented()).toBe(false)
 		unmount()
+	})
+})
+
+describe('whenNoModalPresented', () => {
+	test('resuelve enseguida sin modales en pantalla', async () => {
+		await expect(whenNoModalPresented()).resolves.toBeUndefined()
+	})
+
+	test('espera a que se vaya el último', async () => {
+		const releaseA = acquireModalPresence()
+		const releaseB = acquireModalPresence()
+		let done = false
+		const waiting = whenNoModalPresented(10_000).then(() => { done = true })
+		releaseA()
+		await Promise.resolve()
+		expect(done).toBe(false)
+		releaseB()
+		await waiting
+		expect(done).toBe(true)
+	})
+
+	test('no se queda colgada si un modal nunca se va', async () => {
+		jest.useFakeTimers()
+		const release = acquireModalPresence()
+		let done = false
+		const waiting = whenNoModalPresented(1500).then(() => { done = true })
+		jest.advanceTimersByTime(1499)
+		await Promise.resolve()
+		expect(done).toBe(false)
+		jest.advanceTimersByTime(1)
+		await waiting
+		expect(done).toBe(true)
+		release()
+		jest.useRealTimers()
 	})
 })

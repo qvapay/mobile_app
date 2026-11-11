@@ -31,11 +31,15 @@ type Props = {
 
 const optionKey = (o: PickerOption) => o.value
 
+/** Texto comparable de la búsqueda: sin acentos ni mayúsculas («camaguey» encuentra «Camagüey»). */
+const fold = (s: string): string => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
 /**
  * Modal centrado de opciones (patrón de la casa: overlay + card, fade,
- * statusBarTranslucent, dismiss al tocar fuera) con búsqueda opcional. Lo usan el
- * país de constitución y los estados de EE. UU. del registro de empresa, y el estado
- * de la dirección de la ficha CIP en Datos personales.
+ * statusBarTranslucent, dismiss al tocar fuera) con búsqueda opcional, sin acentos ni
+ * mayúsculas. Lo usan el país de constitución y los estados de EE. UU. del registro de
+ * empresa, el estado de la dirección de la ficha CIP en Datos personales y la provincia y
+ * el municipio de una dirección de envío en Cuba.
  *
  * @param props.visible - Abierto.
  * @param props.title - Título del card.
@@ -52,9 +56,9 @@ const OptionPickerModal = ({ visible, title, options, selected, onSelect, onClos
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 	const [search, setSearch] = useState('')
-	const query = search.trim().toLowerCase()
+	const query = fold(search.trim())
 	const filtered = useMemo(() => (query
-		? options.filter((o: PickerOption) => o.label.toLowerCase().includes(query) || o.value.toLowerCase().includes(query))
+		? options.filter((o: PickerOption) => fold(o.label).includes(query) || fold(o.value).includes(query))
 		: options
 	), [options, query])
 
