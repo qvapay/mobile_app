@@ -3,7 +3,7 @@
  * (`transfer_received`, `p2p_applied`, `cart_stage`…) y los legacy.
  * @jest-environment node
  */
-import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushNavigation, resolvePushTarget } from './pushRouting'
+import { isMiniAppInvitePush, isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushNavigation, resolvePushTarget } from './pushRouting'
 import { ROUTES } from '../routes'
 
 describe('isMoneyInPush', () => {
@@ -117,6 +117,19 @@ describe('compra pagada con PIX', () => {
 	test('abre Mis compras: el `/shop/my` que trae no es un deep link de la app', () => {
 		const data = { type: 'pix_purchase', deeplink: 'qvapay://shop/my', url: 'https://www.qvapay.com/shop/my' }
 		expect(resolvePushNavigation(data)).toEqual({ screen: ROUTES.MY_PURCHASES })
+	})
+})
+
+describe('invitación a probar una mini-app', () => {
+	test('abre el catálogo, con deeplink o sin él (por tipo)', () => {
+		expect(resolvePushNavigation({ type: 'miniapp_tester_invite', deeplink: 'qvapay://apps' })).toEqual({ screen: ROUTES.MINIAPPS })
+		expect(resolvePushTarget({ type: 'miniapp_tester_invite' })).toEqual({ screen: ROUTES.MINIAPPS })
+	})
+
+	test('se reconoce por su tipo', () => {
+		expect(isMiniAppInvitePush({ type: 'miniapp_tester_invite' })).toBe(true)
+		expect(isMiniAppInvitePush({ type: 'p2p_chat' })).toBe(false)
+		expect(isMiniAppInvitePush(null)).toBe(false)
 	})
 })
 

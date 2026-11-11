@@ -9,6 +9,8 @@ import MiniAppMenuRow from './MiniAppMenuRow'
 import useMiniAppFavorites from './useMiniAppFavorites'
 import { useCanPinShortcut, addToHomeScreen } from './homeScreenShortcut'
 import { shareMiniApp } from './shareMiniApp'
+import useMiniAppTesting from './useMiniAppTesting'
+import { canLeaveTesting, canPinMiniApp, canShareMiniApp } from './miniappTesting'
 import type { MiniApp } from '../../types/domain'
 
 type MiniAppActionsSheetProps = {
@@ -20,7 +22,8 @@ type MiniAppActionsSheetProps = {
 /**
  * Menú de una mini-app al mantenerla pulsada (fila del Home y catálogo):
  * favorita sí/no, acceso directo en la pantalla de inicio (solo Android) y
- * compartir. Tarjeta centrada, como el menú ⋯ del host.
+ * compartir. Tarjeta centrada, como el menú ⋯ del host. Una sin publicar no se
+ * comparte, y quien la prueba por invitación puede dejar de probarla.
  */
 const MiniAppActionsSheet = ({ app, onClose }: MiniAppActionsSheetProps) => {
 
@@ -29,6 +32,7 @@ const MiniAppActionsSheet = ({ app, onClose }: MiniAppActionsSheetProps) => {
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 	const { isFavorite, toggle } = useMiniAppFavorites()
+	const { leave } = useMiniAppTesting()
 	const canPin = useCanPinShortcut()
 
 	// La última mini-app abierta sigue pintada mientras la tarjeta se desvanece
@@ -68,7 +72,7 @@ const MiniAppActionsSheet = ({ app, onClose }: MiniAppActionsSheetProps) => {
 								onPress={() => { toggle(shown); onClose() }}
 								testID="miniapp-action-favorite"
 							/>
-							{canPin ? (
+							{canPin && canPinMiniApp(shown) ? (
 								<MiniAppMenuRow
 									icon="mobile-screen-button"
 									label={t('miniapps.actions.addToHomeScreen')}
@@ -76,12 +80,23 @@ const MiniAppActionsSheet = ({ app, onClose }: MiniAppActionsSheetProps) => {
 									testID="miniapp-action-pin"
 								/>
 							) : null}
-							<MiniAppMenuRow
-								icon="share-nodes"
-								label={t('common.actions.share')}
-								onPress={() => runAfterClose(() => { shareMiniApp(shown, t).catch(() => { /* cancelado o sin hoja */ }) })}
-								testID="miniapp-action-share"
-							/>
+							{canShareMiniApp(shown) ? (
+								<MiniAppMenuRow
+									icon="share-nodes"
+									label={t('common.actions.share')}
+									onPress={() => runAfterClose(() => { shareMiniApp(shown, t).catch(() => { /* cancelado o sin hoja */ }) })}
+									testID="miniapp-action-share"
+								/>
+							) : null}
+							{canLeaveTesting(shown) ? (
+								<MiniAppMenuRow
+									icon="right-from-bracket"
+									label={t('miniapps.testing.leave')}
+									onPress={() => { onClose(); leave(shown) }}
+									danger
+									testID="miniapp-action-leave"
+								/>
+							) : null}
 						</>
 					) : null}
 				</View>

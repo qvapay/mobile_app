@@ -1,8 +1,8 @@
-Novedades de QvaPay 3.15.2:
+Novedades de QvaPay 3.16.0:
+• Mini-apps: si su creador te invita, pruébalas antes de que se publiquen.
 • Si estás en Brasil, ya puedes pagar tus recargas con PIX, en reales.
 • P2P: pausa y reanuda tus ofertas cuando quieras.
 • Al comprar GOLD, la app lo refleja al momento.
-• El detalle de las gift cards enseña el Access Number y deja copiarlo.
 • Cobrar las recompensas de staking de TRX ya no se queda sin hacer nada tras el código de seguridad.
 • P2P: la ficha de una oferta gasta menos datos y batería.
 • Arreglos y estabilidad.

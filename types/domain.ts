@@ -1331,8 +1331,30 @@ export type MiniApp = {
 	/** El usuario ya dio su consentimiento de identidad (no revocado). */
 	granted: boolean
 	granted_scopes: MiniAppScope[]
-	/** Borrador o en revisión: solo la ve su autor, que puede probarla antes de publicarla. */
+	/** Borrador o en revisión: solo la ven su autor y los testers que invitó. */
 	preview?: boolean
+	/**
+	 * Quién la ve en prueba: su dueño o un tester que aceptó la invitación. Null si
+	 * está publicada. Un qpweb anterior a los testers no lo manda: entonces una
+	 * `preview` es siempre del dueño (era el único que las veía).
+	 */
+	preview_role?: 'owner' | 'tester' | null
+}
+
+/**
+ * Invitación pendiente a probar una mini-app sin publicar (`GET /miniapps/invites`).
+ * No la hace visible: hasta aceptarla, la mini-app no sale en el catálogo.
+ */
+export type MiniAppTesterInvite = {
+	slug: string
+	name: string
+	tagline: string | null
+	icon: string | null
+	category: string
+	merchant: { name: string | null, logo: string | null }
+	/** Quien invita (el dueño de la mini-app). */
+	invited_by: { username: string, name: string | null, image: string | null } | null
+	created_at: string
 }
 
 /** Consentimiento vigente del usuario (`GET /miniapps/grants`). */

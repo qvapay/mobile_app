@@ -1,6 +1,7 @@
 /**
  * Menú del long-press de una mini-app: favorita sí/no, acceso directo solo
  * donde el launcher lo admite y compartir (en iOS, tras cerrarse el Modal).
+ * Una sin publicar no se comparte, y su tester puede dejar de probarla.
  * @jest-environment node
  */
 jest.mock('../../theme/ThemeContext', () => {
@@ -12,6 +13,8 @@ jest.mock('./MiniAppIcon', () => 'MiniAppIcon')
 jest.mock('./useMiniAppFavorites', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('./homeScreenShortcut', () => ({ useCanPinShortcut: jest.fn(), addToHomeScreen: jest.fn() }))
 jest.mock('./shareMiniApp', () => ({ shareMiniApp: jest.fn(async () => 'shared') }))
+const mockLeave = jest.fn(async () => true)
+jest.mock('./useMiniAppTesting', () => ({ __esModule: true, default: () => ({ leave: mockLeave }) }))
 
 import React from 'react'
 import { Modal, Platform } from 'react-native'
@@ -81,4 +84,39 @@ test('al abrirla con otra mini-app pinta la nueva', () => {
 	const other = { ...DOMINO, slug: 'parchis', name: 'Parchís' }
 	act(() => { tree.update(<MiniAppActionsSheet app={other} onClose={jest.fn()} />) })
 	expect(tree.root.findByType('MiniAppIcon').props.app.slug).toBe('parchis')
+})
+
+describe('sin publicar', () => {
+
+	test('el dueño no tiene «Compartir» ni «Dejar de probar»', () => {
+		const { row } = render({ ...DOMINO, preview: true, preview_role: 'owner' })
+		expect(row('miniapp-action-share')).toBeUndefined()
+		expect(row('miniapp-action-leave')).toBeUndefined()
+		expect(row('miniapp-action-favorite')).toBeDefined()
+	})
+
+	test('un qpweb sin testers (sin preview_role): tampoco se comparte', () => {
+		const { row } = render({ ...DOMINO, preview: true })
+		expect(row('miniapp-action-share')).toBeUndefined()
+		expect(row('miniapp-action-leave')).toBeUndefined()
+	})
+
+	test('el tester puede dejar de probarla: cierra el menú y la deja', () => {
+		const app = { ...DOMINO, preview: true, preview_role: 'tester' }
+		const { row, onClose } = render(app)
+		expect(row('miniapp-action-share')).toBeUndefined()
+		expect(row('miniapp-action-leave').props.danger).toBe(true)
+		act(() => { row('miniapp-action-leave').props.onPress() })
+		expect(onClose).toHaveBeenCalled()
+		expect(mockLeave).toHaveBeenCalledWith(app)
+	})
+
+	test('al tester no se le ofrece el acceso directo a inicio; al dueño sí', () => {
+		expect(render({ ...DOMINO, preview: true, preview_role: 'tester' }, { canPin: true }).row('miniapp-action-pin')).toBeUndefined()
+		expect(render({ ...DOMINO, preview: true, preview_role: 'owner' }, { canPin: true }).row('miniapp-action-pin')).toBeDefined()
+	})
+
+	test('publicada no ofrece «Dejar de probar»', () => {
+		expect(render(DOMINO).row('miniapp-action-leave')).toBeUndefined()
+	})
 })

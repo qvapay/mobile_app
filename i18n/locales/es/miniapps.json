@@ -5,6 +5,7 @@
 		"more": "Más mini-apps",
 		"by": "por {{name}}",
 		"preview": "Vista previa",
+		"testing": "En prueba",
 		"searchPlaceholder": "Buscar mini-apps",
 		"noResults": "Ninguna mini-app coincide con tu búsqueda.",
 		"empty": "Aún no hay mini-apps disponibles. ¡Vuelve pronto!",
@@ -50,6 +51,24 @@
 		"closeApp": "Cerrar mini-app",
 		"backHint": "Mantén pulsado para cerrar la mini-app"
 	},
+	"testing": {
+		"invitesTitle": "Invitaciones de prueba",
+		"invitedBy": "{{inviter}} te invita a probarla antes de publicarla",
+		"invited": "Te invitaron a probarla antes de publicarla",
+		"inviteNotice": "QvaPay aún no la ha revisado. Dentro no se puede pagar, y nunca escribas ahí tu contraseña de QvaPay.",
+		"accept": "Probar",
+		"decline": "Rechazar",
+		"declined": "Rechazaste la invitación a {{name}}",
+		"inviteGone": "Esta invitación ya no está disponible",
+		"leave": "Dejar de probar",
+		"left": "Ya no pruebas {{name}}",
+		"bannerOwnerTitle": "Vista previa",
+		"bannerOwnerBody": "Solo la ven tú y tus testers. No cobra hasta que se publique.",
+		"bannerTesterTitle": "Versión de prueba",
+		"bannerTesterBody": "QvaPay aún no la ha revisado. Nunca escribas aquí tu contraseña de QvaPay.",
+		"payBlockedTitle": "Pagos desactivados",
+		"payBlockedBody": "Una mini-app en prueba no puede cobrar hasta que QvaPay la publique."
+	},
 	"consent": {
 		"title": "{{name}} quiere conocerte",
 		"subtitle": "Compartirá con esta mini-app solo lo siguiente:",
@@ -90,7 +109,10 @@
 		"authorize": "No se pudo autorizar la mini-app",
 		"pay": "No se pudo realizar el pago",
 		"loadGrants": "No se pudieron cargar tus apps conectadas",
-		"revoke": "No se pudo quitar el acceso"
+		"revoke": "No se pudo quitar el acceso",
+		"loadInvites": "No se pudieron cargar tus invitaciones",
+		"answerInvite": "No se pudo responder la invitación",
+		"leaveTesting": "No se pudo dejar de probar la mini-app"
 	},
 	"kycGate": {
 		"message": "Iniciar sesión y pagar dentro de las mini-apps requiere tener tu identidad verificada. Es rápido y solo se hace una vez."
@@ -106,6 +128,8 @@
 		"payFailed": "No se pudo completar el pago.",
 		"invoiceNotFound": "No se encontró la factura.",
 		"invoiceMismatch": "Esta factura no pertenece a esta mini-app.",
-		"shareFailed": "No se pudo compartir."
+		"shareFailed": "No se pudo compartir.",
+		"previewNoPayments": "Esta mini-app está en prueba y no puede cobrar.",
+		"previewNoShare": "Esta mini-app está en prueba y aún no se puede compartir."
 	}
 }
