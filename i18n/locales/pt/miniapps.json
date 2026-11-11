@@ -5,6 +5,7 @@
 		"more": "Mais mini-apps",
 		"by": "por {{name}}",
 		"preview": "Pré-visualização",
+		"testing": "Em teste",
 		"searchPlaceholder": "Buscar mini-apps",
 		"noResults": "Nenhuma mini-app corresponde à sua busca.",
 		"empty": "Ainda não há mini-apps disponíveis. Volte em breve!",
@@ -50,6 +51,24 @@
 		"closeApp": "Fechar mini-app",
 		"backHint": "Mantenha pressionado para fechar a mini-app"
 	},
+	"testing": {
+		"invitesTitle": "Convites de teste",
+		"invitedBy": "{{inviter}} convidou você para testá-la antes de ser publicada",
+		"invited": "Você recebeu um convite para testá-la antes de ser publicada",
+		"inviteNotice": "A QvaPay ainda não a revisou. Não é possível pagar dentro dela, e nunca digite ali sua senha da QvaPay.",
+		"accept": "Testar",
+		"decline": "Recusar",
+		"declined": "Você recusou o convite para {{name}}",
+		"inviteGone": "Este convite não está mais disponível",
+		"leave": "Parar de testar",
+		"left": "Você não está mais testando {{name}}",
+		"bannerOwnerTitle": "Pré-visualização",
+		"bannerOwnerBody": "Só você e seus testers a veem. Não cobra até ser publicada.",
+		"bannerTesterTitle": "Versão de teste",
+		"bannerTesterBody": "A QvaPay ainda não a revisou. Nunca digite aqui sua senha da QvaPay.",
+		"payBlockedTitle": "Pagamentos desativados",
+		"payBlockedBody": "Uma mini-app em teste não pode cobrar até a QvaPay publicá-la."
+	},
 	"consent": {
 		"title": "{{name}} quer saber quem você é",
 		"subtitle": "Somente o seguinte será compartilhado com esta mini-app:",
@@ -90,7 +109,10 @@
 		"authorize": "Não foi possível autorizar a mini-app",
 		"pay": "Não foi possível realizar o pagamento",
 		"loadGrants": "Não foi possível carregar suas apps conectadas",
-		"revoke": "Não foi possível remover o acesso"
+		"revoke": "Não foi possível remover o acesso",
+		"loadInvites": "Não foi possível carregar seus convites",
+		"answerInvite": "Não foi possível responder ao convite",
+		"leaveTesting": "Não foi possível parar de testar a mini-app"
 	},
 	"kycGate": {
 		"message": "Entrar e pagar dentro dos mini-apps exige identidade verificada. É rápido e você só faz uma vez."
@@ -106,6 +128,8 @@
 		"payFailed": "Não foi possível concluir o pagamento.",
 		"invoiceNotFound": "Fatura não encontrada.",
 		"invoiceMismatch": "Esta fatura não pertence a esta mini-app.",
-		"shareFailed": "Não foi possível compartilhar."
+		"shareFailed": "Não foi possível compartilhar.",
+		"previewNoPayments": "Esta mini-app está em teste e não pode cobrar.",
+		"previewNoShare": "Esta mini-app está em teste e ainda não pode ser compartilhada."
 	}
 }

@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiResult } from '../types/api'
-import type { MiniApp, MiniAppAuthorization, MiniAppGrant, MiniAppPayment, MiniAppScope } from '../types/domain'
+import type { MiniApp, MiniAppAuthorization, MiniAppGrant, MiniAppPayment, MiniAppScope, MiniAppTesterInvite } from '../types/domain'
 
 /** Body de `pay`: factura del comercio de la mini-app + segundo factor + clave estable. */
 export type MiniAppPayInput = {
@@ -87,4 +87,25 @@ export const miniappsApi = {
 	/** Revoca el consentimiento de una mini-app (`DELETE /miniapps/grants/{slug}`). */
 	revokeGrant: (slug: string): Promise<ApiResult<{ revoked: boolean }>> =>
 		wrap(() => apiClient.delete(`/miniapps/grants/${encodeURIComponent(slug)}`), i18n.t('miniapps.errors.revoke')),
+
+	/**
+	 * Invitaciones pendientes a probar mini-apps sin publicar (`GET /miniapps/invites`).
+	 * La ruta nunca responde 404 por sí misma (sin invitaciones = lista vacía), así que un
+	 * 404 es un qpweb sin testers: lista vacía y todo sigue como antes.
+	 */
+	invites: async (): Promise<ApiResult<MiniAppTesterInvite[]>> => {
+		const result = await wrap<MiniAppTesterInvite[]>(() => apiClient.get('/miniapps/invites', { silent: true }), i18n.t('miniapps.errors.loadInvites'))
+		return !result.success && result.status === 404 ? { success: true, data: [], status: 404 } : result
+	},
+
+	/**
+	 * Acepta o rechaza una invitación (`POST /miniapps/invites/{slug}`). Aceptar la
+	 * hace visible en el catálogo; rechazar la borra (el dueño puede volver a invitar).
+	 */
+	answerInvite: (slug: string, accept: boolean): Promise<ApiResult<{ status: 'accepted' | 'declined' }>> =>
+		wrap(() => apiClient.post(`/miniapps/invites/${encodeURIComponent(slug)}`, { accept }), i18n.t('miniapps.errors.answerInvite')),
+
+	/** Deja de probar una mini-app sin publicar (`DELETE /miniapps/testing/{slug}`, idempotente). */
+	leaveTesting: (slug: string): Promise<ApiResult<{ left: boolean }>> =>
+		wrap(() => apiClient.delete(`/miniapps/testing/${encodeURIComponent(slug)}`), i18n.t('miniapps.errors.leaveTesting')),
 }

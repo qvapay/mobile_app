@@ -356,3 +356,48 @@ describe('useMiniAppBridge — colores', () => {
 		await bridge.unmount()
 	})
 })
+
+describe('useMiniAppBridge — mini-app en prueba (sin publicar)', () => {
+
+	afterEach(() => { jest.clearAllMocks() })
+
+	const { toast } = jest.requireMock('sonner-native')
+
+	test('payInvoice se rechaza sin hoja ni PIN, y antes de pedir KYC', async () => {
+		for (const app of [baseApp({ preview: true, preview_role: 'tester' }), baseApp({ preview: true })]) {
+			const bridge = await renderBridge({ hasKyc: false, app })
+			await bridge.send('payments.payInvoice', { invoiceUuid: UUID })
+			expect(bridge.state.modal).toBeNull()
+			expect(bridge.requireKyc).not.toHaveBeenCalled()
+			expect(bridge.deliveries()).toEqual([expect.objectContaining({ ok: false, error: { code: 'NOT_ALLOWED', message: 'Esta mini-app está en prueba y no puede cobrar.' } })])
+			expect(toast).toHaveBeenCalledWith('Pagos desactivados', expect.objectContaining({ description: expect.any(String) }))
+			await bridge.unmount()
+			jest.clearAllMocks()
+		}
+	})
+
+	test('el rechazo no deja el puente ocupado: share sigue respondiendo (y se rechaza por estar en prueba)', async () => {
+		const bridge = await renderBridge({ hasKyc: true, app: baseApp({ preview: true, preview_role: 'tester' }) })
+		await bridge.send('payments.payInvoice', { invoiceUuid: UUID })
+		await bridge.send('share', {})
+		expect(bridge.share).not.toHaveBeenCalled()
+		expect(bridge.deliveries()[1]).toMatchObject({ ok: false, error: { code: 'NOT_ALLOWED', message: 'Esta mini-app está en prueba y aún no se puede compartir.' } })
+		await bridge.unmount()
+	})
+
+	test('el login sí funciona en prueba (la identidad la firma qpweb para el dueño y sus testers)', async () => {
+		miniappsApi.authorize.mockResolvedValue({ success: true, data: { init_data: 'x', hash: 'y', scopes: ['profile'] } })
+		const bridge = await renderBridge({ hasKyc: true, app: baseApp({ preview: true, preview_role: 'tester', granted: true, granted_scopes: ['profile'] }) })
+		await bridge.send('auth.requestLogin', { scopes: ['profile'] })
+		expect(miniappsApi.authorize).toHaveBeenCalledWith('shop', ['profile'])
+		expect(bridge.deliveries()[0]).toMatchObject({ ok: true })
+		await bridge.unmount()
+	})
+
+	test('publicada, payInvoice sigue abriendo la hoja de pago', async () => {
+		const bridge = await renderBridge({ hasKyc: true, app: baseApp({ preview: false, preview_role: null }) })
+		await bridge.send('payments.payInvoice', { invoiceUuid: UUID })
+		expect(bridge.state.modal).toMatchObject({ kind: 'pay', invoiceUuid: UUID })
+		await bridge.unmount()
+	})
+})

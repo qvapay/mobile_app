@@ -23,11 +23,14 @@ import { ROUTES } from '../../routes'
 
 import MiniAppIcon from './MiniAppIcon'
 import MiniAppActionsSheet from './MiniAppActionsSheet'
+import MiniAppInviteCard from './MiniAppInviteCard'
 import useMiniAppFavorites from './useMiniAppFavorites'
-import { useMiniAppsList } from './miniappsQueries'
+import useMiniAppTesting from './useMiniAppTesting'
+import { useMiniAppInvites, useMiniAppsList } from './miniappsQueries'
+import { previewRoleOf } from './miniappTesting'
 import { CATEGORY_META, SEARCH_MIN_APPS, buildCatalogView, categoryOf, coverOf, normalizeSearch, presentCategories } from './miniappsCatalog'
 import type { MiniAppCategory } from './miniappsCatalog'
-import type { MiniApp } from '../../types/domain'
+import type { MiniApp, MiniAppTesterInvite } from '../../types/domain'
 import type { RootStackParamList } from '../../types/navigation'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MiniApps'>
@@ -55,6 +58,16 @@ const categoryLabel = (t: TFunction, category: MiniAppCategory): string => ({
 	other: t('miniapps.directory.categories.other'),
 })[category]
 
+/**
+ * Etiqueta de una sin publicar: «Vista previa» para su dueño, «En prueba» para quien
+ * la prueba por invitación; nada si está publicada.
+ */
+const previewLabel = (t: TFunction, app: MiniApp): string | null => {
+	const role = previewRoleOf(app)
+	if (!role) return null
+	return role === 'tester' ? t('miniapps.directory.testing') : t('miniapps.directory.preview')
+}
+
 /** Autor que se enseña: nada si coincide con el nombre de la app (sería repetirlo). */
 const authorOf = (app: MiniApp): string | null => {
 	const author = app.merchant?.name?.trim()
@@ -64,8 +77,9 @@ const authorOf = (app: MiniApp): string | null => {
 
 /**
  * Catálogo de mini-apps: las publica la comunidad desde el panel de
- * desarrollador. Destacadas en un carrusel, filtro por categoría, buscador
- * cuando hay muchas y, debajo, la invitación a publicar la tuya.
+ * desarrollador. Arriba, las invitaciones a probar mini-apps sin publicar;
+ * luego destacadas en un carrusel, filtro por categoría, buscador cuando hay
+ * muchas y, debajo, la invitación a publicar la tuya.
  */
 const MiniApps = ({ navigation }: Props) => {
 
@@ -77,6 +91,9 @@ const MiniApps = ({ navigation }: Props) => {
 	const { width } = useWindowDimensions()
 
 	const { data, isPending, isError, error, refetch } = useMiniAppsList()
+	// Sin toast de error: es un extra del catálogo, y un qpweb sin testers ya devuelve []
+	const { data: invites, refetch: refetchInvites } = useMiniAppInvites()
+	const { answer, pending: answering } = useMiniAppTesting()
 	const [refreshing, setRefreshing] = useState(false)
 	const [query, setQuery] = useState('')
 	const [category, setCategory] = useState<MiniAppCategory | null>(null)
@@ -96,9 +113,14 @@ const MiniApps = ({ navigation }: Props) => {
 
 	const featuredWidth = Math.min(340, width - theme.spacing.md * 2 - 36)
 
-	const open = useCallback((app: MiniApp) => {
+	const open = useCallback((app: Pick<MiniApp, 'slug' | 'name' | 'icon'>) => {
 		navigation.navigate(ROUTES.MINIAPP_HOST, { slug: app.slug, name: app.name, icon: app.icon })
 	}, [navigation])
+
+	// Aceptar es para probarla: se abre directamente
+	const acceptInvite = useCallback(async (invite: MiniAppTesterInvite) => {
+		if (await answer(invite, true)) open(invite)
+	}, [answer, open])
 
 	// Mantener pulsada una app = su menú (favorita, acceso directo, compartir) sin entrar en ella
 	const openMenu = useCallback((app: MiniApp) => {
@@ -108,8 +130,8 @@ const MiniApps = ({ navigation }: Props) => {
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		try { await refetch() } finally { setRefreshing(false) }
-	}, [refetch])
+		try { await Promise.all([refetch(), refetchInvites()]) } finally { setRefreshing(false) }
+	}, [refetch, refetchInvites])
 
 	// Tarjetas de superficie: borde solo en claro (en oscuro, sin bordes)
 	const cardBorder = useMemo(() => !isDark ? { borderWidth: 1, borderColor: theme.colors.border } : null, [isDark, theme])
@@ -118,6 +140,7 @@ const MiniApps = ({ navigation }: Props) => {
 	const renderApp = useCallback(({ item }: { item: MiniApp }) => {
 		const cat = categoryOf(item)
 		const author = authorOf(item)
+		const badge = previewLabel(t, item)
 		return (
 			<QPPressable onPress={() => open(item)} onLongPress={() => openMenu(item)} accessibilityHint={t('miniapps.actions.longPressHint')} style={styles.row}>
 				<MiniAppIcon app={item} size={56} />
@@ -127,7 +150,7 @@ const MiniApps = ({ navigation }: Props) => {
 						{isFavorite(item.slug) ? (
 							<FontAwesome6 name="star" size={11} color={theme.colors.warning} iconStyle="solid" style={styles.ml5} accessibilityLabel={t('miniapps.actions.favoriteBadge')} />
 						) : null}
-						{item.preview ? <PreviewBadge label={t('miniapps.directory.preview')} /> : null}
+						{badge ? <PreviewBadge label={badge} /> : null}
 					</View>
 					{item.tagline ? (
 						<Text style={[textStyles.caption, styles.mt2]} numberOfLines={2}>{item.tagline}</Text>
@@ -147,11 +170,29 @@ const MiniApps = ({ navigation }: Props) => {
 		return <View style={[containerStyles.subContainer, styles.center]}><QPLoader /></View>
 	}
 
+	// Las invitaciones van por encima de todo, también de una búsqueda: son para ti
+	const pendingInvites = invites ?? []
 	const header = (
 		<View>
+			{pendingInvites.length > 0 ? (
+				<>
+					<Text style={[textStyles.h4, styles.sectionTitle]}>{t('miniapps.testing.invitesTitle')}</Text>
+					{pendingInvites.map(invite => (
+						<MiniAppInviteCard
+							key={invite.slug}
+							invite={invite}
+							answering={answering?.slug === invite.slug ? (answering.accept ? 'accept' : 'decline') : null}
+							disabled={answering != null}
+							onAccept={() => { acceptInvite(invite) }}
+							onDecline={() => { answer(invite, false) }}
+						/>
+					))}
+				</>
+			) : null}
+
 			{view.featured.length > 0 ? (
 				<>
-					<Text style={[textStyles.h4, styles.sectionTitle]}>{t('miniapps.directory.featured')}</Text>
+					<Text style={[textStyles.h4, styles.sectionTitle, pendingInvites.length > 0 && styles.mt12]}>{t('miniapps.directory.featured')}</Text>
 					<ScrollView
 						horizontal
 						showsHorizontalScrollIndicator={false}
@@ -265,6 +306,7 @@ const FeaturedCard = ({ app, width, cardBorder, onPress, onLongPress }: { app: M
 	const { color, icon } = CATEGORY_META[cat]
 	const author = authorOf(app)
 	const cover = coverOf(app)
+	const badge = previewLabel(t, app)
 	const [coverFailed, setCoverFailed] = useState(false)
 	const withCover = !!cover && !coverFailed
 
@@ -297,7 +339,7 @@ const FeaturedCard = ({ app, width, cardBorder, onPress, onLongPress }: { app: M
 					<View style={styles.rowText}>
 						<View style={styles.nameRow}>
 							<Text style={[textStyles.h4, styles.shrink, { color: COVER_TEXT }]} numberOfLines={1}>{app.name}</Text>
-							{app.preview ? <PreviewBadge label={t('miniapps.directory.preview')} /> : null}
+							{badge ? <PreviewBadge label={badge} /> : null}
 						</View>
 						{app.tagline ? <Text style={[textStyles.caption, styles.mt2, { color: COVER_TEXT_SOFT }]} numberOfLines={1}>{app.tagline}</Text> : null}
 						{author ? <Text style={[textStyles.h7, styles.mt2, { color: COVER_TEXT_FAINT }]} numberOfLines={1}>{t('miniapps.directory.by', { name: author })}</Text> : null}
@@ -307,7 +349,7 @@ const FeaturedCard = ({ app, width, cardBorder, onPress, onLongPress }: { app: M
 				<View style={styles.featuredBody}>
 					<View style={styles.nameRow}>
 						<Text style={[textStyles.h3, styles.shrink, { color: theme.colors.primaryText }]} numberOfLines={1}>{app.name}</Text>
-						{app.preview ? <PreviewBadge label={t('miniapps.directory.preview')} /> : null}
+						{badge ? <PreviewBadge label={badge} /> : null}
 					</View>
 					{app.tagline ? <Text style={[textStyles.caption, styles.mt4, { color: theme.colors.secondaryText }]} numberOfLines={2}>{app.tagline}</Text> : null}
 					{author ? <Text style={[textStyles.h7, styles.mt8, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{t('miniapps.directory.by', { name: author })}</Text> : null}
@@ -340,7 +382,7 @@ const CategoryChip = ({ label, icon, active, onPress }: { label: string, icon?: 
 	)
 }
 
-/** Solo la ve el autor de la mini-app mientras no está publicada. */
+/** Sin publicar: solo la ven su autor y sus testers. */
 const PreviewBadge = ({ label }: { label: string }) => {
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -382,6 +424,7 @@ const styles = StyleSheet.create({
 	mt2: { marginTop: 2 },
 	mt4: { marginTop: 4 },
 	mt8: { marginTop: 8 },
+	mt12: { marginTop: 12 },
 	mt20: { marginTop: 20 },
 	mt24: { marginTop: 24 },
 	mt28: { marginTop: 28 },

@@ -30,6 +30,9 @@ import MiniAppMenuRow from './MiniAppMenuRow'
 import MiniAppConsentSheet from './MiniAppConsentSheet'
 import MiniAppPaySheet from './MiniAppPaySheet'
 import MiniAppHeaderTitle from './MiniAppHeaderTitle'
+import MiniAppPreviewBanner from './MiniAppPreviewBanner'
+import useMiniAppTesting from './useMiniAppTesting'
+import { canLeaveTesting, canPinMiniApp, canShareMiniApp, previewRoleOf } from './miniappTesting'
 import { useNativeMiniAppHeader, type NativeMenuEntry } from './useNativeMiniAppHeader'
 import type { MiniAppMenuIcon } from './MiniAppMenuRow'
 import KycGateModal from '../../ui/KycGateModal'
@@ -40,7 +43,7 @@ import type { RootStackParamList } from '../../types/navigation'
 type Props = NativeStackScreenProps<RootStackParamList, 'MiniAppHost'>
 
 /** Entradas del menú ⋯: las mismas en el propio (un <Modal>) y en el UIMenu nativo de iOS 26+. */
-type MenuKey = 'favorite' | 'pin' | 'share' | 'reload' | 'browser' | 'close' | 'revoke'
+type MenuKey = 'favorite' | 'pin' | 'share' | 'reload' | 'browser' | 'close' | 'revoke' | 'leave'
 type MenuItem = NativeMenuEntry<MenuKey> & { icon: MiniAppMenuIcon, iconColor?: string }
 
 /**
@@ -81,7 +84,10 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	const [progress, setProgress] = useState(0)
 	const [menuOpen, setMenuOpen] = useState(false)
 	const { isFavorite, toggle: toggleFavorite } = useMiniAppFavorites()
+	const { leave } = useMiniAppTesting()
 	const canPin = useCanPinShortcut()
+	// Sin publicar (borrador o en revisión): aviso fijo, sin compartir y sin cobros
+	const previewRole = previewRoleOf(app)
 	// Recargar = remontar el WebView (la URL de arranque, no la actual)
 	const [webViewKey, setWebViewKey] = useState(0)
 
@@ -175,13 +181,15 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 		favorite
 			? { key: 'favorite', label: t('miniapps.actions.unfavorite'), icon: 'star', iconColor: theme.colors.warning, sfSymbol: 'star.fill' }
 			: { key: 'favorite', label: t('miniapps.actions.favorite'), icon: 'star-outline', sfSymbol: 'star' },
-		...(canPin ? [{ key: 'pin', label: t('miniapps.actions.addToHomeScreen'), icon: 'mobile-screen-button', sfSymbol: 'plus.square.on.square' } as const] : []),
-		{ key: 'share', label: t('common.actions.share'), icon: 'share-nodes', sfSymbol: 'square.and.arrow.up' },
+		...(canPin && canPinMiniApp(app) ? [{ key: 'pin', label: t('miniapps.actions.addToHomeScreen'), icon: 'mobile-screen-button', sfSymbol: 'plus.square.on.square' } as const] : []),
+		// Una sin publicar no tiene página pública: a cualquier otro le saldría «no encontrada»
+		...(canShareMiniApp(app) ? [{ key: 'share', label: t('common.actions.share'), icon: 'share-nodes', sfSymbol: 'square.and.arrow.up' } as const] : []),
 		{ key: 'reload', label: t('miniapps.host.reload'), icon: 'rotate-right', sfSymbol: 'arrow.clockwise' },
 		{ key: 'browser', label: t('miniapps.host.openInBrowser'), icon: 'arrow-up-right-from-square', sfSymbol: 'safari' },
 		// La salida directa cuando la flecha retrocede
 		{ key: 'close', label: t('miniapps.host.closeApp'), icon: 'xmark', sfSymbol: 'xmark' },
 		...(app?.granted ? [{ key: 'revoke', label: t('miniapps.host.revoke'), icon: 'user-slash', sfSymbol: 'person.crop.circle.badge.xmark', destructive: true } as const] : []),
+		...(canLeaveTesting(app) ? [{ key: 'leave', label: t('miniapps.testing.leave'), icon: 'right-from-bracket', sfSymbol: 'rectangle.portrait.and.arrow.right', destructive: true } as const] : []),
 	]
 
 	const runMenu = (key: MenuKey) => {
@@ -193,6 +201,8 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 			case 'browser': if (app) Linking.openURL(app.entry_url).catch(() => {}); break
 			case 'close': close(); break
 			case 'revoke': revoke(); break
+			// Sin confirmación: deja de verla y el dueño la puede volver a invitar
+			case 'leave': if (app) leave(app).then(left => { if (left) close() }); break
 		}
 	}
 
@@ -202,7 +212,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	const afterMenuRef = useRef<(() => void) | null>(null)
 	const runFromMenu = (key: MenuKey) => {
 		setMenuOpen(false)
-		if (Platform.OS === 'ios' && (key === 'share' || key === 'close')) afterMenuRef.current = () => runMenu(key)
+		if (Platform.OS === 'ios' && (key === 'share' || key === 'close' || key === 'leave')) afterMenuRef.current = () => runMenu(key)
 		else runMenu(key)
 	}
 	const onMenuDismiss = () => {
@@ -283,6 +293,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 				</View>
 			</View>
 			)}
+			{previewRole ? <MiniAppPreviewBanner role={previewRole} /> : null}
 			{!ready && !loadError && progress > 0 && progress < 1 ? (
 				<View style={[styles.progress, { width: `${Math.round(progress * 100)}%`, backgroundColor: theme.colors.primary }]} />
 			) : null}

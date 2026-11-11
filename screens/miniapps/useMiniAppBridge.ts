@@ -30,6 +30,8 @@ import {
 } from '../../miniapps/protocol'
 import { buildDeliveryScript } from '../../miniapps/sdkScript'
 import { authorizeFailureError, bridgeErrors } from './bridgeErrors'
+import { canPayInMiniApp, canShareMiniApp } from './miniappTesting'
+import i18n from '../../i18n'
 import type { MiniApp } from '../../types/domain'
 
 /** Tema que ve la mini-app: solo lo necesario para pintar a juego. */
@@ -219,6 +221,11 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 				respond(request.id)
 				return
 			case 'share': {
+				// Sin publicar no hay página pública: el enlace sería «no encontrada» para el resto
+				if (!canShareMiniApp(appRef.current)) {
+					reject(request.id, bridgeErrors.previewNoShare())
+					return
+				}
 				// `busyRef` y no `modalRef`: cubre también el login que firma sin hoja
 				if (shareBusyRef.current || busyRef.current) {
 					reject(request.id, bridgeErrors.busy())
@@ -268,6 +275,14 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 			// hoja no saldría y `busyRef` se quedaría en true hasta recargar)
 			if (busyRef.current || shareBusyRef.current) {
 				reject(request.id, bridgeErrors.busy())
+				return
+			}
+			// En prueba (sin publicar) no se cobra: QvaPay no la ha revisado y qpweb responde
+			// 403 PREVIEW_NO_PAYMENTS. Se corta antes del KYC: no tiene sentido pedir que se
+			// verifique para algo que no va a pasar. `NOT_ALLOWED` por la misma razón que el KYC
+			if (request.method === 'payments.payInvoice' && !canPayInMiniApp(current)) {
+				toast(i18n.t('miniapps.testing.payBlockedTitle'), { description: i18n.t('miniapps.testing.payBlockedBody') })
+				reject(request.id, bridgeErrors.previewNoPayments())
 				return
 			}
 			if (!callbacksRef.current.requireKyc()) {

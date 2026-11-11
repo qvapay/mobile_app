@@ -24,7 +24,8 @@ import { resolveRootRoute } from './rootRoute'
 // Helpers
 import playSound from '../helpers/playSound'
 import { markIncomingSoundPlayed } from './useIncomingMoneySound'
-import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushNavigation } from '../helpers/pushRouting'
+import { isMiniAppInvitePush, isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushNavigation } from '../helpers/pushRouting'
+import { MINIAPPS_INVITES_KEY } from '../screens/miniapps/miniappTesting'
 import { LIGHTNING_ADDRESS_KEY } from '../helpers/lightningAddress'
 import { RELEASES } from '../whatsnew/releases'
 import { pickRelease } from '../whatsnew/whatsNewGate'
@@ -282,6 +283,8 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 	const openPush = (message: PushMessage) => {
 		const data = message.data as PushData
 		trackPushOpened(message.data)
+		// El catálogo puede estar ya montado debajo: sin esto no pintaría la invitación nueva
+		if (isMiniAppInvitePush(data)) queryClient.invalidateQueries({ queryKey: MINIAPPS_INVITES_KEY })
 		const resolved = resolvePushNavigation(data)
 		if (!resolved) return
 		const target: DeepLinkTarget = { name: resolved.screen, params: resolved.params }
@@ -340,6 +343,8 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 				queryClient.setQueriesData({ queryKey: LIGHTNING_ADDRESS_KEY }, trimToFirstPage)
 				queryClient.invalidateQueries({ queryKey: LIGHTNING_ADDRESS_KEY })
 			}
+			// Invitación a probar una mini-app: la tarjeta sale en el catálogo sin tirar de él
+			if (isMiniAppInvitePush(data)) queryClient.invalidateQueries({ queryKey: MINIAPPS_INVITES_KEY })
 			// Con la app delante la push NO va a la bandeja (ni en Android, donde
 			// FCM no la pinta en primer plano, ni en iOS, donde QPPush no la
 			// presenta): el toast es la presentación en primer plano, y una push

@@ -507,6 +507,18 @@ describe('push listeners', () => {
 		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['user', 'lightning-address'] })
 	})
 
+	test('a mini-app tester invite refreshes the catalog invites, received or tapped', async () => {
+		settle()
+		await renderAppNav()
+		const data = { type: 'miniapp_tester_invite', deeplink: 'qvapay://apps' }
+		await act(async () => { pushListeners.foreground(makeMessage('@pepe te invitó a probar Mi Tienda', 'Aún no está publicada.', data)) })
+		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['miniapps', 'invites'] })
+		queryClient.invalidateQueries.mockClear()
+		await act(async () => { pushListeners.opened({ data }) })
+		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['miniapps', 'invites'] })
+		expect(navigation.navigate).toHaveBeenCalledWith('MiniApps')
+	})
+
 	test('a foreground push reports its delivery as received', async () => {
 		await renderAppNav()
 		await act(async () => { pushListeners.foreground(makeMessage('Chat', 'nuevo mensaje', { type: 'p2p_chat', p2p_uuid: 'p-1', did: 'd-7' })) })

@@ -67,6 +67,12 @@ const MONEY_OUT_TYPES = ['transfer_sent', 'invite_sent']
  */
 const TRANSACTION_TYPES = ['transfer_received', 'transfer_sent', 'invite_sent', 'transaction_comment', 'ln_address_received', 'transaction', 'transfer']
 
+/** Invitación a probar una mini-app sin publicar (qpweb la manda con `deeplink: 'qvapay://apps'`). */
+const MINIAPP_TESTER_INVITE = 'miniapp_tester_invite'
+
+/** ¿Es una invitación a probar una mini-app? Con ella cambia la lista de invitaciones del catálogo. */
+export const isMiniAppInvitePush = (data: PushData): boolean => data?.type === MINIAPP_TESTER_INVITE
+
 /** ¿Esta push anuncia dinero entrante? */
 export const isMoneyInPush = (data: PushData): boolean => !!data?.type && MONEY_IN_TYPES.includes(data.type)
 
@@ -142,6 +148,9 @@ export const resolvePushTarget = (data: PushData): PushTarget | null => {
 
 	// Compra pagada con PIX: retenida, liberada o devuelta. Su `/shop/my` no es un deep link
 	if (type === 'pix_purchase') return { screen: ROUTES.MY_PURCHASES }
+
+	// Invitación a probar una mini-app: la tarjeta para aceptarla está arriba del catálogo
+	if (type === MINIAPP_TESTER_INVITE) return { screen: ROUTES.MINIAPPS }
 
 	return null
 }

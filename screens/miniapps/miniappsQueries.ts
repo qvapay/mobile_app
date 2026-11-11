@@ -3,12 +3,14 @@ import type { QueryClient, UseQueryResult } from '@tanstack/react-query'
 
 import { miniappsApi } from '../../api/miniappsApi'
 import { unwrap } from '../../api/unwrap'
-import type { MiniApp, MiniAppGrant } from '../../types/domain'
+import type { MiniApp, MiniAppGrant, MiniAppTesterInvite } from '../../types/domain'
+import { MINIAPPS_INVITES_KEY, withoutInvite, withoutMiniApp } from './miniappTesting'
 
 /** Raíz del dominio: `invalidateQueries(MINIAPPS_ROOT)` refresca directorio, fichas y permisos. */
 export const MINIAPPS_ROOT = ['miniapps'] as const
 export const MINIAPPS_LIST_KEY = ['miniapps', 'list'] as const
 export const MINIAPPS_GRANTS_KEY = ['miniapps', 'grants'] as const
+export { MINIAPPS_INVITES_KEY }
 export const miniAppDetailKey = (slug: string) => ['miniapps', 'detail', slug] as const
 
 /**
@@ -55,6 +57,36 @@ export const forgetGrant = (queryClient: QueryClient, slug: string): Promise<voi
 	queryClient.setQueryData<MiniApp[]>(MINIAPPS_LIST_KEY, list => list?.map(app => app.slug === slug ? withoutGrant(app) : app))
 	queryClient.setQueryData<MiniAppGrant[]>(MINIAPPS_GRANTS_KEY, grants => grants?.filter(grant => grant.slug !== slug))
 	return queryClient.invalidateQueries({ queryKey: MINIAPPS_ROOT })
+}
+
+/**
+ * Invitaciones pendientes a probar mini-apps sin publicar (arriba del catálogo).
+ * Siempre frescas y sin persistir: llegan por push y se responden al momento.
+ */
+export const useMiniAppInvites = (): UseQueryResult<MiniAppTesterInvite[]> => useQuery({
+	queryKey: MINIAPPS_INVITES_KEY,
+	queryFn: async () => unwrap(await miniappsApi.invites()) ?? [],
+	meta: { noPersist: true },
+	placeholderData: previous => previous,
+})
+
+/**
+ * Tras responder una invitación (o ver que ya no existe): fuera de la lista al
+ * momento, y el directorio se revalida porque aceptar la hace visible.
+ */
+export const settleInvite = (queryClient: QueryClient, slug: string): Promise<void> => {
+	queryClient.setQueryData<MiniAppTesterInvite[]>(MINIAPPS_INVITES_KEY, invites => withoutInvite(invites, slug))
+	return queryClient.invalidateQueries({ queryKey: MINIAPPS_LIST_KEY })
+}
+
+/**
+ * Tras dejar de probar una mini-app: fuera del directorio al momento y después
+ * se revalida. La ficha no se toca: si el host aún está montado (cerrándose),
+ * refrescarla le pintaría «no disponible» durante la animación de salida.
+ */
+export const forgetTesting = (queryClient: QueryClient, slug: string): Promise<void> => {
+	queryClient.setQueryData<MiniApp[]>(MINIAPPS_LIST_KEY, apps => withoutMiniApp(apps, slug))
+	return queryClient.invalidateQueries({ queryKey: MINIAPPS_LIST_KEY })
 }
 
 /** Permisos concedidos (Ajustes → Apps conectadas). */
