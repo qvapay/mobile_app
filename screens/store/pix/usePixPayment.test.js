@@ -241,7 +241,8 @@ describe('usePixPayment', () => {
 		})
 
 		test('si la respuesta se perdió, el 409 del reintento saca lo que se pagó', async () => {
-			const charge = { ...CHARGE, uuid: 'm7', surface: 'market' }
+			// Con base 10 el servidor cobra 10,79 USD (ver el primer test)
+			const charge = { ...CHARGE, uuid: 'm7', surface: 'market', total_usd: 10.79 }
 			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
 			// El servidor creó m7, pero la respuesta no llegó
 			pixApi.createCheckout.mockResolvedValue({ success: false, error: 'timeout of 30000ms exceeded' })
@@ -257,7 +258,7 @@ describe('usePixPayment', () => {
 		})
 
 		test('si la respuesta se perdió y luego se añadió algo, sale solo lo del intento', async () => {
-			const charge = { ...CHARGE, uuid: 'm8', surface: 'market' }
+			const charge = { ...CHARGE, uuid: 'm8', surface: 'market', total_usd: 10.79 }
 			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
 			pixApi.createCheckout.mockResolvedValue({ success: false, status: 504, error: 'Gateway Timeout' })
 			await render({ surface: 'market', cartKeys: ['a:'], base: 10 })
@@ -270,8 +271,36 @@ describe('usePixPayment', () => {
 			expect(removed()).toEqual(['a:'])
 		})
 
+		test('si el QR que ya estaba abierto (la web) es el que respondió, no se lleva el carrito', async () => {
+			// Abierto desde la web por otro importe: el intento recibió su 409, pero la respuesta no llegó
+			const charge = { ...CHARGE, uuid: 'w1', surface: 'market', total_usd: 31.5 }
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.createCheckout.mockResolvedValue({ success: false, error: 'timeout of 30000ms exceeded' })
+			await render({ surface: 'market', cartKeys: ['a:'] })
+			await act(async () => { await pix.pay() })
+
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
+			await act(async () => { await pix.pay() })
+			expect(navigate).toHaveBeenCalledWith('PixCheckout', { charge, holdHours: 72, doneDepth: 1 })
+			await settleCartLines('w1', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
+		})
+
+		test('con el envío sin cotizar no se puede reconocer el QR, así que no se recupera nada', async () => {
+			const charge = { ...CHARGE, uuid: 'm11', surface: 'market', total_usd: 10.79 }
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.createCheckout.mockResolvedValue({ success: false, error: 'timeout of 30000ms exceeded' })
+			await render({ surface: 'market', cartKeys: ['a:'], estimate: true })
+			await act(async () => { await pix.pay() })
+
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
+			await act(async () => { await pix.pay() })
+			await settleCartLines('m11', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
+		})
+
 		test('un rechazo con respuesta no se toma por un cobro creado', async () => {
-			const charge = { ...CHARGE, uuid: 'm9', surface: 'market' }
+			const charge = { ...CHARGE, uuid: 'm9', surface: 'market', total_usd: 10.79 }
 			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
 			pixApi.createCheckout.mockResolvedValue({ success: false, status: 429, error: 'Too many requests, please wait' })
 			await render({ surface: 'market', cartKeys: ['a:'] })
@@ -299,7 +328,7 @@ describe('usePixPayment', () => {
 			await act(async () => { tree.unmount() })
 			client.clear()
 
-			const charge = { ...CHARGE, uuid: 'm10', surface: 'market' }
+			const charge = { ...CHARGE, uuid: 'm10', surface: 'market', total_usd: 10.79 }
 			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
 			await render({ surface: 'market', cartKeys: ['a:'] })
 			await act(async () => { await pix.pay() })

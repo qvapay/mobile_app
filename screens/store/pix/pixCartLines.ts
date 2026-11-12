@@ -21,39 +21,47 @@ import type { PixCharge, PixStage } from '../../../types/domain'
 const STORAGE_KEY = '@qppixcart:v1'
 /** Un cobro que nunca se resuelve no hace crecer esto sin fin: se quedan los últimos. */
 const MAX_CHARGES = 20
-/**
- * El reintento que recoge un intento sin respuesta suele llegar en minutos. Pasado este rato ya no
- * se usa, para no colgarle sus líneas a un cobro abierto que venga de otro sitio (la web, otro teléfono).
- */
+/** El reintento que recoge un intento sin respuesta suele llegar en minutos: pasado este rato ya no se usa. */
 const UNCONFIRMED_MS = 60 * 60 * 1000
+/** Intentos sin respuesta que se recuerdan a la vez. */
+const MAX_UNCONFIRMED = 5
 
-/** Un `POST /pix/checkout` del carrito que se quedó sin respuesta: el cobro pudo crearse igual. */
-type Unconfirmed = { keys: string[], at: number }
-type Stored = { charges: Record<string, string[]>, unconfirmed: Unconfirmed | null }
+/**
+ * Un `POST /pix/checkout` del carrito que se quedó sin respuesta. Pudo crear el cobro, o pudo
+ * recibir el 409 de un QR que ya estaba abierto (desde la web, desde otro teléfono): desde aquí
+ * solo lo distingue el importe. `totalUsd` es lo que el servidor cobraría por estas líneas.
+ */
+type Unconfirmed = { keys: string[], at: number, totalUsd: number }
+type Stored = { charges: Record<string, string[]>, unconfirmed: Unconfirmed[] }
 
 const PAID: ReadonlySet<PixStage> = new Set(['verifying', 'delivered'])
 /** Etapas en las que ya no se va a cobrar: se olvida el cobro sin tocar el carrito. */
 const CLOSED: ReadonlySet<PixStage> = new Set(['refunded', 'expired', 'cancelled', 'failed'])
 
-let state: Stored = { charges: {}, unconfirmed: null }
+let state: Stored = { charges: {}, unconfirmed: [] }
 let loading: Promise<void> | null = null
 let settling: Promise<void> | null = null
 
 const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const isKeys = (value: unknown): value is string[] => Array.isArray(value) && value.every(key => typeof key === 'string')
+const cents = (usd: number): number => Math.round(usd * 100)
+const live = (attempts: Unconfirmed[]): Unconfirmed[] => attempts.filter(attempt => Date.now() - attempt.at <= UNCONFIRMED_MS)
 
 const parse = (raw: string | null): Stored => {
 	try {
 		const value: unknown = raw ? JSON.parse(raw) : null
-		if (!isRecord(value)) { return { charges: {}, unconfirmed: null } }
+		if (!isRecord(value)) { return { charges: {}, unconfirmed: [] } }
 		const charges: Record<string, string[]> = {}
 		if (isRecord(value.charges)) {
 			for (const [uuid, keys] of Object.entries(value.charges)) { if (isKeys(keys)) { charges[uuid] = keys } }
 		}
-		const pending = value.unconfirmed
-		const unconfirmed = isRecord(pending) && isKeys(pending.keys) && typeof pending.at === 'number' ? { keys: pending.keys, at: pending.at } : null
+		const unconfirmed = Array.isArray(value.unconfirmed)
+			? value.unconfirmed.flatMap((attempt: unknown) => (isRecord(attempt) && isKeys(attempt.keys) && typeof attempt.at === 'number' && typeof attempt.totalUsd === 'number'
+				? [{ keys: attempt.keys, at: attempt.at, totalUsd: attempt.totalUsd }]
+				: []))
+			: []
 		return { charges, unconfirmed }
-	} catch { return { charges: {}, unconfirmed: null } }
+	} catch { return { charges: {}, unconfirmed: [] } }
 }
 
 // Todo espera a la lectura del disco, así nada de lo que se apunte antes se pierde al leerlo
@@ -83,36 +91,37 @@ const forget = (uuid: string) => {
  */
 export async function rememberCartLines(uuid: string, keys: string[]): Promise<void> {
 	await load()
-	save({ charges: keys.length > 0 ? { ...state.charges, [uuid]: keys } : state.charges, unconfirmed: null })
+	save({ charges: keys.length > 0 ? { ...state.charges, [uuid]: keys } : state.charges, unconfirmed: [] })
 }
 
 /**
- * El carrito pidió un cobro y no hubo respuesta (o fue un 5xx): pudo crearse igual. Si el
- * reintento lo devuelve en un `409 PIX_QR_OPEN`, estas son sus líneas. Si ya había un intento así
- * se queda el primero: con un QR abierto el servidor no crea otro, así que lo creó el primer
- * intento que llegó, y uno posterior, con el carrito quizá cambiado, solo pudo recibir el 409.
+ * El carrito pidió un cobro y no hubo respuesta (o fue un 5xx): pudo crearse igual. Si el reintento
+ * devuelve en un `409 PIX_QR_OPEN` un QR con este importe, estas son sus líneas.
  *
  * @param keys - Líneas que se mandaron en el intento.
+ * @param totalUsd - Lo que cobraría el servidor por ellas (`pixQuote`); solo con un precio cerrado.
  */
-export async function rememberUnconfirmedCartLines(keys: string[]): Promise<void> {
+export async function rememberUnconfirmedCartLines(keys: string[], totalUsd: number): Promise<void> {
 	await load()
-	const pending = state.unconfirmed
-	if (keys.length === 0 || (pending && Date.now() - pending.at <= UNCONFIRMED_MS)) { return }
-	save({ ...state, unconfirmed: { keys, at: Date.now() } })
+	if (keys.length === 0 || !(totalUsd > 0)) { return }
+	save({ ...state, unconfirmed: [...state.unconfirmed, { keys, at: Date.now(), totalUsd }].slice(-MAX_UNCONFIRMED) })
 }
 
 /**
- * El QR abierto que devolvió un `409 PIX_QR_OPEN`. Uno del marketplace sin líneas apuntadas es el
- * del intento sin respuesta, si lo hubo: se queda con sus líneas. Sea el que sea, ese intento queda
- * resuelto, porque la cuenta solo admite un QR abierto.
+ * El QR abierto que devolvió un `409 PIX_QR_OPEN`. Uno del marketplace sin líneas apuntadas se queda
+ * con las de un intento sin respuesta solo si cobra lo mismo, al centavo: si no, es un QR que ya
+ * estaba abierto, y quitarle al carrito lo que no cobra sería peor que dejarle lo que sí. Dos
+ * intentos del mismo importe con otras líneas tampoco dicen cuál fue. Sea el QR que sea, los
+ * intentos quedan resueltos, porque la cuenta solo admite uno abierto.
  *
  * @param charge - El `charge` del 409.
  */
-export async function claimCartLines(charge: Pick<PixCharge, 'uuid' | 'surface'>): Promise<void> {
+export async function claimCartLines(charge: Pick<PixCharge, 'uuid' | 'surface' | 'total_usd'>): Promise<void> {
 	await load()
-	const pending = state.unconfirmed
-	const adopted = pending && Date.now() - pending.at <= UNCONFIRMED_MS && charge.surface === 'market' && !state.charges[charge.uuid] ? pending.keys : null
-	save({ charges: adopted ? { ...state.charges, [charge.uuid]: adopted } : state.charges, unconfirmed: null })
+	const matches = live(state.unconfirmed).filter(attempt => cents(attempt.totalUsd) === cents(Number(charge.total_usd)))
+	const lineSets = new Set(matches.map(attempt => [...attempt.keys].sort().join('\n')))
+	const adopted = charge.surface === 'market' && !state.charges[charge.uuid] && lineSets.size === 1 ? matches[0].keys : null
+	save({ charges: adopted ? { ...state.charges, [charge.uuid]: adopted } : state.charges, unconfirmed: [] })
 }
 
 /**

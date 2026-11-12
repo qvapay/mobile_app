@@ -146,8 +146,10 @@ export default function usePixPayment({ surface, base, enabled, excluded = false
 				}
 				return
 			}
-			// Sin respuesta, o con un 5xx, el cobro pudo crearse: el reintento lo recibirá en un 409
-			if (cartKeys && (result.status === undefined || result.status >= 500)) { await rememberUnconfirmedCartLines(cartKeys) }
+			// Sin respuesta, o con un 5xx, el cobro pudo crearse y el reintento lo recibirá en un 409. Se
+			// reconoce por el importe, así que con el envío sin cotizar no se intenta
+			const unanswered = result.status === undefined || result.status >= 500
+			if (cartKeys && unanswered && !estimate && offer.kind === 'ready') { await rememberUnconfirmedCartLines(cartKeys, offer.quote.totalUsd) }
 			const failure = classifyPixCheckoutError(result.status, result.details)
 			switch (failure.kind) {
 				case 'open':
@@ -184,7 +186,7 @@ export default function usePixPayment({ surface, base, enabled, excluded = false
 			inFlight.current = false
 			setStarting(false)
 		}
-	}, [buildBody, cartKeys, messageFor, onRecipientRequired, openCharge, openCpf, purchaseKey, refreshEligibility, surface, t])
+	}, [buildBody, cartKeys, estimate, messageFor, offer, onRecipientRequired, openCharge, openCpf, purchaseKey, refreshEligibility, surface, t])
 
 	const price = offer.kind === 'ready' ? formatBrl(offer.quote.totalBrl) : ''
 
