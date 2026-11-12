@@ -1,6 +1,6 @@
 /**
- * Qué líneas del carrito paga cada cobro: al pagarse salen esas, no las que haya en el carrito, lo
- * pagado sin el QR delante también sale, y un cobro cuya respuesta se perdió recupera las suyas.
+ * Qué líneas del carrito paga cada cobro: al pagarse salen esas, no las que haya en el carrito, y
+ * lo pagado sin el QR delante también sale, sin perder el resto del carrito guardado.
  * @jest-environment node
  */
 // Un disco propio, compartido por cada arranque de la app que simula `boot`
@@ -21,7 +21,6 @@ jest.mock('../../../api/pixApi', () => ({ pixApi: { getCheckout: jest.fn() } }))
 
 const STORAGE_KEY = '@qppixcart:v1'
 const CART_KEY = '@qpmarketcart:v1'
-const HOUR = 60 * 60 * 1000
 const item = (uuid) => ({ product_uuid: uuid, qty: 1, title: uuid, price: 10, kind: 'digital', shop_slug: 's', shop_name: 'S', added_at: 1 })
 const cartOnDisk = () => JSON.parse(mockDisk.get(CART_KEY) ?? '[]').map(line => line.product_uuid)
 
@@ -44,8 +43,6 @@ describe('pixCartLines', () => {
 		mockDisk.clear()
 		boot()
 	})
-
-	afterEach(() => { jest.restoreAllMocks() })
 
 	test('pagado saca solo las líneas con las que se creó ese cobro', async () => {
 		// El QR se creó con A; luego se añadió B y volver a pagar reabrió el mismo QR
@@ -92,7 +89,7 @@ describe('pixCartLines', () => {
 	})
 
 	test('lo apuntado antes de leer el disco no pisa lo que ya había', async () => {
-		mockDisk.set(STORAGE_KEY, JSON.stringify({ charges: { c0: ['A:'] }, unconfirmed: null }))
+		mockDisk.set(STORAGE_KEY, JSON.stringify({ c0: ['A:'] }))
 		boot()
 		await cartLines.rememberCartLines('c1', ['B:'])
 		await cartLines.settleCartLines('c0', 'verifying')
@@ -104,16 +101,11 @@ describe('pixCartLines', () => {
 		mockDisk.set(STORAGE_KEY, '{roto')
 		boot()
 		await cartLines.settleCartLines('c0', 'verifying')
-		const at = Date.now()
-		mockDisk.set(STORAGE_KEY, JSON.stringify({ charges: { c0: 'A:', c1: [1], c2: ['C:'] }, unconfirmed: [{ keys: 'A:', at, totalUsd: 1 }, { keys: ['B:'], at }, { keys: ['D:'], at: String(at), totalUsd: 2 }, 'x'] }))
+		mockDisk.set(STORAGE_KEY, JSON.stringify({ c0: 'A:', c1: [1], c2: ['C:'] }))
 		boot()
 		await cartLines.settleCartLines('c0', 'verifying')
 		await cartLines.settleCartLines('c1', 'verifying')
 		await cartLines.settleCartLines('c2', 'verifying')
-		await cartLines.claimCartLines({ uuid: 'm1', surface: 'market', total_usd: 1 })
-		await cartLines.claimCartLines({ uuid: 'm2', surface: 'market', total_usd: 2 })
-		await cartLines.settleCartLines('m1', 'verifying')
-		await cartLines.settleCartLines('m2', 'verifying')
 		expect(removed()).toEqual(['C:'])
 		mockDisk.set(STORAGE_KEY, JSON.stringify(['c0']))
 		boot()
@@ -136,126 +128,6 @@ describe('pixCartLines', () => {
 		await cartLines.settleCartLines('c1', 'verifying')
 		await cartLines.settleCartLines('c20', 'verifying')
 		expect(removed()).toEqual(['P1:', 'P20:'])
-	})
-
-	describe('un cobro cuya respuesta se perdió', () => {
-		const market = (uuid, totalUsd) => ({ uuid, surface: 'market', total_usd: totalUsd })
-
-		test('el 409 del reintento con el mismo importe recupera las líneas del intento', async () => {
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			await cartLines.claimCartLines(market('lost', 10.79))
-			await cartLines.settleCartLines('lost', 'verifying')
-			expect(removed()).toEqual(['A:'])
-		})
-
-		test('un QR que ya estaba abierto (la web) no se las queda: el intento solo recibió su 409', async () => {
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			await cartLines.claimCartLines(market('web', 31.5))
-			await cartLines.settleCartLines('web', 'verifying')
-			expect(removeCartLine).not.toHaveBeenCalled()
-		})
-
-		test('sin importe en el 409 no se arriesga', async () => {
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			await cartLines.claimCartLines({ uuid: 'lost', surface: 'market' })
-			await cartLines.settleCartLines('lost', 'verifying')
-			expect(removeCartLine).not.toHaveBeenCalled()
-		})
-
-		test('con varios intentos, se queda con el que cobra lo mismo', async () => {
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			// Se añadió B y tampoco hubo respuesta; el primero no llegó a salir y este sí creó el QR
-			await cartLines.rememberUnconfirmedCartLines(['A:', 'B:'], 26.97)
-			await cartLines.claimCartLines(market('lost', 26.97))
-			await cartLines.settleCartLines('lost', 'verifying')
-			expect(removed()).toEqual(['A:', 'B:'])
-		})
-
-		test('dos intentos del mismo importe con otras líneas no dicen cuál fue; con las mismas, sí', async () => {
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			await cartLines.rememberUnconfirmedCartLines(['B:'], 10.79)
-			await cartLines.claimCartLines(market('either', 10.79))
-			await cartLines.settleCartLines('either', 'verifying')
-			expect(removeCartLine).not.toHaveBeenCalled()
-
-			await cartLines.rememberUnconfirmedCartLines(['A:', 'B:'], 26.97)
-			await cartLines.rememberUnconfirmedCartLines(['B:', 'A:'], 26.97)
-			await cartLines.claimCartLines(market('retried', 26.97))
-			await cartLines.settleCartLines('retried', 'verifying')
-			expect(removed()).toEqual(['A:', 'B:'])
-		})
-
-		test('sobrevive a que se cierre la app entre el intento y el reintento', async () => {
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			boot()
-			await cartLines.claimCartLines(market('lost', 10.79))
-			await cartLines.settleCartLines('lost', 'verifying')
-			expect(removed()).toEqual(['A:'])
-		})
-
-		test('un QR con líneas apuntadas se queda con las suyas, y los intentos quedan resueltos', async () => {
-			await cartLines.rememberCartLines('known', ['A:'])
-			await cartLines.rememberUnconfirmedCartLines(['A:', 'B:'], 26.97)
-			await cartLines.claimCartLines(market('known', 26.97))
-			await cartLines.claimCartLines(market('web', 26.97))
-			await cartLines.settleCartLines('known', 'verifying')
-			await cartLines.settleCartLines('web', 'verifying')
-			expect(removed()).toEqual(['A:'])
-		})
-
-		test('un QR de otra compra no se las queda, y los intentos quedan resueltos', async () => {
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			await cartLines.claimCartLines({ uuid: 'topup', surface: 'topup', total_usd: 10.79 })
-			await cartLines.claimCartLines(market('web', 10.79))
-			await cartLines.settleCartLines('topup', 'verifying')
-			await cartLines.settleCartLines('web', 'verifying')
-			expect(removeCartLine).not.toHaveBeenCalled()
-		})
-
-		test('un cobro nuevo prueba que los intentos no crearon nada', async () => {
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			await cartLines.rememberCartLines('fresh', [])
-			await cartLines.claimCartLines(market('web', 10.79))
-			await cartLines.settleCartLines('web', 'verifying')
-			expect(removeCartLine).not.toHaveBeenCalled()
-		})
-
-		test('pasada una hora un intento ya no cuenta, ni para casar ni para empatar', async () => {
-			const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000)
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			now.mockReturnValue(1_000_000 + HOUR + 1)
-			await cartLines.claimCartLines(market('web', 10.79))
-			await cartLines.settleCartLines('web', 'verifying')
-			expect(removeCartLine).not.toHaveBeenCalled()
-
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 10.79)
-			now.mockReturnValue(1_000_000 + 2 * HOUR + 2)
-			await cartLines.rememberUnconfirmedCartLines(['B:'], 10.79)
-			await cartLines.claimCartLines(market('lost', 10.79))
-			await cartLines.settleCartLines('lost', 'verifying')
-			expect(removed()).toEqual(['B:'])
-		})
-
-		test('recuerda los 5 últimos intentos', async () => {
-			for (let i = 1; i <= 6; i++) { await cartLines.rememberUnconfirmedCartLines([`P${i}:`], i) }
-			await cartLines.claimCartLines(market('first', 1))
-			await cartLines.settleCartLines('first', 'verifying')
-			expect(removeCartLine).not.toHaveBeenCalled()
-
-			for (let i = 1; i <= 6; i++) { await cartLines.rememberUnconfirmedCartLines([`P${i}:`], i) }
-			await cartLines.claimCartLines(market('second', 2))
-			await cartLines.settleCartLines('second', 'verifying')
-			expect(removed()).toEqual(['P2:'])
-		})
-
-		test('sin líneas o sin importe no se apunta nada', async () => {
-			await cartLines.rememberUnconfirmedCartLines([], 10.79)
-			await cartLines.rememberUnconfirmedCartLines(['A:'], 0)
-			await cartLines.rememberUnconfirmedCartLines(['A:'], NaN)
-			await cartLines.claimCartLines(market('lost', 0))
-			await cartLines.settleCartLines('lost', 'verifying')
-			expect(removeCartLine).not.toHaveBeenCalled()
-		})
 	})
 
 	describe('settlePendingCartLines', () => {
