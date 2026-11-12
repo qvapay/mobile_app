@@ -14,6 +14,7 @@ import { getDateLocale } from '../../../i18n'
 
 // Lógica
 import { PIX_ELIGIBILITY_KEY, usePixEligibilityQuery } from './pixQueries'
+import { rememberCartLines, settlePendingCartLines } from './pixCartLines'
 import { classifyPixCheckoutError, formatBrl, resolvePixOffer } from './pixRules'
 import type { PixOffer } from './pixRules'
 import type { PixCharge, PixSurface } from '../../../types/domain'
@@ -35,7 +36,10 @@ type Args = {
 	buildBody: () => PixPurchaseFields | null | Promise<PixPurchaseFields | null>
 	/** Pantallas que salen al terminar pagado, contando el QR (2 = también el wizard). */
 	doneDepth?: number
-	/** Líneas del carrito que paga este cobro. */
+	/**
+	 * Solo el carrito: las líneas que se mandan. Se apuntan con el cobro al crearlo, porque al
+	 * pagarse salen del carrito esas y no las que haya entonces (ver `pixCartLines`).
+	 */
 	cartKeys?: string[]
 	/** Elegir PIX apaga el descuento en sats: no se aplica a un pago con PIX. */
 	onChoose?: () => void
@@ -91,6 +95,12 @@ export default function usePixPayment({ surface, base, enabled, excluded = false
 		queryClient.invalidateQueries({ queryKey: PIX_ELIGIBILITY_KEY })
 	}, [queryClient])
 
+	// En el carrito, lo que se pagó con PIX sin el QR delante también sale de él
+	const isCart = cartKeys !== undefined
+	useFocusEffect(useCallback(() => {
+		if (isCart) { settlePendingCartLines() }
+	}, [isCart]))
+
 	// Comprar GOLD o hacer el KYC cambia lo que se ofrece: al volver a la compra se pregunta otra vez
 	const asking = enabled && !excluded
 	useFocusEffect(useCallback(() => {
@@ -113,13 +123,8 @@ export default function usePixPayment({ surface, base, enabled, excluded = false
 	}, [navigation])
 
 	const openCharge = useCallback((charge: PixCharge) => {
-		navigation.navigate(ROUTES.PIX_CHECKOUT, {
-			charge,
-			holdHours,
-			doneDepth,
-			...(cartKeys && charge.surface === surface ? { cartKeys } : {}),
-		})
-	}, [cartKeys, doneDepth, holdHours, navigation, surface])
+		navigation.navigate(ROUTES.PIX_CHECKOUT, { charge, holdHours, doneDepth })
+	}, [doneDepth, holdHours, navigation])
 
 	const messageFor = useCallback((code: string | null, fallback: string | undefined) => {
 		const key = `store.pix.errors.${code}`
@@ -135,7 +140,10 @@ export default function usePixPayment({ surface, base, enabled, excluded = false
 			if (!body) { return }
 			const result = await pixApi.createCheckout({ ...body, source: surface })
 			if (result.success) {
-				if (result.data) { openCharge(result.data) }
+				if (result.data) {
+					if (cartKeys) { await rememberCartLines(result.data.uuid, cartKeys) }
+					openCharge(result.data)
+				}
 				return
 			}
 			const failure = classifyPixCheckoutError(result.status, result.details)
@@ -173,7 +181,7 @@ export default function usePixPayment({ surface, base, enabled, excluded = false
 			inFlight.current = false
 			setStarting(false)
 		}
-	}, [buildBody, messageFor, onRecipientRequired, openCharge, openCpf, purchaseKey, refreshEligibility, surface, t])
+	}, [buildBody, cartKeys, messageFor, onRecipientRequired, openCharge, openCpf, purchaseKey, refreshEligibility, surface, t])
 
 	const price = offer.kind === 'ready' ? formatBrl(offer.quote.totalBrl) : ''
 

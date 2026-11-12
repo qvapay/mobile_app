@@ -193,9 +193,10 @@ export type RootStackParamList = {
 	PurchaseDetail: { purchaseId: number | string }
 	/**
 	 * QR de un cobro por PIX. `doneDepth` = pantallas que salen al terminar pagado, contando el QR
-	 * (2 = también el wizard de la compra); `cartKeys` = líneas del carrito que paga.
+	 * (2 = también el wizard de la compra). Las líneas del carrito que paga no viajan aquí: las
+	 * apunta `pixCartLines` al crear el cobro.
 	 */
-	PixCheckout: { charge: PixCharge, holdHours?: number, doneDepth?: number, cartKeys?: string[] }
+	PixCheckout: { charge: PixCharge, holdHours?: number, doneDepth?: number }
 	CpfVerification: undefined
 
 	// ── Marketplace (Seller Shops) ────────────────────────────────────────
