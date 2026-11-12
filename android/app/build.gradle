@@ -109,6 +109,23 @@ def enableProguardInReleaseBuilds = true
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+/**
+ * APK para instalar FUERA de Play (DigitalOcean + GitHub Releases: así llega la app
+ * a Cuba, donde no hay Play Store). Con -PdistApk las .so van COMPRIMIDAS
+ * (useLegacyPackaging: el APK baja unas tres veces menos a cambio de que Android las
+ * descomprima al instalar, unos 20 MB más en disco) y solo entran los idiomas de la
+ * app (es/en/pt; el resto son traducciones de librerías nativas, 14 MB de
+ * resources.arsc). Las arquitecturas NO se eligen aquí: scripts/build-android-apks.sh
+ * hace una pasada por APK con -PreactNativeArchitectures (arm64-v8a, armeabi-v7a y
+ * el universal con las dos). Con `splits { abi }` el universal arrastraba media
+ * docena de .so de x86: el plugin de RN las marca pickFirst y eso gana a cualquier
+ * exclude, y un APK con x86 a medias se instala en un x86 y revienta al abrir.
+ * Ni el AAB ni el build de debug lo ven: Play ya parte por ABI e idioma y prefiere
+ * las .so sin comprimir (su transferencia ya comprime). Por eso bundleRelease y
+ * assembleRelease -PdistApk van en invocaciones de Gradle separadas.
+ */
+def distApk = project.hasProperty("distApk")
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -155,6 +172,16 @@ android {
             // -optimize: R8 además optimiza (inlining, clases/métodos muertos), no solo
             // encoge. Play lo marcaba como "Optimization isn't enabled"
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+    if (distApk) {
+        packaging {
+            jniLibs {
+                useLegacyPackaging = true
+            }
+        }
+        androidResources {
+            localeFilters.addAll(["es", "en", "pt"])
         }
     }
 }

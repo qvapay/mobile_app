@@ -28,9 +28,9 @@ npm run e2e:wallet       # E2E Maestro de la wallet sin cuenta (.maestro/, ver s
 
 # Release (Android)
 npm run android:bundle      # Bundle release AAB
-npm run android:apk         # Build release APK
-npm run android:release     # Bundle + APK
-npm run android:apk:release # Full release script (scripts/release-android.sh)
+npm run android:apk         # APKs fuera de Play (scripts/build-android-apks.sh → android/app/build/outputs/apk/dist/): arm64-v8a ~52 MB, armeabi-v7a ~49 MB y universal solo ARM ~70 MB (era 1 APK de 314 MB con 4 ABIs). Una pasada de Gradle por APK con -PreactNativeArchitectures + -PdistApk (.so comprimidas, solo es/en/pt). Nunca `splits { abi }`: los pickFirst del plugin de RN ganan a los exclude y el universal arrastraba .so de x86 a medias
+npm run android:release     # Bundle + APKs (invocaciones separadas: -PdistApk y el filtro de ABIs nunca llegan al AAB)
+npm run android:apk:release # Full release script (scripts/release-android.sh): sube los 3 APK a DO Spaces (el universal conserva el nombre QvaPay<versionCode>.apk) + GitHub Release
 npm run android:publish[:internal|:production]  # gradle publishBundle to Play tracks
 
 # Utilities
