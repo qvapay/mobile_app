@@ -14,7 +14,7 @@ import { getDateLocale } from '../../../i18n'
 
 // Lógica
 import { PIX_ELIGIBILITY_KEY, usePixEligibilityQuery } from './pixQueries'
-import { rememberCartLines, settlePendingCartLines } from './pixCartLines'
+import { claimCartLines, rememberCartLines, rememberUnconfirmedCartLines, settlePendingCartLines } from './pixCartLines'
 import { classifyPixCheckoutError, formatBrl, resolvePixOffer } from './pixRules'
 import type { PixOffer } from './pixRules'
 import type { PixCharge, PixSurface } from '../../../types/domain'
@@ -141,14 +141,17 @@ export default function usePixPayment({ surface, base, enabled, excluded = false
 			const result = await pixApi.createCheckout({ ...body, source: surface })
 			if (result.success) {
 				if (result.data) {
-					if (cartKeys) { await rememberCartLines(result.data.uuid, cartKeys) }
+					await rememberCartLines(result.data.uuid, cartKeys ?? [])
 					openCharge(result.data)
 				}
 				return
 			}
+			// Sin respuesta, o con un 5xx, el cobro pudo crearse: el reintento lo recibirá en un 409
+			if (cartKeys && (result.status === undefined || result.status >= 500)) { await rememberUnconfirmedCartLines(cartKeys) }
 			const failure = classifyPixCheckoutError(result.status, result.details)
 			switch (failure.kind) {
 				case 'open':
+					await claimCartLines(failure.charge)
 					openCharge(failure.charge)
 					break
 				case 'cap': {

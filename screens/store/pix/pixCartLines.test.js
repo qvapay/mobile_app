@@ -1,6 +1,6 @@
 /**
- * Qué líneas del carrito paga cada cobro: al pagarse salen esas, no las que haya en el carrito, y
- * lo pagado sin el QR delante también sale.
+ * Qué líneas del carrito paga cada cobro: al pagarse salen esas, no las que haya en el carrito, lo
+ * pagado sin el QR delante también sale, y un cobro cuya respuesta se perdió recupera las suyas.
  * @jest-environment node
  */
 // Un disco propio, compartido por cada arranque de la app que simula `boot`
@@ -12,10 +12,18 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 		setItem: jest.fn(async (key, value) => { mockDisk.set(key, String(value)) }),
 	},
 }))
-jest.mock('../market/marketCartStore', () => ({ remove: jest.fn() }))
+// El carrito de verdad sobre ese disco, con `remove` espiado
+jest.mock('../market/marketCartStore', () => {
+	const actual = jest.requireActual('../market/marketCartStore')
+	return { ...actual, remove: jest.fn(actual.remove) }
+})
 jest.mock('../../../api/pixApi', () => ({ pixApi: { getCheckout: jest.fn() } }))
 
 const STORAGE_KEY = '@qppixcart:v1'
+const CART_KEY = '@qpmarketcart:v1'
+const HOUR = 60 * 60 * 1000
+const item = (uuid) => ({ product_uuid: uuid, qty: 1, title: uuid, price: 10, kind: 'digital', shop_slug: 's', shop_name: 'S', added_at: 1 })
+const cartOnDisk = () => JSON.parse(mockDisk.get(CART_KEY) ?? '[]').map(line => line.product_uuid)
 
 describe('pixCartLines', () => {
 	let cartLines
@@ -36,6 +44,8 @@ describe('pixCartLines', () => {
 		mockDisk.clear()
 		boot()
 	})
+
+	afterEach(() => { jest.restoreAllMocks() })
 
 	test('pagado saca solo las líneas con las que se creó ese cobro', async () => {
 		// El QR se creó con A; luego se añadió B y volver a pagar reabrió el mismo QR
@@ -82,7 +92,7 @@ describe('pixCartLines', () => {
 	})
 
 	test('lo apuntado antes de leer el disco no pisa lo que ya había', async () => {
-		mockDisk.set(STORAGE_KEY, JSON.stringify({ c0: ['A:'] }))
+		mockDisk.set(STORAGE_KEY, JSON.stringify({ charges: { c0: ['A:'] }, unconfirmed: null }))
 		boot()
 		await cartLines.rememberCartLines('c1', ['B:'])
 		await cartLines.settleCartLines('c0', 'verifying')
@@ -94,12 +104,25 @@ describe('pixCartLines', () => {
 		mockDisk.set(STORAGE_KEY, '{roto')
 		boot()
 		await cartLines.settleCartLines('c0', 'verifying')
-		mockDisk.set(STORAGE_KEY, JSON.stringify({ c0: 'A:', c1: [1], c2: ['C:'] }))
+		mockDisk.set(STORAGE_KEY, JSON.stringify({ charges: { c0: 'A:', c1: [1], c2: ['C:'] }, unconfirmed: { keys: 'A:', at: 1 } }))
 		boot()
 		await cartLines.settleCartLines('c0', 'verifying')
 		await cartLines.settleCartLines('c1', 'verifying')
 		await cartLines.settleCartLines('c2', 'verifying')
 		expect(removed()).toEqual(['C:'])
+		mockDisk.set(STORAGE_KEY, JSON.stringify(['c0']))
+		boot()
+		await cartLines.settleCartLines('c0', 'verifying')
+		expect(removed()).toEqual([])
+	})
+
+	test('recién abierta la app no borra lo demás del carrito guardado', async () => {
+		// QR de A reabierto desde una gift card antes de que nada haya leído el carrito
+		mockDisk.set(CART_KEY, JSON.stringify([item('pA'), item('pB')]))
+		await cartLines.rememberCartLines('c0', ['pA:'])
+		boot()
+		await cartLines.settleCartLines('c0', 'verifying')
+		expect(cartOnDisk()).toEqual(['pB'])
 	})
 
 	test('se quedan los 20 cobros más recientes', async () => {
@@ -108,6 +131,75 @@ describe('pixCartLines', () => {
 		await cartLines.settleCartLines('c1', 'verifying')
 		await cartLines.settleCartLines('c20', 'verifying')
 		expect(removed()).toEqual(['P1:', 'P20:'])
+	})
+
+	describe('un cobro cuya respuesta se perdió', () => {
+		test('el 409 del reintento recupera las líneas del intento sin respuesta', async () => {
+			await cartLines.rememberUnconfirmedCartLines(['A:'])
+			await cartLines.claimCartLines({ uuid: 'lost', surface: 'market' })
+			await cartLines.settleCartLines('lost', 'verifying')
+			expect(removed()).toEqual(['A:'])
+		})
+
+		test('si hubo varios intentos sin respuesta, se queda el primero', async () => {
+			await cartLines.rememberUnconfirmedCartLines(['A:'])
+			// Se añadió B y tampoco hubo respuesta: con el QR de A abierto, este solo pudo recibir el 409
+			await cartLines.rememberUnconfirmedCartLines(['A:', 'B:'])
+			await cartLines.claimCartLines({ uuid: 'lost', surface: 'market' })
+			await cartLines.settleCartLines('lost', 'verifying')
+			expect(removed()).toEqual(['A:'])
+		})
+
+		test('sobrevive a que se cierre la app entre el intento y el reintento', async () => {
+			await cartLines.rememberUnconfirmedCartLines(['A:'])
+			boot()
+			await cartLines.claimCartLines({ uuid: 'lost', surface: 'market' })
+			await cartLines.settleCartLines('lost', 'verifying')
+			expect(removed()).toEqual(['A:'])
+		})
+
+		test('un QR con líneas apuntadas se queda con las suyas, y el intento queda resuelto', async () => {
+			await cartLines.rememberCartLines('known', ['A:'])
+			await cartLines.rememberUnconfirmedCartLines(['A:', 'B:'])
+			await cartLines.claimCartLines({ uuid: 'known', surface: 'market' })
+			await cartLines.claimCartLines({ uuid: 'web', surface: 'market' })
+			await cartLines.settleCartLines('known', 'verifying')
+			await cartLines.settleCartLines('web', 'verifying')
+			expect(removed()).toEqual(['A:'])
+		})
+
+		test('un QR de otra compra no se las queda, y el intento queda resuelto', async () => {
+			await cartLines.rememberUnconfirmedCartLines(['A:'])
+			await cartLines.claimCartLines({ uuid: 'topup', surface: 'topup' })
+			await cartLines.claimCartLines({ uuid: 'web', surface: 'market' })
+			await cartLines.settleCartLines('topup', 'verifying')
+			await cartLines.settleCartLines('web', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
+		})
+
+		test('un cobro nuevo prueba que el intento no creó nada', async () => {
+			await cartLines.rememberUnconfirmedCartLines(['A:'])
+			await cartLines.rememberCartLines('fresh', [])
+			await cartLines.claimCartLines({ uuid: 'web', surface: 'market' })
+			await cartLines.settleCartLines('web', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
+		})
+
+		test('pasada una hora ya no se usa, y entonces vale uno nuevo', async () => {
+			const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000)
+			await cartLines.rememberUnconfirmedCartLines(['A:'])
+			now.mockReturnValue(1_000_000 + HOUR + 1)
+			await cartLines.claimCartLines({ uuid: 'web', surface: 'market' })
+			await cartLines.settleCartLines('web', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
+
+			await cartLines.rememberUnconfirmedCartLines(['A:'])
+			now.mockReturnValue(1_000_000 + 2 * HOUR + 2)
+			await cartLines.rememberUnconfirmedCartLines(['B:'])
+			await cartLines.claimCartLines({ uuid: 'lost', surface: 'market' })
+			await cartLines.settleCartLines('lost', 'verifying')
+			expect(removed()).toEqual(['B:'])
+		})
 	})
 
 	describe('settlePendingCartLines', () => {

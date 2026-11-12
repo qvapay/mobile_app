@@ -16,7 +16,7 @@ jest.mock('../../../api/pixApi', () => ({ pixApi: { getCheckout: jest.fn(), canc
 jest.mock('../../../hooks/useMaxBrightness', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('../../../hooks/useContentPadding', () => ({ __esModule: true, default: () => ({ paddingBottom: 0 }) }))
 jest.mock('../../../helpers', () => ({ copyTextToClipboard: jest.fn() }))
-jest.mock('../market/marketCartStore', () => ({ remove: jest.fn() }))
+jest.mock('../market/marketCartStore', () => ({ remove: jest.fn(), hydrate: jest.fn(async () => {}) }))
 jest.mock('../storeQueries', () => ({ MY_PURCHASES_KEY: ['store', 'my-purchases'] }))
 jest.mock('../../../theme/ThemeContext', () => {
 	const { createTheme } = require('../../../theme/themeTokens')

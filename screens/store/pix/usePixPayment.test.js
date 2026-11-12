@@ -14,7 +14,7 @@ jest.mock('@react-navigation/native', () => ({
 }))
 jest.mock('sonner-native', () => ({ toast: { error: jest.fn() } }))
 jest.mock('../../../api/pixApi', () => ({ pixApi: { getEligibility: jest.fn(), createCheckout: jest.fn(), getCheckout: jest.fn() } }))
-jest.mock('../market/marketCartStore', () => ({ remove: jest.fn() }))
+jest.mock('../market/marketCartStore', () => ({ remove: jest.fn(), hydrate: jest.fn(async () => {}) }))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
@@ -238,6 +238,73 @@ describe('usePixPayment', () => {
 			await refocus()
 			await settle()
 			expect(pixApi.getCheckout).not.toHaveBeenCalled()
+		})
+
+		test('si la respuesta se perdió, el 409 del reintento saca lo que se pagó', async () => {
+			const charge = { ...CHARGE, uuid: 'm7', surface: 'market' }
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			// El servidor creó m7, pero la respuesta no llegó
+			pixApi.createCheckout.mockResolvedValue({ success: false, error: 'timeout of 30000ms exceeded' })
+			await render({ surface: 'market', cartKeys: ['a:'] })
+			await act(async () => { await pix.pay() })
+			expect(navigate).not.toHaveBeenCalled()
+
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
+			await act(async () => { await pix.pay() })
+			expect(navigate).toHaveBeenCalledWith('PixCheckout', { charge, holdHours: 72, doneDepth: 1 })
+			await settleCartLines('m7', 'verifying')
+			expect(removed()).toEqual(['a:'])
+		})
+
+		test('si la respuesta se perdió y luego se añadió algo, sale solo lo del intento', async () => {
+			const charge = { ...CHARGE, uuid: 'm8', surface: 'market' }
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 504, error: 'Gateway Timeout' })
+			await render({ surface: 'market', cartKeys: ['a:'], base: 10 })
+			await act(async () => { await pix.pay() })
+
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
+			await rerender({ surface: 'market', cartKeys: ['a:', 'b:'], base: 25 })
+			await act(async () => { await pix.pay() })
+			await settleCartLines('m8', 'verifying')
+			expect(removed()).toEqual(['a:'])
+		})
+
+		test('un rechazo con respuesta no se toma por un cobro creado', async () => {
+			const charge = { ...CHARGE, uuid: 'm9', surface: 'market' }
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 429, error: 'Too many requests, please wait' })
+			await render({ surface: 'market', cartKeys: ['a:'] })
+			await act(async () => { await pix.pay() })
+
+			// Un QR abierto sin líneas apuntadas que no salió de aquí (la web, otro teléfono)
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
+			await act(async () => { await pix.pay() })
+			await settleCartLines('m9', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
+		})
+
+		test('un cobro creado desde otra compra prueba que el intento perdido no creó nada', async () => {
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: { ...ELIGIBLE, surfaces: ['market', 'voucher'] } })
+			pixApi.createCheckout.mockResolvedValue({ success: false, error: 'Network Error' })
+			await render({ surface: 'market', cartKeys: ['a:'] })
+			await act(async () => { await pix.pay() })
+			await act(async () => { tree.unmount() })
+			client.clear()
+
+			// Una gift card crea su QR: no había ninguno abierto
+			pixApi.createCheckout.mockResolvedValue({ success: true, data: { ...CHARGE, uuid: 'v1', surface: 'voucher' } })
+			await render({ surface: 'voucher' })
+			await act(async () => { await pix.pay() })
+			await act(async () => { tree.unmount() })
+			client.clear()
+
+			const charge = { ...CHARGE, uuid: 'm10', surface: 'market' }
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
+			await render({ surface: 'market', cartKeys: ['a:'] })
+			await act(async () => { await pix.pay() })
+			await settleCartLines('m10', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
 		})
 
 		test('una compra que no es del carrito no apunta líneas', async () => {
