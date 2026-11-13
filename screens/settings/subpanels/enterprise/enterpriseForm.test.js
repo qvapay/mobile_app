@@ -36,6 +36,7 @@ const VALID_US = {
 	addrZip: '33101',
 	directorName: 'Juan Pérez',
 	email: 'juan@acme.com',
+	phone: '+1 305 555 0100',
 }
 
 const owner = (fields) => ({ ...EMPTY_FORM.owners[0], ...fields })
@@ -50,6 +51,7 @@ const VALID_CU = {
 	owners: [owner({ id: 0, name: 'Ana García', pct: '60' }), owner({ id: 1, name: 'Luis Soto', pct: '40' })],
 	directorName: 'Ana García',
 	email: 'ana@pyme.cu',
+	phone: '+53 5 1234567',
 }
 
 const VALID_TCP = {
@@ -62,6 +64,7 @@ const VALID_TCP = {
 	taxId: '12345678901',
 	directorName: 'Pedro Pérez',
 	email: 'pedro@correo.cu',
+	phone: '51234567',
 }
 
 const PDF = { name: 'estatutos.pdf', size: 1024 * 1024, uri: 'file:///estatutos.pdf' }
@@ -217,6 +220,18 @@ describe('validateContactStep', () => {
 		expect(validateContactStep(VALID_US, PDF)).toBeNull()
 	})
 
+	test('requires a contact phone that can be a phone number', () => {
+		const message = 'Escribe un teléfono de contacto válido, con el prefijo del país.'
+		expect(validateContactStep({ ...VALID_US, phone: '' }, PDF)).toBe(message)
+		expect(validateContactStep({ ...VALID_US, phone: '   ' }, PDF)).toBe(message)
+		expect(validateContactStep({ ...VALID_US, phone: '12345' }, PDF)).toBe(message)
+		expect(validateContactStep({ ...VALID_US, phone: 'llamar al 5 1234567' }, PDF)).toBe(message)
+		expect(validateContactStep({ ...VALID_US, phone: '+1234567890123456' }, PDF)).toBe(message)
+		expect(validateContactStep({ ...VALID_TCP, phone: '' }, null)).toBe(message)
+		expect(validateContactStep({ ...VALID_US, phone: '(305) 555-0100' }, PDF)).toBeNull()
+		expect(validateContactStep(VALID_TCP, null)).toBeNull()
+	})
+
 	test('rejects bad email, missing file and oversized file', () => {
 		expect(validateContactStep({ ...VALID_US, email: 'nope' }, PDF)).toMatch(/email/)
 		expect(validateContactStep(VALID_US, null)).toMatch(/PDF/)
@@ -246,6 +261,11 @@ describe('buildRegisterFields', () => {
 			addrCity: 'Miami', addrState: 'FL', addrZip: '33101',
 		})
 		expect(fields.reeup).toBeUndefined()
+	})
+
+	test('every payload carries the trimmed contact phone', () => {
+		expect(buildRegisterFields({ ...VALID_US, phone: '  +1 305 555 0100 ' }).phone).toBe('+1 305 555 0100')
+		expect(buildRegisterFields(VALID_TCP).phone).toBe('51234567')
 	})
 
 	test('CU payload carries the NIT and the owners, but no US fields and no REEUP', () => {

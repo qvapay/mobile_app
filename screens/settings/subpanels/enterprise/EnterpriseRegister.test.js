@@ -78,6 +78,7 @@ const fillTcpStepOne = async () => {
 const fillTcpContact = async () => {
 	await type('Juan Pérez García', 'Pedro Pérez')
 	await type('tu@correo.com', 'pedro@correo.cu')
+	await type('+53 5 1234567', '+53 5 7654321')
 }
 
 const fillBusinessStepOne = async () => {
@@ -89,6 +90,7 @@ const fillBusinessStepOne = async () => {
 const fillBusinessContact = async () => {
 	await type('Juan Pérez García', 'Juan Pérez')
 	await type('director@empresa.com', 'juan@empresa.com')
+	await type('+53 5 1234567', '+53 5 1234567')
 }
 
 const selectCountry = async (code) => {
@@ -165,6 +167,7 @@ describe('rama cuenta propia', () => {
 			employeeCount: '1-10',
 			directorName: 'Pedro Pérez',
 			email: 'pedro@correo.cu',
+			phone: '+53 5 7654321',
 		})
 		expect(toast.success).toHaveBeenCalled()
 		expect(navigation.goBack).toHaveBeenCalled()
@@ -299,6 +302,7 @@ describe('socios', () => {
 			employeeCount: '1-10',
 			directorName: 'Juan Pérez',
 			email: 'juan@empresa.com',
+			phone: '+53 5 1234567',
 			owners: JSON.stringify([
 				{ name: 'Ana García', pct: 60.5, email: 'ana@pyme.cu', username: null },
 				{ name: 'Luis Soto', pct: 39.5, email: null, username: 'luis' },
