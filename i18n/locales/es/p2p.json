@@ -349,6 +349,7 @@
 			"message": "Perfil P2P de @{{username}} en QvaPay: {{url}}"
 		},
 		"notAvailable": "Perfil no disponible",
+		"usernameNotFound": "No encontramos a @{{username}} en QvaPay",
 		"chips": {
 			"phone": "Phone"
 		},
