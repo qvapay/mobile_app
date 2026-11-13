@@ -15,8 +15,8 @@ import bs58 from 'bs58'
 import { deriveAddresses, derivePrivateKey } from '../derive'
 import { mnemonicToSeed } from '../seed'
 import { parseTronAccount, tronCommittedSun, tronPowerSun, tronToHex20, tronVotesUsed } from '../chains/tron'
-import { concatBytes, encodeBytesField, encodeVarintField, hexToBytes } from './protobuf'
-import { decodeTronRaw, tronTxId, TronVerifyError, TRON_STAKE_CONTRACT_TYPES, TRON_TX_VALIDITY_MS } from './tx'
+import { bytesToHex, concatBytes, encodeBytesField, encodeVarintField, hexToBytes } from './protobuf'
+import { decodeTronRaw, encodeDecodedTronRaw, tronTxId, TronVerifyError, TRON_STAKE_CONTRACT_TYPES, TRON_TX_VALIDITY_MS } from './tx'
 import {
 	broadcastTronStake,
 	buildLocalVoteTx,
@@ -129,6 +129,12 @@ describe('decodificador contra tx reales de mainnet', () => {
 	test('un type_url que no corresponde al código se rechaza', () => {
 		const forged = REAL.claim.raw.replace('576974686472617742616c616e6365', '576974686472617742616c616e6366')
 		expect(() => decodeTronRaw(forged)).toThrow(TronVerifyError)
+	})
+
+	test('las cinco son canónicas: decodificar y volver a codificar da los mismos bytes', () => {
+		// Es lo que exige `decodeTronRaw` antes de dejar firmar: si java-tron escribiera estos
+		// contratos de otra forma, aquí se vería antes de rechazar una tx honrada
+		Object.values(REAL).forEach(({ raw }) => expect(bytesToHex(encodeDecodedTronRaw(decodeTronRaw(raw)))).toBe(raw))
 	})
 
 	test('el voto construido EN LA APP es byte a byte el de mainnet', () => {
@@ -288,6 +294,20 @@ describe('stake = congelar + votar en un PIN', () => {
 		await expect(prepareTronStake(RPC, { action: 'stake', owner: OWNER, amount: 100_000_000n, sr: P2P })).rejects.toThrow('congelado distinto')
 	})
 
+	test('un congelado con el importe REPETIDO (100 TRX a la vista, 499 en la red) no llega a prepararse', async () => {
+		// protobuf ejecuta el último valor de un campo singular repetido: la red congelaría 499 TRX 14 días
+		mockNode({ '/wallet/freezebalancev2': ({ owner_address, frozen_balance }) => nodeTx('FreezeBalanceV2Contract', concatBytes(freezeValue(owner_address, BigInt(frozen_balance)), encodeVarintField(2, 499_000_000n))) })
+		const err = await prepareTronStake(RPC, { action: 'stake', owner: OWNER, amount: 100_000_000n, sr: P2P }).catch(e => e)
+		expect(err).toBeInstanceOf(TronVerifyError)
+		expect(err.message).toMatch(/FreezeBalanceV2Contract trae el campo 2 repetido/)
+	})
+
+	test('un congelado con un campo de más no llega a prepararse', async () => {
+		// FreezeBalanceV2 no tiene campo 4: lo que venga ahí la wallet no lo ha leído, así que no se firma
+		mockNode({ '/wallet/freezebalancev2': ({ owner_address, frozen_balance }) => nodeTx('FreezeBalanceV2Contract', concatBytes(freezeValue(owner_address, BigInt(frozen_balance)), encodeBytesField(4, hexToBytes(`41${hex20(NANSEN)}`)))) })
+		await expect(prepareTronStake(RPC, { action: 'stake', owner: OWNER, amount: 100_000_000n, sr: P2P })).rejects.toThrow(/campo 4, que no se admite/)
+	})
+
 	test('votos manipulados después de preparar: la firma se niega', async () => {
 		mockNode()
 		const prepared = await prepareTronStake(RPC, { action: 'stake', owner: OWNER, amount: 100_000_000n, sr: P2P })
@@ -359,6 +379,26 @@ describe('cobrar, votar, descongelar y retirar', () => {
 		expect(prepared.txs.map(t => t.step)).toEqual(['vote'])
 		mockNode()
 		await expect(prepareTronStake(RPC, { action: 'vote', owner: OWNER, sr: NANSEN })).rejects.toThrow('TRON Power')
+	})
+
+	test('votar: un voto del nodo con OTRO SR escondido detrás del elegido no pasa', async () => {
+		const sr = (address) => encodeBytesField(1, hexToBytes(`41${hex20(address)}`))
+		// Vote { SR elegido, votos, SR del atacante }: leído al principio es el bueno; la red vota al último
+		const hidden = (owner, votes) => concatBytes(ownerField(owner), ...votes.map(v => encodeBytesField(2, concatBytes(sr(v.vote_address), encodeVarintField(2, BigInt(v.vote_count)), sr(P2P)))))
+		mockNode({
+			'/wallet/getaccount': ({ address }) => (address === OWNER ? ACCOUNT({ frozenV2: [{}, { type: 'ENERGY', amount: 7_500_000 }] }) : { is_witness: true }),
+			'/wallet/votewitnessaccount': ({ owner_address, votes }) => nodeTx('VoteWitnessContract', hidden(owner_address, votes)),
+		})
+		const err = await prepareTronStake(RPC, { action: 'vote', owner: OWNER, sr: NANSEN }).catch(e => e)
+		expect(err).toBeInstanceOf(TronVerifyError)
+		expect(err.message).toMatch(/Vote trae el campo 1 repetido/)
+	})
+
+	test('firmar: una tx manipulada después de preparar (campo repetido) no se firma', async () => {
+		mockNode()
+		const prepared = await prepareTronStake(RPC, { action: 'claim', owner: OWNER }, { now: () => 10 })
+		const tampered = nodeTx('WithdrawBalanceContract', concatBytes(ownerField(OWNER), ownerField(NANSEN)))
+		expect(() => signTronStake({ ...prepared, txs: [{ ...prepared.txs[0], tx: tampered }] }, PRIV)).toThrow(TronVerifyError)
 	})
 
 	test('descongelar: del recurso elegido, sin pasarse, 14 días de espera y aviso de votos', async () => {

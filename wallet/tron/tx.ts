@@ -8,7 +8,10 @@
  *      banda. NO se confía en el JSON que devuelve: se decodifica
  *      `raw_data_hex` con nuestro lector protobuf, se comprueba que destino,
  *      cantidad, contrato y owner son EXACTAMENTE los pedidos y se recalcula
- *      `txID = sha256(raw_data)`.
+ *      `txID = sha256(raw_data)`. Decodificar es ESTRICTO (`decodeTronRaw`): los
+ *      bytes que se firman tienen que ser la codificación canónica de lo que se
+ *      verificó, sin un campo repetido ni uno de más, o un nodo podría enseñar
+ *      una cosa a la app y hacer que la red ejecute otra.
  *   2. `signTronTransaction`: firma el txID con secp256k1 (r‖s‖27+recovery,
  *      convención java-tron/tronweb, verificada contra una firma real).
  *   3. `broadcastTronTransaction`: `/wallet/broadcasthex` con la envoltura
@@ -30,11 +33,14 @@ import {
 	bytesOf,
 	bytesToHex,
 	concatBytes,
-	decodeFields,
+	decodeExact,
 	encodeBytesField,
+	encodeVarintField,
+	equalBytes,
 	hexToBytes,
 	varintOf,
 } from './protobuf'
+import type { ProtoField, ProtoShape } from './protobuf'
 
 /** Filtro para `router.call`: solo nodos HTTP de java-tron/TronGrid. */
 export const TRON_TX_RPC = (rpc: RegistryRpc): boolean => rpc.api !== 'jsonrpc'
@@ -96,7 +102,8 @@ export type DecodedTronContract =
 	| { type: 'CancelAllUnfreezeV2Contract', owner: string }
 	| { type: 'VoteWitnessContract', owner: string, votes: Array<{ address: string, count: bigint }>, support: boolean }
 	| { type: 'WithdrawBalanceContract', owner: string }
-	| { type: 'Unknown', typeCode: bigint }
+
+type TronContractType = DecodedTronContract['type']
 
 export type DecodedTronRaw = {
 	refBlockBytes: string
@@ -117,7 +124,16 @@ export const TRON_STAKE_CONTRACT_TYPES = {
 	CancelAllUnfreezeV2Contract: 59n,
 } as const
 
-const STAKE_TYPE_BY_CODE = new Map<bigint, string>(Object.entries(TRON_STAKE_CONTRACT_TYPES).map(([name, code]) => [code, name]))
+/** Los ÚNICOS contratos que esta wallet sabe leer, y por tanto los únicos que firma. */
+const CONTRACT_CODES: Record<TronContractType, bigint> = {
+	TransferContract: CONTRACT_TYPE_TRANSFER,
+	TriggerSmartContract: CONTRACT_TYPE_TRIGGER_SMART,
+	...TRON_STAKE_CONTRACT_TYPES,
+}
+
+const CONTRACT_BY_CODE = new Map<bigint, TronContractType>((Object.entries(CONTRACT_CODES) as Array<[TronContractType, bigint]>).map(([name, code]) => [code, name]))
+
+const typeUrlOf = (type: TronContractType): string => `type.googleapis.com/protocol.${type}`
 
 const RESOURCES: TronStakeResource[] = ['BANDWIDTH', 'ENERGY', 'TRON_POWER']
 
@@ -128,6 +144,7 @@ const resourceFrom = (code: bigint): TronStakeResource => {
 }
 
 const ascii = (bytes: Uint8Array): string => String.fromCharCode(...bytes)
+const asciiBytes = (text: string): Uint8Array => Uint8Array.from(text, ch => ch.charCodeAt(0))
 
 /** Bytes 0x41+20 → hex20 (lo que compara `tronToHex20`). */
 const addressBytesToHex20 = (bytes: Uint8Array): string => {
@@ -135,69 +152,178 @@ const addressBytesToHex20 = (bytes: Uint8Array): string => {
 	return bytesToHex(bytes.slice(1))
 }
 
-/**
- * Decodifica `raw_data_hex` (protocol.Transaction.raw). Campos:
- * 1 ref_block_bytes · 4 ref_block_hash · 8 expiration · 11 contract (rep.) ·
- * 14 timestamp · 18 fee_limit. Contract: 1 type · 2 parameter (Any: 1
- * type_url · 2 value). TransferContract: 1 owner · 2 to · 3 amount.
- * TriggerSmartContract: 1 owner · 2 contract · 3 call_value · 4 data.
- */
-export const decodeTronRaw = (rawHex: string): DecodedTronRaw => {
-	const fields = decodeFields(hexToBytes(rawHex))
-	const contracts = allBytesOf(fields, 11).map(contractBytes => {
-		const contract = decodeFields(contractBytes)
-		const typeCode = varintOf(contract, 1)
-		const any = decodeFields(bytesOf(contract, 2))
-		const value = decodeFields(bytesOf(any, 2))
-		if (typeCode === CONTRACT_TYPE_TRANSFER) {
-			return { type: 'TransferContract' as const, owner: addressBytesToHex20(bytesOf(value, 1)), to: addressBytesToHex20(bytesOf(value, 2)), amount: varintOf(value, 3) }
-		}
-		if (typeCode === CONTRACT_TYPE_TRIGGER_SMART) {
-			return { type: 'TriggerSmartContract' as const, owner: addressBytesToHex20(bytesOf(value, 1)), contract: addressBytesToHex20(bytesOf(value, 2)), callValue: varintOf(value, 3), data: bytesToHex(bytesOf(value, 4)) }
-		}
-		const stakeType = STAKE_TYPE_BY_CODE.get(typeCode)
-		if (stakeType) {
-			// El Any debe declarar el MISMO tipo que el código: un nodo no puede disfrazar un contrato de otro
-			if (ascii(bytesOf(any, 1)) !== `type.googleapis.com/protocol.${stakeType}`) throw new TronVerifyError(`type_url no corresponde a ${stakeType}`)
-			return decodeStakeContract(stakeType as keyof typeof TRON_STAKE_CONTRACT_TYPES, value)
-		}
-		return { type: 'Unknown' as const, typeCode }
-	})
-	return {
-		refBlockBytes: bytesToHex(bytesOf(fields, 1)),
-		refBlockHash: bytesToHex(bytesOf(fields, 4)),
-		expiration: varintOf(fields, 8),
-		timestamp: varintOf(fields, 14),
-		feeLimit: varintOf(fields, 18),
-		contracts,
-	}
+const hex20ToAddressBytes = (hex20: string): Uint8Array => hexToBytes(`41${hex20}`)
+
+// --- Forma exacta de cada mensaje (los .proto de java-tron) ---------------------------
+//
+// Lo que NO está aquí no se firma. Fuera a propósito, porque esta wallet nunca los pide y
+// un nodo que los añada está construyendo OTRA transacción: `Transaction.raw.data` (memo,
+// campo 10), `Contract.Permission_id` (5), y `call_token_value`/`token_id` (5 y 6) de
+// `TriggerSmartContract`, que moverían un TRC-10 del usuario junto a la llamada.
+
+const VARINT = { wire: 0 } as const
+const BYTES = { wire: 2 } as const
+const REPEATED = { wire: 2, repeated: true } as const
+
+/** Transaction.raw: 1 ref_block_bytes · 4 ref_block_hash · 8 expiration · 11 contract (rep.) · 14 timestamp · 18 fee_limit. */
+const RAW_SHAPE: ProtoShape = { 1: BYTES, 4: BYTES, 8: VARINT, 11: REPEATED, 14: VARINT, 18: VARINT }
+/** Transaction.Contract: 1 type · 2 parameter (google.protobuf.Any). */
+const CONTRACT_SHAPE: ProtoShape = { 1: VARINT, 2: BYTES }
+/** Any: 1 type_url · 2 value. */
+const ANY_SHAPE: ProtoShape = { 1: BYTES, 2: BYTES }
+/** VoteWitnessContract.Vote: 1 vote_address · 2 vote_count. */
+const VOTE_SHAPE: ProtoShape = { 1: BYTES, 2: VARINT }
+const OWNER_ONLY: ProtoShape = { 1: BYTES }
+
+/** owner_address = 1 en todos (core/contract/{balance,smart,witness}_contract.proto). */
+const VALUE_SHAPES: Record<TronContractType, ProtoShape> = {
+	/** 2 to_address · 3 amount */
+	TransferContract: { 1: BYTES, 2: BYTES, 3: VARINT },
+	/** 2 contract_address · 3 call_value · 4 data */
+	TriggerSmartContract: { 1: BYTES, 2: BYTES, 3: VARINT, 4: BYTES },
+	/** 2 frozen_balance · 3 resource (0 BANDWIDTH se omite) */
+	FreezeBalanceV2Contract: { 1: BYTES, 2: VARINT, 3: VARINT },
+	/** 2 unfreeze_balance · 3 resource */
+	UnfreezeBalanceV2Contract: { 1: BYTES, 2: VARINT, 3: VARINT },
+	WithdrawExpireUnfreezeContract: OWNER_ONLY,
+	CancelAllUnfreezeV2Contract: OWNER_ONLY,
+	/** 2 votes (rep.) · 3 support */
+	VoteWitnessContract: { 1: BYTES, 2: REPEATED, 3: VARINT },
+	WithdrawBalanceContract: OWNER_ONLY,
 }
 
-/**
- * Campos de los contratos de staking (core/contract/balance_contract.proto y
- * witness_contract.proto): owner_address = 1 en todos;
- * Freeze/UnfreezeBalanceV2: 2 cantidad · 3 recurso (0 BANDWIDTH se omite);
- * VoteWitness: 2 votos repetidos {1 SR · 2 votos} · 3 support.
- */
-const decodeStakeContract = (type: keyof typeof TRON_STAKE_CONTRACT_TYPES, value: ReturnType<typeof decodeFields>): DecodedTronContract => {
+/** Todos estos enteros son int64 que nunca van en negativo: con el bit 63 puesto, java-tron leería un número negativo. */
+const INT64_LIMIT = 2n ** 63n
+
+const int64Of = (fields: ProtoField[], field: number): bigint => {
+	const value = varintOf(fields, field)
+	if (value >= INT64_LIMIT) throw new TronVerifyError(`el campo ${field} no cabe en un entero positivo de 64 bits`)
+	return value
+}
+
+const decodeContractValue = (type: TronContractType, bytes: Uint8Array): DecodedTronContract => {
+	const value = decodeExact(bytes, VALUE_SHAPES[type], type)
 	const owner = addressBytesToHex20(bytesOf(value, 1))
 	switch (type) {
+		case 'TransferContract':
+			return { type, owner, to: addressBytesToHex20(bytesOf(value, 2)), amount: int64Of(value, 3) }
+		case 'TriggerSmartContract':
+			return { type, owner, contract: addressBytesToHex20(bytesOf(value, 2)), callValue: int64Of(value, 3), data: bytesToHex(bytesOf(value, 4)) }
 		case 'FreezeBalanceV2Contract':
 		case 'UnfreezeBalanceV2Contract':
-			return { type, owner, amount: varintOf(value, 2), resource: resourceFrom(varintOf(value, 3)) }
+			return { type, owner, amount: int64Of(value, 2), resource: resourceFrom(int64Of(value, 3)) }
 		case 'VoteWitnessContract':
 			return {
 				type,
 				owner,
-				votes: allBytesOf(value, 2).map(bytes => {
-					const vote = decodeFields(bytes)
-					return { address: addressBytesToHex20(bytesOf(vote, 1)), count: varintOf(vote, 2) }
+				votes: allBytesOf(value, 2).map(voteBytes => {
+					const vote = decodeExact(voteBytes, VOTE_SHAPE, 'Vote')
+					return { address: addressBytesToHex20(bytesOf(vote, 1)), count: int64Of(vote, 2) }
 				}),
-				support: varintOf(value, 3) !== 0n,
+				support: int64Of(value, 3) !== 0n,
 			}
 		default:
 			return { type, owner }
 	}
+}
+
+const decodeRawFields = (bytes: Uint8Array): DecodedTronRaw => {
+	const fields = decodeExact(bytes, RAW_SHAPE, 'Transaction.raw')
+	const contracts = allBytesOf(fields, 11).map(contractBytes => {
+		const contract = decodeExact(contractBytes, CONTRACT_SHAPE, 'Contract')
+		const code = int64Of(contract, 1)
+		const type = CONTRACT_BY_CODE.get(code)
+		if (!type) throw new TronVerifyError(`tipo de contrato ${code} no admitido`)
+		const any = decodeExact(bytesOf(contract, 2), ANY_SHAPE, 'Any')
+		// El Any debe declarar el MISMO tipo que el código: un nodo no puede disfrazar un contrato de otro
+		if (ascii(bytesOf(any, 1)) !== typeUrlOf(type)) throw new TronVerifyError(`type_url no corresponde a ${type}`)
+		return decodeContractValue(type, bytesOf(any, 2))
+	})
+	return {
+		refBlockBytes: bytesToHex(bytesOf(fields, 1)),
+		refBlockHash: bytesToHex(bytesOf(fields, 4)),
+		expiration: int64Of(fields, 8),
+		timestamp: int64Of(fields, 14),
+		feeLimit: int64Of(fields, 18),
+		contracts,
+	}
+}
+
+// --- Codificación canónica (la inversa exacta de lo anterior) --------------------------
+
+/** proto3 no escribe un escalar con su valor por defecto: ni bytes vacíos ni un 0. */
+const bytesField = (field: number, value: Uint8Array): Uint8Array[] => (value.length > 0 ? [encodeBytesField(field, value)] : [])
+const varintField = (field: number, value: bigint): Uint8Array[] => (value !== 0n ? [encodeVarintField(field, value)] : [])
+
+const encodeContractValue = (contract: DecodedTronContract): Uint8Array => {
+	const owner = bytesField(1, hex20ToAddressBytes(contract.owner))
+	switch (contract.type) {
+		case 'TransferContract':
+			return concatBytes(...owner, ...bytesField(2, hex20ToAddressBytes(contract.to)), ...varintField(3, contract.amount))
+		case 'TriggerSmartContract':
+			return concatBytes(...owner, ...bytesField(2, hex20ToAddressBytes(contract.contract)), ...varintField(3, contract.callValue), ...bytesField(4, hexToBytes(contract.data)))
+		case 'FreezeBalanceV2Contract':
+		case 'UnfreezeBalanceV2Contract':
+			return concatBytes(...owner, ...varintField(2, contract.amount), ...varintField(3, BigInt(RESOURCES.indexOf(contract.resource))))
+		case 'VoteWitnessContract':
+			return concatBytes(
+				...owner,
+				// Un mensaje anidado se escribe siempre, aunque quede vacío
+				...contract.votes.map(vote => encodeBytesField(2, concatBytes(...bytesField(1, hex20ToAddressBytes(vote.address)), ...varintField(2, vote.count)))),
+				...varintField(3, contract.support ? 1n : 0n),
+			)
+		default:
+			return concatBytes(...owner)
+	}
+}
+
+/**
+ * Los bytes que java-tron (protobuf-java) escribiría para ese contenido: campos en orden,
+ * sin valores por defecto y con varints mínimos. Es la referencia contra la que se compara
+ * lo que se va a firmar.
+ */
+export const encodeDecodedTronRaw = (raw: DecodedTronRaw): Uint8Array =>
+	concatBytes(
+		...bytesField(1, hexToBytes(raw.refBlockBytes)),
+		...bytesField(4, hexToBytes(raw.refBlockHash)),
+		...varintField(8, raw.expiration),
+		...raw.contracts.map(contract => encodeBytesField(11, concatBytes(
+			...varintField(1, CONTRACT_CODES[contract.type]),
+			encodeBytesField(2, concatBytes(...bytesField(1, asciiBytes(typeUrlOf(contract.type))), ...bytesField(2, encodeContractValue(contract)))),
+		))),
+		...varintField(14, raw.timestamp),
+		...varintField(18, raw.feeLimit),
+	)
+
+/**
+ * Decodifica `raw_data_hex` (protocol.Transaction.raw) y garantiza que NO admite una
+ * segunda lectura: lo que devuelve es lo único que la red puede ejecutar con esos bytes.
+ *
+ * El contrato viaja como bytes opacos (`Any.value`), así que el hash que firma el usuario
+ * los cubre tal cual, traigan lo que traigan; y protobuf estándar, ante un campo singular
+ * repetido, ejecuta el ÚLTIMO. Un lector que se quedara con el primero verificaría
+ * «1 TRX a Bob» sobre una tx que paga todo el saldo al atacante. Dos barreras:
+ *
+ * 1. Forma exacta en cada nivel (`decodeExact`): ni campos repetidos, ni desconocidos, ni
+ *    con otro wire type, ni un tipo de contrato que no sea de los que la wallet usa.
+ * 2. Los bytes tienen que ser, exactamente, la codificación canónica de lo decodificado
+ *    (`encodeDecodedTronRaw`). Corta lo que la primera no nombra: campos fuera de orden,
+ *    varints con relleno, valores por defecto escritos a mano.
+ *
+ * Todo fallo es un `TronVerifyError`: una tx que no se puede leer así no se firma.
+ */
+export const decodeTronRaw = (rawHex: string): DecodedTronRaw => {
+	let bytes: Uint8Array
+	let raw: DecodedTronRaw
+	try {
+		bytes = hexToBytes(rawHex)
+		raw = decodeRawFields(bytes)
+	} catch (err) {
+		if (err instanceof TronVerifyError) throw err
+		throw new TronVerifyError(`raw_data ilegible: ${(err as Error)?.message ?? err}`)
+	}
+	if (!equalBytes(encodeDecodedTronRaw(raw), bytes)) throw new TronVerifyError('raw_data no es la codificación canónica de su contenido')
+	return raw
 }
 
 export const tronTxId = (rawHex: string): string => bytesToHex(sha256(hexToBytes(rawHex)))
@@ -224,6 +350,9 @@ export class TronVerifyError extends Error {
  * un solo contrato, del tipo esperado, con owner/destino/cantidad/contrato
  * idénticos, txID = sha256(raw) y fee_limit dentro del tope. Cualquier
  * desviación lanza: un nodo malicioso o roto no puede colar otra tx.
+ *
+ * Que estos campos sean TODO lo que dice la tx lo garantiza `decodeTronRaw`
+ * (forma exacta + codificación canónica): aquí solo se compara con lo pedido.
  */
 export const verifyTronTransaction = (tx: { txID: string, raw_data_hex: string }, intent: TronSendIntent, feeLimitSun: bigint): DecodedTronRaw => {
 	if (tronTxId(tx.raw_data_hex) !== tx.txID.toLowerCase()) throw new TronVerifyError('txID no coincide con sha256(raw_data)')
@@ -238,6 +367,8 @@ export const verifyTronTransaction = (tx: { txID: string, raw_data_hex: string }
 		if (contract.owner !== from) throw new TronVerifyError('owner distinto')
 		if (contract.to !== to) throw new TronVerifyError('destino distinto')
 		if (contract.amount !== intent.amount) throw new TronVerifyError('cantidad distinta')
+		// `createtransaction` no pone fee_limit: una transferencia de TRX no ejecuta contrato
+		if (raw.feeLimit !== 0n) throw new TronVerifyError('una transferencia de TRX no lleva fee_limit')
 		return raw
 	}
 
@@ -489,8 +620,14 @@ export const prepareTronSend = async (rpc: RegistryRpc, intent: TronSendIntent, 
  * Firma el txID (sha256 del raw, sin volver a hashear) con la clave privada
  * TRON. Devuelve r‖s‖(27+recovery) en hex, la convención de java-tron.
  * No retiene la clave: el caller la descarta al volver.
+ *
+ * Última barrera, común a enviar, swap y staking: solo se firma un raw que
+ * `decodeTronRaw` lee sin ambigüedad. Cada flujo compara ANTES ese contenido con
+ * lo que el usuario confirmó; esto impide que uno nuevo (o un descuido) firme
+ * bytes que la wallet no sabe leer del todo.
  */
 export const signTronTransaction = (rawHex: string, privateKey: Uint8Array): string => {
+	decodeTronRaw(rawHex)
 	const txId = hexToBytes(tronTxId(rawHex))
 	const recovered = secp256k1.sign(txId, privateKey, { prehash: false, format: 'recovered' })
 	const signature = new Uint8Array(65)

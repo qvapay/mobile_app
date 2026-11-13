@@ -411,7 +411,7 @@ export const verifyTronStake = (prepared: PreparedTronStake): void => {
 		if (raw.contracts.length !== 1) throw new TronVerifyError('se esperaba un solo contrato')
 		if (raw.feeLimit !== 0n) throw new TronVerifyError('un contrato de sistema no lleva fee_limit')
 		const contract = raw.contracts[0]
-		if (contract.type === 'Unknown' || contract.type !== EXPECTED[step]) throw new TronVerifyError(`tipo ${contract.type}, se esperaba ${EXPECTED[step]}`)
+		if (contract.type !== EXPECTED[step]) throw new TronVerifyError(`tipo ${contract.type}, se esperaba ${EXPECTED[step]}`)
 		if (contract.owner !== owner) throw new TronVerifyError('owner distinto')
 		if (contract.type === 'FreezeBalanceV2Contract') {
 			if (intent.action !== 'stake' || contract.amount !== intent.amount || contract.resource !== 'ENERGY') throw new TronVerifyError('congelado distinto del confirmado')
