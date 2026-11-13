@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Share, useWindowDimensions } from "react-native"
+import { toast } from "sonner-native"
 import FastImage from "@d11/react-native-fast-image"
 import LinearGradient from "react-native-linear-gradient"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -97,7 +98,16 @@ function formatRatingDate(date: string | null | undefined) {
 const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 'P2PUser'>) => {
 
 	const { t } = useTranslation()
-	const { initialTab } = route.params
+	const { initialTab, gift } = route.params
+	// Un regalo de GOLD pagado en la web (Stripe) vuelve a /p2p/user/<uuid>?gift=success|cancel,
+	// y el sistema puede abrir esa URL en la app en vez de en el navegador: aquí sale el aviso
+	// que la web enseña en GiftResultToast. Se quita el param para que no se repita
+	useEffect(() => {
+		if (gift !== 'success' && gift !== 'cancel') return
+		if (gift === 'success') toast.success(t('p2p.user.gift.success'))
+		else toast.error(t('p2p.user.gift.cancelled'))
+		navigation.setParams({ gift: undefined })
+	}, [gift, navigation, t])
 	// Por @usuario hay que averiguar antes el uuid; mientras tanto `uuid` es '' y el perfil espera
 	const peer = usePeerUuid(route.params)
 	const { uuid } = peer

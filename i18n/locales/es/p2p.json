@@ -350,6 +350,10 @@
 		},
 		"notAvailable": "Perfil no disponible",
 		"usernameNotFound": "No encontramos a @{{username}} en QvaPay",
+		"gift": {
+			"success": "¡Regalo de GOLD completado!",
+			"cancelled": "Regalo cancelado. No se realizó ningún cargo."
+		},
 		"chips": {
 			"phone": "Phone"
 		},
