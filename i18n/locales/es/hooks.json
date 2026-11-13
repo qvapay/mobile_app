@@ -30,6 +30,7 @@
 		"toasts": {
 			"loginToPay": "Inicia sesión para pagar la factura",
 			"loginToSeeOffer": "Inicia sesión para ver la oferta P2P",
+			"loginToSeeProfile": "Inicia sesión para ver el perfil",
 			"loginToSeeStore": "Inicia sesión para ver la tienda",
 			"loginToOpenApp": "Inicia sesión para abrir la mini-app",
 			"loginToOpenNotification": "Inicia sesión para abrir la notificación"

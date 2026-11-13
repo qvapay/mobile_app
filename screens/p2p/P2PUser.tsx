@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Share, useWindowDimensions } from "react-native"
+import { toast } from "sonner-native"
 import FastImage from "@d11/react-native-fast-image"
 import LinearGradient from "react-native-linear-gradient"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -11,6 +12,7 @@ import { createTextStyles, createContainerStyles } from "../../theme/themeUtils"
 
 // API
 import usePeerProfile from "./usePeerProfile"
+import usePeerUuid from "./usePeerUuid"
 import useUserModeration from "./useUserModeration"
 import P2PUserModerationSheet from "./P2PUserModerationSheet"
 
@@ -86,7 +88,8 @@ function formatRatingDate(date: string | null | undefined) {
 
 /**
  * Public P2P trader profile: cover photo, stats, active offers and reviews in tabs.
- * Route params: `uuid` (required) and optional `initialTab` ("offers" | "reviews" | "stats").
+ * Route params: `uuid` — or `username` (the `/p2p/u/<username>` links and the mini-apps),
+ * resolved to a uuid first by `usePeerUuid` — and optional `initialTab` ("offers" | "reviews" | "stats").
  * Everything loads in one call via `p2pApi.peerProfile(uuid)` — user, stats, ranking,
  * active offers, received/sent ratings; gold-gated sections trust the server's
  * `viewer_gold` flag rather than any locally-cached value.
@@ -95,7 +98,19 @@ function formatRatingDate(date: string | null | undefined) {
 const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 'P2PUser'>) => {
 
 	const { t } = useTranslation()
-	const { uuid, initialTab } = route.params
+	const { initialTab, gift } = route.params
+	// Un regalo de GOLD pagado en la web (Stripe) vuelve a /p2p/user/<uuid>?gift=success|cancel,
+	// y el sistema puede abrir esa URL en la app en vez de en el navegador: aquí sale el aviso
+	// que la web enseña en GiftResultToast. Se quita el param para que no se repita
+	useEffect(() => {
+		if (gift !== 'success' && gift !== 'cancel') return
+		if (gift === 'success') toast.success(t('p2p.user.gift.success'))
+		else toast.error(t('p2p.user.gift.cancelled'))
+		navigation.setParams({ gift: undefined })
+	}, [gift, navigation, t])
+	// Por @usuario hay que averiguar antes el uuid; mientras tanto `uuid` es '' y el perfil espera
+	const peer = usePeerUuid(route.params)
+	const { uuid } = peer
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -133,25 +148,33 @@ const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamLis
 		} catch (_) { /* cancelled */ }
 	}, [uuid, user?.username, t])
 
-	if (loading && !data) {
-		return (
-			<View style={[containerStyles.container, { justifyContent: "center", alignItems: "center" }]}>
-				<FloatingTopBar insets={insets} theme={theme} onBack={() => navigation.goBack()} />
-				<ActivityIndicator size="large" color={theme.colors.primary} />
-			</View>
-		)
-	}
-
-	if (error && !data) {
+	// Antes que el loader: sin uuid el perfil no se pide y se quedaría cargando para siempre.
+	// Un @usuario que no existe no se reintenta (la respuesta fue «nadie»)
+	const failure = peer.notFound
+		? (peer.username ? t('p2p.user.usernameNotFound', { username: peer.username }) : "")
+		: peer.error ?? (error && !data ? String(error) : null)
+	if (failure !== null) {
+		const retry = peer.notFound ? null : peer.error ? peer.retry : () => { fetchProfile() }
 		return (
 			<View style={[containerStyles.subContainer, { justifyContent: "center", alignItems: "center" }]}>
 				<FloatingTopBar insets={insets} theme={theme} onBack={() => navigation.goBack()} />
 				<FontAwesome6 name="circle-exclamation" size={40} color={theme.colors.danger} iconStyle="solid" />
 				<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginTop: 12 }]}>{t('p2p.user.notAvailable')}</Text>
-				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 4, textAlign: "center" }]}>{String(error)}</Text>
-				<Pressable onPress={() => fetchProfile()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, borderCurve: 'continuous', backgroundColor: theme.colors.primary }}>
-					<Text style={[textStyles.h6, { color: theme.colors.almostWhite }]}>{t('common.actions.retry')}</Text>
-				</Pressable>
+				{failure ? <Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 4, textAlign: "center" }]}>{failure}</Text> : null}
+				{retry ? (
+					<Pressable onPress={retry} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, borderCurve: 'continuous', backgroundColor: theme.colors.primary }}>
+						<Text style={[textStyles.h6, { color: theme.colors.almostWhite }]}>{t('common.actions.retry')}</Text>
+					</Pressable>
+				) : null}
+			</View>
+		)
+	}
+
+	if (loading && !data) {
+		return (
+			<View style={[containerStyles.container, { justifyContent: "center", alignItems: "center" }]}>
+				<FloatingTopBar insets={insets} theme={theme} onBack={() => navigation.goBack()} />
+				<ActivityIndicator size="large" color={theme.colors.primary} />
 			</View>
 		)
 	}

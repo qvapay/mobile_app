@@ -305,6 +305,44 @@ describe('SDK inyectado', () => {
 		await expect(p).resolves.toEqual({ s: nasty })
 	})
 
+	test('un clic en un enlace al perfil de QvaPay se convierte en openLink y frena la navegación', () => {
+		const posted = []
+		const listeners = []
+		const window = {
+			ReactNativeWebView: { postMessage: (m) => posted.push(JSON.parse(m)) },
+			dispatchEvent: () => {},
+			addEventListener: (type, fn, capture) => listeners.push({ type, fn, capture }),
+		}
+		const ctx = vm.createContext({ window, Promise, JSON, Date, Object, String, setTimeout, Event: class {} })
+		vm.runInContext(buildSdkScript({ mode: 'dark' }, { slug: 'hello', language: 'es' }), ctx)
+		const click = listeners.find(l => l.type === 'click')
+		// En captura: antes que React, para que un <Link> de Next vea el preventDefault
+		expect(click.capture).toBe(true)
+		const fire = (target, extra = {}) => {
+			const e = { target, button: 0, defaultPrevented: false, preventDefault() { e.defaultPrevented = true }, ...extra }
+			click.fn(e)
+			return e
+		}
+		const anchor = (href) => ({ nodeName: 'A', href, parentNode: null })
+		const profile = anchor('https://www.qvapay.com/p2p/u/luke')
+
+		// El toque cae en un hijo del enlace (el «@luke» dentro de un <span>)
+		expect(fire({ nodeName: 'SPAN', parentNode: profile }).defaultPrevented).toBe(true)
+		expect(posted.at(-1)).toMatchObject({ method: 'openLink', params: { url: 'https://www.qvapay.com/p2p/u/luke' } })
+		expect(parseBridgeMessage(JSON.stringify(posted.at(-1))).ok).toBe(true)
+
+		const sent = posted.length
+		// El resto de enlaces, también los de qvapay.com, siguen su camino
+		expect(fire(anchor('https://www.qvapay.com/raffle')).defaultPrevented).toBe(false)
+		expect(fire(anchor(`https://www.qvapay.com/pay/${UUID}`)).defaultPrevented).toBe(false)
+		// Con modificadores, otro botón o ya prevenido por la mini-app, no se toca
+		expect(fire(profile, { metaKey: true }).defaultPrevented).toBe(false)
+		expect(fire(profile, { button: 1 }).defaultPrevented).toBe(false)
+		expect(fire(profile, { defaultPrevented: true }).defaultPrevented).toBe(true)
+		expect(fire({ nodeName: 'DIV', parentNode: null }).defaultPrevented).toBe(false)
+		expect(posted).toHaveLength(sent)
+	})
+
 	test('la mini-app no puede reemplazar el SDK ni el receptor', () => {
 		const { window } = boot()
 		const original = window.QvaPay

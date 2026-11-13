@@ -206,11 +206,12 @@ export const userApi = {
 	 * (`POST /user/search`). Used to resolve transfer recipients.
 	 *
 	 * @param search - The uuid, username, email or verified phone number to look up
+	 * @param options.silent - sin barra de carga global (la pantalla pinta su propio estado)
 	 * @returns `{ success, data?, error?, status? }` — `data` is the matched public profile
 	 */
-	searchUser: async (search: string): Promise<ApiResult<unknown>> => {
+	searchUser: async (search: string, { silent = false }: { silent?: boolean } = {}): Promise<ApiResult<unknown>> => {
 		try {
-			const response = await apiClient.post(`/user/search`, { query: search })
+			const response = await apiClient.post(`/user/search`, { query: search }, { silent })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError

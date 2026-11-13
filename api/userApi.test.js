@@ -59,8 +59,14 @@ describe('userApi.searchUser', () => {
 
 		const result = await userApi.searchUser('erich')
 
-		expect(apiClient.post).toHaveBeenCalledWith('/user/search', { query: 'erich' })
+		expect(apiClient.post).toHaveBeenCalledWith('/user/search', { query: 'erich' }, { silent: false })
 		expect(result).toEqual({ success: true, data: { uuid: 'u-1', username: 'erich' }, status: 200 })
+	})
+
+	test('silent: sin la barra de carga global (el perfil por @usuario pinta su propio estado)', async () => {
+		apiClient.post.mockResolvedValue(ok([]))
+		await userApi.searchUser('luke', { silent: true })
+		expect(apiClient.post).toHaveBeenCalledWith('/user/search', { query: 'luke' }, { silent: true })
 	})
 
 	test('returns the API error text and the response status on failure', async () => {

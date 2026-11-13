@@ -33,6 +33,18 @@ test('P2P: offer (with order), promote slot and the tab', () => {
 	expect(resolveDeepLinkTarget('qvapay://p2p?offer_type=weird&utm=x')).toEqual({ name: 'MainStack', params: { screen: 'P2P' } })
 })
 
+test('P2P profile: canonical uuid URL and the @username shortcut', () => {
+	expect(resolveDeepLinkTarget(`https://www.qvapay.com/p2p/user/${UUID}`)).toEqual({ name: 'P2PUser', params: { uuid: UUID } })
+	expect(resolveDeepLinkTarget(`https://qvapay.com/p2p/user/${UUID}?gift=success`)).toEqual({ name: 'P2PUser', params: { uuid: UUID } })
+	expect(resolveDeepLinkTarget('https://www.qvapay.com/p2p/u/luke')).toEqual({ name: 'P2PUser', params: { username: 'luke' } })
+	expect(resolveDeepLinkTarget('qvapay://p2p/u/%40Luke_99')).toEqual({ name: 'P2PUser', params: { username: 'Luke_99' } })
+	// Nada sin forma de uuid o de username llega a la ruta de la API
+	expect(resolveDeepLinkTarget('https://www.qvapay.com/p2p/user/not-a-uuid')).toBeNull()
+	expect(resolveDeepLinkTarget('https://www.qvapay.com/p2p/user/..%2F..%2Fuser%2Fextended')).toBeNull()
+	expect(resolveDeepLinkTarget('https://www.qvapay.com/p2p/u/a%20b')).toBeNull()
+	expect(resolveDeepLinkTarget('https://www.qvapay.com/p2p/x/luke')).toBeNull()
+})
+
 test('store, mini-apps and widget shortcuts', () => {
 	expect(resolveDeepLinkTarget('https://www.qvapay.com/store/mi-tienda')).toEqual({ name: 'MarketStore', params: { slug: 'mi-tienda' } })
 	expect(resolveDeepLinkTarget(`https://www.qvapay.com/store/mi-tienda/${UUID}`)).toEqual({ name: 'MarketProduct', params: { uuid: UUID } })

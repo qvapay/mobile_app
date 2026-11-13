@@ -349,6 +349,11 @@
 			"message": "Perfil P2P de @{{username}} no QvaPay: {{url}}"
 		},
 		"notAvailable": "Perfil indisponível",
+		"usernameNotFound": "Não encontramos @{{username}} no QvaPay",
+		"gift": {
+			"success": "Presente GOLD concluído!",
+			"cancelled": "Presente cancelado. Nenhuma cobrança foi feita."
+		},
 		"chips": {
 			"phone": "Telefone"
 		},

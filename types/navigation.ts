@@ -121,8 +121,13 @@ export type RootStackParamList = {
 	/** `order`: orden de una oferta por rango (filas de la lista, push, `?order=` de la web). */
 	/** `order`: una orden de una oferta por rango. `rate`: viene de una push de trato cerrado → abre la hoja de valoración. */
 	P2POffer: { p2p_uuid: string, order?: string, rate?: boolean }
-	/** `initialTab` está implementado en la pantalla pero ningún call site lo manda aún. */
-	P2PUser: { uuid: string, initialTab?: 'offers' | 'reviews' | 'stats' }
+	/**
+	 * Por uuid (lo normal) o por @usuario: `/p2p/u/<username>` de la web y los enlaces de
+	 * las mini-apps, que la pantalla traduce a uuid (`usePeerUuid`).
+	 * `initialTab` está implementado en la pantalla pero ningún call site lo manda aún.
+	 * `gift` llega en la URL a la que vuelve un regalo de GOLD pagado en la web (Stripe: `?gift=success|cancel`).
+	 */
+	P2PUser: ({ uuid: string, username?: undefined } | { username: string, uuid?: undefined }) & { initialTab?: 'offers' | 'reviews' | 'stats', gift?: string }
 	P2PCreate: undefined
 	/** Puesto promocionado: moneda y lado con los que abre (mercado, push `p2p_promo_*`, /p2p/promote?coin=&type=). */
 	P2PPromote: { coin?: string, type?: 'sell' | 'buy' } | undefined

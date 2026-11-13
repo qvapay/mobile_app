@@ -9,6 +9,7 @@ jest.mock('react-native-haptic-feedback', () => ({ __esModule: true, default: { 
 jest.mock('sonner-native', () => ({ toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }) }))
 
 import { act, create } from 'react-test-renderer'
+import { Linking } from 'react-native'
 import { miniappsApi } from '../../api/miniappsApi'
 import { useMiniAppBridge } from './useMiniAppBridge'
 
@@ -29,14 +30,14 @@ const message = (method, params) => ({ nativeEvent: { url: `${ORIGIN}/checkout`,
 // Lo que el puente entrega al WebView, ya parseado ({ id, ok, result | error })
 const deliveriesOf = (injectJavaScript) => injectJavaScript.mock.calls.map(([script]) => JSON.parse(JSON.parse(script.match(/\((".*")\); true;$/)[1])))
 
-const renderBridge = async ({ hasKyc, app = baseApp(), share = jest.fn(async () => 'shared') }) => {
+const renderBridge = async ({ hasKyc, app = baseApp(), share = jest.fn(async () => 'shared'), openNative }) => {
 	const kyc = { value: hasKyc }
 	const requireKyc = jest.fn(() => kyc.value)
 	const injectJavaScript = jest.fn()
 	const webViewRef = { current: { injectJavaScript } }
 	const state = {}
 	const Harness = () => {
-		Object.assign(state, useMiniAppBridge({ app, webViewRef, theme: THEME, onReady: () => {}, onClose: () => {}, requireKyc, share }))
+		Object.assign(state, useMiniAppBridge({ app, webViewRef, theme: THEME, onReady: () => {}, onClose: () => {}, requireKyc, share, openNative }))
 		return null
 	}
 	let tree
@@ -398,6 +399,25 @@ describe('useMiniAppBridge — mini-app en prueba (sin publicar)', () => {
 		const bridge = await renderBridge({ hasKyc: true, app: baseApp({ preview: false, preview_role: null }) })
 		await bridge.send('payments.payInvoice', { invoiceUuid: UUID })
 		expect(bridge.state.modal).toMatchObject({ kind: 'pay', invoiceUuid: UUID })
+		await bridge.unmount()
+	})
+})
+
+describe('useMiniAppBridge — openLink', () => {
+
+	afterEach(() => { jest.restoreAllMocks() })
+
+	test('un enlace que la app abre en nativo (el perfil) no va al navegador; el resto sí', async () => {
+		const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true)
+		const openNative = jest.fn(url => url.includes('/p2p/u/'))
+		const bridge = await renderBridge({ hasKyc: false, openNative })
+		await bridge.send('openLink', { url: 'https://www.qvapay.com/p2p/u/luke' })
+		expect(openNative).toHaveBeenCalledWith('https://www.qvapay.com/p2p/u/luke')
+		expect(openURL).not.toHaveBeenCalled()
+		await bridge.send('openLink', { url: 'https://mitienda.com/ayuda' })
+		expect(openURL).toHaveBeenCalledWith('https://mitienda.com/ayuda')
+		// Ninguno pasa por el gate de KYC y los dos resuelven la promesa
+		expect(bridge.deliveries()).toEqual([expect.objectContaining({ ok: true }), expect.objectContaining({ ok: true })])
 		await bridge.unmount()
 	})
 })

@@ -13,6 +13,7 @@
 
 import { ROUTES } from '../routes'
 import { parseMiniAppLink } from '../screens/miniapps/miniappLinks'
+import { isUserUuid, normalizeUsername } from '../screens/p2p/peerLookup'
 
 /** Ruta raíz + params que la abre (`name` como lo espera `navigation.reset`). */
 export type DeepLinkTarget = { name: string, params?: Record<string, unknown> }
@@ -79,6 +80,15 @@ export const resolveDeepLinkTarget = (url: string | null | undefined): DeepLinkT
 			}
 			if (segments.length === 2) {
 				return { name: ROUTES.P2P_OFFER_SCREEN, params: query.order ? { p2p_uuid: second, order: query.order } : { p2p_uuid: second } }
+			}
+			// Perfil por uuid (URL canónica) o por @usuario (atajo de la web); lo que no tenga
+			// forma de uno u otro no llega a la ruta de la API
+			if (segments.length === 3 && second === 'user') {
+				return isUserUuid(third) ? { name: ROUTES.P2P_USER_SCREEN, params: { uuid: third } } : null
+			}
+			if (segments.length === 3 && second === 'u') {
+				const username = normalizeUsername(third)
+				return username ? { name: ROUTES.P2P_USER_SCREEN, params: { username } } : null
 			}
 			return null
 		}

@@ -19,6 +19,7 @@ import { miniappsApi } from '../../api/miniappsApi'
 import { EMPTY_COLORS, headerBadgeText, isAllowedOrigin, isBenignInternalUrl } from '../../miniapps/protocol'
 import { INK_COLORS, inkFor } from '../../miniapps/colors'
 import { buildSdkScript } from '../../miniapps/sdkScript'
+import { nativeLinkTarget } from '../../miniapps/nativeLinks'
 import { useMiniAppDetail, forgetGrant } from './miniappsQueries'
 import { useMiniAppBridge, type MiniAppThemePayload } from './useMiniAppBridge'
 import { shareMiniApp } from './shareMiniApp'
@@ -52,7 +53,9 @@ type MenuItem = NativeMenuEntry<MenuKey> & { icon: MiniAppMenuIcon, iconColor?: 
  *
  * Aislamiento:
  * - Navegación encerrada en `allowed_origins` (https): cualquier otro destino
- *   se abre FUERA, en el navegador del sistema.
+ *   se abre FUERA, en el navegador del sistema. La excepción son los enlaces al
+ *   perfil P2P de QvaPay (`miniapps/nativeLinks.ts`), que abren la pantalla
+ *   nativa del perfil encima de la mini-app.
  * - Sin cookies compartidas con la app, sin acceso a ficheros, sin ventanas
  *   nuevas; el token de sesión de QvaPay nunca entra al WebView.
  * - La ficha se relee fresca al abrir (orígenes y estado vigentes): una
@@ -110,9 +113,23 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 		return shareMiniApp(current, t, text)
 	}, [t])
 
+	// Enlaces al perfil de QvaPay (clic, `location`, `QvaPay.openLink`): pantalla nativa
+	// encima, con la mini-app viva debajo. Solo si la mini-app está delante y sin nada
+	// encima: una que encadene redirecciones no puede apilar perfiles. Lo que se descarta
+	// se traga igual (true): tampoco debe acabar en el navegador
+	const coveredRef = useRef(false)
+	const openNative = useCallback((url: string) => {
+		const target = nativeLinkTarget(url)
+		if (!target) return false
+		if (navigation.isFocused() && !coveredRef.current) navigation.push(target.name, target.params)
+		return true
+	}, [navigation])
+
 	const { onMessage, emit, modal, resolveModal, rejectModal, mainButton, backButtonVisible, header, colors: bridgeColors, resetUi } = useMiniAppBridge({
-		app, webViewRef, theme: themePayload, onReady, onClose: close, requireKyc: requireMiniAppKyc, share: shareFromSdk,
+		app, webViewRef, theme: themePayload, onReady, onClose: close, requireKyc: requireMiniAppKyc, share: shareFromSdk, openNative,
 	})
+	// Hoja del SDK, menú ⋯ o aviso de KYC en pantalla
+	useEffect(() => { coveredRef.current = !!modal || menuOpen || gateVisible }, [modal, menuOpen, gateVisible])
 
 	// El SDK se construye UNA vez por carga: cambiar el script en caliente no
 	// re-inyecta nada y solo provocaría re-renders del WebView
@@ -137,13 +154,18 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	}, [modal, backMode, emit, close])
 
 	useEffect(() => {
-		const sub = BackHandler.addEventListener('hardwareBackPress', handleBack)
+		// Con otra pantalla encima (el perfil que abrió un enlace) el atrás es de esa pantalla:
+		// este listener se registró después que el de la navegación y, si no, se lo comería
+		const sub = BackHandler.addEventListener('hardwareBackPress', () => (navigation.isFocused() ? handleBack() : false))
 		return () => sub.remove()
-	}, [handleBack])
+	}, [handleBack, navigation])
 
 	const onShouldStartLoadWithRequest = useCallback((request: ShouldStartLoadRequest) => {
 		if (!app) return false
 		if (isBenignInternalUrl(request.url)) return true
+		// El perfil va ANTES que el perímetro: las mini-apps de QvaPay viven en www.qvapay.com
+		// y, con su origen permitido, cargarían dentro la web del perfil
+		if (request.isTopFrame !== false && openNative(request.url)) return false
 		if (isAllowedOrigin(request.url, app.allowed_origins)) return true
 		// Fuera del perímetro: solo enlaces web, al navegador del sistema y solo si
 		// los pidió el usuario (o un marco principal); el resto se descarta en silencio
@@ -151,7 +173,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 			Linking.openURL(request.url).catch(() => {})
 		}
 		return false
-	}, [app])
+	}, [app, openNative])
 
 	const onNavigationStateChange = useCallback((nav: WebViewNavigation) => {
 		setCanGoBack(nav.canGoBack)
