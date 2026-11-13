@@ -73,6 +73,17 @@ export const NIT_REGEX = /^\d{11}$/
 export const US_ZIP_REGEX = /^\d{5}(-\d{4})?$/
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Teléfono de la empresa: aquí solo se descarta lo que no puede ser un teléfono (letras, menos de 7 o más de
+// 15 dígitos). El número real lo valida el servidor con libphonenumber (qpweb lib/company-contact.js) y, si no
+// es válido, responde 400 COMPANY_PHONE_INVALID con el motivo, que el wizard enseña tal cual.
+const PHONE_CHARS = /^\+?[\d\s().-]+$/
+export const isPlausiblePhone = (raw: string): boolean => {
+	const value = raw.trim()
+	if (!PHONE_CHARS.test(value)) { return false }
+	const digits = value.replace(/\D/g, '').length
+	return digits >= 7 && digits <= 15
+}
+
 // Tope del documento, mismo que el server (register-company.js)
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 
@@ -113,6 +124,8 @@ export type EnterpriseForm = {
 	owners: OwnerRow[]
 	directorName: string
 	email: string
+	/** Teléfono de contacto de la empresa, con el prefijo del país (el servidor lo guarda en E.164). */
+	phone: string
 }
 
 /** Documento elegido en el picker (solo se leen nombre y tamaño). */
@@ -138,6 +151,7 @@ export const EMPTY_FORM: EnterpriseForm = {
 	owners: [EMPTY_OWNER],
 	directorName: '',
 	email: '',
+	phone: '',
 }
 
 // Campos fiscales que se resetean al cambiar el país de constitución. Los socios no:
@@ -278,7 +292,7 @@ export const validateFiscalStep = (form: EnterpriseForm): string | null => {
 }
 
 /**
- * Valida el paso Contacto y estatutos (director, email, PDF). En un TCP el
+ * Valida el paso Contacto y estatutos (director, email, teléfono, PDF). En un TCP el
  * documento es opcional, pero si lo adjunta rige el mismo tope de tamaño.
  * @param form
  * @param file - Documento elegido en el picker.
@@ -288,6 +302,7 @@ export const validateContactStep = (form: EnterpriseForm, file: StatutesFile): s
 	const isTcp = form.orgKind === 'tcp'
 	if (form.directorName.trim().length < 3) { return isTcp ? i18n.t('settings.enterprise.validation.tcpHolderName') : i18n.t('settings.enterprise.validation.directorName') }
 	if (!EMAIL_REGEX.test(form.email.trim())) { return i18n.t('settings.enterprise.validation.email') }
+	if (!isPlausiblePhone(form.phone)) { return i18n.t('settings.enterprise.validation.phone') }
 	if (!file && !isTcp) { return i18n.t('settings.enterprise.validation.statutesPdf') }
 	if (file?.size && file.size > MAX_FILE_BYTES) { return i18n.t('settings.enterprise.validation.fileTooLarge') }
 	return null
@@ -307,6 +322,7 @@ export const buildRegisterFields = (form: EnterpriseForm): Record<string, string
 	const fields: Record<string, string> = {
 		directorName: form.directorName.trim(),
 		email: form.email.trim(),
+		phone: form.phone.trim(),
 		companyName: form.companyName.trim(),
 		activity: form.activity.trim(),
 		employeeCount: form.employeeCount,

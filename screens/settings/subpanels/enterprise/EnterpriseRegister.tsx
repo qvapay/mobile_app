@@ -77,7 +77,7 @@ const STEPS = 3
  *    sancionadas) + campos por país: US → EIN/entidad/estado/dirección,
  *    CU → NIT, resto → tax id genérico. Debajo, los socios, cuya regla depende
  *    del país (Cuba: todos los de la escritura; resto: solo 25 % o más).
- * 3. Contacto — director, email corporativo y PDF de estatutos
+ * 3. Contacto — director, email corporativo, teléfono y PDF de estatutos
  *    (@react-native-documents/picker, máx 10MB).
  *
  * Cuenta propia (TCP) es la misma pantalla con otros textos: Cuba fija, solo
@@ -329,8 +329,14 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 
 						<FieldLabel text={isTcp ? t('settings.enterprise.register.tcp.emailLabel') : t('settings.enterprise.register.step3.emailLabel')} theme={theme} textStyles={textStyles} />
 						<QPInput value={form.email} onChangeText={setField('email')} placeholder={isTcp ? t('settings.enterprise.register.tcp.emailPlaceholder') : t('settings.enterprise.register.step3.emailPlaceholder')} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
-						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2, marginBottom: 8 }]}>
+						<Text style={[textStyles.h7, styles.fieldHint, { color: theme.colors.secondaryText }]}>
 							{t('settings.enterprise.register.step3.emailHint')}
+						</Text>
+
+						<FieldLabel text={t('settings.enterprise.register.step3.phoneLabel')} theme={theme} textStyles={textStyles} />
+						<QPInput value={form.phone} onChangeText={setField('phone')} placeholder={t('settings.enterprise.register.step3.phonePlaceholder')} keyboardType="phone-pad" textContentType="telephoneNumber" autoComplete="tel" autoCorrect={false} maxLength={32} />
+						<Text style={[textStyles.h7, styles.fieldHint, { color: theme.colors.secondaryText }]}>
+							{t('settings.enterprise.register.step3.phoneHint')}
 						</Text>
 
 						<DocumentField isTcp={isTcp} file={file} onPick={pickStatutes} onRemove={() => setFile(null)} theme={theme} textStyles={textStyles} />
@@ -667,6 +673,11 @@ const styles = StyleSheet.create({
 	},
 	scrollContent: {
 		paddingTop: 10,
+	},
+	// Texto de ayuda bajo un campo (email y teléfono del paso Contacto)
+	fieldHint: {
+		marginTop: 2,
+		marginBottom: 8,
 	},
 	scrollFooterSpace: {
 		height: 24,
