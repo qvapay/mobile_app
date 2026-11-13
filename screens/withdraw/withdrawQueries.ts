@@ -12,6 +12,7 @@ import { withdrawApi } from '../../api/withdrawApi'
 import { unwrap } from '../../api/unwrap'
 import { DEFAULT_MARGIN_PCT } from './cashZones'
 import type { CashZonesPayload } from '../../types/domain'
+import type { UsRailRequirements } from './usRail'
 
 export const CASH_ZONES_KEY = ['withdraw', 'cash-zones']
 
@@ -47,4 +48,34 @@ export const useCashZonesQuery = (tick: string | null | undefined, enabled: bool
 				: 'loading'
 
 	return { payload: active ? query.data ?? null : null, status, refetch: query.refetch }
+}
+
+/**
+ * Cuenta de Cuba por un método de EE. UU. (`GET /withdraw/us-rail`): si la cuenta tiene que mandar
+ * `us_payment`, en qué métodos, y las opciones y los textos del formulario (los sirve el servidor). Un
+ * qpweb anterior a la regla responde 404 ⇒ no aplica. Deriva del KYC: nunca se persiste.
+ */
+export const US_RAIL_QUERY = {
+	queryKey: ['withdraw', 'us-rail'] as const,
+	queryFn: async (): Promise<UsRailRequirements | null> => {
+		const result = await withdrawApi.usRail()
+		if (!result.success && result.status === 404) return null
+		const body = unwrap(result)
+		return body?.data ?? null
+	},
+	staleTime: 5 * 60 * 1000,
+	meta: { noPersist: true },
+}
+
+/**
+ * Requisitos del formulario de rails de EE. UU. para la pantalla de retiro.
+ *
+ * Un fallo NO pide el formulario a ciegas (no hay textos que enseñar): el servidor lo exige igual
+ * en todos los canales, y su 400 `US_RAIL_PURPOSE_REQUIRED` hace que la pantalla vuelva a pedir esto.
+ *
+ * @param enabled - Solo con sesión (la ruta es privada).
+ */
+export const useUsRailQuery = (enabled: boolean) => {
+	const query = useQuery({ ...US_RAIL_QUERY, enabled })
+	return { requirements: query.data ?? null, isLoading: query.isLoading, refetch: query.refetch }
 }

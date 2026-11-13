@@ -30,8 +30,11 @@ jest.mock('../../api/client', () => ({
 	default: { get: jest.fn() },
 }))
 jest.mock('../../api/withdrawApi', () => ({
-	withdrawApi: { requestPin: jest.fn(), withdraw: jest.fn(), decodeLightning: jest.fn(), cashZones: jest.fn() },
+	withdrawApi: { requestPin: jest.fn(), withdraw: jest.fn(), decodeLightning: jest.fn(), cashZones: jest.fn(), usRail: jest.fn() },
 }))
+// Formulario de los métodos de EE. UU. y factura como hosts: su lógica pura está en usRail.test.js
+jest.mock('./UsRailPurposeCard', () => 'UsRailPurposeCard')
+jest.mock('./WithdrawInvoiceField', () => 'WithdrawInvoiceField')
 jest.mock('../../api/userApi', () => ({ userApi: { getPaymentMethods: jest.fn() } }))
 jest.mock('../../ui/SavedMethodsModal', () => 'SavedMethodsModal')
 let mockCoinCatalog = []
@@ -188,6 +191,8 @@ beforeEach(() => {
 	withdrawApi.withdraw.mockResolvedValue({ success: true, data: {} })
 	withdrawApi.decodeLightning.mockResolvedValue({ success: true, data: { kind: 'bolt11', amount_sat: 150000, description: 'test', expires_at: null } })
 	withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'USDCASH', margin_pct: 1, zones: [] } })
+	// Por defecto un qpweb sin la regla de los métodos de EE. UU. (404 ⇒ no aplica)
+	withdrawApi.usRail.mockResolvedValue({ success: false, status: 404 })
 	userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [] })
 })
 afterEach(() => {
@@ -1138,5 +1143,149 @@ describe('saved payment methods (el librito)', () => {
 		await act(async () => { savedModal(tree).props.onSelect(USDT_METHOD) })
 		expect(tree.root.findByType('WithdrawAccountFields').props.workingForm).toEqual({ wallet_address: 'TXYZ' })
 		expect(tree.root.findByType('WithdrawDestinationSelector').props.destination).toBe('personal')
+	})
+})
+
+describe('cuenta de Cuba por un método de EE. UU.', () => {
+	const PAYPAL = {
+		tick: 'PAYPAL', name: 'PayPal', price: '1', stable: true, fee_out: '0', fee_out_fixed: 0, decimals: 2, logo: 'paypal',
+		working_data: JSON.stringify([{ name: 'Nombre y Apellidos', type: 'text' }, { name: 'Correo', type: 'text' }]),
+	}
+	const BANK = {
+		tick: 'BANK', name: 'Transferencia bancaria', price: '1', stable: true, fee_out: '0', fee_out_fixed: 0, decimals: 2, logo: 'bank',
+		working_data: JSON.stringify([{ name: 'Nombre y Apellidos', type: 'text' }]),
+	}
+	const KEYS = ['notProhibitedOfficial', 'notProhibitedPartyMember', 'notRestrictedList', 'lawfulPurpose']
+	const REQ = {
+		applies: true, enforced: true,
+		ticks: ['BANK', 'BANK_INTL', 'BANK_EUR', 'BANK_LATAM', 'PAYPAL', 'VENMO', 'ZELLE', 'CASHAPP', 'APPLECASH', 'WISE'],
+		own_account_suspended: true, text_version: 'v2026-11-11-borrador',
+		payees: [{ code: 'third_party', label: 'Un vendedor o servicio', invoice_required: true, recipient_required: true }, { code: 'own', label: 'Una cuenta mía', suspended: true, invoice_required: false, recipient_required: false }],
+		purposes: [{ code: 'S-1', label: 'Internet', summary: 's', needs: ['service_kind', 'service'] }],
+		service_kinds: [{ code: 'software', label: 'Software' }],
+		declarations: KEYS.map(key => ({ key, es: key, en: key })),
+		goods_attestation: { text_version: 'v', es: '', en: '' },
+		note_min_length: 10,
+		invoice: { field: 'invoice', max_bytes: 10485760 },
+		messages: { required: 'Completa el propósito del pago', own_suspended: 'Suspendido', invoice: 'Adjunta la factura' },
+	}
+	const S1 = {
+		payee: 'third_party', purpose: 'S-1', service_kind: 'software', note: '',
+		recipient: { name: 'Vendor Inc', country: 'US' },
+		goods: { description: '', manufacturer: '', origin_country: '', end_use: '', shipping: '' },
+		service: { description: 'Licencia anual' },
+		goodsA: { entity: '', invoice: '', endUser: '', accepted: false },
+		attestations: Object.fromEntries(KEYS.map(k => [k, true])),
+	}
+	const PDF = { uri: 'file:///factura.pdf', name: 'factura.pdf', type: 'application/pdf', size: 2048 }
+	const card = (tree) => tree.root.findByType('UsRailPurposeCard')
+
+	const fillPayPal = async (tree) => {
+		await selectCoin(tree, PAYPAL)
+		await typeQUSD(tree, '100')
+		await fillField(tree, 'nombre_y_apellidos', 'Vendor Inc')
+		await fillField(tree, 'correo', 'ventas@vendor.com')
+	}
+
+	beforeEach(() => {
+		mockCoinCatalog = [CUP, USDCASH, PAYPAL, BANK]
+		withdrawApi.usRail.mockResolvedValue({ success: true, data: { data: REQ } })
+	})
+
+	test('pide el formulario y bloquea Continuar hasta completarlo con la factura', async () => {
+		const tree = await renderWithdraw()
+		await fillPayPal(tree)
+		expect(card(tree).props.payeeHint).toBe('Vendor Inc')
+		expect(footerButton(tree).props.disabled).toBe(true)
+		await act(async () => { card(tree).props.onChange(S1) })
+		// A un tercero: también la factura
+		expect(card(tree).props.invoiceRequired).toBe(true)
+		expect(footerButton(tree).props.disabled).toBe(true)
+		await act(async () => { card(tree).props.onChangeInvoice(PDF) })
+		expect(footerButton(tree).props.disabled).toBe(false)
+		await pressFooter(tree)
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith(expect.objectContaining({
+			coin: 'PAYPAL',
+			usPayment: {
+				payee: 'third_party', purpose: 'S-1', attestations: S1.attestations, language: 'es',
+				service_kind: 'software', service: { description: 'Licencia anual' }, recipient: { name: 'Vendor Inc', country: 'US' },
+			},
+			invoice: PDF,
+		}))
+	})
+
+	test('la cuenta propia suspendida no deja continuar', async () => {
+		const tree = await renderWithdraw()
+		await fillPayPal(tree)
+		await act(async () => { card(tree).props.onChange({ ...S1, payee: 'own' }) })
+		expect(card(tree).props.invoiceRequired).toBe(false)
+		expect(footerButton(tree).props.disabled).toBe(true)
+	})
+
+	test('un 400 US_RAIL_PURPOSE_REQUIRED cierra el PIN y marca lo que faltó', async () => {
+		withdrawApi.withdraw.mockResolvedValue({ success: false, status: 400, error: 'Para retirar por este método…', details: { code: 'US_RAIL_PURPOSE_REQUIRED', missing: ['recipient.country'] } })
+		const tree = await renderWithdraw()
+		await fillPayPal(tree)
+		await act(async () => { card(tree).props.onChange(S1) })
+		await act(async () => { card(tree).props.onChangeInvoice(PDF) })
+		await pressFooter(tree)
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		expect(toast.error).toHaveBeenCalledWith('Para retirar por este método…')
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(0)
+		expect(card(tree).props.highlight).toEqual(['recipient.country'])
+	})
+
+	test('un PDF con número de tarjeta se descarta y la factura queda marcada', async () => {
+		withdrawApi.withdraw.mockResolvedValue({ success: false, status: 400, error: 'El PDF incluye un número de tarjeta', details: { code: 'INVOICE_HAS_PAN' } })
+		const tree = await renderWithdraw()
+		await fillPayPal(tree)
+		await act(async () => { card(tree).props.onChange(S1) })
+		await act(async () => { card(tree).props.onChangeInvoice(PDF) })
+		await pressFooter(tree)
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		expect(card(tree).props.invoice).toBeNull()
+		expect(card(tree).props.highlight).toEqual(['invoice'])
+		expect(footerButton(tree).props.disabled).toBe(true)
+	})
+
+	test('cambiar de método vacía el formulario y la factura', async () => {
+		const tree = await renderWithdraw()
+		await fillPayPal(tree)
+		await act(async () => { card(tree).props.onChange(S1) })
+		await act(async () => { card(tree).props.onChangeInvoice(PDF) })
+		await selectCoin(tree, BANK)
+		expect(card(tree).props.value.payee).toBe('')
+		expect(card(tree).props.invoice).toBeNull()
+	})
+
+	test('una cuenta que no es de Cuba no ve el formulario y retira como siempre', async () => {
+		withdrawApi.usRail.mockResolvedValue({ success: true, data: { data: { ...REQ, applies: false } } })
+		const tree = await renderWithdraw()
+		await fillPayPal(tree)
+		expect(tree.root.findAllByType('UsRailPurposeCard')).toHaveLength(0)
+		expect(footerButton(tree).props.disabled).toBe(false)
+		await pressFooter(tree)
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		const call = withdrawApi.withdraw.mock.calls[0][0]
+		expect(call.usPayment).toBeUndefined()
+		expect(call.invoice).toBeUndefined()
+	})
+
+	test('retiro bancario de $3,000 o más: factura obligatoria para cualquier cuenta', async () => {
+		withdrawApi.usRail.mockResolvedValue({ success: false, status: 404 })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, BANK)
+		await typeQUSD(tree, '3000')
+		await fillField(tree, 'nombre_y_apellidos', 'Proveedor SL')
+		const invoiceField = tree.root.findByType('WithdrawInvoiceField')
+		expect(invoiceField.props.reason).toBe('large_bank')
+		expect(footerButton(tree).props.disabled).toBe(true)
+		await act(async () => { invoiceField.props.onChange(PDF) })
+		expect(footerButton(tree).props.disabled).toBe(false)
+		await pressFooter(tree)
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith(expect.objectContaining({ coin: 'BANK', invoice: PDF }))
+		expect(withdrawApi.withdraw.mock.calls[0][0].usPayment).toBeUndefined()
 	})
 })

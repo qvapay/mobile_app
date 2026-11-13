@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { View, Text, Pressable, StyleSheet, type ScrollViewInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner-native'
 
 // Helpers
 import { percentAmount } from '../../helpers/amountInput'
@@ -35,6 +37,14 @@ import useOfacGate from '../../hooks/useOfacGate'
 import OfacAttestationModal from '../../ui/OfacAttestationModal'
 import { withdrawAttestationScope } from '../../helpers/ofacCompliance'
 import type { WithdrawAttestation } from './useWithdrawSubmit'
+
+// Cuenta de Cuba por un método de EE. UU. (a quién paga + propósito + declaraciones) y factura en PDF
+import UsRailPurposeCard from './UsRailPurposeCard'
+import WithdrawInvoiceField from './WithdrawInvoiceField'
+import { US_RAIL_QUERY, useUsRailQuery } from './withdrawQueries'
+import { buildUsRailPayload, emptyUsRailValue, invoiceRequiredFor, isUsRailComplete, missingFromError, usRailApplies } from './usRail'
+import type { InvoiceFile, UsRailValue } from './usRail'
+import { keyFromFieldName } from './withdrawFees'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -77,7 +87,7 @@ type WithdrawProps = NativeStackScreenProps<RootStackParamList, 'Withdraw'>
  */
 const Withdraw = ({ navigation, route }: WithdrawProps) => {
 
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
 
 	// Gate de KYC — intercepta antes del paso de PIN
 	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
@@ -85,6 +95,14 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 	// Gate OFAC — tras el de KYC; la atestación vale para ESTE intento (ref, ligada al tick)
 	const { requireAttestation, modalProps: ofacModalProps } = useOfacGate()
 	const attestationRef = useRef<WithdrawAttestation | null>(null)
+
+	// Requisitos de los métodos de EE. UU. para una cuenta de Cuba (los textos los sirve el servidor)
+	const queryClient = useQueryClient()
+	const { requirements: usRailReq, refetch: refetchUsRail } = useUsRailQuery(true)
+	const [usRailValue, setUsRailValue] = useState<UsRailValue | null>(null)
+	const [usRailLanguage, setUsRailLanguage] = useState<'es' | 'en'>(() => (String(i18n.language || '').startsWith('en') ? 'en' : 'es'))
+	const [usRailHighlight, setUsRailHighlight] = useState<string[]>([])
+	const [invoice, setInvoice] = useState<InvoiceFile | null>(null)
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -116,6 +134,28 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		prefillAmount: route?.params?.amount,
 	})
 
+	// Cambiar de método vacía el formulario de EE. UU. y la factura: eran para otro destino
+	// (patrón "ajustar estado al cambiar una prop", sin efecto)
+	const coinTick = selectedCoin?.tick ?? null
+	const [usRailTick, setUsRailTick] = useState(coinTick)
+	if (usRailTick !== coinTick) {
+		setUsRailTick(coinTick)
+		setUsRailValue(null)
+		setUsRailHighlight([])
+		setInvoice(null)
+	}
+	const usRailOn = !sourceSats && usRailApplies(usRailReq, coinTick)
+	const usRailForm = usRailValue ?? emptyUsRailValue((usRailReq?.declarations || []).map(d => d.key))
+	const invoiceRequired = !sourceSats && invoiceRequiredFor({ tick: coinTick, amount: amountQUSD, usRailOn, payee: usRailForm.payee })
+	const usRailReady = !usRailOn || isUsRailComplete(usRailForm, usRailReq)
+	const invoiceReady = !invoiceRequired || !!invoice
+	const usPayment = usRailOn && usRailReq ? buildUsRailPayload(usRailForm, usRailReq, usRailLanguage) : null
+	// Sugerencia de destinatario: el nombre del beneficiario del formulario del método
+	const payeeField = workingFields.find(field => /nombre/i.test(String(field.name)))
+	const payeeHint = payeeField ? (workingForm[keyFromFieldName(payeeField.name)] || '') : ''
+	const changeUsRail = (next: UsRailValue) => { setUsRailValue(next); if (usRailHighlight.length) setUsRailHighlight([]) }
+	const changeInvoice = (file: InvoiceFile | null) => { setInvoice(file); if (usRailHighlight.includes('invoice')) setUsRailHighlight(usRailHighlight.filter(k => k !== 'invoice')) }
+
 	// El «librito» de métodos guardados (misma hoja que P2PCreate)
 	const [showSavedMethods, setShowSavedMethods] = useState(false)
 	const openPaymentMethodsSettings = () => {
@@ -144,8 +184,22 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		showPinStep, setShowPinStep, sendingPin, sendingWithdraw,
 		handleRequestPin, handleWithdraw, handlePinBoxFocus,
 	} = useWithdrawSubmit({
-		amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, isFormValid, scrollViewRef, attestationRef,
-		onSuccess: () => { resetAmounts(); navigation.goBack() },
+		amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, scrollViewRef, attestationRef,
+		isFormValid: isFormValid && usRailReady && invoiceReady,
+		usPayment: usRailOn ? usPayment : null,
+		invoice: invoiceRequired ? invoice : null,
+		onUsRailError: (kind, details) => {
+			// El servidor manda: se releen los requisitos y se marca lo que faltó
+			refetchUsRail()
+			if (kind === 'purpose') setUsRailHighlight(missingFromError(details))
+			if (kind === 'invoice') {
+				const code = (details as { code?: unknown } | null)?.code
+				// Un PDF rechazado por su contenido no sirve para reintentar
+				if (code === 'INVOICE_INVALID' || code === 'INVOICE_HAS_PAN') setInvoice(null)
+				setUsRailHighlight(['invoice'])
+			}
+		},
+		onSuccess: () => { setUsRailValue(null); setInvoice(null); resetAmounts(); navigation.goBack() },
 	})
 
 	return (
@@ -157,7 +211,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 						<QPButton
 							title={sourceSats ? t('withdraw.index.redeemButton', { sats: (Number(amountSats) || 0).toLocaleString() }) : t('withdraw.index.withdrawButton', { amount: amountQUSD, currency })}
 							onPress={handleWithdraw}
-							disabled={!isFormValid || !pin || pin.length < codeLength}
+							disabled={!isFormValid || !usRailReady || !invoiceReady || !pin || pin.length < codeLength}
 							loading={sendingWithdraw}
 							icon="arrow-right"
 							iconStyle="solid"
@@ -167,7 +221,16 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 					) : (
 						<QPButton
 							title={t('common.actions.continue')}
-							onPress={() => {
+							onPress={async () => {
+								// Cuenta de Cuba por un método de EE. UU.: se resuelve EN EL TOQUE (la query pudo no
+								// haber llegado). Si falla, el servidor lo exige igual y su 400 trae el formulario.
+								if (!sourceSats && selectedCoin) {
+									const req = await queryClient.fetchQuery(US_RAIL_QUERY).catch(() => usRailReq)
+									if (usRailApplies(req, selectedCoin.tick) && !isUsRailComplete(usRailForm, req)) {
+										toast.error(req?.messages?.required || t('withdraw.usRail.required'))
+										return
+									}
+								}
 								// Gate preventivo: el backend rechaza retiros > $1000 sin KYC
 								if (!requireKyc({
 									gated: Number(amountQUSD) > KYC_WITHDRAW_THRESHOLD,
@@ -184,7 +247,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 								)) return
 								openPinStep()
 							}}
-							disabled={!isFormValid}
+							disabled={!isFormValid || !usRailReady || !invoiceReady}
 							icon="arrow-right"
 							iconStyle="solid"
 							iconColor={theme.colors.almostWhite}
@@ -305,6 +368,30 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 								<Text style={[textStyles.caption, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('common.actions.retry')}</Text>
 							</Pressable>
 						</View>
+					)}
+
+					{/* Cuenta de Cuba por un método de EE. UU.: a quién paga, propósito, declaraciones y factura */}
+					{selectedCoin && usRailOn && usRailReq && (
+						<UsRailPurposeCard
+							req={usRailReq}
+							value={usRailForm}
+							onChange={changeUsRail}
+							language={usRailLanguage}
+							onChangeLanguage={setUsRailLanguage}
+							amount={amountQUSD}
+							payeeHint={payeeHint}
+							highlight={usRailHighlight}
+							invoice={invoice}
+							invoiceRequired={invoiceRequired}
+							onChangeInvoice={changeInvoice}
+							theme={theme}
+							textStyles={textStyles}
+						/>
+					)}
+
+					{/* Retiro bancario de $3,000 o más: factura obligatoria para cualquier cuenta */}
+					{selectedCoin && !usRailOn && invoiceRequired && (
+						<WithdrawInvoiceField reason="large_bank" file={invoice} onChange={changeInvoice} highlighted={usRailHighlight.includes('invoice')} theme={theme} textStyles={textStyles} />
 					)}
 
 					{/* Resumen de la entrega de efectivo: comisión base + cargo de entrega = total, y lo que se recibe */}
