@@ -19,6 +19,15 @@ describe('rutas internas que la app sabe pintar', () => {
 		expect(resolveAnnouncementTarget('/topup')).toEqual({ kind: 'screen', route: 'Topup', params: {} })
 	})
 
+	test('el perfil P2P, por uuid o por @usuario', () => {
+		const uuid = '796a9e71-3d67-4a42-9dc2-02a5d069fa23'
+		expect(resolveAnnouncementTarget(`/p2p/user/${uuid}`)).toEqual({ kind: 'screen', route: 'P2PUser', params: { uuid } })
+		expect(resolveAnnouncementTarget('/p2p/u/luke')).toEqual({ kind: 'screen', route: 'P2PUser', params: { username: 'luke' } })
+		expect(resolveAnnouncementTarget('https://www.qvapay.com/p2p/u/@luke?utm=x')).toEqual({ kind: 'screen', route: 'P2PUser', params: { username: 'luke' } })
+		// Sin forma de uuid no es un perfil: a la web
+		expect(resolveAnnouncementTarget('/p2p/user/nope')).toEqual({ kind: 'external', url: 'https://www.qvapay.com/p2p/user/nope' })
+	})
+
 	test('el depósito admite ?coin= (las monedas «Vía P2P» abren su bloque de ofertas)', () => {
 		expect(resolveAnnouncementTarget('/add')).toEqual({ kind: 'screen', route: 'Add', params: {} })
 		expect(resolveAnnouncementTarget('/add?coin=ETECSA')).toEqual({ kind: 'screen', route: 'Add', params: { preselectedCoin: 'ETECSA' } })

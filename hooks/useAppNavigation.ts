@@ -61,6 +61,7 @@ const loginToastKeyFor = (url: string): string | null => {
 	switch (resolveDeepLinkTarget(url)?.name) {
 		case ROUTES.PAY_SCREEN: return 'hooks.appNavigation.toasts.loginToPay'
 		case ROUTES.P2P_OFFER_SCREEN: return 'hooks.appNavigation.toasts.loginToSeeOffer'
+		case ROUTES.P2P_USER_SCREEN: return 'hooks.appNavigation.toasts.loginToSeeProfile'
 		case ROUTES.MARKET_STORE:
 		case ROUTES.MARKET_PRODUCT: return 'hooks.appNavigation.toasts.loginToSeeStore'
 		case ROUTES.MINIAPP_HOST: return 'hooks.appNavigation.toasts.loginToOpenApp'

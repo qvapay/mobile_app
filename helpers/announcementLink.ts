@@ -33,6 +33,9 @@ const PATH_ROUTES: { match: RegExp, target: (m: RegExpMatchArray, query: Record<
 	{ match: /^\/p2p$/, target: () => ({ kind: 'tab', screen: ROUTES.P2P_SCREEN }) },
 	{ match: /^\/store$/, target: () => ({ kind: 'tab', screen: ROUTES.STORE_SCREEN }) },
 	{ match: /^\/p2p\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.P2P_OFFER_SCREEN, params: { p2p_uuid: m[1] } }) },
+	// Perfil: por uuid (36 caracteres, `users.uuid`) o por @usuario
+	{ match: /^\/p2p\/user\/([0-9a-f-]{36})$/i, target: m => ({ kind: 'screen', route: ROUTES.P2P_USER_SCREEN, params: { uuid: m[1] } }) },
+	{ match: /^\/p2p\/u\/@?([A-Za-z0-9._-]{1,64})$/, target: m => ({ kind: 'screen', route: ROUTES.P2P_USER_SCREEN, params: { username: m[1] } }) },
 	{ match: /^\/pay\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.PAY_SCREEN, params: { uuid: m[1] } }) },
 	{ match: /^\/topup$/, target: () => ({ kind: 'screen', route: ROUTES.TOPUP_SCREEN, params: {} }) },
 	// `?coin=` preselecciona la moneda del depósito (las «Vía P2P» abren su bloque de ofertas)

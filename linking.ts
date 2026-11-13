@@ -9,6 +9,7 @@ import type { RootStackParamList } from './types/navigation'
  * scheme:
  *   /p2p/:p2p_uuid → P2POffer (offer detail)
  *   /p2p/promote?coin=&type= → P2PPromote (puesto promocionado; segmento fijo, gana a :p2p_uuid)
+ *   /p2p/user/:uuid · /p2p/u/:username → P2PUser (perfil público; el segundo es el atajo por @usuario)
  *   /pay/:uuid     → Pay (merchant invoice)
  *   /store/:slug   → MarketStore (marketplace storefront)
  *   /store/:slug/:uuid → MarketProduct (public product sheet)
@@ -34,6 +35,9 @@ const linking: LinkingOptions<RootStackParamList> = {
 			// Las pushes del puesto promocionado llevan https://www.qvapay.com/p2p/promote?coin=&type=
 			[ROUTES.P2P_PROMOTE]: 'p2p/promote',
 			[ROUTES.P2P_OFFER_SCREEN]: 'p2p/:p2p_uuid',
+			// Perfil: /p2p/user/<uuid> es la URL canónica de qpweb (la que comparte la app) y
+			// /p2p/u/<username> su atajo por @usuario. Tres segmentos: no choca con p2p/:p2p_uuid
+			[ROUTES.P2P_USER_SCREEN]: { path: 'p2p/user/:uuid', alias: ['p2p/u/:username'] },
 			[ROUTES.PAY_SCREEN]: 'pay/:uuid',
 			[ROUTES.TOPUP_SCREEN]: 'topup',
 			// Accesos directos de los widgets de pantalla de inicio: los botones

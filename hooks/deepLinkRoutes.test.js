@@ -5,7 +5,7 @@
 import { DEEP_LINK_ROUTES, isDeepLinkRoute } from './deepLinkRoutes'
 
 describe('deepLinkRoutes', () => {
-	test.each(['MiniAppHost', 'MiniApps', 'Pay', 'P2POffer', 'P2PPromote', 'MarketStore', 'MarketProduct', 'Topup'])('%s es destino de deep link', (name) => {
+	test.each(['MiniAppHost', 'MiniApps', 'Pay', 'P2POffer', 'P2PPromote', 'P2PUser', 'MarketStore', 'MarketProduct', 'Topup'])('%s es destino de deep link', (name) => {
 		expect(isDeepLinkRoute(name)).toBe(true)
 	})
 
