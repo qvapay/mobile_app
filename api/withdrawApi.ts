@@ -3,6 +3,8 @@ import i18n from '../i18n'
 import type { ApiClientError, ApiResult } from '../types/api'
 import type { OfacCompliancePayload } from '../helpers/ofacCompliance'
 import type { CashZonesPayload } from '../types/domain'
+import { withdrawBody } from '../screens/withdraw/usRail'
+import type { InvoiceFile, UsRailPayload, UsRailRequirements } from '../screens/withdraw/usRail'
 
 /** Parámetros de `withdrawApi.withdraw` (paso 2 del flujo de retiro). */
 export type WithdrawInput = {
@@ -26,6 +28,10 @@ export type WithdrawInput = {
 	amountSats?: number
 	/** Per-attempt key (`[A-Za-z0-9._-]{8,64}`) — see `helpers/idempotency.js`. */
 	idempotencyKey?: string
+	/** Cuenta de Cuba por un método de EE. UU.: a quién paga, propósito y declaraciones (`screens/withdraw/usRail.ts`). */
+	usPayment?: UsRailPayload | null
+	/** Factura en PDF: con ella el retiro viaja como multipart (`payload` + `invoice`). */
+	invoice?: InvoiceFile | null
 }
 
 /** Payload decodificado de `POST /lightning/decode` (BOLT11 o Lightning Address). */
@@ -98,7 +104,7 @@ export const withdrawApi = {
 	 *   `409 { code: 'DUPLICATE_REQUEST' }` (see `helpers/idempotency.js`)
 	 * @returns `{ success, data?, error?, details?, status? }` — `data` is the created withdrawal + transaction
 	 */
-	withdraw: async ({ amount, coin, details, pin, payMethod, note, source, amountSats, idempotencyKey, compliance }: WithdrawInput): Promise<ApiResult<unknown>> => {
+	withdraw: async ({ amount, coin, details, pin, payMethod, note, source, amountSats, idempotencyKey, compliance, usPayment, invoice }: WithdrawInput): Promise<ApiResult<unknown>> => {
 
 		try {
 
@@ -112,6 +118,7 @@ export const withdrawApi = {
 				idempotency_key?: string
 				note?: string
 				compliance?: OfacCompliancePayload
+				us_payment?: UsRailPayload
 			} = {
 				pay_method: payMethod || coin,
 				details: details || {},
@@ -121,11 +128,22 @@ export const withdrawApi = {
 					: { amount: Number(amount) }),
 				...(idempotencyKey && { idempotency_key: idempotencyKey }),
 				...(compliance && { compliance }),
+				...(usPayment && { us_payment: usPayment }),
 			}
 
 			// Add note if provided
 			if (note) { payload.note = note }
-			const response = await apiClient.post('/withdraw', payload)
+			// Con factura: multipart con el JSON en `payload` y el PDF en `invoice` (lo que lee el servidor).
+			// El timeout global de 20 s no alcanza para subir un PDF con mala red.
+			const body = withdrawBody(payload, invoice)
+			let response
+			if (body.kind === 'multipart') {
+				const formData = new FormData()
+				body.parts.forEach(([key, value]) => formData.append(key, value))
+				response = await apiClient.post('/withdraw', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 })
+			} else {
+				response = await apiClient.post('/withdraw', body.body)
+			}
 			return { success: true, data: response.data, status: response.status }
 
 		} catch (err) {
@@ -164,6 +182,26 @@ export const withdrawApi = {
 				// `details` conserva el cuerpo: `code: 'LN_SELF_PAY'` cuando el destino es una
 				// Lightning Address de QvaPay (la UI ofrece Transferir en vez de retirar)
 				return { success: false, error: error.response.data.error || i18n.t('api.withdraw.lightningInvalid'), details: error.response.data, status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Requisitos de un retiro por un método de EE. UU. desde una cuenta de Cuba (`GET /withdraw/us-rail`,
+	 * silent): si la cuenta está afectada, qué métodos, las opciones y los textos legales (los sirve el
+	 * servidor, nunca la app). Un qpweb anterior a la regla responde 404.
+	 *
+	 * @returns `{ success, data?, error?, status? }` — `data` es `{ data: UsRailRequirements }`
+	 */
+	usRail: async (): Promise<ApiResult<{ data: UsRailRequirements }>> => {
+		try {
+			const response = await apiClient.get('/withdraw/us-rail', { silent: true })
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				return { success: false, error: error.response.data.error || i18n.t('api.common.networkError'), status: error.response.status }
 			}
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}

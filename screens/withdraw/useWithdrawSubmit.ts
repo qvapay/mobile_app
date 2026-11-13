@@ -28,6 +28,10 @@ import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 import { withdrawAttestationScope, isAttestationRequiredError } from '../../helpers/ofacCompliance'
 import type { OfacCompliancePayload } from '../../helpers/ofacCompliance'
 
+// Cuenta de Cuba por un método de EE. UU.: `us_payment` + factura en PDF
+import { usRailErrorKind } from './usRail'
+import type { InvoiceFile, UsRailErrorKind, UsRailPayload } from './usRail'
+
 // User Context
 import { useAuth } from '../../auth/AuthContext'
 
@@ -75,6 +79,15 @@ type WithdrawSubmitArgs = {
 	scrollViewRef: React.RefObject<ScrollViewInstance | null>
 	/** Atestación firmada en el gate de Continuar (null si la moneda no la exige). */
 	attestationRef: React.RefObject<WithdrawAttestation | null>
+	/** `us_payment` del intento (null si la cuenta o el método no lo piden). */
+	usPayment?: UsRailPayload | null
+	/** Factura en PDF del intento: con ella el retiro viaja como multipart. */
+	invoice?: InvoiceFile | null
+	/**
+	 * El servidor rechazó el propósito, la factura o la cuenta propia (`US_RAIL_PURPOSE_REQUIRED`,
+	 * `INVOICE_*`, `CU_OWN_ACCOUNT_SUSPENDED`): la pantalla vuelve a ese formulario.
+	 */
+	onUsRailError?: (kind: Exclude<UsRailErrorKind, null>, details: unknown) => void
 	/** Limpieza del formulario + navegación tras un retiro confirmado. */
 	onSuccess: () => void
 }
@@ -85,7 +98,7 @@ type WithdrawSubmitArgs = {
  * @param args - Datos del formulario ya validado y callback de éxito.
  * @returns Estado del paso de PIN y sus handlers.
  */
-export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, isFormValid, scrollViewRef, attestationRef, onSuccess }: WithdrawSubmitArgs) {
+export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, isFormValid, scrollViewRef, attestationRef, usPayment = null, invoice = null, onUsRailError, onSuccess }: WithdrawSubmitArgs) {
 
 	const { t } = useTranslation()
 	const { user, updateUser } = useAuth()
@@ -165,6 +178,9 @@ export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, 
 				...(sourceSats && { source: 'satoshis', amountSats: Number(amountSats) }),
 				idempotencyKey: idempotencyKeyRef.current,
 				compliance: attestation?.payload ?? null,
+				// Redención de sats: nunca lleva propósito ni factura (no sale por un rail de EE. UU.)
+				...(!sourceSats && usPayment && { usPayment }),
+				...(!sourceSats && invoice && { invoice }),
 			}))
 
 			if (result.success) {
@@ -189,6 +205,13 @@ export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, 
 				setShowPinStep(false)
 				setPin('')
 				toast.error(result.error || t('withdraw.index.toasts.attestationRequired'))
+			} else if (usRailErrorKind((result.details as { code?: unknown } | undefined)?.code)) {
+				// Propósito, factura o cuenta propia rechazados: vuelta al formulario (el error del servidor tal cual)
+				const kind = usRailErrorKind((result.details as { code?: unknown } | undefined)?.code)
+				setShowPinStep(false)
+				setPin('')
+				toast.error(result.error || t('withdraw.usRail.required'))
+				if (kind) onUsRailError?.(kind, result.details)
 			} else if (isNetworkFailure(result)) {
 				toast.error(t('withdraw.index.toasts.networkErrorTitle'), { description: `${result.error || t('errors.network')}. ${safeRetryHint()}` })
 			} else {
