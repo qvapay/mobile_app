@@ -12,6 +12,7 @@
  * `PROTOCOL_VERSION` si algo deja de ser compatible.
  */
 import { PROTOCOL_VERSION } from './protocol'
+import { NATIVE_LINK_RE } from './nativeLinks'
 
 /** Nombre del receptor global por el que la app responde y empuja eventos. */
 export const RECEIVER = '__qvapayReceive'
@@ -100,6 +101,20 @@ export function buildSdkScript(initialTheme: unknown, launchParams: { slug: stri
 	};
 
 	Object.defineProperty(window, 'QvaPay', { configurable: false, writable: false, value: Object.freeze(sdk) });
+
+	// Enlaces al perfil de QvaPay: la app abre su pantalla nativa (miniapps/nativeLinks.ts).
+	// En captura sobre window, antes que React: \`preventDefault\` frena también los <Link> de
+	// Next o React Router, que navegan sin recargar y la app nunca se enteraría
+	var NATIVE_LINK = new RegExp(${JSON.stringify(NATIVE_LINK_RE.source)}, 'i');
+	function onLinkClick(e) {
+		if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+		var el = e.target;
+		while (el && String(el.nodeName).toUpperCase() !== 'A') { el = el.parentNode; }
+		if (!el || typeof el.href !== 'string' || !NATIVE_LINK.test(el.href)) { return; }
+		e.preventDefault();
+		post('openLink', { url: el.href })['catch'](function () {});
+	}
+	if (window.addEventListener) { window.addEventListener('click', onLinkClick, true); }
 	try { window.dispatchEvent(new Event('qvapay:ready')); } catch (e) {}
 })();
 true;`

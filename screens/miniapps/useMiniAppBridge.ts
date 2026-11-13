@@ -76,6 +76,12 @@ type Options = {
 	 * sigue siendo testeable en node). `dismissed` solo lo distingue iOS.
 	 */
 	share: (text?: string) => Promise<'shared' | 'dismissed'>
+	/**
+	 * `openLink` a un enlace que la app abre en una pantalla nativa (el perfil P2P,
+	 * `miniapps/nativeLinks.ts`): la pantalla navega y devuelve true. Con false, la URL
+	 * va al navegador del sistema como siempre.
+	 */
+	openNative?: (url: string) => boolean
 }
 
 /**
@@ -89,7 +95,7 @@ type Options = {
  * otro en curso se rechaza con `BUSY` (una mini-app no puede apilar cobros), y
  * lo mismo con la hoja de compartir en pantalla, en los dos sentidos.
  */
-export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, requireKyc, share }: Options) {
+export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, requireKyc, share, openNative }: Options) {
 
 	// La operación modal en vuelo (incluye el authorize directo, que no pinta hoja)
 	const busyRef = useRef(false)
@@ -113,10 +119,10 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 	// Refs espejo: el dispatcher es estable y lee siempre lo último
 	const appRef = useRef(app)
 	const themeRef = useRef(theme)
-	const callbacksRef = useRef({ onReady, onClose, requireKyc, share })
+	const callbacksRef = useRef({ onReady, onClose, requireKyc, share, openNative })
 	useEffect(() => { appRef.current = app }, [app])
 	useEffect(() => { themeRef.current = theme }, [theme])
-	useEffect(() => { callbacksRef.current = { onReady, onClose, requireKyc, share } }, [onReady, onClose, requireKyc, share])
+	useEffect(() => { callbacksRef.current = { onReady, onClose, requireKyc, share, openNative } }, [onReady, onClose, requireKyc, share, openNative])
 	// Hoja de compartir en vuelo: no es modal del bridge (no pide PIN ni KYC)
 	// pero tampoco se apila
 	const shareBusyRef = useRef(false)
@@ -217,7 +223,8 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 				return
 			}
 			case 'openLink':
-				Linking.openURL(request.params.url).catch(() => {})
+				// Un enlace al perfil de QvaPay abre su pantalla nativa; el resto, el navegador
+				if (!callbacksRef.current.openNative?.(request.params.url)) Linking.openURL(request.params.url).catch(() => {})
 				respond(request.id)
 				return
 			case 'share': {
