@@ -288,6 +288,58 @@ describe('límite de intentos', () => {
 		expect(unlockWithPin).toHaveBeenCalledWith('1234')
 	})
 
+	// Visto en el E2E: los dos primeros dígitos caían en la espera y se descartaban, los dos
+	// últimos entraban, y el PIN siguiente («34» + «12») contaba como un fallo más
+	test('un PIN tecleado de corrido mientras la espera se cumple se descarta entero', async () => {
+		withAttempts(5, 29_500)
+		const tree = render()
+		await tap(tree, '1')
+		await act(async () => { jest.advanceTimersByTime(700) })
+		await tap(tree, '2')
+		// La espera se cumple con el PIN a medias
+		await act(async () => { jest.advanceTimersByTime(300) })
+		expect(notice(tree)).toBeUndefined()
+		await tap(tree, '3')
+		await act(async () => { jest.advanceTimersByTime(300) })
+		await tap(tree, '4')
+		expect(dots(tree)).toBe('PIN: 0 de 4 dígitos')
+		expect(unlockWithPin).not.toHaveBeenCalled()
+
+		// Tras una pausa, el PIN entra entero
+		await act(async () => { jest.advanceTimersByTime(1000) })
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		expect(unlockWithPin).toHaveBeenCalledTimes(1)
+		expect(unlockWithPin).toHaveBeenCalledWith('1234')
+	})
+
+	test('lo tecleado mientras se comprueba un PIN tampoco deja medio PIN detrás', async () => {
+		let resolve
+		unlockWithPin.mockImplementation(() => new Promise(r => { resolve = r }))
+		const tree = render()
+		for (const d of ['9', '9', '9', '9']) await tap(tree, d)
+		// El PIN siguiente se empieza a teclear antes de que llegue la respuesta
+		await tap(tree, '1')
+		await tap(tree, '2')
+		await act(async () => { resolve({ success: false }) })
+		await tap(tree, '3')
+		await tap(tree, '4')
+		expect(dots(tree)).toBe('PIN: 0 de 4 dígitos')
+
+		await act(async () => { jest.advanceTimersByTime(1000) })
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		expect(unlockWithPin).toHaveBeenCalledTimes(2)
+		expect(unlockWithPin).toHaveBeenLastCalledWith('1234')
+	})
+
+	test('quien espera a que el aviso se vaya teclea sin pausa de más', async () => {
+		withAttempts(5, 29_500)
+		const tree = render()
+		await act(async () => { jest.advanceTimersByTime(1000) })
+		expect(notice(tree)).toBeUndefined()
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		expect(unlockWithPin).toHaveBeenCalledWith('1234')
+	})
+
 	test('la tecla biométrica sigue viva durante la espera: es el dueño', async () => {
 		withAttempts(7)
 		const tree = render()

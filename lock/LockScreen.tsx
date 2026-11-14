@@ -35,6 +35,9 @@ const PIN_LENGTH = 4
 // (Android de 360×640 con botones de navegación, iPhone de 4"): modo compacto
 const COMPACT_BELOW = 640
 
+// Teclas más juntas que esto son el mismo PIN, tecleado de corrido
+const SAME_PIN_GAP_MS = 1000
+
 /**
  * Full-screen app-lock overlay: 4-digit PIN entry with optional biometric unlock.
  * Rendered by AppLockProvider above the NavigationContainer whenever the app is
@@ -67,6 +70,12 @@ const COMPACT_BELOW = 640
  * botón que pide la huella, la cara o el código del teléfono para devolver los
  * intentos. Esa prueba NO desbloquea: después se sigue pidiendo el PIN.
  *
+ * Un PIN se admite entero o no se admite: una tecla rechazada (hay espera, o se
+ * está comprobando otro PIN) se lleva con ella a las que vienen de corrido. Quien
+ * teclea su PIN justo cuando la espera termina veía descartados los primeros
+ * dígitos y admitidos los últimos; el PIN siguiente salía corrido («34» + «12») y
+ * contaba como un fallo más, con su espera más larga, a alguien que tecleó bien.
+ *
  * PIN ilegible: si el Keychain no deja leer el PIN guardado (en Android, tras
  * pasar de un teléfono a otro, viaja cifrado y sin su clave) nadie puede
  * acertarlo y esta pantalla no se abriría nunca. El aviso es entonces el
@@ -97,6 +106,8 @@ const LockScreen = () => {
 	// vuelva a pintar, y leyendo el estado el segundo pisaría al primero
 	const pinRef = useRef('')
 	const verifyingRef = useRef(false)
+	/** Cuándo se rechazó la última tecla (ms): las que la siguen de corrido son el mismo PIN. */
+	const refusedAtRef = useRef(0)
 
 	const clearError = useCallback(() => setError(''), [])
 	const { biometryType, available: biometricsAvailable, unlock: handleBiometricUnlock } = useLockBiometrics(isLocked, clearError)
@@ -156,9 +167,16 @@ const LockScreen = () => {
 	}
 
 	const handleKey = useCallback((key: string) => {
-		if (verifyingRef.current) return
-		// Durante la espera el teclado no escribe (su tecla biométrica sí funciona)
-		if (pinLimitRef.current.kind !== 'open') { dotsRef.current?.shake(); return }
+		const now = Date.now()
+		const verifying = verifyingRef.current
+		// Mientras se comprueba un PIN y durante la espera el teclado no escribe (su tecla
+		// biométrica sí funciona). Tampoco lo que llega de corrido justo después: es el
+		// resto de ese mismo PIN, y admitirlo a medias descuadraría el siguiente
+		if (verifying || pinLimitRef.current.kind !== 'open' || Math.abs(now - refusedAtRef.current) < SAME_PIN_GAP_MS) {
+			refusedAtRef.current = now
+			if (!verifying) dotsRef.current?.shake()
+			return
+		}
 		const current = pinRef.current
 		const next = key === 'backspace' ? current.slice(0, -1) : current.length < PIN_LENGTH ? current + key : current
 		if (next === current) return
