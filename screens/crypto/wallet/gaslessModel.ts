@@ -37,11 +37,30 @@ export const sponsorChainFor = (asset: { chainKey: string, contract: string | nu
  */
 export const grantChain = (grant: { chain?: SponsorChain | null }): SponsorChain => grant.chain ?? 'solana'
 
+/**
+ * Motivos con los que el backend contesta `authorized` («no se gastó nada») SIN haberlo
+ * probado. `broadcast_failed`: la tx llegó a mandarse a un nodo y falló o no hubo respuesta;
+ * el nodo pudo aceptarla igual.
+ */
+const UNPROVEN_REASONS = new Set(['broadcast_failed'])
+
+/**
+ * ¿El backend dice «no se gastó» pero en realidad no se sabe si la tx entró?
+ *
+ * Solo en Solana. En BSC no hace falta tratarlo aparte: la tx patrocinada y la que el
+ * usuario mande pagando llevan el MISMO nonce, así que solo una de las dos puede entrar.
+ * En Solana no hay nada parecido: ofrecer ahí «pagar el envío» era mandar dos veces.
+ */
+export const isUnprovenOutcome = (outcome: GaslessSubmitResult, chain: SponsorChain): boolean =>
+	chain === 'solana' && outcome.status === 'authorized' && !outcome.rebuild && UNPROVEN_REASONS.has(outcome.reason ?? '')
+
 export type SubmitAction =
-	/** Está en la red y se conoce su firma. */
+	/** Está en la red, CONFIRMADA, y se conoce su firma. */
 	| { kind: 'done', txid: string }
-	/** Difundida sin firma a mano: hay que preguntar por el permiso hasta resolverlo. */
+	/** Difundida y aún sin confirmar: hay que preguntar por el permiso hasta resolverlo. */
 	| { kind: 'poll' }
+	/** No se sabe si entró: ni se da por enviada ni se ofrece pagar. Lo decide la cadena. */
+	| { kind: 'unknown' }
 	/**
 	 * Reconstruir y reenviar con el MISMO permiso: en Solana caducó el blockhash; en BSC
 	 * el nonce de la tx ya se usó (NONCE_STALE).
@@ -49,13 +68,14 @@ export type SubmitAction =
 	| { kind: 'rebuild' }
 	| { kind: 'error', message: string }
 
-export const interpretSubmit = (outcome: GaslessSubmitResult): SubmitAction => {
+export const interpretSubmit = (outcome: GaslessSubmitResult, chain: SponsorChain = 'solana'): SubmitAction => {
 	if (outcome.status === 'confirmed' && outcome.signature) { return { kind: 'done', txid: outcome.signature } }
-	if (outcome.status === 'pending') {
-		return outcome.signature ? { kind: 'done', txid: outcome.signature } : { kind: 'poll' }
-	}
+	// `pending` = difundida y NO vista confirmar, tenga firma o no. Antes, con firma se daba
+	// por «Enviado»; si luego la red la descartaba, la pantalla ya había dicho que sí
+	if (outcome.status === 'pending') { return { kind: 'poll' } }
 	// `rebuild` solo llega con el permiso intacto, así que se comprueba antes que el resto
 	if (outcome.rebuild) { return { kind: 'rebuild' } }
+	if (isUnprovenOutcome(outcome, chain)) { return { kind: 'unknown' } }
 	return { kind: 'error', message: outcome.message || outcome.reason || 'sponsored_failed' }
 }
 
@@ -64,9 +84,11 @@ export const interpretSubmit = (outcome: GaslessSubmitResult): SubmitAction => {
  *
  * Todo lo que llegó a la red lo gasta, y también lo que quedó en revisión: ahí puede
  * haberse cobrado y nadie debería poder reintentarlo por su cuenta. Solo `authorized`
- * —que es lo que devuelve el backend cuando PRUEBA que no se gastó nada— lo conserva.
+ * —que es lo que devuelve el backend cuando PRUEBA que no se gastó nada— lo conserva, y ni
+ * siquiera siempre: con un motivo sin probar (`isUnprovenOutcome`) pudo gastarse.
  */
-export const consumesGrant = (outcome: GaslessSubmitResult): boolean => outcome.status !== 'authorized'
+export const consumesGrant = (outcome: GaslessSubmitResult, chain: SponsorChain = 'solana'): boolean =>
+	outcome.status !== 'authorized' || isUnprovenOutcome(outcome, chain)
 
 /**
  * ¿Hay que dejar el patrocinio y ofrecer el envío pagando?
@@ -76,8 +98,42 @@ export const consumesGrant = (outcome: GaslessSubmitResult): boolean => outcome.
  * hay otra tx del usuario sin minar, el presupuesto se agotó… Sin esta salida, la pantalla
  * se quedaba atrapada reenviando un envío gratis que nunca iba a salir. El permiso se
  * devuelve a la cuota y la tx se reconstruye como un envío normal.
+ *
+ * Nunca con un desenlace sin probar: si la tx pudo entrar, pagar otra es enviar dos veces.
  */
-export const fallsBackToPaid = (outcome: GaslessSubmitResult): boolean => outcome.status === 'authorized' && !outcome.rebuild
+export const fallsBackToPaid = (outcome: GaslessSubmitResult, chain: SponsorChain = 'solana'): boolean =>
+	outcome.status === 'authorized' && !outcome.rebuild && !isUnprovenOutcome(outcome, chain)
+
+/**
+ * Qué significa que la PETICIÓN de canje falle (no llegó un desenlace del backend).
+ *
+ * Antes todo fallo era «no se sabe», y con un permiso caducado la pantalla se quedaba en
+ * «no pudimos confirmar» para siempre: reintentar daba el mismo error y nada lo resolvía.
+ * Pero el backend rechaza antes de mandar nada a la red cuando el permiso no vale, y eso sí
+ * es una respuesta: esa petición no envió nada.
+ */
+export type SubmitFailure =
+	/** Un canje anterior de este permiso ya entró y consta su firma. */
+	| { kind: 'done', txid: string }
+	/** Esta petición no mandó nada a la red. `grantGone`: el permiso ya no sirve (caducó, no existe, se usó). */
+	| { kind: 'rejected', grantGone: boolean }
+	/** No se sabe si llegó a mandarse (sin respuesta, error del servidor, u otro canje de este permiso en curso). */
+	| { kind: 'unknown' }
+
+export const classifySubmitFailure = (failure: { status?: number, details?: unknown }): SubmitFailure => {
+	const details = (failure.details ?? null) as { code?: unknown, status?: unknown, signature?: unknown } | null
+	const code = typeof details?.code === 'string' ? details.code : null
+	if (code === 'GRANT_NOT_AVAILABLE') {
+		if (details?.status === 'confirmed' && typeof details.signature === 'string' && details.signature) { return { kind: 'done', txid: details.signature } }
+		// Lo mandó un canje anterior y aún no se sabe qué fue de él
+		if (details?.status === 'submitted' || details?.status === 'pending' || details?.status === 'review') { return { kind: 'unknown' } }
+		return { kind: 'rejected', grantGone: true }
+	}
+	if (code === 'GRANT_EXPIRED' || code === 'NOT_FOUND') { return { kind: 'rejected', grantGone: true }	}
+	// Cualquier otro 4xx (límite de peticiones, cuerpo inválido, sesión): el servidor dijo que no antes de enviar
+	if (typeof failure.status === 'number' && failure.status >= 400 && failure.status < 500) { return { kind: 'rejected', grantGone: false } }
+	return { kind: 'unknown' }
+}
 
 /**
  * Qué aviso mostrar cuando el envío VA patrocinado.

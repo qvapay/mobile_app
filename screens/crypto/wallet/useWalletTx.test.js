@@ -356,3 +356,191 @@ test('una reconstrucción mientras se firma no mezcla la tx nueva con la firma d
 	unmount()
 })
 
+
+// ── Una tx que entró deja el motor en `sent` ─────────────────────────────────
+// Antes, tras difundir un swap, la pantalla tardaba unos segundos en registrarlo en el
+// backend; en ese hueco un refresco de saldos cambiaba la identidad de `build`, el motor
+// preparaba OTRA tx y volvía a ofrecer «Confirmar». Segundo PIN, segundo swap.
+describe('fase terminal `sent`', () => {
+	const accepting = (chain) => jest.fn(async (_prepared, signed) => {
+		chain.execute(signed.txid)
+		return { txid: signed.txid, duplicate: false }
+	})
+
+	test('tras entrar la tx, un cambio de datos NO prepara otra ni vuelve a ofrecer confirmar', async () => {
+		const chain = makeChain()
+		const args = baseArgs(chain, accepting(chain))
+		const { out, rerender, unmount } = mount(args)
+		await settle()
+		await confirm(out)
+		expect(out.tx.phase).toBe('sent')
+		expect(out.tx.busy).toBe(true)
+
+		// Llega el refresco de saldos: `build` cambia de identidad (lo que antes reabría la pantalla)
+		rerender({ ...args, build: async () => chain.build() })
+		await settle()
+		expect(chain.built).toBe(1)
+		expect(out.tx.phase).toBe('sent')
+
+		// Y aunque el PIN volviera a pasarse, no se firma nada más
+		const sign = jest.fn(chain.sign)
+		rerender({ ...args, build: async () => chain.build(), sign })
+		await confirm(out)
+		expect(sign).not.toHaveBeenCalled()
+		expect(chain.executed).toEqual(['tx-1'])
+		expectSentOnce(args.onSent, 'tx-1', false)
+		unmount()
+	})
+
+	test('ni «Reintentar», ni un recálculo, ni abrir el PIN hacen nada', async () => {
+		const chain = makeChain()
+		const submit = accepting(chain)
+		const args = baseArgs(chain, submit)
+		const { out, unmount } = mount(args)
+		await settle()
+		await confirm(out)
+
+		await retry(out)
+		await act(async () => { await out.tx.refresh() })
+		act(() => { out.tx.openAuth() })
+		// Una fase puesta desde fuera (la espera de energía de un envío) tampoco lo saca
+		act(() => { out.tx.setPhase('waitingEnergy') })
+		await settle()
+		expect(out.tx.phase).toBe('sent')
+		expect(out.tx.authVisible).toBe(false)
+		expect(chain.built).toBe(1)
+		expect(submit).toHaveBeenCalledTimes(1)
+		unmount()
+	})
+
+	test('una tx que consta como ejecutada al preguntar a la cadena también deja el motor en `sent`', async () => {
+		const chain = makeChain()
+		const submit = jest.fn(async (_prepared, signed) => { chain.execute(signed.txid); throw new Error('Network request failed') })
+		const args = baseArgs(chain, submit)
+		const { out, rerender, unmount } = mount(args)
+		await settle()
+		await confirm(out)
+		expect(out.tx.phase).toBe('error')
+
+		clock += VALIDITY_MS + 1_000
+		await retry(out) // pregunta a la cadena: entró
+		expect(out.tx.phase).toBe('sent')
+		expectSentOnce(args.onSent, 'tx-1', true)
+
+		rerender({ ...args, build: async () => chain.build() })
+		await settle()
+		expect(chain.built).toBe(1)
+		unmount()
+	})
+
+	// Un swap con permiso son dos tx: tras el permiso, quien lleva la pantalla dice «sigue»
+	test('`advance()` es la única salida: construye el paso siguiente y deja firmarlo', async () => {
+		const chain = makeChain()
+		const args = baseArgs(chain, accepting(chain))
+		const { out, unmount } = mount(args)
+		await settle()
+		await confirm(out) // el permiso
+		expect(out.tx.phase).toBe('sent')
+
+		await act(async () => { await out.tx.advance() })
+		await settle()
+		expect(out.tx.phase).toBe('ready')
+		expect(chain.built).toBe(2)
+
+		await confirm(out) // el swap
+		expect(chain.executed).toEqual(['tx-1', 'tx-2'])
+		expect(args.onSent).toHaveBeenCalledTimes(2)
+		expect(out.tx.phase).toBe('sent')
+		unmount()
+	})
+})
+
+// ── Avisos de «va a salir» y «no salió» ──────────────────────────────────────
+// El depósito de un intercambio tiene que quedar anotado ANTES de salir: si la respuesta de
+// la difusión se pierde, sin esa nota la pantalla de seguimiento volvía a ofrecer enviar
+describe('onAttempt / onDropped', () => {
+	test('`onAttempt` termina antes de que la tx salga, con la tx y su firma', async () => {
+		const chain = makeChain()
+		const order = []
+		const onAttempt = jest.fn(async () => { await sleep(20); order.push('anotado') })
+		const submit = jest.fn(async (_prepared, signed) => { order.push('difundido'); chain.execute(signed.txid); return { txid: signed.txid, duplicate: false } })
+		const args = baseArgs(chain, submit, { onAttempt })
+		const { out, unmount } = mount(args)
+		await settle()
+		await act(async () => { await out.tx.onAuthorized(); await sleep(40) })
+		expect(order).toEqual(['anotado', 'difundido'])
+		expect(onAttempt).toHaveBeenCalledWith(expect.objectContaining({ id: 'tx-1' }), { txid: 'tx-1' })
+		unmount()
+	})
+
+	test('que la nota falle no impide el envío', async () => {
+		const chain = makeChain()
+		const args = baseArgs(chain, jest.fn(async (_p, signed) => { chain.execute(signed.txid); return { txid: signed.txid, duplicate: false } }), { onAttempt: async () => { throw new Error('disco lleno') } })
+		const { out, unmount } = mount(args)
+		await settle()
+		await confirm(out)
+		expect(chain.executed).toEqual(['tx-1'])
+		expect(out.tx.phase).toBe('sent')
+		unmount()
+	})
+
+	test('un fallo ambiguo de la difusión NO es «no salió»: la nota se queda', async () => {
+		const chain = makeChain()
+		const onDropped = jest.fn()
+		const submit = jest.fn(async () => { throw new Error('Network request failed') })
+		const { out, unmount } = mount(baseArgs(chain, submit, { onDropped, lookup: async () => ({ status: 'unknown' }) }))
+		await settle()
+		await confirm(out)
+		expect(out.tx.phase).toBe('error')
+		expect(onDropped).not.toHaveBeenCalled()
+		unmount()
+	})
+
+	test('un rechazo definitivo sí lo es', async () => {
+		const { TxNotSentError } = require('./useWalletTx')
+		const chain = makeChain()
+		const onDropped = jest.fn()
+		const submit = jest.fn(async () => { throw new TxNotSentError('no se gastó nada') })
+		const { out, unmount } = mount(baseArgs(chain, submit, { onDropped }))
+		await settle()
+		await confirm(out)
+		expect(onDropped).toHaveBeenCalledWith(expect.objectContaining({ id: 'tx-1' }), { txid: 'tx-1' }, 'rejected')
+		unmount()
+	})
+
+	test('«reconstruir» (el patrocinio no gastó nada) también', async () => {
+		const chain = makeChain()
+		const onDropped = jest.fn()
+		let first = true
+		const submit = jest.fn(async (_p, signed) => {
+			if (first) { first = false; return { rebuild: true } }
+			chain.execute(signed.txid)
+			return { txid: signed.txid, duplicate: false }
+		})
+		const { out, unmount } = mount(baseArgs(chain, submit, { onDropped }))
+		await settle()
+		await confirm(out)
+		await settle()
+		expect(onDropped).toHaveBeenCalledTimes(1)
+		expect(onDropped.mock.calls[0][2]).toBe('rebuild')
+		expect(out.tx.phase).toBe('ready')
+		unmount()
+	})
+
+	test('y una tx que la cadena dice que ya nunca entrará', async () => {
+		const chain = makeChain()
+		const onDropped = jest.fn()
+		const submit = jest.fn(async () => { throw new Error('Network request failed') })
+		const { out, unmount } = mount(baseArgs(chain, submit, { onDropped }))
+		await settle()
+		await confirm(out)
+		expect(onDropped).not.toHaveBeenCalled()
+
+		chain.pastExpiry = true
+		clock += VALIDITY_MS + 1_000
+		await retry(out)
+		// `chain`: lo dijo la cadena, no quien difunde (el patrocinio lo usa para soltar su permiso)
+		expect(onDropped).toHaveBeenCalledWith(expect.objectContaining({ id: 'tx-1' }), { txid: 'tx-1' }, 'chain')
+		unmount()
+	})
+})

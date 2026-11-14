@@ -11,7 +11,9 @@ import { monoFont, useContainerStyles, useTextStyles } from '../../../theme/them
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
-import { markDepositSent } from './exchangeDeposit'
+import { toast } from 'sonner-native'
+import { clearDepositSent, markDepositAttempt, markDepositSent } from './exchangeDeposit'
+import { checkDeposit } from './depositGuard'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, nativeAssetId } from '../../../wallet/assets'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
@@ -74,6 +76,12 @@ const Row = ({ label, value, theme, mono, address, last }: { label: string, valu
  * la MISMA tx (mismo hash) si la difusión falló por red; un doble tap no
  * firma dos veces. Si la tx tiene vigencia (TRON, 60s) y expiró, se
  * reconstruye desde cero.
+ *
+ * Cuando el envío es el DEPÓSITO de un intercambio (`exchangeUuid`), antes de
+ * pedir el PIN se comprueba que no haya salido ya uno y que la orden siga
+ * esperándolo (`checkDeposit`): un segundo depósito no se cambia, se queda a la
+ * espera de una devolución manual. La nota de que salió se escribe al difundir
+ * (no al confirmarse) y se borra solo si consta que no entró.
  */
 const WalletSendConfirm = ({ navigation, route }: Props) => {
 
@@ -102,11 +110,20 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		// enviar, y un segundo depósito no se cambia, se queda esperando devolución manual.
 		if (exchangeUuid) {
 			markDepositSent(exchangeUuid, txid)
-			navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid, sentTxid: txid })
+			// `popTo` y no `replace`: si se vino desde el seguimiento, se vuelve a ESE (con la
+			// nota ya puesta). `replace` dejaba debajo una copia vieja que seguía ofreciendo
+			// «Enviar ahora» al volver atrás
+			navigation.popTo(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid, sentTxid: txid })
 			return
 		}
 		navigation.replace(ROUTES.WALLET_SEND_SUCCESS, { assetId, txid, amount, to })
 	}, [navigation, assetId, amount, to, exchangeUuid])
+
+	// Depósito de un intercambio: la nota se escribe en cuanto la firma va a salir hacia la
+	// red (si la respuesta se pierde, el envío pudo entrar igual) y se retira solo si consta
+	// que no entró ni entrará
+	const onDepositAttempt = useCallback((txid: string | null) => markDepositAttempt(exchangeUuid!, txid), [exchangeUuid])
+	const onDepositDropped = useCallback(() => { clearDepositSent(exchangeUuid!) }, [exchangeUuid])
 
 	// Patrocinio: QvaPay paga el fee de un GOLD en USDT/USDC de Solana y USDT de BSC. Si
 	// hay permiso, la tx se construye con su pagador (Solana) o con gasPrice 0 (BSC) y la
@@ -114,8 +131,28 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	// Sin sesión (modo wallet) no hay patrocinio: el permiso lo concede el backend
 	const gasless = useGaslessSend({ asset, to, amount: asset ? parseUnitsSafe(amount, asset.decimals).toString() : '', enabled: isAuthenticated })
 
-	const tx = useWalletSendTx({ asset, chain, addresses, to, amount, assetId, onSent, describeError: describe, sponsor: gasless.bridge })
+	const tx = useWalletSendTx({
+		asset, chain, addresses, to, amount, assetId, onSent, describeError: describe, sponsor: gasless.bridge, sponsorResolver: gasless.resolver,
+		...(exchangeUuid && { onAttempt: onDepositAttempt, onDropped: onDepositDropped }),
+	})
 	const { phase, prepared, error, feeTier, busy } = tx
+
+	// Antes de pedir el PIN de un depósito: ¿salió ya uno?, ¿la orden sigue esperándolo?
+	const [checkingDeposit, setCheckingDeposit] = useState(false)
+	const { openAuth } = tx
+	const confirm = useCallback(async () => {
+		if (!exchangeUuid) { openAuth(); return }
+		if (checkingDeposit) return
+		setCheckingDeposit(true)
+		try {
+			const check = await checkDeposit(exchangeUuid)
+			if (check.allowed) { openAuth(); return }
+			// Si no se pudo comprobar no se firma: reintentar es gratis, un doble depósito no
+			if (check.reason === 'unknown') { toast.error(t('crypto.wallet.exchange.depositGuard.checkFailed')); return }
+			toast(t(check.reason === 'sent' ? 'crypto.wallet.exchange.depositGuard.alreadySent' : 'crypto.wallet.exchange.depositGuard.closed'))
+			navigation.popTo(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid, ...(check.reason === 'sent' && check.txid ? { sentTxid: check.txid } : {}) })
+		} finally { setCheckingDeposit(false) }
+	}, [exchangeUuid, checkingDeposit, openAuth, navigation, t])
 
 	// Cuánto exige la red y si el nativo alcanza para pagarlo
 	const { feeEstimated, feeMax, sentNative, feeRequired, insufficientNative } = sendFeeState({
@@ -252,9 +289,9 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				) : (
 					<QPButton
 						title={t(CONFIRM_LABEL[phase] ?? 'crypto.wallet.send.confirm')}
-						onPress={tx.openAuth}
+						onPress={confirm}
 						disabled={phase !== 'ready' || insufficientNative || recipientBlocks}
-						loading={phase === 'preparing' || busy}
+						loading={phase === 'preparing' || busy || checkingDeposit}
 					/>
 				)}
 				<QPButton title={t('crypto.wallet.send.back')} onPress={() => navigation.goBack()} outlined disabled={busy} />

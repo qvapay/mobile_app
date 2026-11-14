@@ -6,7 +6,8 @@
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex, encodeVarintField } from '../tron/protobuf'
 import { lookupTronTransaction, TRON_LOOKUP_MARGIN_MS } from '../tron/tx'
-import { lookupSolanaTransaction } from '../solana/tx'
+import { lookupSolanaTransaction, lookupSponsoredSolanaTransaction } from '../solana/tx'
+import { toBase64 } from '../solana/codec'
 
 const RPC = { url: 'https://node.example', api: 'trongrid', owner: 'test', priority: 1 }
 
@@ -158,5 +159,122 @@ describe('lookupSolanaTransaction', () => {
 	test('una respuesta de historial con forma rara → unknown', async () => {
 		mockRpc({ history: { not: 'an array' } })
 		await expect(lookup()).resolves.toEqual({ status: 'unknown' })
+	})
+})
+
+// Una tx patrocinada lleva como id la firma del pagador (QvaPay), que la app no tiene. Pero el
+// remitente también la firma: si entró, está en su historial, y es la que lleva exactamente el
+// mensaje que firmó. Sin esto la app dependía de lo que dijera el backend, que ante una
+// difusión sin respuesta contesta «no se gastó nada» sin haberlo comprobado
+describe('lookupSponsoredSolanaTransaction', () => {
+	const OWNER = 'Owner1111111111111111111111111111111111111'
+	const LAST_VALID = 250_000_150
+	const BLOCKHASH_SLOT = 270_000_000
+	const POST_EXPIRY_SLOT = BLOCKHASH_SLOT + 400
+	const MESSAGE = Uint8Array.from({ length: 120 }, (_, i) => (i * 7 + 3) % 256)
+	const OTHER_MESSAGE = Uint8Array.from({ length: 120 }, (_, i) => (i * 5 + 1) % 256)
+
+	/** Una tx serializada: nº de firmas, las firmas (64 bytes cada una) y el mensaje. */
+	const serialized = (message, signatures = 2) => toBase64(Uint8Array.from([signatures, ...new Array(64 * signatures).fill(9), ...message]))
+	const onChain = (message, err = null) => ({ slot: BLOCKHASH_SLOT + 20, transaction: [serialized(message), 'base64'], meta: { err } })
+	const OLDER = { signature: 'older', slot: BLOCKHASH_SLOT - 10, err: null }
+
+	let calls
+	const mockRpc = ({ epoch = { absoluteSlot: POST_EXPIRY_SLOT, blockHeight: LAST_VALID + 5 }, history = [OLDER], txs = {}, historyNodeSlot = POST_EXPIRY_SLOT }) => {
+		calls = []
+		global.fetch = jest.fn(async (_url, init) => {
+			const { method, params } = JSON.parse(init.body)
+			calls.push({ method, params })
+			const ok = (result) => ({ ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id: 1, result }) })
+			if (method === 'getEpochInfo') return ok(epoch)
+			if (method === 'getSignaturesForAddress') {
+				const min = params?.[1]?.minContextSlot ?? 0
+				if (historyNodeSlot < min) return { ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id: 1, error: { code: -32016, message: 'Minimum context slot has not been reached' } }) }
+				return ok(history)
+			}
+			if (method === 'getTransaction') return ok(txs[params[0]] ?? null)
+			return ok(null)
+		})
+	}
+	const lookup = (blockhashSlot = BLOCKHASH_SLOT) => lookupSponsoredSolanaTransaction(RPC, { owner: OWNER, messageBytes: MESSAGE, lastValidBlockHeight: LAST_VALID, blockhashSlot })
+	const after = (signature, offset = 20) => ({ signature, slot: BLOCKHASH_SLOT + offset, err: null })
+
+	test('está en el historial del remitente con NUESTRO mensaje → landed, con la firma del pagador como id', async () => {
+		mockRpc({ history: [after('PAYER_SIG'), OLDER], txs: { PAYER_SIG: onChain(MESSAGE) } })
+		await expect(lookup()).resolves.toEqual({ status: 'landed', txid: 'PAYER_SIG' })
+		// Se pidió la tx entera para comparar el mensaje byte a byte
+		expect(calls.find(c => c.method === 'getTransaction').params).toEqual(['PAYER_SIG', { commitment: 'confirmed', encoding: 'base64', maxSupportedTransactionVersion: 0 }])
+	})
+
+	// Lo importante: antes de que caduque también se puede saber que SÍ entró
+	test('entró y aún no ha caducado el blockhash → landed igualmente (la prueba positiva no espera)', async () => {
+		mockRpc({ epoch: { absoluteSlot: BLOCKHASH_SLOT + 30, blockHeight: LAST_VALID - 100 }, historyNodeSlot: BLOCKHASH_SLOT + 30, history: [after('PAYER_SIG'), OLDER], txs: { PAYER_SIG: onChain(MESSAGE) } })
+		await expect(lookup()).resolves.toEqual({ status: 'landed', txid: 'PAYER_SIG' })
+	})
+
+	test('entró pero falló en la cadena → dropped (no movió fondos y ese blockhash ya no se repite)', async () => {
+		mockRpc({ history: [after('PAYER_SIG'), OLDER], txs: { PAYER_SIG: onChain(MESSAGE, { InstructionError: [2, 'Custom'] }) } })
+		await expect(lookup()).resolves.toEqual({ status: 'dropped' })
+	})
+
+	test('otra tx del remitente en esa ventana, con OTRO mensaje, no es la nuestra', async () => {
+		mockRpc({ history: [after('OTRA'), OLDER], txs: { OTRA: onChain(OTHER_MESSAGE) } })
+		await expect(lookup()).resolves.toEqual({ status: 'dropped' })
+	})
+
+	test('caducó, el historial llega a antes del blockhash y no está → dropped', async () => {
+		mockRpc({})
+		await expect(lookup()).resolves.toEqual({ status: 'dropped' })
+		expect(calls.map(c => c.method)).toEqual(['getEpochInfo', 'getSignaturesForAddress'])
+		// El historial lo contesta un nodo que ya llegó al slot en que se vio la caducidad
+		expect(calls[1].params[1].minContextSlot).toBe(POST_EXPIRY_SLOT)
+	})
+
+	test('no está pero TODAVÍA puede entrar (no ha caducado) → unknown: ni se paga ni se reconstruye', async () => {
+		mockRpc({ epoch: { absoluteSlot: BLOCKHASH_SLOT + 30, blockHeight: LAST_VALID - 100 }, historyNodeSlot: BLOCKHASH_SLOT + 30 })
+		await expect(lookup()).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('caducó pero el historial no alcanza hasta antes del blockhash → unknown', async () => {
+		mockRpc({ history: [after('OTRA')], txs: { OTRA: onChain(OTHER_MESSAGE) } })
+		await expect(lookup()).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('una candidata que el nodo no devuelve no se puede descartar → unknown', async () => {
+		mockRpc({ history: [after('PODADA'), OLDER], txs: {} })
+		await expect(lookup()).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('demasiadas tx del remitente en la ventana para inspeccionarlas todas → unknown', async () => {
+		const many = Array.from({ length: 9 }, (_, i) => after(`tx${i}`, 10 + i))
+		mockRpc({ history: [...many, OLDER], txs: Object.fromEntries(many.map(h => [h.signature, onChain(OTHER_MESSAGE)])) })
+		await expect(lookup()).resolves.toEqual({ status: 'unknown' })
+		expect(calls.some(c => c.method === 'getTransaction')).toBe(false)
+	})
+
+	test('sin saber en qué slot se leyó el blockhash no se pregunta nada → unknown', async () => {
+		mockRpc({})
+		await expect(lookup(null)).resolves.toEqual({ status: 'unknown' })
+		expect(calls).toEqual([])
+	})
+
+	test.each([
+		['historial que no es una lista', { history: { value: [] } }],
+		['entradas sin forma', { history: [{ slot: 1 }, OLDER] }],
+		['epoch sin altura', { epoch: { absoluteSlot: POST_EXPIRY_SLOT } }],
+		['tx con una codificación rara', { history: [after('RARA'), OLDER], txs: { RARA: { transaction: { message: {} }, meta: null } } }],
+	])('%s → unknown', async (_label, config) => {
+		mockRpc(config)
+		await expect(lookup()).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('una tx que no tiene forma de tx (bytes sueltos) simplemente no es la nuestra', async () => {
+		mockRpc({ history: [after('CORTA'), OLDER], txs: { CORTA: { transaction: [toBase64(Uint8Array.from([2, 1, 2, 3])), 'base64'], meta: { err: null } } } })
+		await expect(lookup()).resolves.toEqual({ status: 'dropped' })
+	})
+
+	test('un nodo rezagado no puede contestar el historial: error (el router rota), nunca «no está»', async () => {
+		mockRpc({ historyNodeSlot: POST_EXPIRY_SLOT - 50 })
+		await expect(lookup()).rejects.toThrow()
 	})
 })

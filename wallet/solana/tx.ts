@@ -463,3 +463,77 @@ export const lookupSolanaTransaction = async (rpc: RegistryRpc, sent: SolanaSent
 	if (mine) return mine.err ? { status: 'dropped' } : { status: 'landed', txid: signature }
 	return entries.some(h => h.slot <= blockhashSlot) ? { status: 'dropped' } : { status: 'unknown' }
 }
+
+/** Una tx PATROCINADA enviada. Su id es la firma del pagador (QvaPay), que la app no tiene. */
+export type SolanaSponsoredSentTx = {
+	/** El remitente: firma la tx, así que si entró está en su historial. */
+	owner: string
+	/** El mensaje exacto que se firmó: lo que la identifica entre las tx del remitente. */
+	messageBytes: Uint8Array
+	lastValidBlockHeight: number
+	/** Slot en que se leyó el blockhash: la tx no puede haber entrado antes. null = no se sabe. */
+	blockhashSlot: number | null
+}
+
+/** Cuántas tx del remitente posteriores al blockhash se inspeccionan. Más que eso en minuto y medio no es un uso normal. */
+const SPONSORED_SCAN_LIMIT = 8
+
+/** El mensaje de una tx serializada (lo que va tras las firmas), o null si no tiene esa forma. */
+const messageOfSerializedTx = (bytes: Uint8Array): Uint8Array | null => {
+	// compact-u16 del nº de firmas: con menos de 128 (siempre) es un solo byte
+	const count = bytes[0]
+	if (count === undefined || count >= 0x80) return null
+	const start = 1 + count * 64
+	return start < bytes.length ? bytes.subarray(start) : null
+}
+
+const sameBytes = (a: Uint8Array, b: Uint8Array): boolean => a.length === b.length && a.every((byte, i) => byte === b[i])
+
+/**
+ * ¿Qué fue de una tx PATROCINADA cuya difusión no dio respuesta clara?
+ *
+ * No se puede preguntar por su firma (es la del pagador). Pero el remitente también la
+ * firma, así que si entró aparece en SU historial; y entre sus tx, la nuestra es la que
+ * lleva exactamente el mensaje que firmamos. Con eso la app puede saberlo sin fiarse de lo
+ * que diga el backend, que ante una difusión sin respuesta contesta «no se gastó nada» sin
+ * haberlo comprobado: ofrecer entonces «pagar el envío» era mandar dos veces.
+ *
+ * Misma disciplina que `lookupSolanaTransaction`: la prueba positiva vale venga del nodo que
+ * venga; la ausencia exige una vista coherente (altura ya pasada la caducidad, historial de
+ * un nodo que llegó a ese slot y que alcanza hasta antes del blockhash). Cualquier otra
+ * cosa es `unknown`.
+ */
+export const lookupSponsoredSolanaTransaction = async (rpc: RegistryRpc, sent: SolanaSponsoredSentTx, signal?: AbortSignal): Promise<TxLookup> => {
+	const { owner, messageBytes, lastValidBlockHeight, blockhashSlot } = sent
+	if (blockhashSlot === null) return { status: 'unknown' }
+
+	const epoch = await rpcCall<{ absoluteSlot?: unknown, blockHeight?: unknown }>(rpc, 'getEpochInfo', [{ commitment: 'confirmed' }], signal)
+	const viewSlot = epoch?.absoluteSlot
+	if (typeof viewSlot !== 'number' || typeof epoch?.blockHeight !== 'number') return { status: 'unknown' }
+	const expired = epoch.blockHeight > lastValidBlockHeight
+
+	const history = await rpcCall<unknown>(rpc, 'getSignaturesForAddress', [owner, { commitment: 'confirmed', minContextSlot: viewSlot, limit: 1000 }], signal)
+	if (!Array.isArray(history)) return { status: 'unknown' }
+	const entries = history.filter((h): h is SignatureInfo => typeof h?.signature === 'string' && typeof h?.slot === 'number')
+	if (entries.length !== history.length) return { status: 'unknown' }
+
+	// Solo lo posterior al blockhash puede ser esta tx
+	const candidates = entries.filter(h => h.slot >= blockhashSlot)
+	if (candidates.length > SPONSORED_SCAN_LIMIT) return { status: 'unknown' }
+	for (const candidate of candidates) {
+		const found = await rpcCall<{ transaction?: unknown, meta?: { err?: unknown } | null } | null>(rpc, 'getTransaction', [candidate.signature, { commitment: 'confirmed', encoding: 'base64', maxSupportedTransactionVersion: 0 }], signal)
+		const encoded = Array.isArray(found?.transaction) ? found.transaction[0] : null
+		// Sin poder verla no se sabe si es la nuestra: no se concluye nada
+		if (typeof encoded !== 'string') return { status: 'unknown' }
+		let message: Uint8Array | null
+		try { message = messageOfSerializedTx(fromBase64(encoded)) } catch { return { status: 'unknown' } }
+		if (message && sameBytes(message, messageBytes)) {
+			// Entró. Si falló en la cadena no movió fondos, y ese blockhash ya no vale para repetirla
+			return candidate.err || found?.meta?.err ? { status: 'dropped' } : { status: 'landed', txid: candidate.signature }
+		}
+	}
+
+	// Ninguna es la nuestra. Para darla por perdida tiene que haber caducado Y el historial llegar a antes del blockhash
+	if (!expired) return { status: 'unknown' }
+	return entries.some(h => h.slot <= blockhashSlot) ? { status: 'dropped' } : { status: 'unknown' }
+}

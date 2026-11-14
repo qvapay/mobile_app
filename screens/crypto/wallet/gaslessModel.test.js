@@ -5,7 +5,7 @@
  * aquí es si el envío gratis del día se conserva o se gasta, y si el usuario acaba
  * reenviando algo que ya salió a la red.
  */
-import { consumesGrant, fallsBackToPaid, grantChain, interpretSubmit, sponsorChainFor, sponsoredNotice, isGrantUsable } from './gaslessModel'
+import { classifySubmitFailure, consumesGrant, fallsBackToPaid, grantChain, interpretSubmit, isUnprovenOutcome, sponsorChainFor, sponsoredNotice, isGrantUsable } from './gaslessModel'
 
 const result = (overrides = {}) => ({ status: 'confirmed', reason: null, rebuild: false, retryable: false, signature: 'SIG', explorer: null, message: null, ...overrides })
 
@@ -15,12 +15,20 @@ describe('interpretSubmit', () => {
 		expect(interpretSubmit(result())).toEqual({ kind: 'done', txid: 'SIG' })
 	})
 
-	it('difundida sin confirmar pero CON firma ya vale: la tx está en la red', () => {
-		expect(interpretSubmit(result({ status: 'pending' }))).toEqual({ kind: 'done', txid: 'SIG' })
+	// Antes, con firma se daba por «Enviado». Pero `pending` es que el patrocinador NO la vio
+	// confirmar: si la red la descarta, la pantalla ya había dicho que sí
+	it('difundida sin confirmar NO es «enviado», tenga firma o no: se persigue', () => {
+		expect(interpretSubmit(result({ status: 'pending' }))).toEqual({ kind: 'poll' })
+		expect(interpretSubmit(result({ status: 'pending', signature: null }))).toEqual({ kind: 'poll' })
 	})
 
-	it('difundida sin firma hay que perseguirla', () => {
-		expect(interpretSubmit(result({ status: 'pending', signature: null }))).toEqual({ kind: 'poll' })
+	// El backend contesta «no se gastó nada» también cuando la difusión falló sin saberse si entró
+	it('Solana: una difusión fallida no prueba que no entrara → no se sabe', () => {
+		expect(interpretSubmit(result({ status: 'authorized', signature: null, reason: 'broadcast_failed' }), 'solana')).toEqual({ kind: 'unknown' })
+	})
+
+	it('BSC: ahí sí es un error sin más (el nonce impide que entren las dos)', () => {
+		expect(interpretSubmit(result({ status: 'authorized', signature: null, reason: 'broadcast_failed', message: 'No disponible' }), 'bsc')).toEqual({ kind: 'error', message: 'No disponible' })
 	})
 
 	it('un blockhash caducado manda reconstruir, no fallar', () => {
@@ -129,10 +137,32 @@ describe('grantChain', () => {
 describe('fallsBackToPaid', () => {
 
 	it('sin gastar nada y sin arreglo reconstruyendo: se ofrece pagar', () => {
-		// Paymaster que no la acepta, otra tx sin minar, presupuesto agotado…
-		for (const reason of ['not_sponsorable', 'nonce_gap', 'daily_budget', 'broadcast_failed']) {
-			expect(fallsBackToPaid(result({ status: 'authorized', signature: null, reason }))).toBe(true)
+		// Paymaster que no la acepta, otra tx sin minar, presupuesto agotado… (nada llegó a mandarse)
+		for (const reason of ['not_sponsorable', 'nonce_gap', 'daily_budget', 'paused', 'simulation_failed', 'origin_insufficient_funds']) {
+			expect(fallsBackToPaid(result({ status: 'authorized', signature: null, reason }), 'solana')).toBe(true)
+			expect(fallsBackToPaid(result({ status: 'authorized', signature: null, reason }), 'bsc')).toBe(true)
 		}
+	})
+
+	// El agujero: el nodo acepta la tx ya co-firmada y la respuesta se pierde. El backend lo
+	// contaba como «no se gastó nada», la pantalla ofrecía pagar, y entraban las dos
+	it('Solana: tras una difusión fallida NO se ofrece pagar (la gratis pudo entrar)', () => {
+		const outcome = result({ status: 'authorized', signature: null, reason: 'broadcast_failed' })
+		expect(isUnprovenOutcome(outcome, 'solana')).toBe(true)
+		expect(fallsBackToPaid(outcome, 'solana')).toBe(false)
+		// Y el permiso no se devuelve: pudo gastarse
+		expect(consumesGrant(outcome, 'solana')).toBe(true)
+	})
+
+	it('BSC: sí se puede, porque patrocinada y pagada comparten nonce y solo una entra', () => {
+		const outcome = result({ status: 'authorized', signature: null, reason: 'broadcast_failed' })
+		expect(isUnprovenOutcome(outcome, 'bsc')).toBe(false)
+		expect(fallsBackToPaid(outcome, 'bsc')).toBe(true)
+		expect(consumesGrant(outcome, 'bsc')).toBe(false)
+	})
+
+	it('sin decir la cadena se asume la estricta (Solana)', () => {
+		expect(fallsBackToPaid(result({ status: 'authorized', signature: null, reason: 'broadcast_failed' }))).toBe(false)
 	})
 
 	it('un rebuild NO cae a pagar: se reconstruye gratis con el mismo permiso', () => {
@@ -143,5 +173,48 @@ describe('fallsBackToPaid', () => {
 		for (const status of ['confirmed', 'pending', 'failed', 'review']) {
 			expect(fallsBackToPaid(result({ status }))).toBe(false)
 		}
+	})
+})
+
+// La PETICIÓN de canje falla (no llega un desenlace). Antes todo era «no se sabe», y con un
+// permiso caducado la pantalla se quedaba en «no pudimos confirmar» sin salida
+describe('classifySubmitFailure', () => {
+	const failure = (status, details) => ({ status, details })
+
+	it('sin respuesta o error del servidor: no se sabe si llegó a mandarse', () => {
+		expect(classifySubmitFailure({})).toEqual({ kind: 'unknown' })
+		expect(classifySubmitFailure(failure(500, { error: 'boom' }))).toEqual({ kind: 'unknown' })
+		expect(classifySubmitFailure(failure(503))).toEqual({ kind: 'unknown' })
+	})
+
+	it('el permiso caducó o no existe: esta petición no mandó nada, y el permiso ya no sirve', () => {
+		expect(classifySubmitFailure(failure(409, { code: 'GRANT_EXPIRED' }))).toEqual({ kind: 'rejected', grantGone: true })
+		expect(classifySubmitFailure(failure(404, { code: 'NOT_FOUND' }))).toEqual({ kind: 'rejected', grantGone: true })
+	})
+
+	it('demasiadas peticiones o cuerpo inválido: tampoco mandó nada, y el permiso sigue vivo', () => {
+		expect(classifySubmitFailure(failure(429, { code: 'RATE_LIMITED' }))).toEqual({ kind: 'rejected', grantGone: false })
+		expect(classifySubmitFailure(failure(400, { code: 'INVALID_BODY' }))).toEqual({ kind: 'rejected', grantGone: false })
+		expect(classifySubmitFailure(failure(401))).toEqual({ kind: 'rejected', grantGone: false })
+	})
+
+	it('el permiso ya se canjeó y consta confirmado: es el envío, con su firma', () => {
+		expect(classifySubmitFailure(failure(409, { code: 'GRANT_NOT_AVAILABLE', status: 'confirmed', signature: 'SIG' }))).toEqual({ kind: 'done', txid: 'SIG' })
+	})
+
+	it('el permiso tiene un canje en curso o en revisión: no se sabe', () => {
+		for (const status of ['submitted', 'pending', 'review']) {
+			expect(classifySubmitFailure(failure(409, { code: 'GRANT_NOT_AVAILABLE', status, signature: null }))).toEqual({ kind: 'unknown' })
+		}
+	})
+
+	it('el permiso terminó sin envío: no sirve', () => {
+		for (const status of ['failed', 'expired', 'cancelled']) {
+			expect(classifySubmitFailure(failure(409, { code: 'GRANT_NOT_AVAILABLE', status, signature: null }))).toEqual({ kind: 'rejected', grantGone: true })
+		}
+	})
+
+	it('confirmado SIN firma no se da por enviado', () => {
+		expect(classifySubmitFailure(failure(409, { code: 'GRANT_NOT_AVAILABLE', status: 'confirmed', signature: null }))).toEqual({ kind: 'rejected', grantGone: true })
 	})
 })

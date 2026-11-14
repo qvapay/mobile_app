@@ -209,9 +209,13 @@ export const isDeviationNotable = (bps: number | null): boolean => bps !== null 
  */
 export type DepositView = 'send' | 'sent' | 'none'
 
-export const depositViewFor = ({ status, sentTxid }: { status: ExchangeStatus, sentTxid?: string | null }): DepositView => {
+/**
+ * @param noted - Hay una nota en disco de que el depósito salió (o pudo salir) hacia la red,
+ *   aunque no tenga hash todavía. Manda igual que un hash: no se vuelve a ofrecer enviar.
+ */
+export const depositViewFor = ({ status, sentTxid, noted = false }: { status: ExchangeStatus, sentTxid?: string | null, noted?: boolean }): DepositView => {
 	if (status !== 'awaiting_deposit') { return 'none' }
-	return sentTxid ? 'sent' : 'send'
+	return sentTxid || noted ? 'sent' : 'send'
 }
 
 // ── Importe a enviar ───────────────────────────────────────────────────────
