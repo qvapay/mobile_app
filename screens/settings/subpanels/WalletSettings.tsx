@@ -25,8 +25,8 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { disableWalletBiometrics, enableWalletBiometrics } from '../../../wallet/keystore'
 import { getSupportedBiometryType } from '../../../api/client'
 import { useSettings } from '../../../settings/SettingsContext'
-import { useAuth } from '../../../auth/AuthContext'
 import { useAppLock } from '../../../lock/AppLockContext'
+import { confirmDeviceOwner, ownerProofPasses } from '../../../helpers/deviceOwnerProof'
 import useSecureScreen from '../../../hooks/useSecureScreen'
 import QPSecureView from '../../../ui/QPSecureView'
 import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
@@ -65,6 +65,12 @@ const renderStackRootBack = (onPress: () => void, color: string, label: string) 
  * ir la app a segundo plano. Eliminar exige además confirmar que se tiene el
  * respaldo: es irreversible y el logout NO borra la seed (regla 3), así que
  * este es el único camino para quitarla del teléfono.
+ *
+ * Con una wallet en `recovery` (sus llaves no se pueden usar aquí) no hay
+ * direcciones ni frase que enseñar: solo se explica y se deja eliminarla. Ahí
+ * el PIN no sirve de gate (puede que tampoco se deje leer), así que lo
+ * sustituye la prueba de dueño del dispositivo. Y eliminar solo se da por
+ * hecho si el Keychain confirma que la seed ya no está.
  */
 const WalletSettings = () => {
 
@@ -84,9 +90,8 @@ const WalletSettings = () => {
 		navigation.setOptions({ headerLeft: renderStackRootBack(() => navigation.goBack(), theme.colors.primaryText, t('common.actions.back')) })
 	}, [isStackRoot, navigation, theme, t])
 
-	const { hasWallet, isBackedUp, addresses, revealMnemonic, deleteWallet } = useWallet()
-	const { isAuthenticated } = useAuth()
-	const { disableAppLock } = useAppLock()
+	const { hasWallet, isBackedUp, addresses, recovery, revealMnemonic, deleteWallet } = useWallet()
+	const { releaseUnusedAppLock } = useAppLock()
 	const { getSetting, updateSetting } = useSettings()
 	const walletBiometrics = getSetting('crypto', 'walletBiometrics', true) as boolean
 	const [biometryType, setBiometryType] = useState<string | null>(null)
@@ -136,13 +141,15 @@ const WalletSettings = () => {
 		if (!acknowledged || deleting) return
 		setDeleting(true)
 		try {
-			await deleteWallet()
+			// Si la seed sigue en el Keychain la wallet NO se eliminó: no se limpia nada más
+			// ni se dice que sí (quedaría ahí, sin metadata y sin que nadie lo supiera)
+			if (!(await deleteWallet())) { toast.error(t('crypto.wallet.settings.deleteFailed')); return }
 			// El marcador biométrico es de ESTA wallet: no debe armar la siguiente
 			await disableWalletBiometrics()
 			// Sin cuenta, el PIN de bloqueo existía solo para la wallet: si sobreviviera, la
-			// próxima alta se saltaría "Crea tu PIN" y la wallet nueva quedaría tras un PIN
-			// que, sin Ajustes de cuenta, no se puede cambiar. Con cuenta protege la sesión
-			if (!isAuthenticated) await disableAppLock()
+			// próxima alta se saltaría "Crea tu PIN". Con cuenta protege la sesión, y si la
+			// seed no llegó a borrarse sigue protegiéndola: eso lo decide el propio bloqueo
+			await releaseUnusedAppLock()
 			await clearHistoryCaches()
 			await clearWalletSnapshots()
 			// Saldos/historial/staking de la wallet borrada no deben sobrevivir en memoria
@@ -160,7 +167,18 @@ const WalletSettings = () => {
 		} finally {
 			setDeleting(false)
 		}
-	}, [acknowledged, deleting, deleteWallet, isAuthenticated, disableAppLock, queryClient, t, navigation])
+	}, [acknowledged, deleting, deleteWallet, releaseUnusedAppLock, queryClient, t, navigation])
+
+	// Wallet sin llaves: el gate es la prueba de dueño del dispositivo, no el PIN
+	const startUnreadableDelete = useCallback(async () => {
+		const proof = await confirmDeviceOwner(t('misc.lock.ownerProof.title'), t('crypto.wallet.settings.deleteProofSubtitle'))
+		if (!ownerProofPasses(proof)) {
+			if (proof !== 'cancelled') toast.error(t('misc.lock.errors.ownerProofFailed'))
+			return
+		}
+		setAcknowledged(false)
+		setConfirmDelete(true)
+	}, [t])
 
 	const copy = (value: string) => { Clipboard.setString(value); toast.success(t('crypto.wallet.card.copied')) }
 
@@ -184,6 +202,29 @@ const WalletSettings = () => {
 		</>
 	)
 
+	// Segunda confirmación de borrado: hay que reconocer que se tiene la frase
+	const deleteModal = (
+		<Modal visible={confirmDelete} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setConfirmDelete(false)}>
+			{/* accessible={false}: sin él la tarjeta funde a sus hijos en UN elemento
+			    (iOS) y VoiceOver/E2E no llegan al interruptor ni a los botones */}
+			<Pressable style={styles.overlay} onPress={() => !deleting && setConfirmDelete(false)} accessible={false}>
+				<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface }]} onPress={() => {}} accessible={false}>
+					<View style={[styles.modalIcon, { backgroundColor: theme.colors.danger + '15' }]}>
+						<FontAwesome6 name="trash" size={20} color={theme.colors.danger} iconStyle="solid" />
+					</View>
+					<Text style={[textStyles.h3, styles.centered, { color: theme.colors.primaryText }]}>{t('crypto.wallet.settings.confirmTitle')}</Text>
+					<Text style={[textStyles.h5, styles.centered, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.confirmBody')}</Text>
+					<Pressable onPress={() => setAcknowledged(v => !v)} testID="wallet-delete-ack" style={styles.ackRow} accessibilityRole="switch" accessibilityState={{ checked: acknowledged }}>
+						<Text style={[textStyles.h5, styles.ackText, { color: theme.colors.primaryText }]}>{t('crypto.wallet.settings.confirmAck')}</Text>
+						<Switch value={acknowledged} onValueChange={setAcknowledged} trackColor={{ false: theme.colors.tertiaryText, true: theme.colors.danger }} />
+					</Pressable>
+					<QPButton testID="wallet-delete-confirm" title={t('crypto.wallet.settings.confirmDelete')} danger disabled={!acknowledged} loading={deleting} onPress={performDelete} />
+					<QPButton title={t('common.actions.cancel')} outlined disabled={deleting} onPress={() => setConfirmDelete(false)} />
+				</Pressable>
+			</Pressable>
+		</Modal>
+	)
+
 	if (!hasWallet || !addresses) {
 		return (
 			<ScrollView style={containerStyles.subContainer} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
@@ -191,11 +232,23 @@ const WalletSettings = () => {
 					<Text style={textStyles.h1}>{t('crypto.wallet.settings.title')}</Text>
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.subtitle')}</Text>
 				</View>
-				<View style={[styles.card, styles.cardPadded, styles.emptyCard, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
-					<FontAwesome6 name="wallet" size={26} color={theme.colors.secondaryText} iconStyle="solid" />
-					<Text style={[textStyles.h5, styles.centered, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.noWallet')}</Text>
-				</View>
+				{recovery ? (
+					<View testID="wallet-settings-recovery" style={[styles.card, styles.cardPadded, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+						<View style={[styles.notice, { backgroundColor: theme.colors.warning + '14' }]}>
+							<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" />
+							<Text style={[textStyles.h6, styles.noticeText, { color: theme.colors.primaryText }]}>{t('crypto.wallet.settings.unreadable')}</Text>
+						</View>
+						<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.deleteHint')}</Text>
+						<QPButton testID="wallet-settings-delete" title={t('crypto.wallet.settings.delete')} icon="trash" danger outlined onPress={startUnreadableDelete} />
+					</View>
+				) : (
+					<View style={[styles.card, styles.cardPadded, styles.emptyCard, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+						<FontAwesome6 name="wallet" size={26} color={theme.colors.secondaryText} iconStyle="solid" />
+						<Text style={[textStyles.h5, styles.centered, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.noWallet')}</Text>
+					</View>
+				)}
 				{nodesSection}
+				{recovery && deleteModal}
 			</ScrollView>
 		)
 	}
@@ -253,11 +306,23 @@ const WalletSettings = () => {
 				)}
 			</View>
 
-			{/* Biometría propia de la wallet */}
+			{/* Seguridad: el PIN (el del bloqueo de app, que no se puede quitar mientras haya wallet) y la biometría propia */}
+			<Text style={[styles.sectionTitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}>{t('crypto.wallet.settings.security').toUpperCase()}</Text>
+			<View style={[styles.card, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+				<QPPressable testID="wallet-settings-pin" onPress={() => navigation.navigate(ROUTES.APP_LOCK)} style={styles.row}>
+					<View style={[styles.rowIcon, { backgroundColor: theme.colors.primary }]}>
+						<FontAwesome6 name="lock" size={13} color="#FFFFFF" iconStyle="solid" />
+					</View>
+					<View style={styles.rowTexts}>
+						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('crypto.wallet.settings.pin')}</Text>
+						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.pinHint')}</Text>
+					</View>
+					<FontAwesome6 name="chevron-right" size={13} color={theme.colors.tertiaryText} iconStyle="solid" />
+				</QPPressable>
+			</View>
 			{!!biometryType && (
 				<>
-					<Text style={[styles.sectionTitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}>{t('crypto.wallet.settings.security').toUpperCase()}</Text>
-					<View style={[styles.card, styles.cardPadded, styles.switchRow, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+					<View style={[styles.card, styles.cardPadded, styles.switchRow, styles.cardStacked, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
 						<View style={styles.switchTexts}>
 							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t(biometryType === 'FaceID' ? 'crypto.wallet.settings.biometricsFaceId' : 'crypto.wallet.settings.biometricsTouchId')}</Text>
 							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.biometricsHint')}</Text>
@@ -278,26 +343,7 @@ const WalletSettings = () => {
 
 			<WalletAuthModal visible={pending !== null} subtitle={authSubtitle} onClose={() => setPending(null)} onAuthorized={onAuthorized} />
 
-			{/* Segunda confirmación de borrado: hay que reconocer que se tiene la frase */}
-			<Modal visible={confirmDelete} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setConfirmDelete(false)}>
-				{/* accessible={false}: sin él la tarjeta funde a sus hijos en UN elemento
-				    (iOS) y VoiceOver/E2E no llegan al interruptor ni a los botones */}
-				<Pressable style={styles.overlay} onPress={() => !deleting && setConfirmDelete(false)} accessible={false}>
-					<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface }]} onPress={() => {}} accessible={false}>
-						<View style={[styles.modalIcon, { backgroundColor: theme.colors.danger + '15' }]}>
-							<FontAwesome6 name="trash" size={20} color={theme.colors.danger} iconStyle="solid" />
-						</View>
-						<Text style={[textStyles.h3, styles.centered, { color: theme.colors.primaryText }]}>{t('crypto.wallet.settings.confirmTitle')}</Text>
-						<Text style={[textStyles.h5, styles.centered, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.confirmBody')}</Text>
-						<Pressable onPress={() => setAcknowledged(v => !v)} testID="wallet-delete-ack" style={styles.ackRow} accessibilityRole="switch" accessibilityState={{ checked: acknowledged }}>
-							<Text style={[textStyles.h5, styles.ackText, { color: theme.colors.primaryText }]}>{t('crypto.wallet.settings.confirmAck')}</Text>
-							<Switch value={acknowledged} onValueChange={setAcknowledged} trackColor={{ false: theme.colors.tertiaryText, true: theme.colors.danger }} />
-						</Pressable>
-						<QPButton testID="wallet-delete-confirm" title={t('crypto.wallet.settings.confirmDelete')} danger disabled={!acknowledged} loading={deleting} onPress={performDelete} />
-						<QPButton title={t('common.actions.cancel')} outlined disabled={deleting} onPress={() => setConfirmDelete(false)} />
-					</Pressable>
-				</Pressable>
-			</Modal>
+			{deleteModal}
 		</ScrollView>
 	)
 }
@@ -312,6 +358,7 @@ const styles = StyleSheet.create({
 	card: { borderRadius: 14, paddingHorizontal: 12 },
 	cardPadded: { paddingVertical: 14, gap: 12 },
 	switchRow: { flexDirection: 'row', alignItems: 'center' },
+	cardStacked: { marginTop: 10 },
 	switchTexts: { flex: 1, gap: 2 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 },
 	rowIcon: { width: 26, height: 26, borderRadius: 8, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },

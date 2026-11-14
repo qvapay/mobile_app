@@ -49,9 +49,12 @@ import {
 	removeBiometricCredentials,
 	hasBiometricCredentials,
 	setAppLockPin,
-	getAppLockPin,
+	readAppLockPin,
 	hasAppLockPin,
 	removeAppLockPin,
+	getPinAttemptsRecord,
+	setPinAttemptsRecord,
+	clearPinAttemptsRecord,
 } from './client'
 
 // Capture what was registered at module load BEFORE beforeEach clears the mocks
@@ -323,12 +326,48 @@ describe('app-lock PIN helpers', () => {
 		})
 	})
 
-	test('getAppLockPin returns the PIN or null when not set up', async () => {
+	test('readAppLockPin returns the PIN or null when not set up', async () => {
 		Keychain.getGenericPassword.mockResolvedValue({ username: 'applock', password: '1234' })
-		await expect(getAppLockPin()).resolves.toBe('1234')
+		await expect(readAppLockPin()).resolves.toBe('1234')
 		expect(Keychain.getGenericPassword).toHaveBeenCalledWith(APP_LOCK_SERVICE)
 		Keychain.getGenericPassword.mockResolvedValue(false)
-		await expect(getAppLockPin()).resolves.toBeNull()
+		await expect(readAppLockPin()).resolves.toBeNull()
+	})
+
+	// Quien compara necesita distinguir «PIN incorrecto» de «no pude leerlo»: un Keychain
+	// que falla no puede parecer «sin PIN» (contaría como intento fallido sin serlo)
+	test('readAppLockPin throws when the Keychain cannot be read', async () => {
+		Keychain.getGenericPassword.mockRejectedValue(new Error('keystore'))
+		await expect(readAppLockPin()).rejects.toThrow('keystore')
+	})
+
+	// El contador de fallos dura lo que el PIN: mismo almacén, entrada propia
+	test('the failed-attempts record lives in its own device-only Keychain entry', async () => {
+		const ATTEMPTS_SERVICE = { service: 'com.qvapay.applock.attempts' }
+		Keychain.setGenericPassword.mockResolvedValue()
+		await expect(setPinAttemptsRecord('{"f":3,"t":1}')).resolves.toBe(true)
+		expect(Keychain.setGenericPassword).toHaveBeenCalledWith('attempts', '{"f":3,"t":1}', {
+			service: 'com.qvapay.applock.attempts',
+			accessible: 'WhenUnlockedThisDeviceOnly',
+		})
+		Keychain.getGenericPassword.mockResolvedValue({ username: 'attempts', password: '{"f":3,"t":1}' })
+		await expect(getPinAttemptsRecord()).resolves.toBe('{"f":3,"t":1}')
+		expect(Keychain.getGenericPassword).toHaveBeenLastCalledWith(ATTEMPTS_SERVICE)
+		Keychain.getGenericPassword.mockResolvedValue(false)
+		await expect(getPinAttemptsRecord()).resolves.toBeNull()
+		Keychain.resetGenericPassword.mockResolvedValue()
+		await expect(clearPinAttemptsRecord()).resolves.toBe(true)
+		expect(Keychain.resetGenericPassword).toHaveBeenLastCalledWith(ATTEMPTS_SERVICE)
+	})
+
+	// false = «no se pudo anotar el intento»: el contexto entonces NO compara el PIN
+	test('a failed write of the attempts record is reported, never thrown', async () => {
+		Keychain.setGenericPassword.mockRejectedValue(new Error('disk full'))
+		await expect(setPinAttemptsRecord('{"f":1,"t":1}')).resolves.toBe(false)
+		Keychain.getGenericPassword.mockRejectedValue(new Error('x'))
+		await expect(getPinAttemptsRecord()).resolves.toBeNull()
+		Keychain.resetGenericPassword.mockRejectedValue(new Error('x'))
+		await expect(clearPinAttemptsRecord()).resolves.toBe(false)
 	})
 
 	test('hasAppLockPin and removeAppLockPin', async () => {

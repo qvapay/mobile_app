@@ -18,11 +18,11 @@ import type { AssetView } from '../../../wallet/assets'
 import type { WalletAddresses } from '../../../wallet/derive'
 import type { RegistryChain } from '../../../wallet/registry/types'
 import { refreshHistoryAfterSend, WALLET_BALANCES_KEY } from './walletQueries'
-import { broadcastSigned, lookupSend, prepareSend, signPrepared } from './walletSendActions'
+import { broadcastSigned, lookupSend, prepareSend, signedTxid, signPrepared } from './walletSendActions'
 import type { FeeTier, PreparedSend, SignedSend } from './walletSendActions'
 import type { SponsorBridge } from './useGaslessSend'
 import useWalletTx from './useWalletTx'
-import type { SubmitResult, TxPhase } from './useWalletTx'
+import type { DropReason, SubmitResult, TxLookup, TxPhase } from './useWalletTx'
 
 export type SendPhase = TxPhase
 
@@ -46,9 +46,25 @@ type Args = {
 	 * normal, el usuario paga su gas.
 	 */
 	sponsor?: SponsorBridge | null
+	/**
+	 * Cómo aclarar un envío patrocinado del que no hubo respuesta (`useGaslessSend.resolver`):
+	 * `lookup` pregunta al backend (solo vale como prueba de que SÍ entró) y `dropped` avisa
+	 * de que la cadena confirmó que no entró, para soltar el permiso y pasar a pagar.
+	 */
+	sponsorResolver?: { lookup: () => Promise<TxLookup>, dropped: () => void } | null
+	/**
+	 * El envío firmado está a punto de salir hacia la red, con su hash calculado en el
+	 * teléfono (null: patrocinado en Solana, aún sin él). Se espera antes de difundir.
+	 */
+	onAttempt?: (txid: string | null) => void | Promise<void>
+	/** Consta que ese envío NO entró ni entrará. */
+	onDropped?: () => void
 }
 
-export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, onSent, describeError, sponsor = null }: Args) => {
+/** ¿Esta tx la paga QvaPay? (Solana y BSC; el resto nunca se patrocina desde Enviar). */
+const isSponsoredTx = (prepared: PreparedSend): boolean => (prepared.kind === 'solana' || prepared.kind === 'evm') && prepared.inner.sponsored === true
+
+export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, onSent, describeError, sponsor = null, sponsorResolver = null, onAttempt, onDropped }: Args) => {
 
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
@@ -96,6 +112,22 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		onSent(txid)
 	}, [queryClient, assetId, onSent, t])
 
+	const handleAttempt = useCallback((current: PreparedSend, signed: SignedSend) => onAttempt?.(signedTxid(current, signed)), [onAttempt])
+
+	// Primero la cadena, que es la que puede decir tanto que entró como que ya no entrará.
+	// Si no lo sabe y el envío era patrocinado, el backend puede aportar la prueba positiva
+	const lookup = useCallback(async (current: PreparedSend, signed: SignedSend): Promise<TxLookup> => {
+		const onChain = await lookupSend(current, signed)
+		if (onChain.status !== 'unknown' || !sponsorResolver || !isSponsoredTx(current)) return onChain
+		return sponsorResolver.lookup().catch((): TxLookup => ({ status: 'unknown' }))
+	}, [sponsorResolver])
+
+	const handleDropped = useCallback((current: PreparedSend, _signed: SignedSend, why: DropReason) => {
+		// Solo cuando lo dice la CADENA: en `rebuild` el permiso sigue vivo y en `rejected` ya lo gestionó el patrocinio
+		if (why === 'chain' && isSponsoredTx(current)) sponsorResolver?.dropped()
+		onDropped?.()
+	}, [sponsorResolver, onDropped])
+
 	const core = useWalletTx<PreparedSend, SignedSend>({
 		ready: !!asset && !!addresses && !!chain,
 		build,
@@ -104,7 +136,9 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		onSent: handleSent,
 		describeError,
 		// Antes de firmar otra tx tras una difusión sin respuesta: ¿entró la anterior?
-		lookup: lookupSend,
+		lookup,
+		onAttempt: handleAttempt,
+		onDropped: handleDropped,
 	})
 	const { prepared, refresh, setPhase } = core
 

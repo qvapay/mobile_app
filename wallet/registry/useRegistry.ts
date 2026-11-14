@@ -6,10 +6,17 @@
  * a todos los clientes en su próximo refresh sin publicar versión. Si la red
  * falla o el payload no valida, gana `bundled.json` (o el último remoto bueno,
  * que React Query conserva y persiste a disco: el registro no es secreto).
+ *
+ * Lo remoto NO se usa tal cual: pasa por `pinRegistry` (./pins), que deja del
+ * remoto solo la lista de nodos de cada red y toma todo lo demás (contratos,
+ * decimales, chainId, nativo, explorador, staking) del empaquetado. Se aplica al
+ * LEER (`select`), no al descargar, para que también cubra lo que ya estaba
+ * guardado en disco.
  */
 import { useQuery } from '@tanstack/react-query'
 
 import bundledJson from './bundled.json'
+import { pinRegistry } from './pins'
 import type { RpcRegistry } from './types'
 
 /**
@@ -64,12 +71,16 @@ const fetchRemoteRegistry = async (): Promise<RpcRegistry> => {
 }
 
 /**
- * Registro efectivo para la UI/adapters. El remoto solo gana si su `version`
- * no es más vieja que la empaquetada (un espejo rancio no debe degradar una
- * app recién publicada con un bundled más nuevo).
+ * Registro efectivo para la UI/adapters. Del remoto solo salen los nodos
+ * (`pinRegistry`), y solo si su `version` no es más vieja que la empaquetada (un
+ * espejo rancio no debe degradar una app recién publicada con un bundled más
+ * nuevo). Acepta cualquier cosa y nunca lanza: lo que no tenga forma de
+ * registro es el empaquetado.
  */
-export const resolveRegistry = (remote: RpcRegistry | undefined): RpcRegistry =>
-	remote && remote.version >= bundledRegistry.version ? remote : bundledRegistry
+export const resolveRegistry = (remote: unknown): RpcRegistry => {
+	const pinned = pinRegistry(remote, bundledRegistry)
+	return pinned && pinned.version >= bundledRegistry.version ? pinned : bundledRegistry
+}
 
 export const useRegistry = (): RpcRegistry => {
 	const { data } = useQuery({
@@ -77,6 +88,9 @@ export const useRegistry = (): RpcRegistry => {
 		queryFn: fetchRemoteRegistry,
 		staleTime: 60 * 60 * 1000,
 		retry: 1,
+		// `select` y no un cálculo en cada render: el resultado conserva su identidad
+		// mientras no cambie lo descargado, y de ella cuelgan el router y los catálogos
+		select: resolveRegistry,
 	})
-	return resolveRegistry(data)
+	return data ?? bundledRegistry
 }

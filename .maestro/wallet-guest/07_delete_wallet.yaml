@@ -26,7 +26,7 @@ env:
 - extendedWaitUntil:
     visible:
       id: "wallet-delete-ack"
-    timeout: 5000
+    timeout: 30000
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:
@@ -40,7 +40,7 @@ env:
 - extendedWaitUntil:
     visible:
       id: "welcome-wallet-link"
-    timeout: 10000
+    timeout: 30000
 - takeScreenshot: 07_welcome_after_delete
 
 # Sin cuenta, borrar la wallet borra también su PIN: una alta nueva vuelve a

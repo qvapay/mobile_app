@@ -19,7 +19,9 @@ import {
 	TRON_SWAP_FUNCTIONS,
 	WTRX,
 } from './swap'
-import { decodeTronRaw, TRON_TX_VALIDITY_MS } from './tx'
+import { tronToHex20 } from '../chains/tron'
+import { bytesToHex, concatBytes, encodeBytesField, encodeVarintField, hexToBytes } from './protobuf'
+import { decodeTronRaw, encodeDecodedTronRaw, tronTxId, TronVerifyError, TRON_TX_VALIDITY_MS } from './tx'
 
 const VECTORS = {
 	"owner": "TV6MuMXfmLbBqPZvBHdwFsDnQeVfnmiuSi",
@@ -52,6 +54,26 @@ const ATTACKER = 'TJDENsfBJs4RFETt1X1W8wMDc8M5XnJhCe'
 const DEADLINE = 1791700000
 const SELL_USDT = { owner: OWNER, inputToken: USDT, outputToken: null, amountIn: 20_000_000n, minOut: 59_000_000n }
 const BUY_USDT = { owner: OWNER, inputToken: null, outputToken: USDT, amountIn: 20_000_000n, minOut: 6_400_000n }
+
+// --- Lo que construiría un nodo que quiere colar OTRA llamada -------------------------
+const addressBytes = (address) => hexToBytes(`41${tronToHex20(address)}`)
+const TRIGGER_URL = Uint8Array.from('type.googleapis.com/protocol.TriggerSmartContract', ch => ch.charCodeAt(0))
+/** Transaction.raw con un TriggerSmartContract cuyo contenido (`value`) se pasa tal cual. */
+const triggerTx = (value, feeLimit = 30_000_000n) => {
+	const raw_data_hex = bytesToHex(concatBytes(
+		encodeBytesField(1, hexToBytes('9ef7')),
+		encodeBytesField(4, hexToBytes('f1add0205bfb9684')),
+		encodeVarintField(8, 1791700060000n),
+		encodeBytesField(11, concatBytes(encodeVarintField(1, 31n), encodeBytesField(2, concatBytes(encodeBytesField(1, TRIGGER_URL), encodeBytesField(2, value))))),
+		encodeVarintField(14, 1791700000000n),
+		encodeVarintField(18, feeLimit),
+	))
+	return { txID: tronTxId(raw_data_hex), raw_data_hex }
+}
+const approveData = (spender, amount) => hexToBytes('095ea7b3' + encodeApproveCall(spender, amount))
+const approveValue = (...extra) => concatBytes(encodeBytesField(1, addressBytes(OWNER)), encodeBytesField(2, addressBytes(USDT)), encodeBytesField(4, approveData(SUNSWAP_V2_ROUTER, 20_000_000n)), ...extra)
+const APPROVE_EXPECTED = { owner: OWNER, contract: USDT, callValue: 0n, data: '095ea7b3' + encodeApproveCall(SUNSWAP_V2_ROUTER, 20_000_000n), feeLimitSun: 30_000_000n }
+const UNLIMITED = 2n ** 256n - 1n
 
 describe('ABI', () => {
 
@@ -106,6 +128,41 @@ describe('verificación contra transacciones reales del nodo', () => {
 
 	test('un txID que no es el hash del raw no pasa', () => {
 		expect(() => verifyTronCall({ ...VECTORS.approve, txID: '00'.repeat(32) }, { owner: OWNER, contract: USDT, callValue: 0n, data: '', feeLimitSun: 1n })).toThrow(/txID/)
+	})
+
+	test('las tres de TronGrid son canónicas: decodificar y volver a codificar da los mismos bytes', () => {
+		for (const name of ['approve', 'tokensForTrx', 'trxForTokens']) {
+			expect(bytesToHex(encodeDecodedTronRaw(decodeTronRaw(VECTORS[name].raw_data_hex)))).toBe(VECTORS[name].raw_data_hex)
+		}
+	})
+})
+
+describe('un nodo no puede esconder otra llamada detrás de la buena', () => {
+	// protobuf estándar (java-tron) ejecuta el ÚLTIMO valor de un campo singular repetido
+
+	test('control: el approve exacto, sin nada colado, pasa', () => {
+		expect(() => verifyTronCall(triggerTx(approveValue()), APPROVE_EXPECTED)).not.toThrow()
+	})
+
+	test('approve al router seguido de un approve ILIMITADO al atacante no pasa', () => {
+		const tx = triggerTx(approveValue(encodeBytesField(4, approveData(ATTACKER, UNLIMITED))))
+		expect(() => verifyTronCall(tx, APPROVE_EXPECTED)).toThrow(TronVerifyError)
+		expect(() => verifyTronCall(tx, APPROVE_EXPECTED)).toThrow(/campo 4 repetido/)
+	})
+
+	test('otro contrato escondido detrás del token, o un TRC-10 adjunto a la llamada, tampoco', () => {
+		expect(() => verifyTronCall(triggerTx(approveValue(encodeBytesField(2, addressBytes(ATTACKER)))), APPROVE_EXPECTED)).toThrow(/campo 2 repetido/)
+		// call_token_value + token_id: la llamada se llevaría además un TRC-10 del usuario
+		expect(() => verifyTronCall(triggerTx(approveValue(encodeVarintField(5, 1_000_000n), encodeVarintField(6, 1002000n))), APPROVE_EXPECTED)).toThrow(/campo 5, que no se admite/)
+	})
+
+	test('comprar con TRX: un segundo call_value detrás del pedido no pasa', () => {
+		const call = encodeSwapCall(BUY_USDT, 6_500_000n, DEADLINE)
+		const data = hexToBytes(TRON_SWAP_FUNCTIONS[call.fn].selector + call.parameter)
+		const value = (...extra) => concatBytes(encodeBytesField(1, addressBytes(OWNER)), encodeBytesField(2, addressBytes(SUNSWAP_V2_ROUTER)), encodeVarintField(3, call.callValue), encodeBytesField(4, data), ...extra)
+		const expected = { owner: OWNER, contract: SUNSWAP_V2_ROUTER, callValue: call.callValue, data: TRON_SWAP_FUNCTIONS[call.fn].selector + call.parameter, feeLimitSun: 30_000_000n }
+		expect(() => verifyTronCall(triggerTx(value()), expected)).not.toThrow()
+		expect(() => verifyTronCall(triggerTx(value(encodeVarintField(3, 999_000_000_000n))), expected)).toThrow(/campo 3 repetido/)
 	})
 })
 
@@ -166,6 +223,14 @@ describe('preparar contra un nodo simulado', () => {
 	test('si el nodo devuelve OTRA tx (otro mínimo), no pasa', async () => {
 		mockNode({ allowance: 20_000_000n, quoted: 60_301_006n, tx: VECTORS.tokensForTrx })
 		await expect(prepareTronSwapStep(RPC, SELL_USDT, { now })).rejects.toThrow(/calldata/)
+	})
+
+	test('si el nodo esconde un approve ilimitado al atacante detrás del exacto, el paso no se prepara', async () => {
+		mockNode({ allowance: 0n, tx: triggerTx(approveValue(encodeBytesField(4, approveData(ATTACKER, UNLIMITED)))) })
+		await expect(prepareTronSwapStep(RPC, SELL_USDT, { now })).rejects.toThrow(TronVerifyError)
+		// Y el mismo approve sin nada colado sí
+		mockNode({ allowance: 0n, tx: triggerTx(approveValue()) })
+		await expect(prepareTronSwapStep(RPC, SELL_USDT, { now })).resolves.toMatchObject({ step: 'approve' })
 	})
 
 	test('un fee_limit más alto de lo que la simulación autoriza no pasa', async () => {

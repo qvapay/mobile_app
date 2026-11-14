@@ -23,9 +23,11 @@ const API_TIMEOUT = config.API_TIMEOUT
 //   com.qvapay.auth       → bearer auth token
 //   com.qvapay.biometrics → Face ID / Touch ID login credentials (email + password)
 //   com.qvapay.applock    → app-lock PIN
+//   com.qvapay.applock.attempts → fallos seguidos del PIN (lock/pinAttempts)
 const KEYCHAIN_SERVICE = 'com.qvapay.auth'
 const BIOMETRIC_SERVICE = 'com.qvapay.biometrics'
 const APP_LOCK_SERVICE = 'com.qvapay.applock'
+const APP_LOCK_ATTEMPTS_SERVICE = 'com.qvapay.applock.attempts'
 
 // Loading callbacks for global loading bar
 let _loadingStart: (() => void) | null = null
@@ -352,20 +354,6 @@ export const setAppLockPin = async (pin: string) => {
 }
 
 /**
- * Reads the stored app-lock PIN.
- *
- * @returns {Promise<string|null>} The PIN, or null when app lock is not set up.
- */
-export const getAppLockPin = async () => {
-	try {
-		const credentials = await Keychain.getGenericPassword({ service: APP_LOCK_SERVICE })
-		return credentials ? credentials.password : null
-	} catch (error) {
-		return null
-	}
-}
-
-/**
  * Checks whether an app-lock PIN is configured (without reading it).
  *
  * @returns {Promise<boolean>}
@@ -380,6 +368,24 @@ export const hasAppLockPin = async () => {
 }
 
 /**
+ * ¿Hay un PIN que SIRVA? `hasAppLockPin` solo dice si existe la entrada; aquí además se
+ * comprueba que se deja leer.
+ * - `set`: hay PIN y se puede comparar con él.
+ * - `none`: no hay.
+ * - `unreadable`: hay una entrada que no se deja leer (en Android, tras pasar de un teléfono
+ *   a otro, viaja cifrada y sin su clave). No protege nada y nadie puede acertarlo: quien va
+ *   a crear un PIN la trata como «sin PIN», y `enableAppLock` deja sustituirla.
+ */
+export const appLockPinStatus = async (): Promise<'set' | 'none' | 'unreadable'> => {
+	try {
+		if (!(await Keychain.hasGenericPassword({ service: APP_LOCK_SERVICE }))) return 'none'
+		return (await Keychain.getGenericPassword({ service: APP_LOCK_SERVICE })) ? 'set' : 'none'
+	} catch (error) {
+		return 'unreadable'
+	}
+}
+
+/**
  * Deletes the app-lock PIN (user disabled app lock).
  *
  * @returns {Promise<boolean>} True when removed successfully.
@@ -387,6 +393,55 @@ export const hasAppLockPin = async () => {
 export const removeAppLockPin = async () => {
 	try {
 		await Keychain.resetGenericPassword({ service: APP_LOCK_SERVICE })
+		return true
+	} catch (error) {
+		return false
+	}
+}
+
+/**
+ * Lee el PIN para COMPARARLO. Solo lo llama `AppLockContext` (su `checkPin` es la única
+ * puerta, con el límite de intentos): nadie más compara el PIN por su cuenta. Un Keychain
+ * que no se deja leer LANZA en vez de parecer «sin PIN»: hay que distinguir «PIN
+ * incorrecto» (cuenta como intento) de «no pude leerlo» (no se comparó nada, no cuenta).
+ *
+ * @returns El PIN, o null si no hay ninguno guardado.
+ */
+export const readAppLockPin = async (): Promise<string | null> => {
+	const credentials = await Keychain.getGenericPassword({ service: APP_LOCK_SERVICE })
+	return credentials ? credentials.password : null
+}
+
+// Contador de fallos del PIN (lock/pinAttempts). Va en el Keychain y no en AsyncStorage
+// porque tiene que vivir lo mismo que el PIN: en iOS el Keychain sobrevive a desinstalar,
+// y con el contador en AsyncStorage reinstalar la app devolvería los intentos.
+
+/** Lo guardado tal cual (lo interpreta `parsePinAttempts`). null = nada o ilegible. */
+export const getPinAttemptsRecord = async (): Promise<string | null> => {
+	try {
+		const credentials = await Keychain.getGenericPassword({ service: APP_LOCK_ATTEMPTS_SERVICE })
+		return credentials ? credentials.password : null
+	} catch (error) {
+		return null
+	}
+}
+
+/** @returns false si no se pudo guardar: quien anota un intento NO debe comparar el PIN. */
+export const setPinAttemptsRecord = async (record: string): Promise<boolean> => {
+	try {
+		await Keychain.setGenericPassword('attempts', record, {
+			service: APP_LOCK_ATTEMPTS_SERVICE,
+			accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+		})
+		return true
+	} catch (error) {
+		return false
+	}
+}
+
+export const clearPinAttemptsRecord = async (): Promise<boolean> => {
+	try {
+		await Keychain.resetGenericPassword({ service: APP_LOCK_ATTEMPTS_SERVICE })
 		return true
 	} catch (error) {
 		return false

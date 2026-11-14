@@ -29,6 +29,11 @@ type Props = NativeStackScreenProps<RootStackParamList, 'WalletImport'>
  * Importa un mnemonic BIP-39 existente (12/24 palabras). La frase solo pasa
  * por el estado local; el autocorrector/autocapitalización van apagados para
  * no ensuciar palabras ni filtrarlas a diccionarios del teclado.
+ *
+ * Con una wallet en `recovery` (sus llaves no se pueden usar en este teléfono)
+ * la misma pantalla RESTAURA: `restoreWallet` solo acepta la frase que da las
+ * direcciones de esa wallet, porque escribirla pisa la seed que hay y con otra
+ * frase se perdería una wallet que quizá solo falla ahora.
  */
 const WalletImport = ({ navigation }: Props) => {
 
@@ -37,7 +42,9 @@ const WalletImport = ({ navigation }: Props) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 
-	const { importWallet } = useWallet()
+	const { importWallet, restoreWallet, recovery } = useWallet()
+	// Fijado al entrar: restaurar bien quita `recovery` y no debe cambiar la pantalla a medias
+	const [restoring] = useState(recovery !== null)
 	useSecureScreen(true)
 	const { isAuthenticated } = useAuth()
 
@@ -50,6 +57,17 @@ const WalletImport = ({ navigation }: Props) => {
 	const handleImport = async () => {
 		if (!valid || importing) return
 		setImporting(true)
+		if (restoring) {
+			const result = await restoreWallet(phrase)
+			setImporting(false)
+			if (result !== 'ok') {
+				toast.error(t(result === 'mismatch' ? 'crypto.wallet.import.mismatch' : result === 'unverifiable' ? 'crypto.wallet.import.unverifiable' : result === 'invalid' ? 'crypto.wallet.import.invalid' : 'crypto.wallet.import.failed'))
+				return
+			}
+			toast.success(t('crypto.wallet.import.restored'))
+			finishWalletSetup(navigation, isAuthenticated)
+			return
+		}
 		const ok = await importWallet(phrase)
 		setImporting(false)
 		if (!ok) {
@@ -63,8 +81,8 @@ const WalletImport = ({ navigation }: Props) => {
 	return (
 		<QPKeyboardAvoidingView style={containerStyles.subContainer}>
 			<View style={styles.content}>
-				<Text style={textStyles.h1}>{t('crypto.wallet.import.title')}</Text>
-				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.import.subtitle')}</Text>
+				<Text style={textStyles.h1}>{t(restoring ? 'crypto.wallet.import.restoreTitle' : 'crypto.wallet.import.title')}</Text>
+				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>{t(restoring ? 'crypto.wallet.import.restoreSubtitle' : 'crypto.wallet.import.subtitle')}</Text>
 
 				<QPSecureView>
 					<TextInput
@@ -91,7 +109,7 @@ const WalletImport = ({ navigation }: Props) => {
 					)}
 				</View>
 
-				<QPButton testID="wallet-import-submit" title={t('crypto.wallet.import.cta')} onPress={handleImport} disabled={!valid} loading={importing} />
+				<QPButton testID="wallet-import-submit" title={t(restoring ? 'crypto.wallet.import.restoreCta' : 'crypto.wallet.import.cta')} onPress={handleImport} disabled={!valid} loading={importing} />
 			</View>
 		</QPKeyboardAvoidingView>
 	)

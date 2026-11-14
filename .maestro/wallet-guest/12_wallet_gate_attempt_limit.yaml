@@ -1,0 +1,102 @@
+# El gate de la wallet (el modal que pide el PIN antes de leer la seed) comparte el
+# límite de intentos con el bloqueo. Antes, cinco fallos solo cerraban el modal y se
+# podía volver a abrir sin fin. Ahora los fallos del modal cuentan en el bloqueo, con
+# el límite cerrado no hay ni campo donde teclear, y cerrar y abrir no devuelve nada.
+# Parte del estado que deja el 11 (wallet importada, PIN, intentos a cero).
+appId: com.qvapay
+env:
+  PIN: "1234"
+  WRONG: "9999"
+---
+# Cuatro PIN malos en el modal: avisa, el campo se vacía y se puede volver a teclear
+- runFlow: subflows/open_wallet_delete_gate.yaml
+- repeat:
+    times: 4
+    commands:
+      - runFlow: subflows/wrong_wallet_auth_pin.yaml
+
+# El contador es el mismo del bloqueo y sobrevive a matar la app: con esos cuatro,
+# UN fallo en el bloqueo abre la espera
+- runFlow: subflows/cold_lock.yaml
+- runFlow:
+    file: subflows/tap_lock_pin.yaml
+    env:
+      PIN: ${WRONG}
+- extendedWaitUntil:
+    visible:
+      id: "lock-notice"
+      text: ".*[0-9]:[0-9][0-9].*"
+    timeout: 30000
+- takeScreenshot: 12_lock_counts_gate_failures
+- extendedWaitUntil:
+    notVisible:
+      id: "lock-notice"
+    timeout: 60000
+- runFlow: subflows/tap_lock_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 30000
+
+# Ahora el límite visto desde el modal: al quinto fallo desaparece el campo y queda
+# la cuenta atrás (30 s). Cumplida, el campo vuelve solo
+- runFlow: subflows/open_wallet_delete_gate.yaml
+- repeat:
+    times: 4
+    commands:
+      - runFlow: subflows/wrong_wallet_auth_pin.yaml
+- tapOn:
+    id: "wallet-auth-pin-0"
+- runFlow:
+    file: subflows/type_pin.yaml
+    env:
+      DIGITS: ${WRONG}
+- extendedWaitUntil:
+    visible:
+      id: "wallet-auth-limit"
+      text: ".*[0-9]:[0-9][0-9].*"
+    timeout: 30000
+- assertNotVisible:
+    id: "wallet-auth-pin-0"
+- takeScreenshot: 12_gate_wait
+- extendedWaitUntil:
+    visible:
+      id: "wallet-auth-pin-0"
+    timeout: 60000
+
+# Sexto fallo, espera de 1 min: cerrar el modal y volver a abrirlo no devuelve
+# intentos (se comprueba aquí y no en la de 30 s, que no da tiempo a reabrirlo)
+- tapOn:
+    id: "wallet-auth-pin-0"
+- runFlow:
+    file: subflows/type_pin.yaml
+    env:
+      DIGITS: ${WRONG}
+- extendedWaitUntil:
+    visible:
+      id: "wallet-auth-limit"
+      text: ".*[0-9]:[0-9][0-9].*"
+    timeout: 30000
+- runFlow: subflows/close_wallet_auth_modal.yaml
+- tapOn:
+    id: "wallet-settings-delete"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "wallet-auth-modal"
+    timeout: 25000
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow: subflows/cancel_biometric_prompt.yaml
+- assertVisible:
+    id: "wallet-auth-limit"
+    text: ".*[0-9]:[0-9][0-9].*"
+- assertNotVisible:
+    id: "wallet-auth-pin-0"
+- takeScreenshot: 12_gate_reopened
+
+# Cumplida la espera, el campo vuelve (el 13 entra por el bloqueo con el PIN correcto)
+- extendedWaitUntil:
+    visible:
+      id: "wallet-auth-pin-0"
+    timeout: 90000

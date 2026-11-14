@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useReducer } from 'react'
-import { View, Text, Alert } from 'react-native'
+import { View, Text } from 'react-native'
 import { toast } from 'sonner-native'
 import { useTranslation } from 'react-i18next'
 
@@ -9,19 +9,21 @@ import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
 import { useSettings } from '../../../settings/SettingsContext'
 import { useAppLock } from '../../../lock/AppLockContext'
+import { useWallet } from '../../../wallet/WalletContext'
 import { getSupportedBiometryType } from '../../../api/client'
 
 // lock subcomponents
 import AppLockEnabledView from './applock/AppLockEnabledView'
 import AppLockChangePinView from './applock/AppLockChangePinView'
+import AppLockDisableView from './applock/AppLockDisableView'
 import AppLockSetupView from './applock/AppLockSetupView'
 
 // Tipos
 import type { RefObject, ReactNode } from 'react'
 import type { QPCodeInputHandle } from '../../../ui/particles/QPCodeInput'
 
-/** Paso del flujo: información, alta de PIN, confirmación o cambio. */
-type AppLockMode = 'info' | 'setup' | 'confirm' | 'changePin'
+/** Paso del flujo: información, alta de PIN, confirmación, cambio o baja (que pide el PIN actual). */
+type AppLockMode = 'info' | 'setup' | 'confirm' | 'changePin' | 'disable'
 
 /** Los tres campos de PIN como una unidad. */
 type PinForm = { pin: string, confirmPin: string, oldPin: string }
@@ -70,9 +72,11 @@ const AppLock = () => {
 	const containerStyles = createContainerStyles(theme)
 	const { security } = useSettings()
 	const { appLockEnabled, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics } = useAppLock()
+	// Con una wallet en el teléfono este PIN protege su frase: se puede cambiar, no quitar
+	const { hasWallet } = useWallet()
 
 	// Setup flow states
-	const [mode, setMode] = useState<AppLockMode>('info') // info | setup | confirm | changePin
+	const [mode, setMode] = useState<AppLockMode>('info')
 	const [form, dispatchForm] = useReducer(formReducer, initialForm)
 	const { pin, confirmPin, oldPin } = form
 	// Same-named setters keep every call site (renderPinRow, resetForm, handlers) unchanged
@@ -133,24 +137,29 @@ const AppLock = () => {
 		}
 	}
 
-	// Handle disable
+	// Desactivar pide el PIN actual: un aviso de «¿seguro?» lo aceptaba cualquiera con la app abierta
 	const handleDisable = () => {
-		Alert.alert(
-			t('settings.appLock.alerts.disableTitle'),
-			t('settings.appLock.alerts.disableBody'),
-			[
-				{ text: t('common.actions.cancel'), style: 'cancel' },
-				{
-					text: t('settings.appLock.alerts.disableConfirm'),
-					style: 'destructive',
-					onPress: async () => {
-						await disableAppLock()
-						toast.success(t('settings.appLock.toasts.disabled'))
-						resetForm()
-					}
-				}
-			]
-		)
+		setMode('disable')
+		setTimeout(() => oldPinRef.current?.focus(0), 100)
+	}
+
+	const handleConfirmDisable = async () => {
+		if (oldPin.length !== 4) {
+			toast.error(t('settings.appLock.toasts.enterPin4'))
+			return
+		}
+		setIsLoading(true)
+		const result = await disableAppLock(oldPin)
+		setIsLoading(false)
+		if (result.success) {
+			toast.success(t('settings.appLock.toasts.disabled'))
+			resetForm()
+		} else {
+			// AppLockResult declara `error?: string`; en la rama de fallo siempre viene.
+			toast.error(result.error as string)
+			setOldPin('')
+			setTimeout(() => oldPinRef.current?.focus(0), 100)
+		}
 	}
 
 	// Handle change PIN
@@ -214,6 +223,23 @@ const AppLock = () => {
 					setTimeout(() => oldPinRef.current?.focus(0), 100)
 				}}
 				onDisable={handleDisable}
+				walletProtected={hasWallet}
+				theme={theme}
+				textStyles={textStyles}
+				containerStyles={containerStyles}
+			/>
+		)
+	}
+
+	// Disable view: el PIN actual es la confirmación
+	if (mode === 'disable') {
+		return (
+			<AppLockDisableView
+				pinRow={renderPinRow(t('settings.appLock.labels.currentPin'), oldPin, setOldPin, oldPinRef, null)}
+				onSubmit={handleConfirmDisable}
+				onCancel={resetForm}
+				isLoading={isLoading}
+				disabled={oldPin.length !== 4}
 				theme={theme}
 				textStyles={textStyles}
 				containerStyles={containerStyles}

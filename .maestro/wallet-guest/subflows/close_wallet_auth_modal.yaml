@@ -1,0 +1,19 @@
+# Cierra el modal del PIN de la wallet con «atrás». Con el teclado abierto el primer
+# «atrás» solo lo esconde y el modal sigue ahí: entonces hace falta otro
+appId: com.qvapay
+---
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      visible:
+        id: "wallet-auth-modal"
+    commands:
+      - back
+- extendedWaitUntil:
+    notVisible:
+      id: "wallet-auth-modal"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 3000

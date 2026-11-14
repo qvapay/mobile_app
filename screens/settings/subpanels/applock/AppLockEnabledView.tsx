@@ -20,6 +20,8 @@ type AppLockEnabledViewProps = {
 	onTimeoutSelect: (minutes: number) => void
 	onChangePin: () => void
 	onDisable: () => void
+	/** Hay una wallet en el teléfono: el PIN protege su frase y el bloqueo no se puede desactivar. */
+	walletProtected: boolean
 	theme: Theme
 	textStyles: TextStyles
 	containerStyles: ContainerStyles
@@ -35,7 +37,7 @@ const TIMEOUT_OPTIONS = [
 ]
 
 // App-lock enabled state: auto-lock timeout selector, biometric info, change/disable actions.
-const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onToggleBiometrics, onTimeoutSelect, onChangePin, onDisable, theme, textStyles, containerStyles }: AppLockEnabledViewProps) => {
+const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onToggleBiometrics, onTimeoutSelect, onChangePin, onDisable, walletProtected, theme, textStyles, containerStyles }: AppLockEnabledViewProps) => {
 
 	const { t } = useTranslation()
 
@@ -110,7 +112,13 @@ const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTog
 		{/* Actions */}
 		<View style={containerStyles.bottomButtonContainer}>
 			<QPButton title={t('settings.appLock.enabled.changePinButton')} onPress={onChangePin} />
-			<QPButton title={t('settings.appLock.enabled.disableButton')} onPress={onDisable} style={{ marginTop: 12 }} danger />
+			{walletProtected ? (
+				<Text testID="applock-wallet-protected" style={[textStyles.body, styles.walletProtected, { color: theme.colors.secondaryText }]}>
+					{t('settings.appLock.enabled.walletProtected')}
+				</Text>
+			) : (
+				<QPButton title={t('settings.appLock.enabled.disableButton')} onPress={onDisable} style={{ marginTop: 12 }} danger />
+			)}
 		</View>
 	</View>
 	)
@@ -127,6 +135,10 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		borderRadius: 20,
 		borderWidth: 1,
+	},
+	walletProtected: {
+		textAlign: 'center',
+		marginTop: 12,
 	},
 })
 

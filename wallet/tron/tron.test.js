@@ -11,13 +11,14 @@ import { keccak_256 } from '@noble/hashes/sha3.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import bs58 from 'bs58'
 
-import { decodeFields, encodeBytesField, encodeVarint, encodeVarintField, hexToBytes, bytesToHex } from './protobuf'
+import { bytesOf, concatBytes, decodeExact, decodeFields, encodeBytesField, encodeVarint, encodeVarintField, hexToBytes, bytesToHex, varintOf } from './protobuf'
 import {
 	broadcastTronTransaction,
 	computeFeeLimit,
 	computeTronBurn,
 	computeTronBurnBreakdown,
 	decodeTronRaw,
+	encodeDecodedTronRaw,
 	encodeSignedTronTransaction,
 	encodeTrc20TransferParams,
 	isValidTronAddress,
@@ -30,6 +31,7 @@ import {
 	TronVerifyError,
 	verifyTronTransaction,
 } from './tx'
+import { tronToHex20 } from '../chains/tron'
 import { parseUnits } from '../chains/units'
 import { deriveAddresses, derivePrivateKey } from '../derive'
 import { mnemonicToSeed } from '../seed'
@@ -114,6 +116,174 @@ describe('verifyTronTransaction', () => {
 		expect(() => verifyTronTransaction(FIXTURE, INTENT, 100_000_000n)).toThrow(/fee_limit/)
 		// Una TRC-20 jamás pasa por TRX nativo ni al revés
 		expect(() => verifyTronTransaction(FIXTURE, { ...INTENT, contract: null }, 0n)).toThrow(/TransferContract/)
+	})
+})
+
+// --- Lo que se firma no admite una segunda lectura ------------------------------------
+//
+// El contrato viaja como bytes opacos (`Any.value`): el hash que se firma los cubre tal
+// cual, y protobuf estándar (el de java-tron) ejecuta el ÚLTIMO valor de un campo singular
+// repetido. Un nodo que mande `{destino: Bob, …, destino: atacante}` no puede pasar por
+// «a Bob». Estos raws son los que construiría ese nodo.
+
+const BOB = FIXTURE.to
+const ATTACKER = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb'
+const addressBytes = (address) => hexToBytes(`41${tronToHex20(address)}`)
+const typeUrl = (name) => asciiBytes(`type.googleapis.com/protocol.${name}`)
+
+/** Transaction.Contract { 1 tipo · 2 Any { 1 type_url · 2 valor } } más lo que se quiera colar. */
+const contractOf = (code, name, value, { anyExtra = [], contractExtra = [] } = {}) => concatBytes(
+	encodeVarintField(1, code),
+	encodeBytesField(2, concatBytes(encodeBytesField(1, typeUrl(name)), encodeBytesField(2, value), ...anyExtra)),
+	...contractExtra,
+)
+
+/** Transaction.raw con los campos del fixture alrededor del contrato. `between`/`after` cuelan campos en el raw. */
+const rawHexOf = (contract, { feeLimit = 0n, between = [], after = [] } = {}) => bytesToHex(concatBytes(
+	encodeBytesField(1, hexToBytes('4db5')),
+	encodeBytesField(4, hexToBytes('9341d33e550cdeef')),
+	encodeVarintField(8, 1789271391000n),
+	...between,
+	encodeBytesField(11, contract),
+	encodeVarintField(14, 1789271331541n),
+	...(feeLimit ? [encodeVarintField(18, feeLimit)] : []),
+	...after,
+))
+const txOf = (raw_data_hex) => ({ txID: tronTxId(raw_data_hex), raw_data_hex })
+
+const TRX_INTENT = { from: FIXTURE.from, to: BOB, amount: 1_000_000n, contract: null }
+const transferValue = (...extra) => concatBytes(encodeBytesField(1, addressBytes(FIXTURE.from)), encodeBytesField(2, addressBytes(BOB)), encodeVarintField(3, 1_000_000n), ...extra)
+const transferTx = (...extra) => txOf(rawHexOf(contractOf(1n, 'TransferContract', transferValue(...extra))))
+
+const GOOD_DATA = hexToBytes('a9059cbb' + encodeTrc20TransferParams(BOB, 1_000_000n))
+const EVIL_DATA = hexToBytes('a9059cbb' + encodeTrc20TransferParams(ATTACKER, 5_000_000_000_000n))
+const triggerValue = (...extra) => concatBytes(encodeBytesField(1, addressBytes(FIXTURE.from)), encodeBytesField(2, addressBytes(FIXTURE.usdt)), encodeBytesField(4, GOOD_DATA), ...extra)
+const triggerTx = (value, options) => txOf(rawHexOf(contractOf(31n, 'TriggerSmartContract', value, options), { feeLimit: 30_000_000n }))
+const verifyTrc20 = (tx) => verifyTronTransaction(tx, INTENT, 30_000_000n)
+
+describe('decodificación estricta: un campo repetido, de más o mal codificado no se firma', () => {
+
+	test('los raws de control (sin nada raro) pasan: el rechazo de abajo es por lo que se cuela', () => {
+		expect(() => verifyTronTransaction(transferTx(), TRX_INTENT, 0n)).not.toThrow()
+		expect(() => verifyTrc20(triggerTx(triggerValue()))).not.toThrow()
+	})
+
+	test('TRX: «1 TRX a Bob» seguido de «todo al atacante» (gana el último en la red) no pasa', () => {
+		const tx = transferTx(encodeBytesField(2, addressBytes(ATTACKER)), encodeVarintField(3, 999_000_000_000n))
+		expect(() => verifyTronTransaction(tx, TRX_INTENT, 0n)).toThrow(TronVerifyError)
+		expect(() => verifyTronTransaction(tx, TRX_INTENT, 0n)).toThrow(/campo 2 repetido/)
+		// Tampoco con solo el importe repetido
+		expect(() => verifyTronTransaction(transferTx(encodeVarintField(3, 999_000_000_000n)), TRX_INTENT, 0n)).toThrow(/campo 3 repetido/)
+	})
+
+	test('TRC-20: una segunda calldata o un segundo contrato detrás de los buenos no pasan', () => {
+		expect(() => verifyTrc20(triggerTx(triggerValue(encodeBytesField(4, EVIL_DATA))))).toThrow(/campo 4 repetido/)
+		expect(() => verifyTrc20(triggerTx(triggerValue(encodeBytesField(2, addressBytes(ATTACKER)))))).toThrow(/campo 2 repetido/)
+		expect(() => verifyTrc20(triggerTx(triggerValue(encodeBytesField(1, addressBytes(ATTACKER)))))).toThrow(/campo 1 repetido/)
+	})
+
+	test('repetidos en los niveles de fuera (Any, Contract, raw) tampoco', () => {
+		const evilValue = concatBytes(encodeBytesField(1, addressBytes(FIXTURE.from)), encodeBytesField(2, addressBytes(FIXTURE.usdt)), encodeBytesField(4, EVIL_DATA))
+		// Un segundo `value` en el Any, un segundo `parameter` y un segundo `type` en el Contract
+		expect(() => verifyTrc20(triggerTx(triggerValue(), { anyExtra: [encodeBytesField(2, evilValue)] }))).toThrow(/Any trae el campo 2 repetido/)
+		expect(() => verifyTrc20(triggerTx(triggerValue(), { contractExtra: [encodeBytesField(2, concatBytes(encodeBytesField(1, typeUrl('TriggerSmartContract')), encodeBytesField(2, evilValue)))] }))).toThrow(/Contract trae el campo 2 repetido/)
+		expect(() => verifyTrc20(triggerTx(triggerValue(), { contractExtra: [encodeVarintField(1, 1n)] }))).toThrow(/Contract trae el campo 1 repetido/)
+		// Un segundo fee_limit o una segunda expiration en el raw
+		const contract = contractOf(31n, 'TriggerSmartContract', triggerValue())
+		expect(() => verifyTrc20(txOf(rawHexOf(contract, { feeLimit: 30_000_000n, after: [encodeVarintField(18, 15_000_000_000n)] })))).toThrow(/Transaction\.raw trae el campo 18 repetido/)
+		expect(() => verifyTrc20(txOf(rawHexOf(contract, { feeLimit: 30_000_000n, between: [encodeVarintField(8, 1789357791000n)] })))).toThrow(/Transaction\.raw trae el campo 8 repetido/)
+	})
+
+	test('campos que la wallet nunca pide no se firman: memo, Permission_id, TRC-10 adjunto, tipos ajenos', () => {
+		const contract = contractOf(31n, 'TriggerSmartContract', triggerValue())
+		// Transaction.raw.data (memo, campo 10)
+		expect(() => verifyTrc20(txOf(rawHexOf(contract, { feeLimit: 30_000_000n, between: [encodeBytesField(10, asciiBytes('hola'))] })))).toThrow(/Transaction\.raw trae el campo 10, que no se admite/)
+		// Contract.Permission_id (campo 5): firmar con otro permiso de la cuenta
+		expect(() => verifyTrc20(triggerTx(triggerValue(), { contractExtra: [encodeVarintField(5, 2n)] }))).toThrow(/Contract trae el campo 5, que no se admite/)
+		// call_token_value + token_id (5 y 6): moverían un TRC-10 del usuario junto a la llamada
+		expect(() => verifyTrc20(triggerTx(triggerValue(encodeVarintField(5, 1_000_000n), encodeVarintField(6, 1002000n))))).toThrow(/TriggerSmartContract trae el campo 5, que no se admite/)
+		expect(() => verifyTronTransaction(transferTx(encodeBytesField(4, asciiBytes('x'))), TRX_INTENT, 0n)).toThrow(/TransferContract trae el campo 4, que no se admite/)
+		// Un contrato que la wallet no usa (2 = TransferAssetContract), aunque el resto cuadre
+		expect(() => decodeTronRaw(rawHexOf(contractOf(2n, 'TransferAssetContract', transferValue())))).toThrow(/tipo de contrato 2 no admitido/)
+		// Y uno conocido con el type_url de otro
+		expect(() => decodeTronRaw(rawHexOf(contractOf(1n, 'TriggerSmartContract', transferValue())))).toThrow(/type_url/)
+	})
+
+	test('una transferencia de TRX con fee_limit no pasa', () => {
+		const tx = txOf(rawHexOf(contractOf(1n, 'TransferContract', transferValue()), { feeLimit: 30_000_000n }))
+		expect(() => verifyTronTransaction(tx, TRX_INTENT, 0n)).toThrow(/fee_limit/)
+	})
+
+	test('otro wire type en un campo conocido no pasa', () => {
+		// amount (campo 3) como bytes en vez de varint
+		const value = concatBytes(encodeBytesField(1, addressBytes(FIXTURE.from)), encodeBytesField(2, addressBytes(BOB)), encodeBytesField(3, hexToBytes('c0843d')))
+		expect(() => decodeTronRaw(rawHexOf(contractOf(1n, 'TransferContract', value)))).toThrow(/campo 3 con wire type 2/)
+	})
+
+	test('mismo contenido, otra codificación: tampoco (lo firmado tiene que ser la forma canónica)', () => {
+		const owner = encodeBytesField(1, addressBytes(FIXTURE.from))
+		const to = encodeBytesField(2, addressBytes(BOB))
+		const key3 = Uint8Array.of(0x18)
+		// 1.000.000 = c0 84 3d; con relleno, c0 84 bd 80 00 decodifica al mismo número
+		const padded = concatBytes(owner, to, key3, hexToBytes('c084bd8000'))
+		expect(() => decodeTronRaw(rawHexOf(contractOf(1n, 'TransferContract', padded)))).toThrow(/canónica/)
+		// Campos del contrato fuera de orden
+		const shuffled = concatBytes(to, owner, encodeVarintField(3, 1_000_000n))
+		expect(() => decodeTronRaw(rawHexOf(contractOf(1n, 'TransferContract', shuffled)))).toThrow(/canónica/)
+		// Un valor por defecto escrito a mano: call_value = 0
+		const explicitZero = concatBytes(owner, encodeBytesField(2, addressBytes(FIXTURE.usdt)), Uint8Array.of(0x18, 0x00), encodeBytesField(4, GOOD_DATA))
+		expect(() => decodeTronRaw(rawHexOf(contractOf(31n, 'TriggerSmartContract', explicitZero), { feeLimit: 30_000_000n }))).toThrow(/canónica/)
+		// Campos del raw fuera de orden (timestamp antes que el contrato)
+		const contract = contractOf(1n, 'TransferContract', transferValue())
+		const rawShuffled = bytesToHex(concatBytes(encodeBytesField(1, hexToBytes('4db5')), encodeBytesField(4, hexToBytes('9341d33e550cdeef')), encodeVarintField(8, 1789271391000n), encodeVarintField(14, 1789271331541n), encodeBytesField(11, contract)))
+		expect(() => decodeTronRaw(rawShuffled)).toThrow(/canónica/)
+	})
+
+	test('enteros que java-tron leería distinto no pasan', () => {
+		const head = concatBytes(encodeBytesField(1, addressBytes(FIXTURE.from)), encodeBytesField(2, addressBytes(BOB)), Uint8Array.of(0x18))
+		// Bits por encima de 64: java los descarta en silencio y leería otro importe
+		expect(() => decodeTronRaw(rawHexOf(contractOf(1n, 'TransferContract', concatBytes(head, hexToBytes('ffffffffffffffffff7f')))))).toThrow(/64 bits/)
+		// Once bytes
+		expect(() => decodeTronRaw(rawHexOf(contractOf(1n, 'TransferContract', concatBytes(head, hexToBytes('8080808080808080808001')))))).toThrow(TronVerifyError)
+		// Bit 63 puesto: para java es un importe negativo
+		expect(() => decodeTronRaw(rawHexOf(contractOf(1n, 'TransferContract', concatBytes(head, hexToBytes('ffffffffffffffffff01')))))).toThrow(/64 bits/)
+	})
+
+	test('basura en vez de protobuf es un TronVerifyError, no un error cualquiera', () => {
+		expect(() => decodeTronRaw('0a05aa')).toThrow(TronVerifyError)
+		expect(() => decodeTronRaw('zz')).toThrow(TronVerifyError)
+		// Una dirección que no mide 21 bytes
+		const value = concatBytes(encodeBytesField(1, hexToBytes('41aabb')), encodeBytesField(2, addressBytes(BOB)), encodeVarintField(3, 1n))
+		expect(() => decodeTronRaw(rawHexOf(contractOf(1n, 'TransferContract', value)))).toThrow(TronVerifyError)
+	})
+
+	test('los bytes reales de mainnet son canónicos: decodificar y volver a codificar da lo mismo', () => {
+		expect(bytesToHex(encodeDecodedTronRaw(decodeTronRaw(FIXTURE.raw_data_hex)))).toBe(FIXTURE.raw_data_hex)
+	})
+
+	test('la primitiva de firma no firma un raw que no se lee sin ambigüedad', () => {
+		const key = derivePrivateKey(mnemonicToSeed('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'), 'tron')
+		const tx = transferTx(encodeBytesField(2, addressBytes(ATTACKER)), encodeVarintField(3, 999_000_000_000n))
+		expect(() => signTronTransaction(tx.raw_data_hex, key)).toThrow(TronVerifyError)
+		expect(() => signTronTransaction(rawHexOf(contractOf(2n, 'TransferAssetContract', transferValue())), key)).toThrow(TronVerifyError)
+		expect(signTronTransaction(transferTx().raw_data_hex, key)).toHaveLength(130)
+	})
+
+	test('lector protobuf: un campo singular repetido o con otro wire type lanza en vez de devolver el primero', () => {
+		const twice = decodeFields(concatBytes(encodeVarintField(3, 1n), encodeVarintField(3, 2n)))
+		expect(() => varintOf(twice, 3)).toThrow(/campo 3 repetido/)
+		const twiceBytes = decodeFields(concatBytes(encodeBytesField(2, hexToBytes('aa')), encodeBytesField(2, hexToBytes('bb'))))
+		expect(() => bytesOf(twiceBytes, 2)).toThrow(/campo 2 repetido/)
+		expect(() => varintOf(decodeFields(encodeBytesField(3, hexToBytes('aa'))), 3)).toThrow(/wire type/)
+		expect(() => bytesOf(decodeFields(encodeVarintField(2, 7n)), 2)).toThrow(/wire type/)
+		// Ausente = valor por defecto de proto3
+		expect(varintOf([], 3)).toBe(0n)
+		expect(bytesOf([], 2)).toHaveLength(0)
+		// decodeExact: forma exacta, con el repetido solo donde se declara
+		const shape = { 1: { wire: 2 }, 2: { wire: 2, repeated: true }, 3: { wire: 0 } }
+		expect(decodeExact(concatBytes(encodeBytesField(1, hexToBytes('aa')), encodeBytesField(2, hexToBytes('bb')), encodeBytesField(2, hexToBytes('cc')), encodeVarintField(3, 1n)), shape, 'Msg')).toHaveLength(4)
+		expect(() => decodeExact(encodeVarintField(9, 1n), shape, 'Msg')).toThrow(/Msg trae el campo 9, que no se admite/)
+		expect(() => decodeExact(concatBytes(encodeBytesField(1, hexToBytes('aa')), encodeBytesField(1, hexToBytes('bb'))), shape, 'Msg')).toThrow(/Msg trae el campo 1 repetido/)
 	})
 })
 
@@ -288,6 +458,29 @@ describe('prepareTronSend / broadcast (nodo simulado)', () => {
 			'/wallet/triggersmartcontract': () => ({ result: { result: true }, transaction: { txID: FIXTURE.txID, raw_data_hex: FIXTURE.raw_data_hex } }),
 		})
 		await expect(prepareTronSend(RPC, INTENT)).rejects.toThrow(/fee_limit/)
+	})
+
+	test('un nodo que esconde OTRO destino detrás del bueno (campo repetido) no consigue una tx preparada', async () => {
+		// TRX: lo que la app leería primero es «1 TRX a Bob»; lo último, «todo al atacante»
+		mockNode({
+			'/wallet/getchainparameters': chainParams,
+			'/wallet/getaccountresource': () => ({ freeNetLimit: 600, freeNetUsed: 0 }),
+			'/wallet/getaccount': () => ({ address: BOB }),
+			'/wallet/createtransaction': () => transferTx(encodeBytesField(2, addressBytes(ATTACKER)), encodeVarintField(3, 999_000_000_000n)),
+		})
+		const trx = await prepareTronSend(RPC, TRX_INTENT).catch(e => e)
+		expect(trx).toBeInstanceOf(TronVerifyError)
+		// Un fallo de verificación no rota de nodo: no es un problema de red
+		expect(isRetryableRpcError(trx)).toBe(false)
+
+		// TRC-20: la calldata buena y, detrás, `transfer(atacante, todo)`
+		mockNode({
+			'/wallet/getchainparameters': chainParams,
+			'/wallet/getaccountresource': () => ({}),
+			'/wallet/triggerconstantcontract': () => ({ result: { result: true }, energy_used: 64_285 }),
+			'/wallet/triggersmartcontract': (body) => ({ result: { result: true }, transaction: txOf(rawHexOf(contractOf(31n, 'TriggerSmartContract', triggerValue(encodeBytesField(4, EVIL_DATA))), { feeLimit: BigInt(body.fee_limit) })) }),
+		})
+		await expect(prepareTronSend(RPC, INTENT)).rejects.toThrow(TronVerifyError)
 	})
 
 	test('TRC-20: el nodo rechaza la estimación con mensaje en hex → error no reintentable legible', async () => {

@@ -16,7 +16,9 @@ jest.mock('../../../wallet/registry/appRpcRouter', () => ({ useEffectiveRegistry
 jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), usePriceMap: jest.fn() }))
 jest.mock('./energyQueries', () => ({ useEnergyPricesQuery: () => ({ data: undefined }), estimatePrice: () => null }))
 jest.mock('./historyCache', () => ({ loadHistoryCache: jest.fn() }))
-jest.mock('./exchangeDeposit', () => ({ markDepositSent: jest.fn() }))
+jest.mock('./exchangeDeposit', () => ({ markDepositSent: jest.fn(), markDepositAttempt: jest.fn(async () => {}), clearDepositSent: jest.fn(async () => {}) }))
+jest.mock('./depositGuard', () => ({ checkDeposit: jest.fn() }))
+jest.mock('sonner-native', () => ({ toast: Object.assign(jest.fn(), { error: jest.fn(), success: jest.fn() }) }))
 jest.mock('./useWalletSendTx', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('./useGaslessSend', () => ({ __esModule: true, default: () => ({ state: { phase: 'disabled', grant: null, reason: null, remainingToday: null, renewsAt: null }, bridge: null }) }))
 jest.mock('../../../ui/particles/QPButton', () => 'QPButton')
@@ -32,7 +34,11 @@ import { act, create } from 'react-test-renderer'
 import { useWallet } from '../../../wallet/WalletContext'
 import { usePriceMap, useWalletAssets } from './walletQueries'
 import { loadHistoryCache } from './historyCache'
+import { toast } from 'sonner-native'
 import useWalletSendTx from './useWalletSendTx'
+import { clearDepositSent, markDepositAttempt, markDepositSent } from './exchangeDeposit'
+import { checkDeposit } from './depositGuard'
+import { ROUTES } from '../../../routes'
 import WalletSendConfirm from './WalletSendConfirm'
 
 const ME = '0x2A6f3C8bD3eE0c4F5a1b7c9D0e1F2a3B4c5D6e7F'
@@ -65,8 +71,10 @@ const settle = () => act(async () => { await sleep(20) })
 let caches
 let tree
 let screen
+let navigation
+const openAuth = jest.fn()
 const render = async (to, extra = {}) => {
-	const navigation = { replace: jest.fn(), navigate: jest.fn(), goBack: jest.fn() }
+	navigation = { replace: jest.fn(), popTo: jest.fn(), navigate: jest.fn(), goBack: jest.fn() }
 	screen = () => <WalletSendConfirm navigation={navigation} route={{ params: { assetId: USDT_BSC.id, to, amount: '10', ...extra } }} />
 	await act(async () => { tree = create(screen()) })
 	await settle()
@@ -86,6 +94,7 @@ const SCAM = 'Así funciona una estafa conocida'
 const checkbox = () => tree.root.find(node => node.props.testID === 'recipient-checked' && typeof node.type === 'string')
 
 beforeEach(() => {
+	jest.clearAllMocks()
 	caches = {}
 	useWallet.mockReturnValue({ addresses: { evm: ME, tron: 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8', btc: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', stx: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R', sol: 'So1ana1111111111111111111111111111111111111' } })
 	useWalletAssets.mockReturnValue({ all: [USDT_BSC, BNB, USDT_ETH] })
@@ -93,7 +102,7 @@ beforeEach(() => {
 	usePriceMap.mockReturnValue({})
 	useWalletSendTx.mockReturnValue({
 		phase: 'ready', prepared: PREPARED, error: null, feeTier: 'normal', busy: false, authVisible: false,
-		setFeeTier: jest.fn(), openAuth: jest.fn(), closeAuth: jest.fn(), onAuthorized: jest.fn(), retry: jest.fn(),
+		setFeeTier: jest.fn(), openAuth, closeAuth: jest.fn(), onAuthorized: jest.fn(), retry: jest.fn(),
 		energyRented: false, energySlow: false, markEnergyRented: jest.fn(), onEnergyRented: jest.fn(),
 	})
 })
@@ -278,4 +287,83 @@ test('imita a la dirección PROPIA: la única comparación en la que el aviso pu
 	// Ya explica la estafa con su propio texto
 	expect(hasText(SCAM)).toBe(false)
 	expect(confirmButton().props.disabled).toBe(true)
+})
+
+// ── El depósito de un intercambio no se manda dos veces ──────────────────────
+// El proveedor espera UN envío de un importe exacto: un segundo no se cambia, se queda a la
+// espera de una devolución manual. Había tres caminos para repetirlo (un seguimiento viejo
+// que seguía ofreciendo «Enviar ahora», una nota que caducaba antes que la orden y una
+// difusión sin respuesta que no dejaba nota); la comprobación va ahora antes del PIN
+describe('depósito de un intercambio', () => {
+	const press = () => act(async () => { await confirmButton().props.onPress() })
+	/** Lo que la pantalla le pasó al motor de envío. */
+	const engineArgs = () => useWalletSendTx.mock.calls[useWalletSendTx.mock.calls.length - 1][0]
+
+	test('un envío normal no pregunta nada: abre el PIN', async () => {
+		await render(BOB)
+		await press()
+		expect(checkDeposit).not.toHaveBeenCalled()
+		expect(openAuth).toHaveBeenCalledTimes(1)
+		expect(engineArgs().onAttempt).toBeUndefined()
+		expect(engineArgs().onDropped).toBeUndefined()
+	})
+
+	test('sin depósito previo y con la orden esperándolo: abre el PIN', async () => {
+		checkDeposit.mockResolvedValue({ allowed: true })
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		await press()
+		expect(checkDeposit).toHaveBeenCalledWith('ex-1')
+		expect(openAuth).toHaveBeenCalledTimes(1)
+		expect(navigation.popTo).not.toHaveBeenCalled()
+	})
+
+	test('ya salió uno (aunque el seguimiento de debajo aún ofreciera enviar): NO se pide el PIN', async () => {
+		checkDeposit.mockResolvedValue({ allowed: false, reason: 'sent', txid: '0xabc' })
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		await press()
+		expect(openAuth).not.toHaveBeenCalled()
+		expect(toast).toHaveBeenCalledWith('Ya enviaste el depósito de este intercambio.')
+		expect(navigation.popTo).toHaveBeenCalledWith(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: 'ex-1', sentTxid: '0xabc' })
+	})
+
+	test('la orden ya no espera depósito (avanzó, caducó): tampoco', async () => {
+		checkDeposit.mockResolvedValue({ allowed: false, reason: 'closed', status: 'expired' })
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		await press()
+		expect(openAuth).not.toHaveBeenCalled()
+		expect(toast).toHaveBeenCalledWith('Este intercambio ya no espera un depósito.')
+		expect(navigation.popTo).toHaveBeenCalledWith(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: 'ex-1' })
+	})
+
+	test('si no se pudo comprobar no se firma, y la pantalla se queda para reintentar', async () => {
+		checkDeposit.mockResolvedValue({ allowed: false, reason: 'unknown' })
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		await press()
+		expect(openAuth).not.toHaveBeenCalled()
+		expect(toast.error).toHaveBeenCalledWith('No pudimos comprobar el intercambio. Inténtalo de nuevo.')
+		expect(navigation.popTo).not.toHaveBeenCalled()
+	})
+
+	test('la nota se escribe en cuanto la firma va a salir, con su hash, y se retira si consta que no entró', async () => {
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		await engineArgs().onAttempt('0xhash')
+		expect(markDepositAttempt).toHaveBeenCalledWith('ex-1', '0xhash')
+		engineArgs().onDropped()
+		expect(clearDepositSent).toHaveBeenCalledWith('ex-1')
+	})
+
+	test('al entrar se anota como enviado y se vuelve AL seguimiento que había (sin dejar una copia vieja debajo)', async () => {
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		act(() => { engineArgs().onSent('0xhash') })
+		expect(markDepositSent).toHaveBeenCalledWith('ex-1', '0xhash')
+		expect(navigation.popTo).toHaveBeenCalledWith(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: 'ex-1', sentTxid: '0xhash' })
+		expect(navigation.replace).not.toHaveBeenCalled()
+	})
+
+	test('un envío normal sigue yendo a su pantalla de éxito', async () => {
+		await render(BOB)
+		act(() => { engineArgs().onSent('0xhash') })
+		expect(navigation.replace).toHaveBeenCalledWith(ROUTES.WALLET_SEND_SUCCESS, { assetId: USDT_BSC.id, txid: '0xhash', amount: '10', to: BOB })
+		expect(markDepositSent).not.toHaveBeenCalled()
+	})
 })

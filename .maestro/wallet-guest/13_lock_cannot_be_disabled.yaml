@@ -1,0 +1,49 @@
+# Con una wallet en el teléfono el bloqueo no se puede desactivar: su PIN protege la
+# frase. Antes bastaba con desactivarlo (sin pedir el PIN) y crear uno nuevo para
+# verla. La pantalla de Bloqueo se abre también sin cuenta, desde Mi wallet, y en
+# lugar del botón de desactivar enseña una nota.
+# Parte de la wallet que deja el 12; entra por el bloqueo para no depender de en qué
+# pantalla quedó (el PIN correcto, además, devuelve los intentos que el 12 gastó).
+appId: com.qvapay
+env:
+  PIN: "1234"
+---
+- runFlow: subflows/cold_lock.yaml
+- runFlow: subflows/tap_lock_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 30000
+- runFlow:
+    file: subflows/scroll_down_to.yaml
+    env:
+      TARGET: "wallet-home-security"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-home-security"
+    retryTapIfNoChange: true
+- runFlow:
+    file: subflows/scroll_down_to.yaml
+    env:
+      TARGET: "wallet-settings-pin"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-settings-pin"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "applock-wallet-protected"
+    timeout: 10000
+- takeScreenshot: 13_lock_protected
+- runFlow: subflows/header_back.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-settings-back"
+    timeout: 10000
+- runFlow: subflows/settings_back.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 15000

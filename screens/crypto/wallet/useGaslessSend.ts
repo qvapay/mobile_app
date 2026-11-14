@@ -16,8 +16,16 @@
  * Un `eligible: false` no es un error: el usuario puede enviar igual pagando su SOL.
  * Por eso el motivo se conserva — de `not_gold` sale el gancho de GOLD y de
  * `quota_exhausted` el aviso de cuándo se renueva.
+ *
+ * **Nunca se pasa a «pagar» sin saber qué fue del envío gratis.** En Solana no hay nada que
+ * impida que entren los dos: la patrocinada y la pagada son transacciones distintas. Así que
+ * solo un rechazo que el backend PRUEBA (no llegó a mandarse) suelta el permiso y deja
+ * pagar; todo lo demás —sin respuesta, `pending`, `broadcast_failed`, `failed`, `review`,
+ * un permiso que caduca en un reintento— se queda como «sin confirmar» y lo aclara la
+ * cadena (`lookupSend` busca la tx por su mensaje en el historial del remitente). En BSC no
+ * hace falta: patrocinada y pagada comparten nonce, y solo una puede entrar.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { walletApi } from '../../../api/walletApi'
 import { useIdempotencyKey } from '../../../hooks/useIdempotencyKey'
@@ -25,8 +33,9 @@ import { makeIdempotencyKey } from '../../../helpers/idempotency'
 import type { AssetView } from '../../../wallet/assets'
 import type { GaslessIneligibleReason, SponsorGrant } from '../../../types/domain'
 import type { SponsorChain } from '../../../types/domain'
-import { consumesGrant, fallsBackToPaid, grantChain, interpretSubmit, sponsorChainFor } from './gaslessModel'
-import { TxNotSentError } from './useWalletTx'
+import { classifySubmitFailure, consumesGrant, fallsBackToPaid, grantChain, interpretSubmit, sponsorChainFor } from './gaslessModel'
+import { TxNotSentError, TxUnconfirmedError } from './useWalletTx'
+import type { TxLookup } from './useWalletTx'
 
 /** Cuánto se espera a que una tx difundida aparezca confirmada. */
 const PENDING_DEADLINE_MS = 90_000
@@ -129,7 +138,24 @@ export const useGaslessSend = ({ asset, to, amount, enabled = true }: {
 
 	// --- Canjearlo -----------------------------------------------------------
 
-	const pollUntilResolved = useCallback(async (uuid: string): Promise<{ txid: string } | { rebuild: true }> => {
+	/**
+	 * La tx firmada cuyo desenlace no se sabe (Solana). Mientras sea la que el motor vuelve a
+	 * mandar, lo que el backend conteste después («no se gastó», «reconstruye», «el permiso
+	 * caducó») no prueba nada: pudo entrar en el intento anterior. Quien decide es la cadena
+	 * (`lookupSend` busca la tx en el historial del remitente), no este hook.
+	 */
+	const unresolvedTxRef = useRef<string | null>(null)
+	/** El último permiso que llegó a canjearse: es por el que pregunta `resolver.lookup`. */
+	const submittedGrantRef = useRef<string | null>(null)
+
+	/** El permiso ya no sirve: se suelta y el envío pasa a pagarse (sin puente, el motor reconstruye la tx como un envío normal). */
+	const dropGrant = useCallback((uuid: string, { cancel }: { cancel: boolean }) => {
+		grantRef.current = null
+		if (cancel) { walletApi.gaslessCancel(uuid) }
+		setState({ phase: 'failed', grant: null, reason: null, remainingToday: null, renewsAt: null })
+	}, [])
+
+	const pollUntilResolved = useCallback(async (uuid: string): Promise<{ txid: string }> => {
 		const deadline = Date.now() + PENDING_DEADLINE_MS
 		while (Date.now() < deadline) {
 			await new Promise<void>(resolve => setTimeout(resolve, PENDING_INTERVAL_MS))
@@ -137,43 +163,104 @@ export const useGaslessSend = ({ asset, to, amount, enabled = true }: {
 			const grant = result.success ? result.data : null
 			if (!grant) { continue }
 			if (grant.status === 'confirmed' && grant.signature) { return { txid: grant.signature } }
-			if (grant.status === 'failed' || grant.status === 'review') { throw new Error(grant.reason || 'sponsored_failed') }
+			// Falló o quedó en revisión: aquí no se puede saber si llegó a salir
+			if (grant.status === 'failed' || grant.status === 'review') { throw new TxUnconfirmedError() }
 		}
 		// Se difundió y no se vio confirmar: el backend la sigue, pero aquí no se puede
 		// prometer un resultado que no se tiene
-		throw new Error('sponsored_pending')
+		throw new TxUnconfirmedError()
 	}, [])
 
 	const submit = useCallback(async (signedTx: string): Promise<{ txid: string } | { rebuild: true }> => {
 		const grant = grantRef.current
 		if (!grant) { throw new Error('sponsored_no_grant') }
+		const chainOfGrant = grantChain(grant)
+		// Solo Solana: en BSC la patrocinada y la pagada comparten nonce y solo una puede entrar
+		const carriesDoubt = chainOfGrant === 'solana'
+		const alreadyUnresolved = carriesDoubt && unresolvedTxRef.current === signedTx
+		/** Esta tx pudo salir y no se sabe: el permiso no se devuelve y nada la da por perdida. */
+		const leaveUnresolved = (): never => {
+			if (carriesDoubt) { unresolvedTxRef.current = signedTx }
+			spentRef.current = true
+			throw new TxUnconfirmedError()
+		}
 
+		submittedGrantRef.current = grant.uuid
 		const result = await walletApi.gaslessSubmit(grant.uuid, signedTx)
-		if (!result.success || !result.data) { throw new Error(result.success ? 'sponsored_failed' : result.error || 'sponsored_failed') }
+
+		if (!result.success || !result.data) {
+			const failure = classifySubmitFailure(result)
+			if (failure.kind === 'done') {
+				spentRef.current = true
+				unresolvedTxRef.current = null
+				return { txid: failure.txid }
+			}
+			// El backend rechazó ESTA petición antes de mandar nada. Es «no se envió» salvo que
+			// esta misma tx ya hubiera salido antes sin desenlace
+			if (failure.kind === 'rejected' && !alreadyUnresolved) {
+				if (failure.grantGone) { dropGrant(grant.uuid, { cancel: false }) }
+				throw new TxNotSentError(result.success ? 'sponsored_failed' : result.error || 'sponsored_failed')
+			}
+			return leaveUnresolved()
+		}
 
 		const outcome = result.data
 		// Marcar el permiso gastado ANTES de decidir qué hacer: si la pantalla se
 		// desmonta a mitad, lo que no puede pasar es que se cancele algo ya cobrado
-		if (consumesGrant(outcome)) { spentRef.current = true }
+		if (consumesGrant(outcome, chainOfGrant)) { spentRef.current = true }
 
-		const action = interpretSubmit(outcome)
-		if (action.kind === 'error' && fallsBackToPaid(outcome)) {
+		const action = interpretSubmit(outcome, chainOfGrant)
+		if (action.kind === 'done') {
+			unresolvedTxRef.current = null
+			return { txid: action.txid }
+		}
+		if (action.kind === 'poll') {
+			// Salió hacia la red y no se vio confirmar: se enseña «confirmando», no «enviado»
+			if (carriesDoubt) { unresolvedTxRef.current = signedTx }
+			setState(s => ({ ...s, phase: 'pending' }))
+			const resolved = await pollUntilResolved(grant.uuid)
+			unresolvedTxRef.current = null
+			return resolved
+		}
+		// Con un intento anterior de esta tx sin desenlace, ni «reconstruye» ni «no se gastó»
+		// valen: pudo entrar entonces. Y un desenlace que el backend no probó, tampoco
+		if (action.kind === 'unknown' || alreadyUnresolved) { return leaveUnresolved() }
+		if (action.kind === 'rebuild') { return { rebuild: true } }
+		if (fallsBackToPaid(outcome, chainOfGrant)) {
 			// Se suelta el permiso ANTES de lanzar: sin puente, el motor reconstruye la tx como
 			// un envío normal y la pantalla enseña la comisión de verdad
-			grantRef.current = null
-			walletApi.gaslessCancel(grant.uuid)
-			setState({ phase: 'failed', grant: null, reason: null, remainingToday: null, renewsAt: null })
-			// Definitivo (`authorized`: no se gastó nada): el motor suelta la firma sin preguntar
+			dropGrant(grant.uuid, { cancel: true })
+			// Definitivo (`authorized` y probado: no se gastó nada): el motor suelta la firma sin preguntar
 			throw new TxNotSentError(action.message)
 		}
-		if (action.kind === 'done') { return { txid: action.txid } }
-		if (action.kind === 'rebuild') { return { rebuild: true } }
-		if (action.kind === 'poll') {
-			setState(s => ({ ...s, phase: 'pending' }))
-			return pollUntilResolved(grant.uuid)
-		}
+		// `failed` o `review`: en Solana no consta que no saliera (la cadena lo dirá)
+		if (carriesDoubt) { return leaveUnresolved() }
 		throw new Error(action.message)
-	}, [pollUntilResolved])
+	}, [pollUntilResolved, dropGrant])
+
+	// --- Resolver un envío sin desenlace -------------------------------------
+
+	/**
+	 * Lo que el motor de envío necesita para aclarar un envío patrocinado del que no hubo
+	 * respuesta. `lookup` solo sirve de prueba POSITIVA (el backend lo da por confirmado y
+	 * tiene la firma): que NO entró lo dice la cadena, nunca el backend. `dropped`: la cadena
+	 * confirmó que no entró ni entrará; el permiso quedó a medias en el servidor y no vale
+	 * para otro intento, así que el envío pasa a pagarse.
+	 */
+	const resolver = useMemo(() => ({
+		lookup: async (): Promise<TxLookup> => {
+			const uuid = submittedGrantRef.current
+			if (!uuid) { return { status: 'unknown' } }
+			const result = await walletApi.gaslessGet(uuid)
+			const grant = result.success ? result.data : null
+			return grant?.status === 'confirmed' && grant.signature ? { status: 'landed', txid: grant.signature } : { status: 'unknown' }
+		},
+		dropped: () => {
+			unresolvedTxRef.current = null
+			const uuid = submittedGrantRef.current
+			if (uuid && grantRef.current?.uuid === uuid) { dropGrant(uuid, { cancel: false }) }
+		},
+	}), [dropGrant])
 
 	/** Tras un éxito, la siguiente compra necesita su propia clave. */
 	const reset = useCallback(() => {
@@ -182,11 +269,14 @@ export const useGaslessSend = ({ asset, to, amount, enabled = true }: {
 		grantRef.current = null
 	}, [idempotencyKeyRef])
 
-	const bridge: SponsorBridge | null = state.phase === 'eligible' && state.grant
+	// También en `pending`: el motor puede tener que volver a mandar la MISMA tx (un
+	// reintento), y sin puente la sacaría a la red por su cuenta, que es justo lo que una
+	// patrocinada no puede hacer
+	const bridge: SponsorBridge | null = (state.phase === 'eligible' || state.phase === 'pending') && state.grant
 		? { chain: grantChain(state.grant), feePayer: state.grant.fee_payer, submit }
 		: null
 
-	return { state, bridge, submit, reset }
+	return { state, bridge, submit, reset, resolver }
 }
 
 export default useGaslessSend

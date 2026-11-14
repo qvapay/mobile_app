@@ -35,13 +35,16 @@ interface BiometricGateModule extends TurboModule {
 	createKey(alias: string): Promise<boolean>
 	deleteKey(alias: string): Promise<boolean>
 	authenticate(alias: string, title: string, cancelLabel: string): Promise<BiometricGateOutcome>
+	/** Huella/cara O el código del teléfono (ver helpers/deviceOwnerProof). */
+	confirmDeviceOwner(title: string, subtitle: string): Promise<string>
 }
 
-// En call time y sin spread: los métodos de un TurboModule viven en el prototipo
-const getGate = (): BiometricGateModule | null => {
+/** El módulo nativo de Android (null en iOS). En call time y sin spread: los métodos de un TurboModule viven en el prototipo. */
+export const getBiometricGate = (): BiometricGateModule | null => {
 	if (Platform.OS !== 'android') return null
 	return TurboModuleRegistry.get<BiometricGateModule>('BiometricGate') ?? NativeModules.BiometricGate ?? null
 }
+const getGate = getBiometricGate
 
 /** Alias de la clave del Keystore de Android para un `service`. */
 export const gateAliasFor = (service: string) => `qvapay.biogate.${service}`

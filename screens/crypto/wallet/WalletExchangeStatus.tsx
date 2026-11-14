@@ -19,6 +19,7 @@ import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from '.
 import { timeAgo } from '../../../helpers'
 import { useExchangeOrderQuery } from './exchangeQueries'
 import { depositAmountLabel, depositViewFor, deviationBps, isDeviationNotable, isLive, phaseOf, stepsFor } from './exchangeModel'
+import { useFocusEffect } from '@react-navigation/native'
 import { clearDepositSent, readDepositSent } from './exchangeDeposit'
 import type { ExchangePhase } from './exchangeModel'
 
@@ -98,24 +99,40 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 	 * vea sobrevive a salir de la pantalla y a cerrar la app.
 	 */
 	const [sent, setSent] = useState<string | null>(sentTxid ?? null)
-	useEffect(() => {
+	/** Hay nota en disco de que el depósito salió (o pudo salir), tenga hash o no. */
+	const [noted, setNoted] = useState(false)
+	// El parámetro puede llegar después de montar: al volver del envío con `popTo` esta
+	// pantalla es la MISMA que había, con parámetros nuevos
+	useEffect(() => { if (sentTxid) { setSent(sentTxid) } }, [sentTxid])
+	// La nota se relee cada vez que la pantalla vuelve a estar delante, no solo al montar: se
+	// escribe en OTRA pantalla (la del envío), y una copia que se quedó debajo la tenía
+	// vieja y seguía ofreciendo «Enviar ahora» justo después de enviar
+	useFocusEffect(useCallback(() => {
 		let cancelled = false
-		readDepositSent(uuid).then(found => { if (!cancelled && found) { setSent(previous => previous ?? found.txid) } })
+		readDepositSent(uuid).then(found => {
+			if (cancelled || !found) { return }
+			setNoted(true)
+			if (found.txid) { setSent(previous => previous ?? found.txid) }
+		})
 		return () => { cancelled = true }
-	}, [uuid])
+	}, [uuid]))
 
 	// En cuanto la orden avanza, la nota sobra: el estado real manda
 	useEffect(() => {
-		if (order && order.status !== 'awaiting_deposit') { clearDepositSent(uuid); setSent(null) }
+		if (order && order.status !== 'awaiting_deposit') { clearDepositSent(uuid); setSent(null); setNoted(false) }
 	}, [order, uuid])
 
-	const deposit = order ? depositViewFor({ status: order.status, sentTxid: sent }) : 'none'
+	const deposit = order ? depositViewFor({ status: order.status, sentTxid: sent, noted }) : 'none'
 
 	const exactAmount = order && fromAsset ? depositAmountLabel(order, fromAsset.decimals) : order?.amount_in ?? ''
 	const deviation = order ? (order.deviation_bps ?? deviationBps(order)) : null
 
-	const openSend = useCallback(() => {
+	const openSend = useCallback(async () => {
 		if (!order?.deposit_address || !fromAsset) { return }
+		// Por si la nota llegó después de pintar el botón (la guarda de antes de firmar lo
+		// vuelve a mirar igualmente: esta es solo para no abrir un envío que no va a salir)
+		const found = await readDepositSent(order.uuid)
+		if (found) { setNoted(true); if (found.txid) { setSent(found.txid) } return }
 		navigation.navigate(ROUTES.WALLET_SEND_CONFIRM, {
 			assetId: order.from_asset,
 			to: order.deposit_address,
@@ -190,13 +207,18 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 			{!!order && deposit === 'sent' && (
 				<View style={card}>
 					<Text style={[textStyles.h4, styles.cardTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.exchange.sentTitle')}</Text>
-					<CopyRow
-						theme={theme}
-						label={t('crypto.wallet.exchange.sentTx')}
-						value={sent ?? ''}
-						hash={{ head: 10, tail: 10 }}
-						onCopy={() => copy(sent ?? '')}
-					/>
+					{sent ? (
+						<CopyRow
+							theme={theme}
+							label={t('crypto.wallet.exchange.sentTx')}
+							value={sent}
+							hash={{ head: 10, tail: 10 }}
+							onCopy={() => copy(sent)}
+						/>
+					) : (
+						// Patrocinado: el hash lo pone quien paga la comisión y aún no ha llegado
+						<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.exchange.depositGuard.pendingHash')}</Text>
+					)}
 					<Text style={[styles.warning, smallText, { color: theme.colors.warning }]}>
 						{t('crypto.wallet.exchange.sentHint', { provider: order.provider_label })}
 					</Text>

@@ -16,13 +16,20 @@
  *   la respuesta), "caducada" al re-difundir no prueba que no se ejecutara (java-tron valida la
  *   expiración antes que el duplicado) y nuestro reloj de Solana se adelanta a la red. Construir
  *   otra sin mirar es que el usuario confirme y pague dos veces.
+ * - Una tx que ENTRÓ deja el motor en `sent`, y ahí se queda: no reconstruye, no reintenta y
+ *   no vuelve a abrir el PIN, cambie lo que cambie alrededor. Antes, tras difundir, cualquier
+ *   refresco de saldos cambiaba la identidad de `build`, el motor preparaba otra tx y la
+ *   pantalla volvía a ofrecer «Confirmar» mientras aún registraba la primera: segundo PIN,
+ *   segunda operación. Solo `advance()` sale de `sent`, y solo lo llama quien sabe que lo
+ *   que entró era un paso previo (el permiso antes de un swap).
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { TxLookup } from '../../../wallet/chains/txLookup'
 import { isExpiredBroadcastError } from './txExpiry'
 
-export type TxPhase = 'preparing' | 'ready' | 'waitingEnergy' | 'signing' | 'broadcasting' | 'error'
+/** `sent`: la tx entró en la red. Es terminal: de ahí solo se sale con `advance()`. */
+export type TxPhase = 'preparing' | 'ready' | 'waitingEnergy' | 'signing' | 'broadcasting' | 'sent' | 'error'
 
 /**
  * Lo mínimo que el núcleo necesita saber de una tx preparada. `expiresAt` se compara con
@@ -74,12 +81,31 @@ type Args<P extends PreparedTx, S> = {
 	 * es siempre `unknown`: una firma difundida no se sustituye nunca, se re-difunde.
 	 */
 	lookup?: (prepared: P, signed: S) => Promise<TxLookup>
+	/**
+	 * La tx firmada está a punto de salir hacia la red (se espera a que termine antes de
+	 * difundir). Para quien tiene que acordarse de que salió aunque luego no haya respuesta:
+	 * el depósito de un intercambio se anota aquí, no al confirmarse.
+	 */
+	onAttempt?: (prepared: P, signed: S) => void | Promise<void>
+	/**
+	 * Consta que esa tx NO entró ni entrará: lo anotado en `onAttempt` sobra. `why`:
+	 * `rebuild` y `rejected` los dice quien difunde (no se gastó nada); `chain`, la cadena
+	 * al preguntarle (caducó sin ejecutarse).
+	 */
+	onDropped?: (prepared: P, signed: S, why: DropReason) => void
 }
 
-export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submit, onSent, describeError, lookup }: Args<P, S>) => {
+export type DropReason = 'rebuild' | 'rejected' | 'chain'
 
-	const [phase, setPhase] = useState<TxPhase>('preparing')
+export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submit, onSent, describeError, lookup, onAttempt, onDropped }: Args<P, S>) => {
+
+	const [phase, setPhaseState] = useState<TxPhase>('preparing')
 	const [prepared, setPrepared] = useState<P | null>(null)
+	/** Una tx ya entró en la red: el motor no construye, firma ni difunde nada más hasta `advance()`. */
+	const sentRef = useRef(false)
+	/** Nada saca al motor de `sent` cambiando la fase desde fuera (la espera de energía, un error tardío). */
+	const setPhase = useCallback((next: TxPhase) => { if (!sentRef.current) setPhaseState(next) }, [])
+	const markSent = useCallback(() => { sentRef.current = true; setPhaseState('sent') }, [])
 	const [error, setError] = useState<string | null>(null)
 	const [authVisible, setAuthVisible] = useState(false)
 	/**
@@ -99,7 +125,12 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 	// Espejos: `prepare` es dependencia del efecto de construcción y no debe cambiar con ellos
 	const lookupRef = useRef(lookup)
 	const onSentRef = useRef(onSent)
-	useEffect(() => { lookupRef.current = lookup; onSentRef.current = onSent }, [lookup, onSent])
+	const onAttemptRef = useRef(onAttempt)
+	const onDroppedRef = useRef(onDropped)
+	useEffect(() => {
+		lookupRef.current = lookup; onSentRef.current = onSent
+		onAttemptRef.current = onAttempt; onDroppedRef.current = onDropped
+	}, [lookup, onSent, onAttempt, onDropped])
 
 	/**
 	 * Antes de construir otra tx: ¿qué fue de la que ya se difundió? Si entró, cuenta como
@@ -120,11 +151,13 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			if (attemptRef.current !== attempt) return false
 			if (outcome.status === 'landed') {
 				attemptRef.current = null; signedRef.current = null
+				markSent()
 				onSentRef.current(outcome.txid, attempt.prepared, true)
 				return false
 			}
 			if (outcome.status === 'dropped') {
 				attemptRef.current = null
+				onDroppedRef.current?.(attempt.prepared, attempt.signed, 'chain')
 				return true
 			}
 			setPhase('error')
@@ -134,11 +167,12 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 		resolvingRef.current = run
 		run.finally(() => { if (resolvingRef.current === run) resolvingRef.current = null })
 		return run
-	}, [describeError])
+	}, [describeError, markSent, setPhase])
 
 	/** `internal`: lo pide el propio motor tras una difusión (rebuild, caducada), aun con el cerrojo. */
 	const prepare = useCallback(async ({ internal = false }: { internal?: boolean } = {}) => {
-		if (!ready) return
+		// Con una tx ya en la red no se prepara otra, cambie lo que cambie (ver `advance`)
+		if (!ready || sentRef.current) return
 		// Un refresco de fondo no sustituye la tx mientras se firma o se difunde
 		if (lockedRef.current && !internal) return
 		const gen = ++prepareGenRef.current
@@ -157,7 +191,7 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			setPhase('error')
 			setError(describeError(err))
 		}
-	}, [ready, build, describeError, resolveAttempt])
+	}, [ready, build, describeError, resolveAttempt, setPhase])
 
 	useEffect(() => { prepare() }, [prepare])
 
@@ -166,22 +200,28 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 	const broadcast = useCallback(async (current: P, signed: S) => {
 		setPhase('broadcasting')
 		attemptRef.current = { prepared: current, signed }
+		// ANTES de que salga: después puede no haber respuesta, y quien depende de saber que
+		// salió tiene que tenerlo anotado ya. Que la nota falle no impide el envío
+		try { await onAttemptRef.current?.(current, signed) } catch { /* la nota es un respaldo */ }
 		try {
 			const result = await submit(current, signed)
 			if ('rebuild' in result) {
 				// Respuesta definitiva de que no se gastó nada (patrocinio): sin nada que resolver
 				attemptRef.current = null
 				signedRef.current = null
+				onDroppedRef.current?.(current, signed, 'rebuild')
 				await prepare({ internal: true })
 				return
 			}
 			attemptRef.current = null
+			markSent()
 			onSent(result.txid, current, result.duplicate, result.note)
 		} catch (err) {
 			// Consta que no se gastó nada: la firma se suelta y se puede construir otra
 			if (err instanceof TxNotSentError) {
 				attemptRef.current = null
 				signedRef.current = null
+				onDroppedRef.current?.(current, signed, 'rejected')
 				setPhase('error')
 				setError(describeError(err))
 				return
@@ -197,11 +237,11 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			setPhase('error')
 			setError(describeError(err))
 		}
-	}, [submit, prepare, onSent, describeError])
+	}, [submit, prepare, onSent, describeError, markSent, setPhase])
 
 	const onAuthorized = useCallback(async () => {
 		setAuthVisible(false)
-		if (!prepared || inFlightRef.current) return
+		if (!prepared || inFlightRef.current || sentRef.current) return
 		inFlightRef.current = true
 		try {
 			// Reconstruirla aquí en silencio devolvía la pantalla a «Confirmar» tras el PIN, sin decir nada
@@ -227,7 +267,7 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			lockedRef.current = false
 			inFlightRef.current = false
 		}
-	}, [prepared, sign, broadcast, isExpired, describeError])
+	}, [prepared, sign, broadcast, isExpired, describeError, setPhase])
 
 	/**
 	 * Reconstruye SIEMPRE, tirando la firma retenida. `retry()` no vale para
@@ -236,13 +276,26 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 	 * para "algo cambió fuera, recalcula".
 	 */
 	const refresh = useCallback(() => {
+		if (lockedRef.current || sentRef.current) return Promise.resolve()
+		signedRef.current = null
+		return prepare()
+	}, [prepare])
+
+	/**
+	 * La tx que entró era un PASO previo (el permiso antes de un swap) y toca construir el
+	 * siguiente. Es la ÚNICA salida de `sent`: `refresh()` y `retry()` no hacen nada ahí, para
+	 * que un recálculo que llegue tarde (energía alquilada, saldos nuevos) no reabra una
+	 * operación que ya salió.
+	 */
+	const advance = useCallback(() => {
 		if (lockedRef.current) return Promise.resolve()
+		sentRef.current = false
 		signedRef.current = null
 		return prepare()
 	}, [prepare])
 
 	const retry = useCallback(() => {
-		if (inFlightRef.current) return
+		if (inFlightRef.current || sentRef.current) return
 		// Firmada y aún vigente: re-difundir la MISMA tx con SU firma; si no, empezar de cero
 		const held = signedRef.current
 		inFlightRef.current = true
@@ -262,12 +315,13 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 		prepared,
 		error,
 		authVisible,
-		openAuth: useCallback(() => setAuthVisible(true), []),
+		openAuth: useCallback(() => { if (!sentRef.current) setAuthVisible(true) }, []),
 		closeAuth: useCallback(() => setAuthVisible(false), []),
 		onAuthorized,
 		retry,
 		refresh,
-		busy: phase === 'signing' || phase === 'broadcasting' || phase === 'waitingEnergy',
+		advance,
+		busy: phase === 'signing' || phase === 'broadcasting' || phase === 'waitingEnergy' || phase === 'sent',
 	}
 }
 

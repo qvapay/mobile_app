@@ -1,0 +1,29 @@
+# Desde el modo wallet: Seguridad → «Eliminar wallet», que abre el modal del PIN de la
+# wallet. Lo deja listo para teclear (si la huella está armada, su diálogo cancelado)
+appId: com.qvapay
+---
+- runFlow:
+    file: scroll_down_to.yaml
+    env:
+      TARGET: "wallet-home-security"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-home-security"
+    retryTapIfNoChange: true
+- runFlow:
+    file: scroll_down_to.yaml
+    env:
+      TARGET: "wallet-settings-delete"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-settings-delete"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "wallet-auth-modal"
+    timeout: 25000
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow: cancel_biometric_prompt.yaml

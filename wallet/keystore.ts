@@ -13,6 +13,13 @@
  * - NINGÚN catch de este módulo borra la entrada. Borrar la seed exige el
  *   flujo explícito "Eliminar wallet" (re-confirmación de backup mediante).
  * - El logout NO pasa por aquí: la seed sobrevive a `clearAuthData`.
+ * - Una seed NUNCA se pisa en silencio: `setWalletMnemonic` se niega si ya hay
+ *   una entrada (o si no puede comprobarlo), salvo que quien llama pida
+ *   `overwrite` — y solo lo pide «Restaurar», tras comprobar que la frase es
+ *   la de la MISMA wallet.
+ * - «¿Hay seed?» tiene tres respuestas, no dos (`walletSeedEntry`): sí, no y
+ *   «no lo sé». Tratar el «no lo sé» como «no» es lo que dejaba crear una
+ *   wallet encima de otra.
  */
 import * as Keychain from 'react-native-keychain'
 
@@ -22,12 +29,34 @@ const WALLET_SERVICE = 'com.qvapay.wallet'
 const WALLET_ACCOUNT = 'mnemonic'
 
 /**
+ * ¿Hay una entrada de seed en el Keychain? Sin leer el secreto.
+ * - `present`: hay una. OJO: que exista no dice que se deje leer (en Android, tras pasar
+ *   de un teléfono a otro, viajan los datos cifrados pero no la clave que los descifra).
+ * - `absent`: el Keychain CONFIRMA que no hay. Único estado en el que se puede crear o importar.
+ * - `unknown`: el Keychain no respondió. No se sabe; quien decide tiene que ser conservador.
+ */
+export type SeedEntry = 'present' | 'absent' | 'unknown'
+
+export const walletSeedEntry = async (): Promise<SeedEntry> => {
+	try {
+		return (await Keychain.hasGenericPassword({ service: WALLET_SERVICE })) === true ? 'present' : 'absent'
+	} catch {
+		return 'unknown'
+	}
+}
+
+/**
  * Guarda el mnemonic. Verifica leyendo de vuelta: un write silenciosamente
  * fallido aquí significaría mostrar direcciones de una seed no persistida.
  *
+ * Se NIEGA a escribir si ya hay una entrada (o si no puede saberlo): pisar una seed es
+ * perder una wallet. `overwrite` es solo para «Restaurar», que antes ha comprobado que la
+ * frase da las mismas direcciones que la wallet cuya seed no se dejaba leer.
+ *
  * @returns true solo si quedó guardado y verificado.
  */
-export const setWalletMnemonic = async (mnemonic: string): Promise<boolean> => {
+export const setWalletMnemonic = async (mnemonic: string, { overwrite = false }: { overwrite?: boolean } = {}): Promise<boolean> => {
+	if (!overwrite && (await walletSeedEntry()) !== 'absent') return false
 	try {
 		await Keychain.setGenericPassword(WALLET_ACCOUNT, mnemonic, {
 			service: WALLET_SERVICE,
@@ -56,25 +85,59 @@ export const getWalletMnemonic = async (): Promise<string | null> => {
 	}
 }
 
-/** ¿Hay wallet creada en este dispositivo? (no lee el secreto). */
-export const hasWalletMnemonic = async (): Promise<boolean> => {
+/**
+ * Borra la seed. SOLO para el flujo explícito "Eliminar wallet" — jamás
+ * llamarlo desde manejo de errores ni desde el logout.
+ *
+ * @returns true solo si el Keychain CONFIRMA después que ya no hay seed. Lo que devuelve
+ * el borrado no basta: si la seed sigue ahí, la wallet no está eliminada.
+ */
+export const removeWalletMnemonic = async (): Promise<boolean> => {
 	try {
-		return (await Keychain.hasGenericPassword({ service: WALLET_SERVICE })) === true
+		await Keychain.resetGenericPassword({ service: WALLET_SERVICE })
+	} catch { /* decide la comprobación de abajo */ }
+	return (await walletSeedEntry()) === 'absent'
+}
+
+// ---------------------------------------------------------------------------
+// Testigo: «la seed de ESTA dirección se pudo leer en ESTE teléfono»
+// ---------------------------------------------------------------------------
+
+/**
+ * Entrada aparte, sin nada secreto: la dirección EVM (pública) de la seed que se guardó o
+ * se leyó bien en este teléfono. Sirve para no tener que descifrar la seed en cada arranque
+ * solo para saber si las llaves siguen aquí: si el testigo se deja leer y coincide con la
+ * metadata, las claves del Keystore de la app están intactas. Tras pasar de un teléfono a
+ * otro en Android no se puede leer (viajó cifrado, sin su clave) y entonces sí se comprueba
+ * la seed de verdad.
+ */
+const WALLET_CHECK_SERVICE = 'com.qvapay.walletcheck'
+
+/** @returns El testigo, o null si no hay o no se deja leer (da igual: en ambos casos toca comprobar la seed). */
+export const getWalletCheck = async (): Promise<string | null> => {
+	try {
+		const stored = await Keychain.getGenericPassword({ service: WALLET_CHECK_SERVICE })
+		return stored ? stored.password : null
+	} catch {
+		return null
+	}
+}
+
+export const setWalletCheck = async (address: string): Promise<boolean> => {
+	try {
+		await Keychain.setGenericPassword('check', address.toLowerCase(), {
+			service: WALLET_CHECK_SERVICE,
+			accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+		})
+		return true
 	} catch {
 		return false
 	}
 }
 
-/**
- * Borra la seed. SOLO para el flujo explícito "Eliminar wallet" — jamás
- * llamarlo desde manejo de errores ni desde el logout.
- */
-export const removeWalletMnemonic = async (): Promise<boolean> => {
-	try {
-		return await Keychain.resetGenericPassword({ service: WALLET_SERVICE })
-	} catch {
-		return false
-	}
+/** Solo desde "Eliminar wallet". */
+export const removeWalletCheck = async (): Promise<void> => {
+	try { await Keychain.resetGenericPassword({ service: WALLET_CHECK_SERVICE }) } catch { }
 }
 
 // ---------------------------------------------------------------------------

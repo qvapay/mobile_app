@@ -66,6 +66,8 @@ const Notice = ({ theme, icon, color, text }: { theme: Theme, icon: 'shield-halv
 const PHASE_LABEL: Partial<Record<TxPhase, string>> = {
 	signing: `${KEY}signing`,
 	broadcasting: `${KEY}broadcasting`,
+	// Ya en la red: mientras se registra (o se espera el permiso) el botón sigue ocupado
+	sent: `${KEY}broadcasting`,
 }
 
 /** Reintentos del registro en qpweb: la tx YA está en la red, así que se insiste un poco. */
@@ -155,8 +157,12 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 
 	const prepare = useCallback(() => prepareOnchainSwap(build!, plan!), [build, plan])
 
-	// Se declara antes que `tx` y la lee por ref: `onSent` necesita `tx.refresh` tras un permiso
+	// Se declaran antes que `tx` y se leen por ref. `advance` es para después de un permiso
+	// (lo que entró era un paso previo: toca construir el swap); `refresh`, para recalcular
+	// el paso actual (energía recién alquilada). Con el swap ya en la red el motor queda en
+	// `sent` y `refresh` no hace nada: un recálculo tardío no reabre «Confirmar»
 	const refreshRef = useRef<() => Promise<void>>(async () => {})
+	const advanceRef = useRef<() => Promise<void>>(async () => {})
 
 	const registerSwap = useCallback(async (txid: string) => {
 		for (let attempt = 0; attempt < SUBMIT_ATTEMPTS; attempt++) {
@@ -180,9 +186,9 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 			waitForApproval(prepared.family, prepared.chainKey, txid)
 				.then(ok => {
 					if (ok) { setApproved(true) } else { toast.error(t(`${KEY}errors.approvalFailed`)) }
-					return refreshRef.current()
+					return advanceRef.current()
 				})
-				.catch(() => refreshRef.current())
+				.catch(() => advanceRef.current())
 				.finally(() => setWaitingApproval(false))
 			return
 		}
@@ -200,7 +206,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		lookup: lookupOnchainSwap,
 	})
 	// Tras el commit, no en render: un render descartado no debe dejar su `refresh` en la ref
-	useEffect(() => { refreshRef.current = tx.refresh }, [tx.refresh])
+	useEffect(() => { refreshRef.current = tx.refresh; advanceRef.current = tx.advance }, [tx.refresh, tx.advance])
 	const { phase, prepared, error, busy } = tx
 
 	// El total de pasos se fija con la PRIMERA preparación: tras el permiso, `remaining` baja a

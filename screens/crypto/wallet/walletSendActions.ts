@@ -9,7 +9,7 @@ import { getWalletMnemonic } from '../../../wallet/keystore'
 import { mnemonicToSeed } from '../../../wallet/seed'
 import { derivePrivateKey } from '../../../wallet/derive'
 import type { RegistryChain } from '../../../wallet/registry/types'
-import { broadcastTronTransaction, isValidTronAddress, lookupTronTransaction, prepareTronSend, signTronTransaction, TRON_TX_RPC } from '../../../wallet/tron/tx'
+import { broadcastTronTransaction, isValidTronAddress, lookupTronTransaction, prepareTronSend, signTronTransaction, tronTxId, TRON_TX_RPC } from '../../../wallet/tron/tx'
 import type { PreparedTronSend } from '../../../wallet/tron/tx'
 import { broadcastEvmTransaction, getEvmFeeData, isValidEvmAddress, NATIVE_TRANSFER_GAS, prepareEvmSend, signEvmTransaction } from '../../../wallet/evm/tx'
 import type { PreparedEvmSend, SignedEvmTx } from '../../../wallet/evm/tx'
@@ -17,7 +17,7 @@ import { broadcastBtcTransaction, estimateVsize, feeFor, FEE_TIER_ETA_MINUTES, i
 import type { FeeTier, PreparedBtcSend, SignedBtcTx } from '../../../wallet/btc/tx'
 import { broadcastStacksTransaction, isValidStacksAddress, prepareStacksSend, signStacksTransaction } from '../../../wallet/stacks/tx'
 import type { PreparedStacksSend, SignedStacksTx } from '../../../wallet/stacks/tx'
-import { broadcastSolanaTransaction, getSolanaRentExemptMinimum, lookupSolanaTransaction, prepareSolanaSend, signSolanaTransaction } from '../../../wallet/solana/tx'
+import { broadcastSolanaTransaction, getSolanaRentExemptMinimum, lookupSolanaTransaction, lookupSponsoredSolanaTransaction, prepareSolanaSend, signSolanaTransaction } from '../../../wallet/solana/tx'
 import type { PreparedSolanaSend, SignedSolanaTx } from '../../../wallet/solana/tx'
 import { isValidSolanaAddress } from '../../../wallet/solana/codec'
 import type { WalletAsset } from '../../../wallet/assets'
@@ -261,6 +261,18 @@ export const signPrepared = (prepared: PreparedSend): Promise<SignedSend> =>
 		return { kind: 'evm', signed: await signEvmTransaction(prepared.inner, privateKey) }
 	})
 
+/**
+ * El hash de un envío ya firmado, calculado en el teléfono (sin esperar a que un nodo lo
+ * devuelva). null solo en una patrocinada de Solana: su id es la firma del pagador, que
+ * aún no existe.
+ */
+export const signedTxid = (prepared: PreparedSend, signed: SignedSend): string | null => {
+	if (prepared.kind === 'tron') return tronTxId(prepared.inner.tx.raw_data_hex)
+	if (signed.kind === 'evm') return signed.signed.hash
+	if (signed.kind === 'btc' || signed.kind === 'stacks' || signed.kind === 'solana') return signed.signed.txid
+	return null
+}
+
 export type BroadcastResult = { txid: string, duplicate: boolean }
 
 export const broadcastSigned = async (prepared: PreparedSend, signed: SignedSend): Promise<BroadcastResult> => {
@@ -293,7 +305,8 @@ export const broadcastSigned = async (prepared: PreparedSend, signed: SignedSend
 /**
  * ¿Entró un envío ya difundido? Solo TRON y Solana caducan, que es cuando el motor necesita
  * saberlo antes de construir otro; el resto se re-difunde siempre (`unknown`). Una patrocinada
- * de Solana tampoco: su id es la firma del pagador de QvaPay, que la app no tiene.
+ * de Solana también se consulta, aunque su id sea la firma del pagador de QvaPay (que la app
+ * no tiene): se la reconoce por su mensaje en el historial del remitente.
  */
 export const lookupSend = async (prepared: PreparedSend, signed: SignedSend): Promise<TxLookup> => {
 	const router = getAppRpcRouter()
@@ -304,6 +317,12 @@ export const lookupSend = async (prepared: PreparedSend, signed: SignedSend): Pr
 		const signature = signed.signed.txid
 		const sent = { signature, owner: prepared.intent.from, lastValidBlockHeight: prepared.inner.lastValidBlockHeight, blockhashSlot: prepared.inner.blockhashSlot }
 		return router.call(prepared.intent.chainKey, (rpc, signal) => lookupSolanaTransaction(rpc, sent, signal), { idempotent: true })
+	}
+	if (prepared.kind === 'solana' && prepared.inner.sponsored) {
+		// Su id es la firma del pagador, que la app no tiene: se la busca en el historial del
+		// remitente por el mensaje exacto que firmó
+		const sent = { owner: prepared.intent.from, messageBytes: prepared.inner.messageBytes, lastValidBlockHeight: prepared.inner.lastValidBlockHeight, blockhashSlot: prepared.inner.blockhashSlot }
+		return router.call(prepared.intent.chainKey, (rpc, signal) => lookupSponsoredSolanaTransaction(rpc, sent, signal), { idempotent: true })
 	}
 	return { status: 'unknown' }
 }

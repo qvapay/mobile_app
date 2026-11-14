@@ -106,7 +106,8 @@
 			"subtitle": "Your keys, your funds. QvaPay can’t touch them.",
 			"create": "Create or import",
 			"resumeBackup": "Finish your backup to activate it",
-			"copied": "Address copied"
+			"copied": "Address copied",
+			"recovery": "Restore your wallet to use it on this phone"
 		},
 		"onboarding": {
 			"title": "Your wallet, your keys",
@@ -115,6 +116,17 @@
 			"point3": "If you lose the 12-word phrase, nobody can recover it. Not even QvaPay.",
 			"create": "Create new wallet",
 			"import": "I already have a phrase"
+		},
+		"recovery": {
+			"title": "Restore your wallet",
+			"unreadable": "There is a wallet on this phone, but its keys can't be read. It happens when you switch phones: the data moves, the keys don't.",
+			"unknown": "We couldn't check your wallet's keys on this phone.",
+			"restoreHint": "Enter its secret phrase to use it here again. Until then you can't send or receive.",
+			"noAddresses": "We don't know which wallet this is, so we can't check its phrase. Try again, or delete it to start over.",
+			"restore": "Restore with my phrase",
+			"retry": "Try again",
+			"stillUnreadable": "The keys still can't be read.",
+			"remove": "Delete this wallet"
 		},
 		"backup": {
 			"title": "Your secret phrase",
@@ -134,7 +146,13 @@
 			"invalid": "That phrase isn’t valid. Check the words and their order.",
 			"cta": "Import",
 			"done": "Wallet imported",
-			"failed": "Couldn’t import the wallet."
+			"failed": "Couldn’t import the wallet.",
+			"restoreTitle": "Restore wallet",
+			"restoreSubtitle": "Enter this wallet's secret phrase. Only its own phrase works.",
+			"restoreCta": "Restore",
+			"restored": "Wallet restored",
+			"mismatch": "That phrase belongs to another wallet. Check it's the one for this wallet.",
+			"unverifiable": "We can't check that this phrase belongs to this wallet."
 		},
 		"home": {
 			"totalLabel": "Wallet balance",
@@ -340,7 +358,12 @@
 			"biometricsHint": "As a PIN shortcut when sending and viewing the phrase. If you change your face or fingerprint, it asks for the PIN again.",
 			"biometricsFailed": "Couldn’t enable biometrics on this device.",
 			"nodesHint": "Which nodes the wallet connects to",
-			"network": "Network"
+			"network": "Network",
+			"pin": "PIN and lock",
+			"pinHint": "Change the PIN that protects your wallet and how the app locks",
+			"deleteFailed": "Couldn't delete it: the phrase is still on this phone. Try again.",
+			"unreadable": "There is a wallet on this phone whose keys can't be read. Restore it with its phrase from your wallet, or delete it.",
+			"deleteProofSubtitle": "You're about to delete a wallet from this phone"
 		},
 		"txDetail": {
 			"confirmed": "Confirmed",
@@ -584,6 +607,12 @@
 				"btcNotice": "Bitcoin needs confirmations: the {{symbol}} usually arrives in 10-60 minutes. If the price drops below the guaranteed minimum, THORChain refunds your BTC (minus network fees).",
 				"tronEnergyNotice": "This swap will burn about {{amount}} because you lack energy. Renting it first is usually much cheaper.",
 				"rentEnergy": "Rent energy"
+			},
+			"depositGuard": {
+				"alreadySent": "You already sent the deposit for this swap.",
+				"closed": "This swap is no longer waiting for a deposit.",
+				"checkFailed": "We couldn't check the swap. Try again.",
+				"pendingHash": "Sent, waiting for confirmation"
 			}
 		},
 		"guest": {
@@ -593,7 +622,8 @@
 				"title": "Create your PIN",
 				"confirmTitle": "Confirm your PIN",
 				"subtitle": "Protect your wallet: we'll ask for it to open the app and before every signature.",
-				"mismatch": "The PINs don't match. Try again."
+				"mismatch": "The PINs don't match. Try again.",
+				"ownerProofHint": "When you save it we'll ask for your fingerprint, your face or your phone's passcode, so we know it's you."
 			},
 			"upsell": {
 				"title": "Create your QvaPay account",
