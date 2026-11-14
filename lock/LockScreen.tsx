@@ -4,7 +4,7 @@ import { SystemBars } from 'react-native-edge-to-edge'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // RN
-import { View, Text, Image, Modal, StyleSheet, AccessibilityInfo, useWindowDimensions } from 'react-native'
+import { View, Text, Image, Modal, Pressable, StyleSheet, AccessibilityInfo, useWindowDimensions } from 'react-native'
 
 // Context
 import { useTheme } from '../theme/ThemeContext'
@@ -12,6 +12,8 @@ import { createTextStyles } from '../theme/themeUtils'
 import { useAuth } from '../auth/AuthContext'
 import { useAppLock } from './AppLockContext'
 import { useLockBiometrics, getBiometryLabelKey } from './useLockBiometrics'
+import { usePinGate } from './usePinGate'
+import { pinGateMessage } from './pinGateMessage'
 
 // Helpers
 import { displayName } from '../helpers/displayName'
@@ -22,6 +24,7 @@ import LockHeroIcon from './LockHeroIcon'
 import PinDots from './PinDots'
 import type { PinDotsHandle } from './PinDots'
 import QPAvatar from '../ui/particles/QPAvatar'
+import QPButton from '../ui/particles/QPButton'
 import QPKeypad from '../ui/QPKeypad'
 import type { KeypadExtraKey } from '../ui/QPKeypad'
 import { useModalGate } from '../ui/useModalGate'
@@ -57,6 +60,17 @@ const COMPACT_BELOW = 640
  * cortina se presenta con la app yéndose al fondo), y un dismiss a medio
  * present deja el controlador presentado para siempre e invisible: desde ahí
  * ningún otro `<Modal>` de la app vuelve a salir hasta reiniciar (2026-11-02).
+ *
+ * Límite de intentos (`usePinGate`, reglas en lock/pinAttempts): desde el quinto
+ * fallo el teclado deja de escribir durante una espera con cuenta atrás (la tecla
+ * biométrica sigue viva: es el dueño), y al décimo el teclado se cambia por un
+ * botón que pide la huella, la cara o el código del teléfono para devolver los
+ * intentos. Esa prueba NO desbloquea: después se sigue pidiendo el PIN.
+ *
+ * PIN ilegible: si el Keychain no deja leer el PIN guardado (en Android, tras
+ * pasar de un teléfono a otro, viaja cifrado y sin su clave) nadie puede
+ * acertarlo y esta pantalla no se abriría nunca. El aviso es entonces el
+ * control: tocarlo pide la prueba de dueño del dispositivo y retira ese PIN.
  */
 const LockScreen = () => {
 
@@ -67,10 +81,17 @@ const LockScreen = () => {
 	const { height } = useWindowDimensions()
 	const compact = height - insets.top - insets.bottom < COMPACT_BELOW
 	const { user } = useAuth()
-	const { isLocked, isCovered, unlockWithPin } = useAppLock()
+	const { isLocked, isCovered, unlockWithPin, proveDeviceOwner, resetUnreadablePin } = useAppLock()
+	const pinLimit = usePinGate()
+	// El teclado recibe un `onKey` estable: el límite se lee de un ref
+	const pinLimitRef = useRef(pinLimit)
+	useEffect(() => { pinLimitRef.current = pinLimit })
 
 	const [pin, setPin] = useState('')
 	const [error, setError] = useState('')
+	const [proving, setProving] = useState(false)
+	/** El PIN guardado no se deja leer: el aviso pasa a ser el botón para restablecerlo. */
+	const [pinUnreadable, setPinUnreadable] = useState(false)
 	const dotsRef = useRef<PinDotsHandle | null>(null)
 	// El PIN vive también en un ref: dos toques rápidos llegan antes de que React
 	// vuelva a pintar, y leyendo el estado el segundo pisaría al primero
@@ -88,6 +109,7 @@ const LockScreen = () => {
 			pinRef.current = ''
 			setPin('')
 			setError('')
+			setPinUnreadable(false)
 		}
 	}, [isLocked])
 
@@ -99,24 +121,51 @@ const LockScreen = () => {
 			// Bien o mal, el PIN no se queda en memoria (ni pintado al volver a bloquear)
 			resetPin()
 			if (!result.success) {
-				setError(t('misc.lock.errors.wrongPin'))
+				// Con el límite ya cerrado manda su aviso (lo pinta `pinLimit`), no «PIN incorrecto»
+				const message = result.error || t('misc.lock.errors.wrongPin')
+				setError(result.locked ? '' : message)
+				setPinUnreadable(result.unreadable === true)
 				dotsRef.current?.shake()
-				AccessibilityInfo.announceForAccessibility(t('misc.lock.errors.wrongPin'))
+				AccessibilityInfo.announceForAccessibility(message)
 			}
 		} finally { verifyingRef.current = false }
+	}
+
+	// Demasiados fallos: la huella, la cara o el código del teléfono devuelven los intentos
+	const handleOwnerProof = async () => {
+		if (proving) return
+		setProving(true)
+		setError('')
+		try {
+			// Cancelar no es un error; que el diálogo no pueda salir, sí
+			if (await proveDeviceOwner() === 'error') setError(t('misc.lock.errors.ownerProofFailed'))
+		} finally { setProving(false) }
 	}
 	// El teclado recibe un `onKey` estable (va en memo): la verificación se lee de un ref
 	const verifyRef = useRef(verifyPin)
 	useEffect(() => { verifyRef.current = verifyPin })
 
+	// PIN ilegible: la prueba de dueño lo retira (y con él este bloqueo)
+	const handleResetPin = async () => {
+		if (proving) return
+		setProving(true)
+		try {
+			const result = await resetUnreadablePin()
+			if (!result.success) { setPinUnreadable(false); setError(result.error ?? '') }
+		} finally { setProving(false) }
+	}
+
 	const handleKey = useCallback((key: string) => {
 		if (verifyingRef.current) return
+		// Durante la espera el teclado no escribe (su tecla biométrica sí funciona)
+		if (pinLimitRef.current.kind !== 'open') { dotsRef.current?.shake(); return }
 		const current = pinRef.current
 		const next = key === 'backspace' ? current.slice(0, -1) : current.length < PIN_LENGTH ? current + key : current
 		if (next === current) return
 		pinRef.current = next
 		setPin(next)
 		setError('')
+		setPinUnreadable(false)
 		// Los puntos no se releen solos: con VoiceOver/TalkBack se anuncia el progreso
 		// (i18n.t en el momento: este callback es estable a propósito)
 		AccessibilityInfo.announceForAccessibility(i18n.t('misc.lock.a11y.pinProgress', { entered: next.length, total: PIN_LENGTH }))
@@ -133,6 +182,8 @@ const LockScreen = () => {
 	if (!gate.mounted) return null
 
 	const name = user ? displayName(user) : ''
+	// La espera se pinta siempre (su cuenta atrás va viva); en la prueba de dueño, un fallo del diálogo va antes
+	const notice = pinUnreadable ? t('misc.lock.unreadable.notice') : pinLimit.kind === 'wait' ? pinGateMessage(pinLimit, t) : error || pinGateMessage(pinLimit, t)
 
 	return (
 		<Modal
@@ -174,20 +225,26 @@ const LockScreen = () => {
 						</Text>
 
 						<View style={[styles.dots, compact && styles.dotsCompact]}>
-							<PinDots ref={dotsRef} testID="lock-pin" length={PIN_LENGTH} code={pin} tone={error ? theme.colors.dangerText : undefined} />
+							<PinDots ref={dotsRef} testID="lock-pin" length={PIN_LENGTH} code={pin} tone={notice ? theme.colors.dangerText : undefined} />
 						</View>
 
 						{/* Altura reservada: sin ella, el error empuja los puntos al aparecer */}
 						<View style={[styles.errorSlot, compact && styles.errorSlotCompact]}>
-							{!!error && (
-								<Text style={[textStyles.h6, styles.error, { color: theme.colors.dangerText }]}>{error}</Text>
+							{pinUnreadable ? (
+								<Pressable testID="lock-reset-pin" onPress={handleResetPin} hitSlop={8} accessibilityRole="button">
+									<Text testID="lock-notice" style={[textStyles.h6, styles.error, { color: theme.colors.dangerText }]}>{notice}</Text>
+								</Pressable>
+							) : !!notice && (
+								<Text testID="lock-notice" style={[textStyles.h6, styles.error, { color: theme.colors.dangerText }]}>{notice}</Text>
 							)}
 						</View>
 
 					</View>
 
 					<View style={styles.keypad}>
-						<QPKeypad onKey={handleKey} extraKey={biometricKey} compact={compact} testIDPrefix="lock-key" />
+						{pinLimit.kind === 'ownerProof'
+							? <QPButton testID="lock-owner-proof" title={t('misc.lock.tooMany.confirm')} onPress={handleOwnerProof} loading={proving} />
+							: <QPKeypad onKey={handleKey} extraKey={biometricKey} compact={compact} testIDPrefix="lock-key" />}
 					</View>
 				</>}
 			</View>

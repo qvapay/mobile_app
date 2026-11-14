@@ -17,6 +17,7 @@ jest.mock('react-native-edge-to-edge', () => ({ SystemBars: () => null }))
 // El Modal de RN como host plano: el mock del preset no pinta nada con visible=false y la puerta necesita verlo
 jest.mock('react-native/Libraries/Modal/Modal', () => ({ __esModule: true, default: 'Modal' }))
 jest.mock('../ui/particles/QPAvatar', () => 'QPAvatar')
+jest.mock('../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../ui/particles/FaceIDIcon', () => 'FaceIDIcon')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('react-native-haptic-feedback', () => ({ __esModule: true, default: { trigger: jest.fn() } }))
@@ -34,6 +35,8 @@ import { useLockBiometrics } from './useLockBiometrics'
 import LockScreen from './LockScreen'
 
 const unlockWithPin = jest.fn()
+const proveDeviceOwner = jest.fn()
+const resetUnreadablePin = jest.fn()
 const biometricUnlock = jest.fn()
 
 const render = () => {
@@ -242,5 +245,156 @@ describe('puerta del Modal (iOS)', () => {
 		expect(modal(tree).props.visible).toBe(false)
 		act(() => { modal(tree).props.onDismiss() })
 		expect(modal(tree).props.visible).toBe(true)
+	})
+})
+
+// Reglas en lock/pinAttempts; quien decide es el contexto. Aquí, lo que se ve y se puede tocar
+describe('límite de intentos', () => {
+	/** El bloqueo con `failures` fallos seguidos, el último hace `agoMs`. */
+	const withAttempts = (failures, agoMs = 0) => useAppLock.mockReturnValue({
+		isLocked: true, isCovered: false, unlockWithPin, proveDeviceOwner,
+		pinAttempts: { failures, lastFailureAt: Date.now() - agoMs }, ownerProofAvailable: true,
+	})
+	const notice = (tree) => tree.root.findAll(n => n.props.testID === 'lock-notice' && typeof n.props.children === 'string').map(n => n.props.children)[0]
+	const proofButton = (tree) => tree.root.findAll(n => n.type === 'QPButton' && n.props.testID === 'lock-owner-proof')
+	const keys = (tree) => tree.root.findAll(n => typeof n.props.testID === 'string' && n.props.testID.startsWith('lock-key-'))
+
+	beforeEach(() => { jest.useFakeTimers() })
+	afterEach(() => { jest.useRealTimers() })
+
+	test('con menos de cinco fallos no cambia nada', async () => {
+		withAttempts(4)
+		const tree = render()
+		expect(notice(tree)).toBeUndefined()
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		expect(unlockWithPin).toHaveBeenCalledWith('1234')
+	})
+
+	test('durante la espera el teclado no escribe y la cuenta atrás va viva', async () => {
+		withAttempts(5)
+		const tree = render()
+		expect(notice(tree)).toBe('Demasiados intentos. Espera 0:30.')
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		expect(dots(tree)).toBe('PIN: 0 de 4 dígitos')
+		expect(unlockWithPin).not.toHaveBeenCalled()
+
+		await act(async () => { jest.advanceTimersByTime(10_000) })
+		expect(notice(tree)).toBe('Demasiados intentos. Espera 0:20.')
+
+		// Cumplida, el aviso se va y el teclado vuelve a escribir, sin tocar nada
+		await act(async () => { jest.advanceTimersByTime(20_000) })
+		expect(notice(tree)).toBeUndefined()
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		expect(unlockWithPin).toHaveBeenCalledWith('1234')
+	})
+
+	test('la tecla biométrica sigue viva durante la espera: es el dueño', async () => {
+		withAttempts(7)
+		const tree = render()
+		expect(notice(tree)).toBe('Demasiados intentos. Espera 5:00.')
+		await tap(tree, 'extra')
+		expect(biometricUnlock).toHaveBeenCalled()
+	})
+
+	test('el fallo que cierra el límite enseña su aviso, no «PIN incorrecto»', async () => {
+		withAttempts(4)
+		unlockWithPin.mockImplementation(async () => {
+			withAttempts(5)
+			return { success: false, error: 'Demasiados intentos. Espera 0:30.', locked: true }
+		})
+		const tree = render()
+		for (const d of ['9', '9', '9', '9']) await tap(tree, d)
+		act(() => { tree.update(<LockScreen />) })
+		expect(notice(tree)).toBe('Demasiados intentos. Espera 0:30.')
+		expect(texts(tree)).not.toContain('PIN incorrecto')
+		expect(AccessibilityInfo.announceForAccessibility).toHaveBeenLastCalledWith('Demasiados intentos. Espera 0:30.')
+	})
+
+	test('al décimo fallo el teclado se cambia por la prueba de dueño, y esperar no la quita', async () => {
+		withAttempts(10)
+		proveDeviceOwner.mockResolvedValue('cancelled')
+		const tree = render()
+		expect(notice(tree)).toBe('Demasiados intentos. Confirma que eres tú.')
+		expect(keys(tree)).toHaveLength(0)
+		expect(proofButton(tree)).toHaveLength(1)
+		expect(proofButton(tree)[0].props.title).toBe('Confirmar que soy yo')
+
+		await act(async () => { jest.advanceTimersByTime(2 * 3600_000) })
+		expect(proofButton(tree)).toHaveLength(1)
+
+		await act(async () => { proofButton(tree)[0].props.onPress() })
+		expect(proveDeviceOwner).toHaveBeenCalledTimes(1)
+		// Cancelar el diálogo no es un error: el aviso sigue igual
+		expect(notice(tree)).toBe('Demasiados intentos. Confirma que eres tú.')
+	})
+
+	test('si el diálogo del sistema no puede salir, se dice', async () => {
+		withAttempts(10)
+		proveDeviceOwner.mockResolvedValue('error')
+		const tree = render()
+		await act(async () => { proofButton(tree)[0].props.onPress() })
+		expect(notice(tree)).toBe('No pudimos confirmar que este teléfono es tuyo. Inténtalo de nuevo.')
+	})
+
+	test('pasada la prueba vuelve el teclado: sigue haciendo falta el PIN', async () => {
+		withAttempts(10)
+		proveDeviceOwner.mockImplementation(async () => { withAttempts(0); return 'success' })
+		const tree = render()
+		await act(async () => { proofButton(tree)[0].props.onPress() })
+		act(() => { tree.update(<LockScreen />) })
+		expect(proofButton(tree)).toHaveLength(0)
+		expect(notice(tree)).toBeUndefined()
+		expect(key(tree, '1')).toBeTruthy()
+		expect(tree.root.findAll(n => n.props.testID === 'lock-screen').length).toBeGreaterThan(0)
+	})
+
+	test('sin bloqueo de pantalla en el teléfono, al décimo fallo queda la espera de una hora', () => {
+		useAppLock.mockReturnValue({
+			isLocked: true, isCovered: false, unlockWithPin, proveDeviceOwner,
+			pinAttempts: { failures: 10, lastFailureAt: Date.now() }, ownerProofAvailable: false,
+		})
+		const tree = render()
+		expect(notice(tree)).toBe('Demasiados intentos. Espera 60:00.')
+		expect(proofButton(tree)).toHaveLength(0)
+		expect(key(tree, '1')).toBeTruthy()
+	})
+})
+
+// El PIN guardado no se deja leer (viajó cifrado a otro teléfono, sin su clave): nadie puede
+// acertarlo. El aviso pasa a ser el control para retirarlo, tras la prueba de dueño
+describe('PIN que no se deja leer', () => {
+	const resetLink = (tree) => tree.root.findAll(n => n.props.testID === 'lock-reset-pin' && typeof n.props.onPress === 'function')
+	const notice = (tree) => tree.root.findAll(n => n.props.testID === 'lock-notice' && typeof n.props.children === 'string').map(n => n.props.children)[0]
+
+	beforeEach(() => {
+		useAppLock.mockReturnValue({ isLocked: true, isCovered: false, unlockWithPin, resetUnreadablePin })
+		unlockWithPin.mockResolvedValue({ success: false, error: 'Error verificando PIN', unreadable: true })
+	})
+
+	test('un PIN incorrecto normal no ofrece restablecer nada', async () => {
+		unlockWithPin.mockResolvedValue({ success: false, error: 'PIN incorrecto' })
+		const tree = render()
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		expect(resetLink(tree)).toHaveLength(0)
+	})
+
+	test('el aviso es el control: tocarlo pide restablecer', async () => {
+		resetUnreadablePin.mockResolvedValue({ success: true })
+		const tree = render()
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		expect(notice(tree)).toBe('No se puede leer tu PIN en este teléfono. Toca aquí para restablecerlo.')
+		expect(resetLink(tree).length).toBeGreaterThan(0)
+		await act(async () => { resetLink(tree)[0].props.onPress() })
+		expect(resetUnreadablePin).toHaveBeenCalledTimes(1)
+	})
+
+	test('si no se llega a restablecer, el aviso se retira (volver a teclear lo trae de nuevo)', async () => {
+		resetUnreadablePin.mockResolvedValue({ success: false })
+		const tree = render()
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		await act(async () => { resetLink(tree)[0].props.onPress() })
+		expect(resetLink(tree)).toHaveLength(0)
+		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
+		expect(resetLink(tree).length).toBeGreaterThan(0)
 	})
 })

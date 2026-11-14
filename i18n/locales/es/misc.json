@@ -68,6 +68,16 @@
 		"ownerProof": {
 			"title": "Confirma que eres tú",
 			"subtitle": "Vas a crear el PIN que protege tu wallet"
+		},
+		"tooMany": {
+			"wait": "Demasiados intentos. Espera {{time}}.",
+			"ownerProof": "Demasiados intentos. Confirma que eres tú.",
+			"confirm": "Confirmar que soy yo",
+			"proofSubtitle": "Demasiados intentos con tu PIN de QvaPay"
+		},
+		"unreadable": {
+			"notice": "No se puede leer tu PIN en este teléfono. Toca aquí para restablecerlo.",
+			"proofSubtitle": "Vas a restablecer el PIN de QvaPay"
 		}
 	}
 }

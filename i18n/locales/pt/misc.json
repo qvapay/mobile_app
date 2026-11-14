@@ -68,6 +68,16 @@
 		"ownerProof": {
 			"title": "Confirme que é você",
 			"subtitle": "Você vai criar o PIN que protege sua carteira"
+		},
+		"tooMany": {
+			"wait": "Muitas tentativas. Aguarde {{time}}.",
+			"ownerProof": "Muitas tentativas. Confirme que é você.",
+			"confirm": "Confirmar que sou eu",
+			"proofSubtitle": "Muitas tentativas com seu PIN do QvaPay"
+		},
+		"unreadable": {
+			"notice": "Não é possível ler seu PIN neste telefone. Toque aqui para redefinir.",
+			"proofSubtitle": "Você vai redefinir o PIN do QvaPay"
 		}
 	}
 }

@@ -106,7 +106,8 @@
 			"subtitle": "Tus llaves, tus fondos. QvaPay no puede tocarlos.",
 			"create": "Crear o importar",
 			"resumeBackup": "Completa tu respaldo para activarla",
-			"copied": "Dirección copiada"
+			"copied": "Dirección copiada",
+			"recovery": "Restaura tu wallet para usarla en este teléfono"
 		},
 		"onboarding": {
 			"title": "Tu wallet, tus llaves",
@@ -115,6 +116,17 @@
 			"point3": "Si pierdes la frase de 12 palabras, nadie puede recuperarla. Ni QvaPay.",
 			"create": "Crear wallet nueva",
 			"import": "Ya tengo una frase"
+		},
+		"recovery": {
+			"title": "Restaura tu wallet",
+			"unreadable": "En este teléfono hay una wallet, pero sus llaves no se pueden leer. Pasa al cambiar de teléfono: los datos viajan, las llaves no.",
+			"unknown": "No pudimos comprobar las llaves de tu wallet en este teléfono.",
+			"restoreHint": "Escribe su frase secreta para volver a usarla aquí. Hasta entonces no puedes enviar ni recibir.",
+			"noAddresses": "No sabemos de qué wallet se trata, así que no podemos comprobar su frase. Reinténtalo o elimínala para empezar de cero.",
+			"restore": "Restaurar con mi frase",
+			"retry": "Reintentar",
+			"stillUnreadable": "Las llaves siguen sin poder leerse.",
+			"remove": "Eliminar esta wallet"
 		},
 		"backup": {
 			"title": "Tu frase secreta",
@@ -134,7 +146,13 @@
 			"invalid": "Esa frase no es válida. Revisa las palabras y el orden.",
 			"cta": "Importar",
 			"done": "Wallet importada",
-			"failed": "No se pudo importar la wallet."
+			"failed": "No se pudo importar la wallet.",
+			"restoreTitle": "Restaurar wallet",
+			"restoreSubtitle": "Escribe la frase secreta de esta wallet. Solo sirve la suya.",
+			"restoreCta": "Restaurar",
+			"restored": "Wallet restaurada",
+			"mismatch": "Esa frase es de otra wallet. Revisa que sea la de esta.",
+			"unverifiable": "No podemos comprobar que esa frase sea la de esta wallet."
 		},
 		"home": {
 			"totalLabel": "Balance de tu wallet",
@@ -342,7 +360,10 @@
 			"nodesHint": "A qué nodos se conecta la wallet",
 			"network": "Red",
 			"pin": "PIN y bloqueo",
-			"pinHint": "Cambia el PIN que protege tu wallet y cómo se bloquea la app"
+			"pinHint": "Cambia el PIN que protege tu wallet y cómo se bloquea la app",
+			"deleteFailed": "No se pudo eliminar: la frase sigue en este teléfono. Inténtalo de nuevo.",
+			"unreadable": "En este teléfono hay una wallet cuyas llaves no se pueden leer. Restáurala con su frase desde tu wallet, o elimínala.",
+			"deleteProofSubtitle": "Vas a eliminar una wallet de este teléfono"
 		},
 		"txDetail": {
 			"confirmed": "Confirmada",
@@ -586,6 +607,12 @@
 				"btcNotice": "Bitcoin necesita confirmaciones: el {{symbol}} suele llegar en 10-60 minutos. Si el precio cae por debajo del mínimo garantizado, THORChain te devuelve el BTC (menos las comisiones de red).",
 				"tronEnergyNotice": "Este intercambio quemará unos {{amount}} por falta de energía. Alquilarla antes suele salir mucho más barato.",
 				"rentEnergy": "Alquilar energía"
+			},
+			"depositGuard": {
+				"alreadySent": "Ya enviaste el depósito de este intercambio.",
+				"closed": "Este intercambio ya no espera un depósito.",
+				"checkFailed": "No pudimos comprobar el intercambio. Inténtalo de nuevo.",
+				"pendingHash": "Enviado, a la espera de confirmación"
 			}
 		},
 		"guest": {

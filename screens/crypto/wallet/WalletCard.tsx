@@ -21,9 +21,10 @@ import type { Theme } from '../../../theme/ThemeContext'
 
 /**
  * Card de la wallet self-custody en el dashboard del tab Crypto, para los
- * dos estados previos a la wallet activa: sin
- * wallet (CTA crear/importar) y backup pendiente (retomarlo). Con la wallet
- * respaldada no pinta nada: manda WalletHome (saldo + activos).
+ * estados previos a la wallet activa: sin wallet (CTA crear/importar), backup
+ * pendiente (retomarlo) y `recovery` (hay una wallet cuyas llaves no se pueden
+ * usar: se restaura, no se crea otra). Con la wallet respaldada no pinta nada:
+ * manda WalletHome (saldo + activos).
  */
 const WalletCard = () => {
 
@@ -32,7 +33,7 @@ const WalletCard = () => {
 	const textStyles = createTextStyles(theme)
 	const navigation = useNavigation()
 
-	const { isReady, hasWallet, isBackedUp } = useWallet()
+	const { isReady, hasWallet, isBackedUp, recovery } = useWallet()
 
 	// Sin hidratar no se decide nada; activa y respaldada, manda WalletHome
 	if (!isReady || (hasWallet && isBackedUp)) return null
@@ -46,7 +47,14 @@ const WalletCard = () => {
 				<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('crypto.wallet.card.title')}</Text>
 			</View>
 
-			{!hasWallet ? (
+			{recovery ? (
+				// Hay una wallet aquí cuyas llaves no se pueden usar: nada de «crear», se restaura
+				<QPPressable testID="wallet-card-recovery" onPress={() => navigation.navigate(ROUTES.WALLET_ONBOARDING)} style={styles.ctaRow} accessibilityRole="button">
+					<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" />
+					<Text style={[textStyles.h5, styles.ctaText, { color: theme.colors.warning }]}>{t('crypto.wallet.card.recovery')}</Text>
+					<FontAwesome6 name="chevron-right" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+				</QPPressable>
+			) : !hasWallet ? (
 				<QPPressable
 					onPress={() => navigation.navigate(ROUTES.WALLET_ONBOARDING)}
 					style={styles.ctaRow}

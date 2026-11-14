@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nada de la app sale del teléfono: ni a la copia en la nube ni a otro teléfono.
+
+     `android:allowBackup="false"` ya decía eso, pero desde Android 12 (y la app
+     apunta más arriba) NO apaga la transferencia de teléfono a teléfono: el
+     asistente de «pasar a un teléfono nuevo» copiaba los datos igualmente. Y lo
+     que copiaba no servía: los secretos (frase de la wallet, PIN del bloqueo,
+     token de sesión) están cifrados con claves del Keystore, que no viajan.
+     En el teléfono nuevo quedaba una wallet con sus direcciones y saldos pero
+     sin llaves, y un PIN que nadie podía acertar.
+
+     Con esto el teléfono nuevo arranca limpio y la wallet se restaura con su
+     frase, que es como se migra una wallet de verdad. Si algún día se quiere
+     llevar algo (ajustes, por ejemplo), se incluye aquí por ruta: nunca el
+     almacén del Keychain ni `@qpwallet:meta`. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>
