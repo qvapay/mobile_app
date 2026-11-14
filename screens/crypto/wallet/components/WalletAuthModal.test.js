@@ -22,6 +22,7 @@ jest.mock('../../../../wallet/keystore', () => ({
 jest.mock('../../../../lock/AppLockContext', () => ({ useAppLock: jest.fn() }))
 jest.mock('react-native/Libraries/Modal/Modal', () => ({ __esModule: true, default: 'Modal' }))
 jest.mock('../../../../ui/QPModalCard', () => 'QPModalCard')
+jest.mock('../../../../ui/QPKeyboardAvoidingView', () => 'QPKeyboardAvoidingView')
 jest.mock('../../../../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../../../../ui/particles/QPCodeInput', () => 'QPCodeInput')
 jest.mock('../../../../ui/particles/FaceIDIcon', () => 'FaceIDIcon')

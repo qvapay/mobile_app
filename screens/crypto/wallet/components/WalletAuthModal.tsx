@@ -24,6 +24,7 @@ import QPButton from '../../../../ui/particles/QPButton'
 import QPCodeInput from '../../../../ui/particles/QPCodeInput'
 import type { QPCodeInputHandle } from '../../../../ui/particles/QPCodeInput'
 import FaceIDIcon from '../../../../ui/particles/FaceIDIcon'
+import QPKeyboardAvoidingView from '../../../../ui/QPKeyboardAvoidingView'
 import WalletPinSetup from './WalletPinSetup'
 
 // Navigation
@@ -181,67 +182,73 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-			{/* accessible={false}: un Pressable accesible funde a sus hijos en UN
-			    elemento (iOS) y VoiceOver/E2E no llegarían al PIN ni a los botones */}
-			<Pressable style={styles.overlay} onPress={onClose} accessible={false}>
-				<QPModalCard testID="wallet-auth-modal" style={styles.card} accessible={false}>
-					<View style={styles.header}>
-						<View style={[styles.icon, { backgroundColor: theme.colors.primary + '15' }]}>
-							<FontAwesome6 name="lock" size={18} color={theme.colors.primary} iconStyle="solid" />
+			{/* La tarjeta se centra en lo que deja libre el teclado. Centrada en la pantalla,
+			    el teclado tapaba su mitad de abajo: tras un PIN malo las casillas se vaciaban
+			    y el «PIN incorrecto» quedaba debajo del teclado, igual que Cancelar */}
+			<QPKeyboardAvoidingView style={styles.fill}>
+				{/* accessible={false}: un Pressable accesible funde a sus hijos en UN
+				    elemento (iOS) y VoiceOver/E2E no llegarían al PIN ni a los botones */}
+				<Pressable style={styles.overlay} onPress={onClose} accessible={false}>
+					<QPModalCard testID="wallet-auth-modal" style={styles.card} accessible={false}>
+						<View style={styles.header}>
+							<View style={[styles.icon, { backgroundColor: theme.colors.primary + '15' }]}>
+								<FontAwesome6 name="lock" size={18} color={theme.colors.primary} iconStyle="solid" />
+							</View>
+							<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{t('crypto.wallet.auth.title')}</Text>
+							<Text style={[textStyles.h5, styles.subtitle, { color: theme.colors.secondaryText }]}>{subtitle}</Text>
 						</View>
-						<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{t('crypto.wallet.auth.title')}</Text>
-						<Text style={[textStyles.h5, styles.subtitle, { color: theme.colors.secondaryText }]}>{subtitle}</Text>
-					</View>
 
-					{hasPin === false && !isAuthenticated ? (
-						<WalletPinSetup onDone={onAuthorized} ownerProof />
-					) : hasPin === false ? (
-						<View style={styles.noPin}>
-							<Text style={[textStyles.h5, styles.subtitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.auth.noPin')}</Text>
-							<QPButton title={t('crypto.wallet.auth.createPin')} onPress={goToAppLock} />
-						</View>
-					) : hasPin === true ? (
-						<>
-							{pinLimit.kind === 'open' ? (
-								<>
-									{/* Sin biometría armada el PIN se enfoca solo; con ella, el prompt va primero y el foco llega si falla */}
-									<QPCodeInput ref={codeInputRef} testID="wallet-auth-pin" length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={verifyPin} secure autoFocus={!bioArmed} />
-									<Text style={[textStyles.h6, styles.error, { color: theme.colors.dangerText }]}>{error || ' '}</Text>
-								</>
-							) : (
-								<View style={styles.limit}>
-									{/* La espera va viva; en la prueba de dueño, un fallo del diálogo va antes */}
-									<Text testID="wallet-auth-limit" style={[textStyles.h5, styles.subtitle, { color: theme.colors.dangerText }]}>
-										{pinLimit.kind === 'wait' ? pinGateMessage(pinLimit, t) : error || pinGateMessage(pinLimit, t)}
-									</Text>
-									{pinLimit.kind === 'ownerProof' && (
-										<QPButton testID="wallet-auth-owner-proof" title={t('misc.lock.tooMany.confirm')} onPress={handleOwnerProof} loading={proving} />
-									)}
-								</View>
-							)}
-							{biometryType && bioArmed && !prompting && (
-								<Pressable onPress={authorizeWithBiometrics} style={styles.biometric} hitSlop={8} accessibilityRole="button">
-									{biometryType === 'FaceID'
-										? <FaceIDIcon size={22} color={theme.colors.primary} />
-										: <FontAwesome6 name="fingerprint" size={22} color={theme.colors.primary} iconStyle="solid" />}
-									<Text style={[textStyles.h5, { color: theme.colors.primary }]}>
-										{t(biometryType === 'FaceID' ? 'misc.lock.unlock.faceId' : biometryType === 'TouchID' ? 'misc.lock.unlock.touchId' : 'misc.lock.unlock.fingerprint')}
-									</Text>
-								</Pressable>
-							)}
-						</>
-					) : null}
+						{hasPin === false && !isAuthenticated ? (
+							<WalletPinSetup onDone={onAuthorized} ownerProof />
+						) : hasPin === false ? (
+							<View style={styles.noPin}>
+								<Text style={[textStyles.h5, styles.subtitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.auth.noPin')}</Text>
+								<QPButton title={t('crypto.wallet.auth.createPin')} onPress={goToAppLock} />
+							</View>
+						) : hasPin === true ? (
+							<>
+								{pinLimit.kind === 'open' ? (
+									<>
+										{/* Sin biometría armada el PIN se enfoca solo; con ella, el prompt va primero y el foco llega si falla */}
+										<QPCodeInput ref={codeInputRef} testID="wallet-auth-pin" length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={verifyPin} secure autoFocus={!bioArmed} />
+										<Text testID="wallet-auth-error" style={[textStyles.h6, styles.error, { color: theme.colors.dangerText }]}>{error || ' '}</Text>
+									</>
+								) : (
+									<View style={styles.limit}>
+										{/* La espera va viva; en la prueba de dueño, un fallo del diálogo va antes */}
+										<Text testID="wallet-auth-limit" style={[textStyles.h5, styles.subtitle, { color: theme.colors.dangerText }]}>
+											{pinLimit.kind === 'wait' ? pinGateMessage(pinLimit, t) : error || pinGateMessage(pinLimit, t)}
+										</Text>
+										{pinLimit.kind === 'ownerProof' && (
+											<QPButton testID="wallet-auth-owner-proof" title={t('misc.lock.tooMany.confirm')} onPress={handleOwnerProof} loading={proving} />
+										)}
+									</View>
+								)}
+								{biometryType && bioArmed && !prompting && (
+									<Pressable onPress={authorizeWithBiometrics} style={styles.biometric} hitSlop={8} accessibilityRole="button">
+										{biometryType === 'FaceID'
+											? <FaceIDIcon size={22} color={theme.colors.primary} />
+											: <FontAwesome6 name="fingerprint" size={22} color={theme.colors.primary} iconStyle="solid" />}
+										<Text style={[textStyles.h5, { color: theme.colors.primary }]}>
+											{t(biometryType === 'FaceID' ? 'misc.lock.unlock.faceId' : biometryType === 'TouchID' ? 'misc.lock.unlock.touchId' : 'misc.lock.unlock.fingerprint')}
+										</Text>
+									</Pressable>
+								)}
+							</>
+						) : null}
 
-					<Pressable onPress={onClose} style={styles.cancel} hitSlop={8} accessibilityRole="button">
-						<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.auth.cancel')}</Text>
-					</Pressable>
-				</QPModalCard>
-			</Pressable>
+						<Pressable onPress={onClose} style={styles.cancel} hitSlop={8} accessibilityRole="button">
+							<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.auth.cancel')}</Text>
+						</Pressable>
+					</QPModalCard>
+				</Pressable>
+			</QPKeyboardAvoidingView>
 		</Modal>
 	)
 }
 
 const styles = StyleSheet.create({
+	fill: { flex: 1 },
 	overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
 	card: { width: '100%', borderRadius: 16, padding: 24, alignItems: 'center', gap: 6 },
 	header: { alignItems: 'center', gap: 8, marginBottom: 14 },
