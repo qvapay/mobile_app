@@ -340,7 +340,9 @@
 			"biometricsHint": "Como atajo del PIN al enviar y ver la frase. Si cambias tu cara o huella, vuelve a pedir el PIN.",
 			"biometricsFailed": "No se pudo activar la biometría en este dispositivo.",
 			"nodesHint": "A qué nodos se conecta la wallet",
-			"network": "Red"
+			"network": "Red",
+			"pin": "PIN y bloqueo",
+			"pinHint": "Cambia el PIN que protege tu wallet y cómo se bloquea la app"
 		},
 		"txDetail": {
 			"confirmed": "Confirmada",
@@ -593,7 +595,8 @@
 				"title": "Crea tu PIN",
 				"confirmTitle": "Confirma tu PIN",
 				"subtitle": "Protege tu wallet: lo pediremos para abrir la app y antes de cada firma.",
-				"mismatch": "Los PIN no coinciden. Inténtalo de nuevo."
+				"mismatch": "Los PIN no coinciden. Inténtalo de nuevo.",
+				"ownerProofHint": "Al guardarlo te pediremos tu huella, tu cara o el código de tu teléfono: así sabemos que eres tú."
 			},
 			"upsell": {
 				"title": "Crea tu cuenta QvaPay",

@@ -340,7 +340,9 @@
 			"biometricsHint": "Como atalho do PIN ao enviar e ver a frase. Se você mudar seu rosto ou digital, ele pede o PIN de novo.",
 			"biometricsFailed": "Não foi possível ativar a biometria neste dispositivo.",
 			"nodesHint": "A quais nós a carteira se conecta",
-			"network": "Rede"
+			"network": "Rede",
+			"pin": "PIN e bloqueio",
+			"pinHint": "Altere o PIN que protege sua carteira e como o app é bloqueado"
 		},
 		"txDetail": {
 			"confirmed": "Confirmada",
@@ -593,7 +595,8 @@
 				"title": "Crie seu PIN",
 				"confirmTitle": "Confirme seu PIN",
 				"subtitle": "Proteja sua carteira: vamos pedi-lo para abrir o app e antes de cada assinatura.",
-				"mismatch": "Os PINs não coincidem. Tente de novo."
+				"mismatch": "Os PINs não coincidem. Tente de novo.",
+				"ownerProofHint": "Ao salvar, vamos pedir sua impressão digital, seu rosto ou o código do seu telefone: assim sabemos que é você."
 			},
 			"upsell": {
 				"title": "Crie sua conta QvaPay",

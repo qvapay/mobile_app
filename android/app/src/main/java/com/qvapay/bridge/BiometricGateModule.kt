@@ -1,10 +1,14 @@
 package com.qvapay.bridge
 
+import android.app.KeyguardManager
+import android.content.Context
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -32,6 +36,9 @@ import javax.crypto.SecretKey
  *
  * `authenticate` resuelve siempre con un resultado (nunca rechaza):
  * success | cancelled | lockout | invalidated | missing | unavailable | busy | error.
+ *
+ * `confirmDeviceOwner` es OTRA pregunta: no «¿es la huella de siempre?» sino «¿es el
+ * dueño del teléfono?», y por eso sí admite el código del teléfono. Ver su comentario.
  */
 class BiometricGateModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
@@ -188,6 +195,69 @@ class BiometricGateModule(reactContext: ReactApplicationContext) :
                     .setConfirmationRequired(false)
                     .build()
                 prompt.authenticate(info, BiometricPrompt.CryptoObject(cipher))
+            } catch (_: Exception) {
+                settle("error")
+            }
+        }
+    }
+
+    /**
+     * Prueba de que quien tiene el teléfono en la mano es su dueño: huella/cara O el
+     * código del teléfono, en un diálogo del sistema. No va atada a ninguna clave ni
+     * desbloquea nada: solo responde. La usa el alta del PRIMER PIN de una wallet que ya
+     * existe, donde aún no hay PIN nuestro que pedir y, sin esto, cualquiera con el
+     * teléfono desbloqueado pondría el suyo y se quedaría con la frase.
+     *
+     * Aquí el código del teléfono SÍ vale (al contrario que en `authenticate`): lo que se
+     * pregunta es quién es el dueño, y esa es justo la credencial que lo define.
+     *
+     * Resuelve siempre: success | cancelled | unavailable | busy | error.
+     * `unavailable` = el teléfono no tiene bloqueo de pantalla (no hay con qué probar).
+     */
+    @ReactMethod
+    fun confirmDeviceOwner(title: String, subtitle: String, promise: Promise) {
+        if (pending != null) { promise.resolve("busy"); return }
+        val keyguard = reactApplicationContext.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        if (keyguard == null) { promise.resolve("error"); return }
+        // Sin PIN, patrón ni contraseña no se puede registrar una huella: no hay credencial que pedir
+        if (!keyguard.isDeviceSecure) { promise.resolve("unavailable"); return }
+        val activity = reactApplicationContext.currentActivity as? FragmentActivity
+        if (activity == null) { promise.resolve("error"); return }
+
+        pending = promise
+        UiThreadUtil.runOnUiThread {
+            if (activity.isFinishing || activity.isDestroyed || activity.supportFragmentManager.isStateSaved) {
+                settle("cancelled")
+                return@runOnUiThread
+            }
+            try {
+                val prompt = BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        settle("success")
+                    }
+
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        settle(
+                            when (errorCode) {
+                                BiometricPrompt.ERROR_USER_CANCELED,
+                                BiometricPrompt.ERROR_NEGATIVE_BUTTON,
+                                BiometricPrompt.ERROR_CANCELED -> "cancelled"
+                                BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL -> "unavailable"
+                                else -> "error"
+                            }
+                        )
+                    }
+                })
+                val info = BiometricPrompt.PromptInfo.Builder()
+                    .setTitle(title)
+                    // BIOMETRIC_WEAK | DEVICE_CREDENTIAL es la única combinación con código del
+                    // teléfono que androidx.biometric admite en todas las versiones (la de
+                    // BIOMETRIC_STRONG no existe en API 28-29). Con ella no cabe botón negativo:
+                    // el propio diálogo ofrece «usar PIN/patrón».
+                    .setAllowedAuthenticators(BIOMETRIC_WEAK or DEVICE_CREDENTIAL)
+                    .setConfirmationRequired(false)
+                if (subtitle.isNotEmpty()) info.setSubtitle(subtitle)
+                prompt.authenticate(info.build())
             } catch (_: Exception) {
                 settle("error")
             }

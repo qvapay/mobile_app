@@ -32,11 +32,14 @@ const POINTS = [
  * solo en el dispositivo, QvaPay no puede recuperar nada) antes de crear o
  * importar. Crear lleva a WalletBackup (que genera la seed él mismo).
  *
- * `guest` (alta sin cuenta desde Welcome): sin PIN de bloqueo, elegir crear o
- * importar pide antes el PIN aquí mismo — el camino normal (Ajustes → Bloqueo)
- * cuelga de la cuenta, y sin PIN no habría gate para leer la seed.
+ * Sin PIN de bloqueo, elegir crear o importar pide antes el PIN aquí mismo,
+ * CON CUENTA O SIN ELLA: ese PIN es el gate para leer la seed
+ * (`WalletAuthModal`), y una wallet que nace sin él queda a merced de quien
+ * tenga el teléfono desbloqueado. Se crea antes que la wallet a propósito:
+ * todavía no hay nada que proteger, así que no hace falta más prueba que
+ * elegirlo.
  */
-const WalletOnboarding = ({ navigation, route }: Props) => {
+const WalletOnboarding = ({ navigation }: Props) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -48,17 +51,16 @@ const WalletOnboarding = ({ navigation, route }: Props) => {
 	const iconSize = theme.typography.fontSize.lg
 	const lineHeight = Math.round(iconSize * 1.35)
 
-	const guest = route.params?.guest === true
-	const [hasPin, setHasPin] = useState<boolean | null>(guest ? null : true)
+	/** null = aún no se sabe: los botones esperan, para no dejar pasar sin PIN por una carrera. */
+	const [hasPin, setHasPin] = useState<boolean | null>(null)
 	/** Destino elegido mientras se crea el PIN. */
 	const [pending, setPending] = useState<typeof ROUTES.WALLET_BACKUP | typeof ROUTES.WALLET_IMPORT | null>(null)
 
 	useEffect(() => {
-		if (!guest) return
 		let cancelled = false
 		hasAppLockPin().then(exists => { if (!cancelled) setHasPin(exists) }).catch(() => { if (!cancelled) setHasPin(false) })
 		return () => { cancelled = true }
-	}, [guest])
+	}, [])
 
 	const go = (target: typeof ROUTES.WALLET_BACKUP | typeof ROUTES.WALLET_IMPORT) => {
 		if (hasPin === false) { setPending(target); return }

@@ -50,7 +50,10 @@ const MAX_ATTEMPTS = 5
  * y el prompt se pelean por el foco). Sin PIN de bloqueo no hay gate
  * posible: se pide crearlo antes del primer envío — con cuenta en Ajustes →
  * Bloqueo; sin cuenta (modo wallet) aquí mismo, porque Ajustes cuelga del
- * usuario y crearlo ya autoriza la firma. Cinco fallos cierran el
+ * usuario y crearlo ya autoriza la firma. Crearlo NO es gratis: con la wallet
+ * ya en el teléfono, `enableAppLock` exige la prueba de dueño del dispositivo
+ * (huella/cara o su código), así que quien solo tenga el teléfono
+ * desbloqueado no puede ponerle su PIN y firmar. Cinco fallos cierran el
  * modal — no hay lockout persistente porque el PIN solo desbloquea una firma
  * local, no una cuenta.
  */
@@ -162,7 +165,7 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 					</View>
 
 					{hasPin === false && !isAuthenticated ? (
-						<WalletPinSetup onDone={onAuthorized} />
+						<WalletPinSetup onDone={onAuthorized} ownerProof />
 					) : hasPin === false ? (
 						<View style={styles.noPin}>
 							<Text style={[textStyles.h5, styles.subtitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.auth.noPin')}</Text>

@@ -55,11 +55,19 @@
 			"biometricError": "Erro na autenticação biométrica",
 			"savePin": "Não foi possível salvar o PIN",
 			"currentPinWrong": "PIN atual incorreto",
-			"updatePin": "Não foi possível atualizar o PIN"
+			"updatePin": "Não foi possível atualizar o PIN",
+			"pinExists": "Já existe um PIN. Para alterá-lo, use “Alterar PIN”.",
+			"walletNeedsPin": "Enquanto você tiver uma carteira neste telefone, o bloqueio não pode ser desativado: o PIN protege a sua frase.",
+			"ownerProofCancelled": "Para criar o PIN da sua carteira, confirme com sua impressão digital, seu rosto ou o código do seu telefone.",
+			"ownerProofFailed": "Não foi possível confirmar que este telefone é seu. Tente de novo."
 		},
 		"bioPrompt": "Desbloqueie o QvaPay",
 		"a11y": {
 			"pinProgress": "PIN: {{entered}} de {{total}} dígitos"
+		},
+		"ownerProof": {
+			"title": "Confirme que é você",
+			"subtitle": "Você vai criar o PIN que protege sua carteira"
 		}
 	}
 }

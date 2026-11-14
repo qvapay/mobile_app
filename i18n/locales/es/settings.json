@@ -114,15 +114,15 @@
 			"pinUpdated": "PIN actualizado",
 			"disabled": "Bloqueo desactivado"
 		},
-		"alerts": {
-			"disableTitle": "Desactivar bloqueo",
-			"disableBody": "Tu app ya no se bloqueará automáticamente. ¿Continuar?",
-			"disableConfirm": "Desactivar"
-		},
 		"changePin": {
 			"title": "Cambiar PIN",
 			"subtitle": "Ingresa tu PIN actual y el nuevo",
 			"submit": "Actualizar PIN"
+		},
+		"disable": {
+			"title": "Desactivar bloqueo",
+			"subtitle": "Ingresa tu PIN actual para desactivarlo",
+			"submit": "Desactivar"
 		},
 		"enabled": {
 			"active": "Activo",
@@ -132,7 +132,8 @@
 			"biometricHint": "Al abrir la app pide {{label}} y entra directo; el PIN queda de respaldo. Se activa sola tras el primer PIN correcto.",
 			"changePinButton": "Cambiar PIN de bloqueo",
 			"disableButton": "Desactivar bloqueo",
-			"biometricToggle": "Desbloquear con {{label}}"
+			"biometricToggle": "Desbloquear con {{label}}",
+			"walletProtected": "Este PIN también protege tu wallet. Mientras exista en este teléfono, el bloqueo no se puede desactivar; sí puedes cambiar el PIN."
 		},
 		"setup": {
 			"subtitle": "Protege tu app con PIN y biometría",

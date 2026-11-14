@@ -16,16 +16,22 @@ import type { QPCodeInputHandle } from '../../../../ui/particles/QPCodeInput'
 type Props = {
 	/** PIN guardado: el caller sigue su flujo (crear/importar, o firmar). */
 	onDone: () => void
+	/**
+	 * La wallet YA existe: al guardar, `enableAppLock` pedirá la huella, la cara o el
+	 * código del teléfono, y aquí se avisa para que el diálogo del sistema no sorprenda.
+	 */
+	ownerProof?: boolean
 }
 
 /**
- * Alta del PIN de bloqueo sin pasar por Ajustes, que cuelga del usuario de la
- * cuenta: la usa el alta de wallet sin cuenta (WalletOnboarding) y el gate de
- * firma cuando no hay PIN (WalletAuthModal). Dos filas — PIN y confirmación —
- * y `enableAppLock`, igual que el subpanel AppLock, así que el PIN protege a
- * la vez la app y la seed.
+ * Alta del PIN de bloqueo sin pasar por Ajustes: la usa el alta de wallet
+ * (WalletOnboarding, con cuenta o sin ella) y el gate de firma cuando no hay
+ * PIN (WalletAuthModal). Dos filas — PIN y confirmación — y `enableAppLock`,
+ * igual que el subpanel AppLock, así que el PIN protege a la vez la app y la
+ * seed. Si la wallet ya existe, `enableAppLock` exige además la prueba de
+ * dueño del dispositivo y su negativa llega aquí como un error más.
  */
-const WalletPinSetup = ({ onDone }: Props) => {
+const WalletPinSetup = ({ onDone, ownerProof = false }: Props) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -74,6 +80,11 @@ const WalletPinSetup = ({ onDone }: Props) => {
 			<Text style={[textStyles.h5, styles.centered, { color: theme.colors.secondaryText }]}>
 				{t('crypto.wallet.guest.pin.subtitle')}
 			</Text>
+			{ownerProof && (
+				<Text testID="wallet-pin-owner-proof" style={[textStyles.h6, styles.centered, { color: theme.colors.secondaryText }]}>
+					{t('crypto.wallet.guest.pin.ownerProofHint')}
+				</Text>
+			)}
 
 			<View style={styles.input}>
 				{step === 'pin' ? (

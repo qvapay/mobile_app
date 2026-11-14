@@ -55,11 +55,19 @@
 			"biometricError": "Biometric authentication error",
 			"savePin": "Couldn't save the PIN",
 			"currentPinWrong": "Current PIN is incorrect",
-			"updatePin": "Couldn't update the PIN"
+			"updatePin": "Couldn't update the PIN",
+			"pinExists": "There's already a PIN. To change it, use “Change PIN”.",
+			"walletNeedsPin": "While you have a wallet on this phone, the lock can't be turned off: its PIN protects your phrase.",
+			"ownerProofCancelled": "To create your wallet's PIN, confirm with your fingerprint, your face or your phone's passcode.",
+			"ownerProofFailed": "We couldn't confirm this phone is yours. Try again."
 		},
 		"bioPrompt": "Unlock QvaPay",
 		"a11y": {
 			"pinProgress": "PIN: {{entered}} of {{total}} digits"
+		},
+		"ownerProof": {
+			"title": "Confirm it’s you",
+			"subtitle": "You're creating the PIN that protects your wallet"
 		}
 	}
 }

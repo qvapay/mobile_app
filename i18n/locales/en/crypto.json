@@ -340,7 +340,9 @@
 			"biometricsHint": "As a PIN shortcut when sending and viewing the phrase. If you change your face or fingerprint, it asks for the PIN again.",
 			"biometricsFailed": "Couldn’t enable biometrics on this device.",
 			"nodesHint": "Which nodes the wallet connects to",
-			"network": "Network"
+			"network": "Network",
+			"pin": "PIN and lock",
+			"pinHint": "Change the PIN that protects your wallet and how the app locks"
 		},
 		"txDetail": {
 			"confirmed": "Confirmed",
@@ -593,7 +595,8 @@
 				"title": "Create your PIN",
 				"confirmTitle": "Confirm your PIN",
 				"subtitle": "Protect your wallet: we'll ask for it to open the app and before every signature.",
-				"mismatch": "The PINs don't match. Try again."
+				"mismatch": "The PINs don't match. Try again.",
+				"ownerProofHint": "When you save it we'll ask for your fingerprint, your face or your phone's passcode, so we know it's you."
 			},
 			"upsell": {
 				"title": "Create your QvaPay account",

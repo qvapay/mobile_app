@@ -21,6 +21,13 @@ jest.mock('../helpers/biometricMarker', () => ({
 	disableBiometricMarker: jest.fn(async () => {}),
 	authenticateBiometricMarker: jest.fn(async () => false),
 }))
+// Prueba de dueño del dispositivo (diálogo del sistema): no existe en jest
+jest.mock('../helpers/deviceOwnerProof', () => ({
+	confirmDeviceOwner: jest.fn(async () => 'success'),
+	ownerProofPasses: (outcome) => outcome === 'success' || outcome === 'unavailable',
+}))
+// Solo «¿hay una seed en el Keychain?»: el resto del almacén no se usa aquí
+jest.mock('../wallet/keystore', () => ({ hasWalletMnemonic: jest.fn(async () => false) }))
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../settings/SettingsContext', () => ({ useSettings: jest.fn() }))
 jest.mock('../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
@@ -38,7 +45,9 @@ import { act, create } from 'react-test-renderer'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
 import { useWallet } from '../wallet/WalletContext'
-import { authenticateBiometricMarker, hasBiometricMarker } from '../helpers/biometricMarker'
+import { authenticateBiometricMarker, disableBiometricMarker, hasBiometricMarker } from '../helpers/biometricMarker'
+import { confirmDeviceOwner } from '../helpers/deviceOwnerProof'
+import { hasWalletMnemonic } from '../wallet/keystore'
 import {
 	getBiometricCredentials,
 	getAppLockPin,
@@ -87,6 +96,8 @@ beforeEach(() => {
 	getAppLockPin.mockResolvedValue(null)
 	setAppLockPin.mockResolvedValue(true)
 	removeAppLockPin.mockResolvedValue(true)
+	confirmDeviceOwner.mockResolvedValue('success')
+	hasWalletMnemonic.mockResolvedValue(false)
 })
 afterEach(() => { jest.useRealTimers() })
 
@@ -161,8 +172,8 @@ describe('cold start', () => {
 		}
 		let tree
 		await act(async () => { tree = create(<AppLockProvider><Harness /></AppLockProvider>) })
-		hasAppLockPin.mockResolvedValue(true)
 		await act(async () => { await result.current.enableAppLock('1234') })
+		hasAppLockPin.mockResolvedValue(true)
 		useWallet.mockReturnValue({ hasWallet: true, isReady: true })
 		await act(async () => { tree.update(<AppLockProvider><Harness /></AppLockProvider>) })
 		expect(result.current.isLocked).toBe(false)
@@ -389,16 +400,153 @@ describe('enable / disable / change PIN', () => {
 		expect(lock.current.isLocked).toBe(false)
 	})
 
-	test('disableAppLock removes the PIN and unlocks', async () => {
+	test('disableAppLock with the current PIN removes it and unlocks', async () => {
 		hasAppLockPin.mockResolvedValue(true)
+		getAppLockPin.mockResolvedValue('1234')
 		const lock = await renderAppLock()
 		expect(lock.current.isLocked).toBe(true)
 		let outcome
-		await act(async () => { outcome = await lock.current.disableAppLock() })
+		await act(async () => { outcome = await lock.current.disableAppLock('1234') })
 		expect(outcome).toEqual({ success: true })
 		expect(removeAppLockPin).toHaveBeenCalled()
+		expect(disableBiometricMarker).toHaveBeenCalledWith('com.qvapay.applock.bio')
 		expect(lock.current.appLockEnabled).toBe(false)
 		expect(lock.current.isLocked).toBe(false)
+	})
+
+	// El PIN es lo único entre quien tenga el teléfono desbloqueado y la frase de la wallet:
+	// antes bastaba con desactivar el bloqueo (sin PIN) y crear uno nuevo para verla
+	describe('el PIN no se quita ni se pone sin su dueño', () => {
+		test('disableAppLock: sin el PIN actual (o con uno malo) no quita nada', async () => {
+			hasAppLockPin.mockResolvedValue(true)
+			getAppLockPin.mockResolvedValue('1234')
+			const lock = await renderAppLock()
+			let outcome
+			for (const attempt of ['0000', '', undefined]) {
+				await act(async () => { outcome = await lock.current.disableAppLock(attempt) })
+				expect(outcome).toEqual({ success: false, error: 'PIN incorrecto' })
+			}
+			// Un PIN que no se pudo leer del Keychain tampoco deja pasar a un PIN vacío
+			getAppLockPin.mockResolvedValue(null)
+			await act(async () => { outcome = await lock.current.disableAppLock(null) })
+			expect(outcome.success).toBe(false)
+			expect(removeAppLockPin).not.toHaveBeenCalled()
+			expect(lock.current.appLockEnabled).toBe(true)
+		})
+
+		test('disableAppLock: con una wallet en el teléfono no se puede, ni con el PIN correcto', async () => {
+			hasAppLockPin.mockResolvedValue(true)
+			getAppLockPin.mockResolvedValue('1234')
+			useWallet.mockReturnValue({ hasWallet: true, isReady: true })
+			const lock = await renderAppLock()
+			let outcome
+			await act(async () => { outcome = await lock.current.disableAppLock('1234') })
+			expect(outcome.success).toBe(false)
+			expect(outcome.error).toMatch(/wallet/)
+			expect(removeAppLockPin).not.toHaveBeenCalled()
+			expect(lock.current.appLockEnabled).toBe(true)
+		})
+
+		test('disableAppLock: una seed en el Keychain que el contexto no cargó también cuenta', async () => {
+			hasAppLockPin.mockResolvedValue(true)
+			getAppLockPin.mockResolvedValue('1234')
+			hasWalletMnemonic.mockResolvedValue(true)
+			const lock = await renderAppLock()
+			let outcome
+			await act(async () => { outcome = await lock.current.disableAppLock('1234') })
+			expect(outcome.success).toBe(false)
+			expect(removeAppLockPin).not.toHaveBeenCalled()
+		})
+
+		test('enableAppLock: un PIN que ya existe no se pisa', async () => {
+			hasAppLockPin.mockResolvedValue(true)
+			const lock = await renderAppLock()
+			let outcome
+			await act(async () => { outcome = await lock.current.enableAppLock('9999') })
+			expect(outcome.success).toBe(false)
+			expect(outcome.error).toMatch(/Ya hay un PIN/)
+			expect(setAppLockPin).not.toHaveBeenCalled()
+		})
+
+		test('enableAppLock: sin wallet no se pide la prueba de dueño', async () => {
+			const lock = await renderAppLock()
+			await act(async () => { await lock.current.enableAppLock('9999') })
+			expect(confirmDeviceOwner).not.toHaveBeenCalled()
+			expect(setAppLockPin).toHaveBeenCalledWith('9999')
+		})
+
+		test('enableAppLock: con wallet, el PIN solo se guarda tras la prueba de dueño del dispositivo', async () => {
+			useWallet.mockReturnValue({ hasWallet: true, isReady: true })
+			const lock = await renderAppLock()
+			let outcome
+			await act(async () => { outcome = await lock.current.enableAppLock('9999') })
+			expect(confirmDeviceOwner).toHaveBeenCalledWith('Confirma que eres tú', 'Vas a crear el PIN que protege tu wallet')
+			expect(outcome).toEqual({ success: true })
+			expect(setAppLockPin).toHaveBeenCalledWith('9999')
+		})
+
+		test.each([
+			['cancelled', /confirma con tu huella/],
+			['error', /No pudimos confirmar/],
+		])('enableAppLock: con wallet y la prueba en %s, no hay PIN', async (proof, message) => {
+			useWallet.mockReturnValue({ hasWallet: true, isReady: true })
+			confirmDeviceOwner.mockResolvedValue(proof)
+			const lock = await renderAppLock()
+			let outcome
+			await act(async () => { outcome = await lock.current.enableAppLock('9999') })
+			expect(outcome.success).toBe(false)
+			expect(outcome.error).toMatch(message)
+			expect(setAppLockPin).not.toHaveBeenCalled()
+			expect(lock.current.appLockEnabled).toBe(false)
+		})
+
+		test('enableAppLock: en un teléfono sin bloqueo de pantalla no hay prueba posible y se deja crear', async () => {
+			useWallet.mockReturnValue({ hasWallet: true, isReady: true })
+			confirmDeviceOwner.mockResolvedValue('unavailable')
+			const lock = await renderAppLock()
+			let outcome
+			await act(async () => { outcome = await lock.current.enableAppLock('9999') })
+			expect(outcome).toEqual({ success: true })
+		})
+
+		test('enableAppLock: una seed en el Keychain que el contexto no cargó también exige la prueba', async () => {
+			hasWalletMnemonic.mockResolvedValue(true)
+			confirmDeviceOwner.mockResolvedValue('cancelled')
+			const lock = await renderAppLock()
+			let outcome
+			await act(async () => { outcome = await lock.current.enableAppLock('9999') })
+			expect(confirmDeviceOwner).toHaveBeenCalled()
+			expect(outcome.success).toBe(false)
+			expect(setAppLockPin).not.toHaveBeenCalled()
+		})
+
+		test('releaseUnusedAppLock: solo retira el PIN cuando ya no protege ni sesión ni wallet', async () => {
+			hasAppLockPin.mockResolvedValue(true)
+			// Con sesión: el PIN protege la cuenta
+			let lock = await renderAppLock()
+			let released
+			await act(async () => { released = await lock.current.releaseUnusedAppLock() })
+			expect(released).toBe(false)
+			expect(removeAppLockPin).not.toHaveBeenCalled()
+
+			// Sin sesión pero con la seed aún en el Keychain (el borrado falló): se queda
+			useAuth.mockReturnValue({ isAuthenticated: false, isLoading: false })
+			hasWalletMnemonic.mockResolvedValue(true)
+			lock = await renderAppLock()
+			await act(async () => { released = await lock.current.releaseUnusedAppLock() })
+			expect(released).toBe(false)
+			expect(removeAppLockPin).not.toHaveBeenCalled()
+
+			// Sin sesión y sin seed: ya no protege nada. Manda el Keychain, no el contexto,
+			// que justo después de «Eliminar wallet» puede no haberse enterado todavía
+			hasWalletMnemonic.mockResolvedValue(false)
+			useWallet.mockReturnValue({ hasWallet: true, isReady: true })
+			lock = await renderAppLock()
+			await act(async () => { released = await lock.current.releaseUnusedAppLock() })
+			expect(released).toBe(true)
+			expect(removeAppLockPin).toHaveBeenCalledTimes(1)
+			expect(lock.current.appLockEnabled).toBe(false)
+		})
 	})
 
 	test('changeAppLockPin verifies the current PIN first', async () => {

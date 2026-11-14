@@ -13,6 +13,8 @@ import {
 	getSupportedBiometryType,
 } from '../api/client'
 import { authenticateBiometricMarker, disableBiometricMarker, enableBiometricMarker, hasBiometricMarker } from '../helpers/biometricMarker'
+import { confirmDeviceOwner, ownerProofPasses } from '../helpers/deviceOwnerProof'
+import { hasWalletMnemonic } from '../wallet/keystore'
 
 /** Marcador biométrico PROPIO del bloqueo: Face ID aunque se entrara con passkey. */
 export const APP_LOCK_BIO_SERVICE = 'com.qvapay.applock.bio'
@@ -39,8 +41,19 @@ export type AppLockContextValue = {
 	unlockWithBiometrics: () => Promise<AppLockResult>
 	unlockWithPin: (enteredPin: string) => Promise<AppLockResult>
 	lock: () => void
+	/**
+	 * Crea el PIN. Con una wallet ya en el teléfono pide antes la prueba de dueño del
+	 * dispositivo (huella/cara o su código): ese PIN pasa a proteger la frase. Si ya hay
+	 * un PIN no lo pisa: para eso está `changeAppLockPin`.
+	 */
 	enableAppLock: (pin: string) => Promise<AppLockResult>
-	disableAppLock: () => Promise<AppLockResult>
+	/** Quita el PIN. Exige el actual, y se niega mientras haya una wallet en el teléfono. */
+	disableAppLock: (currentPin: string) => Promise<AppLockResult>
+	/**
+	 * Retira un PIN que ya no protege nada (ni sesión ni wallet). Solo para «Eliminar wallet»
+	 * en modo sin cuenta; con algo que proteger no hace nada y devuelve false.
+	 */
+	releaseUnusedAppLock: () => Promise<boolean>
 	changeAppLockPin: (oldPin: string, newPin: string) => Promise<AppLockResult>
 	updateAutoLockTimeout: (minutes: number) => Promise<void>
 	/** Face ID/Touch ID del bloqueo con marcador propio: encender lo arma, apagar lo borra. */
@@ -67,6 +80,12 @@ const AppLockContext = createContext<AppLockContextValue | undefined>(undefined)
  *   (helpers/biometricMarker: un diálogo nuestro en cada uso).
  * - Lo que se protege es la sesión O la wallet self-custody: sin cuenta pero
  *   con seed en el teléfono (modo wallet) el bloqueo arma igual.
+ * - Con una wallet, este PIN es además lo ÚNICO que separa a quien tenga el
+ *   teléfono desbloqueado de su frase (`WalletAuthModal`). Por eso el PIN no se
+ *   puede quitar mientras exista (solo cambiar, con el actual), quitarlo sin
+ *   wallet también pide el actual, y crear el primero con una wallet ya puesta
+ *   exige la prueba de dueño del dispositivo. Sin esas tres reglas bastaba con
+ *   desactivar el bloqueo y crear un PIN nuevo para ver la frase.
  * - `isLocked` is exposed AND-ed with that subject, so logging out without a
  *   wallet dismisses the lock screen automatically.
  */
@@ -80,6 +99,8 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	// crea el PIN justo antes de la seed y bloquear ahí cortaría el backup
 	const hasWalletRef = useRef(hasWallet)
 	useEffect(() => { hasWalletRef.current = hasWallet }, [hasWallet])
+	const isAuthenticatedRef = useRef(isAuthenticated)
+	useEffect(() => { isAuthenticatedRef.current = isAuthenticated }, [isAuthenticated])
 	const { security, isLoading: settingsLoading, updateSetting } = useSettings()
 
 	const [isLocked, setIsLocked] = useState(false)
@@ -202,10 +223,34 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	}, [lockable, appLockEnabled])
 
 	/**
+	 * ¿Hay una wallet en el teléfono? Manda el Keychain, además del contexto: una seed que
+	 * el contexto no llegó a cargar (metadata perdida, lectura fallida) sigue necesitando
+	 * su PIN, y ante la duda se protege.
+	 */
+	const walletPresent = useCallback(async (): Promise<boolean> => hasWalletRef.current || await hasWalletMnemonic(), [])
+
+	const clearPin = useCallback(async () => {
+		await removeAppLockPin()
+		await disableBiometricMarker(APP_LOCK_BIO_SERVICE)
+		setAppLockEnabled(false)
+		setIsLocked(false)
+	}, [])
+
+	/**
 	 * Enables app lock by storing a new PIN in the Keychain. Does not lock
 	 * immediately — the lock arms on the next timeout/cold start (or via `lock`).
 	 */
 	const enableAppLock = useCallback(async (pin: string): Promise<AppLockResult> => {
+		// Un PIN ya puesto no se pisa: cambiarlo exige conocer el actual
+		if (await hasAppLockPin()) return { success: false, error: i18n.t('misc.lock.errors.pinExists') }
+		// Wallet sin PIN: quien lo cree se queda con la llave de la frase, así que antes
+		// tiene que probar que el teléfono es suyo (huella/cara o su código)
+		if (await walletPresent()) {
+			const proof = await confirmDeviceOwner(i18n.t('misc.lock.ownerProof.title'), i18n.t('misc.lock.ownerProof.subtitle'))
+			if (!ownerProofPasses(proof)) {
+				return { success: false, error: i18n.t(proof === 'cancelled' ? 'misc.lock.errors.ownerProofCancelled' : 'misc.lock.errors.ownerProofFailed') }
+			}
+		}
 		const stored = await setAppLockPin(pin)
 		if (stored) {
 			setAppLockEnabled(true)
@@ -213,16 +258,24 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 			return { success: true }
 		}
 		return { success: false, error: i18n.t('misc.lock.errors.savePin') }
-	}, [armBiometrics])
+	}, [armBiometrics, walletPresent])
 
-	// Disable app lock
-	const disableAppLock = useCallback(async (): Promise<AppLockResult> => {
-		await removeAppLockPin()
-		await disableBiometricMarker(APP_LOCK_BIO_SERVICE)
-		setAppLockEnabled(false)
-		setIsLocked(false)
+	const disableAppLock = useCallback(async (currentPin: string): Promise<AppLockResult> => {
+		// Con una wallet el PIN protege su frase: no se quita, se cambia
+		if (await walletPresent()) return { success: false, error: i18n.t('misc.lock.errors.walletNeedsPin') }
+		const storedPin = await getAppLockPin()
+		if (!storedPin || currentPin !== storedPin) return { success: false, error: i18n.t('misc.lock.errors.wrongPin') }
+		await clearPin()
 		return { success: true }
-	}, [])
+	}, [walletPresent, clearPin])
+
+	const releaseUnusedAppLock = useCallback(async (): Promise<boolean> => {
+		// Aquí manda SOLO el Keychain: se llama justo después de borrar la wallet, cuando el
+		// contexto aún puede no haberse enterado. Si el borrado falló, la seed sigue ahí y el PIN también
+		if (isAuthenticatedRef.current || await hasWalletMnemonic()) return false
+		await clearPin()
+		return true
+	}, [clearPin])
 
 	/**
 	 * Changes the app-lock PIN after verifying the current one.
@@ -263,10 +316,11 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 		lock,
 		enableAppLock,
 		disableAppLock,
+		releaseUnusedAppLock,
 		changeAppLockPin,
 		updateAutoLockTimeout,
 		setAppLockBiometrics,
-	}), [isLocked, isCovered, isReady, lockable, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics])
+	}), [isLocked, isCovered, isReady, lockable, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, releaseUnusedAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics])
 
 	return (
 		<AppLockContext.Provider value={value}>
@@ -280,7 +334,8 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
  *
  * @returns Lock state (`isLocked`, `appLockEnabled`) and actions
  *   (`unlockWithBiometrics`, `unlockWithPin`, `lock`, `enableAppLock`,
- *   `disableAppLock`, `changeAppLockPin`, `updateAutoLockTimeout`).
+ *   `disableAppLock`, `releaseUnusedAppLock`, `changeAppLockPin`,
+ *   `updateAutoLockTimeout`).
  */
 export const useAppLock = (): AppLockContextValue => {
 	const context = use(AppLockContext)

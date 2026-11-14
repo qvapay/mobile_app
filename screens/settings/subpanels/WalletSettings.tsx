@@ -25,7 +25,6 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { disableWalletBiometrics, enableWalletBiometrics } from '../../../wallet/keystore'
 import { getSupportedBiometryType } from '../../../api/client'
 import { useSettings } from '../../../settings/SettingsContext'
-import { useAuth } from '../../../auth/AuthContext'
 import { useAppLock } from '../../../lock/AppLockContext'
 import useSecureScreen from '../../../hooks/useSecureScreen'
 import QPSecureView from '../../../ui/QPSecureView'
@@ -85,8 +84,7 @@ const WalletSettings = () => {
 	}, [isStackRoot, navigation, theme, t])
 
 	const { hasWallet, isBackedUp, addresses, revealMnemonic, deleteWallet } = useWallet()
-	const { isAuthenticated } = useAuth()
-	const { disableAppLock } = useAppLock()
+	const { releaseUnusedAppLock } = useAppLock()
 	const { getSetting, updateSetting } = useSettings()
 	const walletBiometrics = getSetting('crypto', 'walletBiometrics', true) as boolean
 	const [biometryType, setBiometryType] = useState<string | null>(null)
@@ -140,9 +138,9 @@ const WalletSettings = () => {
 			// El marcador biométrico es de ESTA wallet: no debe armar la siguiente
 			await disableWalletBiometrics()
 			// Sin cuenta, el PIN de bloqueo existía solo para la wallet: si sobreviviera, la
-			// próxima alta se saltaría "Crea tu PIN" y la wallet nueva quedaría tras un PIN
-			// que, sin Ajustes de cuenta, no se puede cambiar. Con cuenta protege la sesión
-			if (!isAuthenticated) await disableAppLock()
+			// próxima alta se saltaría "Crea tu PIN". Con cuenta protege la sesión, y si la
+			// seed no llegó a borrarse sigue protegiéndola: eso lo decide el propio bloqueo
+			await releaseUnusedAppLock()
 			await clearHistoryCaches()
 			await clearWalletSnapshots()
 			// Saldos/historial/staking de la wallet borrada no deben sobrevivir en memoria
@@ -160,7 +158,7 @@ const WalletSettings = () => {
 		} finally {
 			setDeleting(false)
 		}
-	}, [acknowledged, deleting, deleteWallet, isAuthenticated, disableAppLock, queryClient, t, navigation])
+	}, [acknowledged, deleting, deleteWallet, releaseUnusedAppLock, queryClient, t, navigation])
 
 	const copy = (value: string) => { Clipboard.setString(value); toast.success(t('crypto.wallet.card.copied')) }
 
@@ -253,11 +251,23 @@ const WalletSettings = () => {
 				)}
 			</View>
 
-			{/* Biometría propia de la wallet */}
+			{/* Seguridad: el PIN (el del bloqueo de app, que no se puede quitar mientras haya wallet) y la biometría propia */}
+			<Text style={[styles.sectionTitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}>{t('crypto.wallet.settings.security').toUpperCase()}</Text>
+			<View style={[styles.card, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+				<QPPressable testID="wallet-settings-pin" onPress={() => navigation.navigate(ROUTES.APP_LOCK)} style={styles.row}>
+					<View style={[styles.rowIcon, { backgroundColor: theme.colors.primary }]}>
+						<FontAwesome6 name="lock" size={13} color="#FFFFFF" iconStyle="solid" />
+					</View>
+					<View style={styles.rowTexts}>
+						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('crypto.wallet.settings.pin')}</Text>
+						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.pinHint')}</Text>
+					</View>
+					<FontAwesome6 name="chevron-right" size={13} color={theme.colors.tertiaryText} iconStyle="solid" />
+				</QPPressable>
+			</View>
 			{!!biometryType && (
 				<>
-					<Text style={[styles.sectionTitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}>{t('crypto.wallet.settings.security').toUpperCase()}</Text>
-					<View style={[styles.card, styles.cardPadded, styles.switchRow, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+					<View style={[styles.card, styles.cardPadded, styles.switchRow, styles.cardStacked, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
 						<View style={styles.switchTexts}>
 							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t(biometryType === 'FaceID' ? 'crypto.wallet.settings.biometricsFaceId' : 'crypto.wallet.settings.biometricsTouchId')}</Text>
 							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.biometricsHint')}</Text>
@@ -312,6 +322,7 @@ const styles = StyleSheet.create({
 	card: { borderRadius: 14, paddingHorizontal: 12 },
 	cardPadded: { paddingVertical: 14, gap: 12 },
 	switchRow: { flexDirection: 'row', alignItems: 'center' },
+	cardStacked: { marginTop: 10 },
 	switchTexts: { flex: 1, gap: 2 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 },
 	rowIcon: { width: 26, height: 26, borderRadius: 8, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
