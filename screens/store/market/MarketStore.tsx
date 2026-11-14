@@ -36,7 +36,7 @@ import type { MarketProductDetail } from './marketQueries'
 import type { ApiError } from '../../../api/unwrap'
 
 /** Páginas extra del catálogo por tienda (estado local sobre la query). */
-type ExtraCatalog = { products: MarketProductDetail[], page: number, total: number | null }
+type ExtraCatalog = { products: MarketProductDetail[], page: number, total: number | null, exhausted: boolean }
 
 // Cover total (status bar incluido) = 20% del alto de pantalla, igual que
 // P2PUser — headerShown:false arranca en y=0, sin márgenes negativos
@@ -46,8 +46,12 @@ const COVER_HEIGHT_RATIO = 0.2
 const CATALOG_PAGE_SIZE = 24
 
 // Páginas extra del catálogo cargadas con "Cargar más" — estado local que se
-// descarta en cada refresh (la primera tanda viene embebida en la query)
-const initialExtra: ExtraCatalog = { products: [], page: 1, total: null }
+// descarta en cada refresh (la primera tanda viene embebida en la query).
+// page: 0 = aún no se ha pedido ninguna página del catálogo: el primer toque
+// pide la página 1 (24 productos, los 12 embebidos se deduplican por uuid),
+// así las posiciones 13–24 no se saltan. Antes arrancaba en 1 y el primer
+// toque pedía directamente la página 2.
+const initialExtra: ExtraCatalog = { products: [], page: 0, total: null, exhausted: false }
 
 /**
  * Floating controls over the cover (Scan/Profile look): back pill on the left
@@ -151,6 +155,9 @@ const MarketStore = ({ navigation, route }: NativeStackScreenProps<RootStackPara
 				products: [...prev.products, ...incoming],
 				page: nextPage,
 				total: (res.data as { total?: number | null } | undefined)?.total ?? prev.total,
+				// Una página vacía es el final del catálogo: esconder "Cargar más"
+				// aunque el total guardado aún diga que faltan productos
+				exhausted: prev.exhausted || incoming.length === 0,
 			}))
 		} else {
 			toast.error(t('market.store.toasts.productsErrorTitle'), { description: res.error })
@@ -213,7 +220,7 @@ const MarketStore = ({ navigation, route }: NativeStackScreenProps<RootStackPara
 		const href = socialHref(network, value)
 		if (href) { socials.push({ network, href }) }
 	}
-	const hasMore = catalogTotal != null && products.length < catalogTotal
+	const hasMore = !extra.exhausted && catalogTotal != null && products.length < catalogTotal
 
 	const renderProduct = ({ item }: { item: MarketProductDetail }) => (
 		<View style={{ flex: 1 / numColumns, padding: 5 }}>
