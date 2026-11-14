@@ -1,11 +1,12 @@
 /**
  * Configuración de staking por cadena, saneada y con respaldo. PURO.
  *
- * El registro remoto gana al empaquetado cuando su `version` no es más vieja
- * (`resolveRegistry`), así que un remoto publicado ANTES de que existiera el
- * bloque `staking` borraría la config empaquetada. Por eso la config se
- * resuelve por cadena: la del registro efectivo si la trae; si no, la del
- * bundled. Y se sanea: un destino mal formado se descarta, no tumba la pantalla.
+ * Desde 2026-11-13 el bloque `staking` sale SIEMPRE del registro empaquetado
+ * (`registry/pins`: del remoto solo se usan los nodos), así que a quién se
+ * delega no lo decide un JSON descargado. Esto se conserva como segunda
+ * barrera: la config se resuelve por cadena (la del registro efectivo si la
+ * trae; si no, la del bundled) y se sanea — un destino mal formado se descarta,
+ * no tumba la pantalla.
  */
 import type { ChainKind, RegistryStakeTarget, RegistryStaking, RpcRegistry } from '../registry/types'
 import { isValidSolanaAddress } from '../solana/codec'

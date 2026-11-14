@@ -1,8 +1,12 @@
 /**
- * Contrato del registro remoto de RPCs (repo qvapay/rpc-registry).
+ * Contrato del registro de RPCs (repo qvapay/rpc-registry).
  * La app consume `registry.json` publicado en GitHub (espejo en
  * rpc.qvapay.com) con fallback a `bundled.json` empaquetado; los nodos
  * propios entran con priority 0 y `enabled: false` hasta que sincronizan.
+ *
+ * Del REMOTO solo se usa `rpcs` de cada red (ver `./pins`): tokens, decimales,
+ * chainId, nativo, explorador y staking salen siempre del empaquetado, así que
+ * cambiar cualquiera de ellos es publicar versión de la app.
  */
 
 export type ChainKind = 'evm' | 'tron' | 'btc' | 'stacks' | 'solana'
@@ -79,7 +83,7 @@ export type RegistryChain = {
 	explorer: string
 	tokens?: RegistryToken[]
 	rpcs: RegistryRpc[]
-	/** Validadores / SR / pools destacados. Añadir un partner = editar el registry, sin publicar app. */
+	/** Validadores / SR / pools destacados. Solo del registro EMPAQUETADO: a quién se delega no lo decide un JSON remoto. */
 	staking?: RegistryStaking
 }
 
