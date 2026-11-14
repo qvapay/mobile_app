@@ -1,0 +1,35 @@
+# Punto de partida de los flujos de seguridad: app en limpio y la wallet de
+# "abandon … about" importada sin cuenta, con su PIN. Deja la app en el modo wallet.
+# Necesita PIN y MNEMONIC en el entorno del flujo que lo llama
+appId: com.qvapay
+---
+- runFlow: fresh_start.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "welcome-wallet-link"
+    retryTapIfNoChange: true
+- runFlow: dismiss_logbox.yaml
+# Los botones se habilitan al resolver el PIN en Keychain: reintentar si no cambia
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-onboarding-import"
+    retryTapIfNoChange: true
+- runFlow: create_pin.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-import-input"
+    retryTapIfNoChange: true
+- inputText: ${MNEMONIC}
+- runFlow: dismiss_logbox.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-import-submit"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 15000

@@ -15,3 +15,6 @@ executionOrder:
     - 08_import_wallet
     - 09_abandoned_backup
     - 10_staking
+    - 11_pin_attempt_limit
+    - 12_wallet_gate_attempt_limit
+    - 13_lock_cannot_be_disabled

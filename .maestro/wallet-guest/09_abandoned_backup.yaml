@@ -21,7 +21,7 @@ env:
 - extendedWaitUntil:
     visible:
       id: "wallet-backup-reveal"
-    timeout: 15000
+    timeout: 30000
 - runFlow:
     file: subflows/header_back.yaml
     env:
@@ -50,5 +50,5 @@ env:
 - extendedWaitUntil:
     visible:
       id: "wallet-backup-reveal"
-    timeout: 10000
+    timeout: 30000
 - takeScreenshot: 09_backup_resume

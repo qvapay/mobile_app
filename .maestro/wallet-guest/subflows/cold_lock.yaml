@@ -1,0 +1,35 @@
+# Mata y relanza la app: con wallet y PIN sale el bloqueo. Lo deja con el teclado
+# listo (fundido terminado y, si la huella está armada, su diálogo cancelado)
+appId: com.qvapay
+---
+- stopApp
+- launchApp
+# Con la huella armada (Android) el diálogo sale poco después del bloqueo y, mientras
+# está abierto, Maestro solo ve las ventanas del sistema: vale el bloqueo o su diálogo
+- extendedWaitUntil:
+    visible:
+      id: "lock-screen|.*:id/button_negative"
+    timeout: 30000
+# El diálogo puede tardar: en dev, recién arrancada, llegó 3 s después del bloqueo. Y
+# aquí no sirve un `timeout`: Maestro los cuenta desde la última interacción (el
+# launchApp, hace ya más que eso), así que una espera corta está vencida y mira una
+# sola vez. Se sondea en bucle, que no depende de eso
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - repeat:
+          times: 6
+          while:
+            notVisible:
+              id: ".*:id/button_negative"
+          commands:
+            - waitForAnimationToEnd:
+                timeout: 2000
+      - runFlow: dismiss_biometric_arm.yaml
+- extendedWaitUntil:
+    visible:
+      id: "lock-screen"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000

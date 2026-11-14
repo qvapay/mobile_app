@@ -1,0 +1,129 @@
+# Límite de intentos del PIN en el bloqueo. El PIN son 4 dígitos y es lo único entre
+# quien tenga el teléfono desbloqueado y la frase: cinco fallos abren una espera con
+# cuenta atrás que crece con cada fallo, durante ella ni el PIN correcto entra, matar
+# la app no la quita, y el PIN correcto devuelve los intentos.
+#
+# La cuenta atrás se reconoce por su forma (m:ss), no por su texto: la app sigue el
+# idioma del dispositivo. «PIN incorrecto» no lleva dígitos.
+#
+# Nunca se teclea mientras una espera está a punto de cumplirse: Maestro tarda varios
+# segundos por tecla y un PIN a caballo del final (unos dígitos descartados, otros
+# admitidos) descuadra el siguiente. Las dos comprobaciones que tardan (relanzar la
+# app y teclear el PIN correcto) van en la espera de 5 min, donde caben con margen; las
+# de 30 s y 1 min solo se dejan pasar. Por eso el flujo dura unos 16 min.
+appId: com.qvapay
+env:
+  PIN: "1234"
+  WRONG: "9999"
+  MNEMONIC: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+---
+- runFlow: subflows/import_abandon.yaml
+- runFlow: subflows/cold_lock.yaml
+
+# Tres fallos avisan y dejan seguir; el PIN correcto entra y devuelve los intentos
+- repeat:
+    times: 3
+    commands:
+      - runFlow:
+          file: subflows/tap_lock_pin.yaml
+          env:
+            PIN: ${WRONG}
+      - extendedWaitUntil:
+          visible:
+            id: "lock-notice"
+          timeout: 30000
+- runFlow: subflows/tap_lock_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 30000
+
+# Devueltos: otros cuatro fallos (con los de antes serían siete) no abren espera
+- runFlow: subflows/cold_lock.yaml
+- repeat:
+    times: 4
+    commands:
+      - runFlow:
+          file: subflows/tap_lock_pin.yaml
+          env:
+            PIN: ${WRONG}
+      - extendedWaitUntil:
+          visible:
+            id: "lock-notice"
+          timeout: 30000
+- assertNotVisible:
+    id: "lock-notice"
+    text: ".*[0-9]:[0-9][0-9].*"
+
+# Quinto fallo: espera con cuenta atrás (30 s). Cumplida, el aviso se va solo
+- runFlow:
+    file: subflows/tap_lock_pin.yaml
+    env:
+      PIN: ${WRONG}
+- extendedWaitUntil:
+    visible:
+      id: "lock-notice"
+      text: ".*[0-9]:[0-9][0-9].*"
+    timeout: 30000
+- takeScreenshot: 11_wait
+- extendedWaitUntil:
+    notVisible:
+      id: "lock-notice"
+    timeout: 60000
+
+# Sexto fallo: la espera siguiente (1 min)
+- runFlow:
+    file: subflows/tap_lock_pin.yaml
+    env:
+      PIN: ${WRONG}
+- extendedWaitUntil:
+    visible:
+      id: "lock-notice"
+      text: ".*[0-9]:[0-9][0-9].*"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: "lock-notice"
+    timeout: 90000
+
+# Séptimo fallo: 5 min
+- runFlow:
+    file: subflows/tap_lock_pin.yaml
+    env:
+      PIN: ${WRONG}
+- extendedWaitUntil:
+    visible:
+      id: "lock-notice"
+      text: ".*[0-9]:[0-9][0-9].*"
+    timeout: 30000
+
+# Matar la app no devuelve intentos ni quita la espera (el contador se lee del
+# Keychain al arrancar, así que el aviso tarda un momento en salir)
+- runFlow: subflows/cold_lock.yaml
+- extendedWaitUntil:
+    visible:
+      id: "lock-notice"
+      text: ".*[0-9]:[0-9][0-9].*"
+    timeout: 30000
+- takeScreenshot: 11_wait_after_restart
+
+# Durante la espera ni el PIN correcto entra
+- runFlow: subflows/tap_lock_pin.yaml
+- assertVisible:
+    id: "lock-screen"
+- assertNotVisible:
+    id: "wallet-only"
+- assertVisible:
+    id: "lock-notice"
+    text: ".*[0-9]:[0-9][0-9].*"
+
+# Cumplida, el PIN correcto entra (y deja los intentos a cero para el 12)
+- extendedWaitUntil:
+    notVisible:
+      id: "lock-notice"
+    timeout: 330000
+- runFlow: subflows/tap_lock_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 30000

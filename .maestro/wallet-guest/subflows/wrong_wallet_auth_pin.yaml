@@ -1,0 +1,15 @@
+# Un PIN malo en el modal de la wallet, y esperar a que el modal lo diga: el aviso se
+# reconoce por llevar letras (sin fallo, ese hueco es un espacio). Necesita WRONG
+appId: com.qvapay
+---
+- tapOn:
+    id: "wallet-auth-pin-0"
+- runFlow:
+    file: type_pin.yaml
+    env:
+      DIGITS: ${WRONG}
+- extendedWaitUntil:
+    visible:
+      id: "wallet-auth-error"
+      text: ".*[A-Za-z].*"
+    timeout: 30000

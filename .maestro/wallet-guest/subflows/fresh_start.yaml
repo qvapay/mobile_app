@@ -20,3 +20,8 @@ appId: com.qvapay
     visible:
       id: "welcome-wallet-link"
     timeout: 10000
+# Solo en dev y en Android: el aviso de LogBox («Open debugger to view warnings.») sale
+# ya en el arranque, y su contenedor reserva arriba el hueco de la barra de estado
+# (SafeAreaView con edge-to-edge): esa franja invisible cae justo encima del enlace de
+# la wallet y se queda con el toque. Se cierra ANTES de tocar nada de Welcome
+- runFlow: dismiss_logbox.yaml
