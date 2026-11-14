@@ -16,7 +16,7 @@ jest.mock('../../../api/pixApi', () => ({ pixApi: { getCheckout: jest.fn(), canc
 jest.mock('../../../hooks/useMaxBrightness', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('../../../hooks/useContentPadding', () => ({ __esModule: true, default: () => ({ paddingBottom: 0 }) }))
 jest.mock('../../../helpers', () => ({ copyTextToClipboard: jest.fn() }))
-jest.mock('../market/marketCartStore', () => ({ remove: jest.fn() }))
+jest.mock('../market/marketCartStore', () => ({ remove: jest.fn(), hydrate: jest.fn(async () => {}) }))
 jest.mock('../storeQueries', () => ({ MY_PURCHASES_KEY: ['store', 'my-purchases'] }))
 jest.mock('../../../theme/ThemeContext', () => {
 	const { createTheme } = require('../../../theme/themeTokens')
@@ -32,6 +32,7 @@ import { toast } from 'sonner-native'
 import { pixApi } from '../../../api/pixApi'
 import { copyTextToClipboard } from '../../../helpers'
 import { remove as removeCartLine } from '../market/marketCartStore'
+import { rememberCartLines } from './pixCartLines'
 import useMaxBrightness from '../../../hooks/useMaxBrightness'
 import PixCheckout from './PixCheckout'
 
@@ -153,8 +154,9 @@ describe('PixCheckout', () => {
 		expect(pixApi.getCheckout).toHaveBeenCalledTimes(1)
 	})
 
-	test('pagado: saca las líneas del carrito y refresca las compras', async () => {
-		await render({ cartKeys: ['a', 'b'] })
+	test('pagado: saca las líneas con las que se creó el cobro, venga de la pantalla que venga, y refresca las compras', async () => {
+		await rememberCartLines('c1', ['a', 'b'])
+		await render()
 		expect(removeCartLine).not.toHaveBeenCalled()
 		pixApi.getCheckout.mockResolvedValue(stageOf('verifying'))
 		await advance(4000)
@@ -163,8 +165,9 @@ describe('PixCheckout', () => {
 	})
 
 	test('devuelto sin haber llegado a verifying: las líneas se quedan en el carrito', async () => {
+		await rememberCartLines('c1', ['a'])
 		pixApi.getCheckout.mockResolvedValue(stageOf('refunded', { refunded_brl: 57.78 }))
-		await render({ cartKeys: ['a'] })
+		await render()
 		expect(removeCartLine).not.toHaveBeenCalled()
 	})
 
