@@ -79,7 +79,20 @@ export default function useSwapIn({ pair, asset, amountUnits, amount, onCreated 
 			return
 		}
 		const failure = result.success ? null : result
-		const details = failure?.details as { code?: string, reason?: string } | undefined
+		const details = failure?.details as { code?: string, reason?: string, swap?: string } | undefined
+		// Ya hay un swap vivo con este mismo nonce (uno anterior que no llegó a resolverse):
+		// re-firmar daría el mismo choque una y otra vez, así que se abre ESE swap para que el
+		// usuario vea en qué estado está en vez de quedarse reintentando a ciegas.
+		if (details?.code === 'DUPLICATE_ORIGIN_NONCE' && details.swap) {
+			const existing = await swapApi.get(details.swap)
+			if (existing.success && existing.data?.data) {
+				preparedRef.current = null; signedRef.current = null
+				idempotencyKeyRef.current = makeIdempotencyKey()
+				setPhase('idle')
+				onCreated(existing.data.data)
+				return
+			}
+		}
 		setPhase('error')
 		if (isNetworkFailure(result)) {
 			// El hex firmado se conserva: reintentar reenvía la MISMA tx con la misma clave
