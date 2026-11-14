@@ -643,23 +643,73 @@ describe('límite de intentos del PIN', () => {
 		expect(storedAttempts().f).toBe(0)
 	})
 
-	test('el intento se anota en el Keychain ANTES de leer el PIN (matar la app tras un fallo no lo borra)', async () => {
+	// Anotado después, bastaría con matar la app tras cada fallo para que ninguno contase
+	test('el PIN no se da ni por bueno ni por malo hasta que el intento consta anotado en el Keychain', async () => {
 		const lock = await locked()
-		readAppLockPin.mockClear()
-		let seenAtRead = null
-		readAppLockPin.mockImplementation(async () => { seenAtRead = storedAttempts().f; return '1234' })
-		await unlock(lock, '0000')
-		expect(seenAtRead).toBe(1)
-		expect(setPinAttemptsRecord.mock.invocationCallOrder[0]).toBeLessThan(readAppLockPin.mock.invocationCallOrder[0])
+		let finishWrite
+		setPinAttemptsRecord.mockImplementationOnce(record => new Promise(resolve => { finishWrite = () => { attemptsRecord = record; resolve(true) } }))
+		let outcome = null
+		let pending
+		await act(async () => {
+			pending = lock.current.unlockWithPin('1234').then(result => { outcome = result })
+			await Promise.resolve(); await Promise.resolve(); await Promise.resolve()
+		})
+		// El Keychain ya devolvió el PIN, pero el intento aún no está escrito: nada se decide
+		expect(readAppLockPin).toHaveBeenCalled()
+		expect(outcome).toBeNull()
+		expect(lock.current.isLocked).toBe(true)
+
+		await act(async () => { finishWrite(); await pending })
+		expect(outcome).toEqual({ success: true })
+		expect(lock.current.isLocked).toBe(false)
 	})
 
-	test('si el intento no se puede anotar, el PIN no se compara', async () => {
+	test('lo que se anota antes de decidir es «un fallo más»', async () => {
 		const lock = await locked()
-		readAppLockPin.mockClear()
+		setPinAttemptsRecord.mockClear()
+		await unlock(lock, '0000')
+		expect(JSON.parse(setPinAttemptsRecord.mock.calls[0][0]).f).toBe(1)
+		expect(storedAttempts().f).toBe(1)
+	})
+
+	test('si el intento no se puede anotar, ni el PIN correcto entra', async () => {
+		const lock = await locked()
 		setPinAttemptsRecord.mockResolvedValue(false)
 		expect(await unlock(lock, '1234')).toEqual({ success: false, error: 'Error verificando PIN' })
-		expect(readAppLockPin).not.toHaveBeenCalled()
 		expect(lock.current.isLocked).toBe(true)
+	})
+
+	// Entrar con el PIN no espera a la escritura que devuelve los intentos (al arrancar en
+	// frío cada viaje al Keychain espera a un hilo de JS ocupado)
+	test('devolver los intentos no retrasa la entrada, y la siguiente comprobación espera a esa escritura', async () => {
+		seedAttempts(2)
+		const lock = await locked()
+		const writes = []
+		let finishReset
+		setPinAttemptsRecord.mockImplementation(record => {
+			writes.push(JSON.parse(record).f)
+			if (JSON.parse(record).f !== 0) { attemptsRecord = record; return Promise.resolve(true) }
+			return new Promise(resolve => { finishReset = () => { attemptsRecord = record; resolve(true) } })
+		})
+		expect(await unlock(lock, '1234')).toEqual({ success: true })
+		// Ya está dentro, con los intentos a cero en memoria, y el Keychain aún no lo sabe
+		expect(lock.current.isLocked).toBe(false)
+		expect(lock.current.pinAttempts.failures).toBe(0)
+		expect(storedAttempts().f).toBe(3)
+
+		// Otra comprobación llega antes de que esa escritura termine: espera, no se cruza
+		let check = null
+		let pending
+		await act(async () => {
+			pending = lock.current.verifyAppLockPin('0000').then(result => { check = result })
+			await Promise.resolve(); await Promise.resolve(); await Promise.resolve()
+		})
+		expect(check).toBeNull()
+		await act(async () => { finishReset(); await pending })
+		expect(check).toMatchObject({ ok: false, reason: 'wrong' })
+		// El fallo nuevo cuenta desde cero, y es lo último que queda escrito
+		expect(writes).toEqual([3, 0, 1])
+		expect(storedAttempts().f).toBe(1)
 	})
 
 	test('un Keychain que no deja leer el PIN no cuenta como intento', async () => {

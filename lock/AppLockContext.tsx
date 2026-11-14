@@ -189,6 +189,9 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	const attemptsLoadRef = useRef<Promise<void> | null>(null)
 	// Cola: dos comprobaciones a la vez leerían el mismo contador y una pisaría a la otra
 	const pinQueueRef = useRef<Promise<unknown>>(Promise.resolve())
+	// La escritura que devuelve los intentos tras un PIN correcto: no retrasa la entrada,
+	// pero la cola la espera antes de la tarea siguiente
+	const resetWriteRef = useRef<Promise<void>>(Promise.resolve())
 
 	const commitAttempts = useCallback((next: PinAttempts) => {
 		attemptsRef.current = next
@@ -214,7 +217,8 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	}, [loadAttempts, commitAttempts])
 
 	const enqueuePin = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
-		const run = pinQueueRef.current.then(task, task)
+		const start = () => resetWriteRef.current.then(task)
+		const run = pinQueueRef.current.then(start, start)
 		pinQueueRef.current = run.catch(() => {})
 		return run
 	}, [])
@@ -264,26 +268,32 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 		if (gate.kind !== 'open') return { ok: false, reason: 'locked', gate }
 
 		// El intento se anota ANTES de comparar. Anotado después, bastaría con matar la app
-		// tras cada fallo para que ninguno contase. Si no se puede anotar, no se compara
+		// tras cada fallo para que ninguno contase. Si no se puede anotar, no se compara.
+		// El PIN se pide al Keychain a la vez que se anota (un viaje en vez de dos: al
+		// arrancar en frío cada viaje espera a un hilo de JS ocupado), pero no se compara
+		// ni se dice nada hasta que consta que el intento quedó escrito
 		const before = attemptsRef.current
 		const attempted = registerAttempt(before, Date.now())
-		if (!(await setPinAttemptsRecord(serializePinAttempts(attempted)))) return { ok: false, reason: 'error', gate }
+		const [recorded, read] = await Promise.all([
+			setPinAttemptsRecord(serializePinAttempts(attempted)),
+			readAppLockPin().then((pin): { pin: string | null } | null => ({ pin }), () => null),
+		])
+		if (!recorded) return { ok: false, reason: 'error', gate }
 		// Solo el ref: el estado (lo que se pinta) espera al desenlace, o un quinto PIN
 		// CORRECTO enseñaría «demasiados intentos» un instante
 		attemptsRef.current = attempted
 
-		let stored: string | null
-		try {
-			stored = await readAppLockPin()
-		} catch {
+		if (!read) {
 			// No se comparó nada: el intento no cuenta, y tampoco le dijo nada a quien prueba
 			attemptsRef.current = before
 			await setPinAttemptsRecord(serializePinAttempts(before))
 			return { ok: false, reason: 'unreadable', gate }
 		}
-		if (stored && entered === stored) {
+		if (read.pin && entered === read.pin) {
 			commitAttempts(NO_ATTEMPTS)
-			await setPinAttemptsRecord(serializePinAttempts(NO_ATTEMPTS))
+			// Devolver los intentos no hace esperar a quien acaba de acertar: se escribe
+			// después, y la cola no arranca otra tarea hasta que esa escritura termina
+			resetWriteRef.current = setPinAttemptsRecord(serializePinAttempts(NO_ATTEMPTS)).then(() => {}, () => {})
 			return { ok: true }
 		}
 		commitAttempts(attempted)
