@@ -94,8 +94,13 @@ export const isMethodNotAllowed = (err: unknown): boolean => {
  * nodo" o "la red aún no lo tiene": -32001 bloque podado, -32007/-32009 hueco de ledger,
  * -32011 sin historial, -32018 hueco en el límite de epoch y -32017 reparto de recompensas
  * en curso. Fuera a propósito -32004 "Block not available": también lo da un nodo atrasado.
+ *
+ * Y los de un nodo EVM completo (no archivo) al que se le pide estado de un bloque que ya
+ * podó: geth/bsc `missing trie node`, reth/erigon `historical state … not available`,
+ * nethermind `No state available`. Solo los provoca `lookupEvmTransaction`, que mira el
+ * nonce unos bloques atrás.
  */
-const DATA_UNAVAILABLE = /cleaned up, does not exist on node|missing due to ledger jump|missing in long-term storage|history is not available from this node|is not the epoch boundary|epoch rewards period still active/i
+const DATA_UNAVAILABLE = /cleaned up, does not exist on node|missing due to ledger jump|missing in long-term storage|history is not available from this node|is not the epoch boundary|epoch rewards period still active|missing trie node|historical state .{0,80}(?:not available|unavailable)|no state available|state (?:is )?not available|state histories haven't been fully indexed/i
 
 /**
  * El nodo funciona pero NO guarda el dato pedido (o la red aún no lo tiene). Caso real

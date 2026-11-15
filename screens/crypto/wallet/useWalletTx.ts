@@ -16,6 +16,9 @@
  *   la respuesta), "caducada" al re-difundir no prueba que no se ejecutara (java-tron valida la
  *   expiración antes que el duplicado) y nuestro reloj de Solana se adelanta a la red. Construir
  *   otra sin mirar es que el usuario confirme y pague dos veces.
+ * - Lo mismo si la red rechaza la re-difusión porque el nonce o los inputs de la tx ya están
+ *   gastados (EVM, Bitcoin, Stacks, que no caducan): pudo gastarlos ESTA tx en un intento
+ *   anterior, así que se pregunta a la cadena en vez de reintentar lo mismo sin fin.
  * - Una tx que ENTRÓ deja el motor en `sent`, y ahí se queda: no reconstruye, no reintenta y
  *   no vuelve a abrir el PIN, cambie lo que cambie alrededor. Antes, tras difundir, cualquier
  *   refresco de saldos cambiaba la identidad de `build`, el motor preparaba otra tx y la
@@ -26,7 +29,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { TxLookup } from '../../../wallet/chains/txLookup'
-import { isExpiredBroadcastError } from './txExpiry'
+import { isExpiredBroadcastError, isSpentBroadcastError } from './txExpiry'
 
 /** `sent`: la tx entró en la red. Es terminal: de ahí solo se sale con `advance()`. */
 export type TxPhase = 'preparing' | 'ready' | 'waitingEnergy' | 'signing' | 'broadcasting' | 'sent' | 'error'
@@ -152,7 +155,7 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			if (outcome.status === 'landed') {
 				attemptRef.current = null; signedRef.current = null
 				markSent()
-				onSentRef.current(outcome.txid, attempt.prepared, true)
+				onSentRef.current(outcome.txid, attempt.prepared, true, outcome.note)
 				return false
 			}
 			if (outcome.status === 'dropped') {
@@ -226,10 +229,12 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 				setError(describeError(err))
 				return
 			}
-			// La red dio la tx por CADUCADA: ya no puede entrar, pero pudo entrar ANTES (una
-			// difusión previa sin respuesta). `prepare` pregunta a la cadena antes de construir
-			// otra; re-difundir esta, en cambio, daría "caducada" en bucle
-			if (isExpiredBroadcastError(err)) {
+			// La red dio la tx por CADUCADA, o dice que lo que gasta (su nonce, sus inputs) ya
+			// está gastado: ya no puede entrar, pero pudo entrar ANTES (una difusión previa sin
+			// respuesta). `prepare` pregunta a la cadena antes de construir otra; re-difundir
+			// esta, en cambio, daría el mismo rechazo en bucle. Lo segundo solo con alguien a
+			// quien preguntar: sin `lookup` la firma no se suelta nunca
+			if (isExpiredBroadcastError(err) || (lookupRef.current && isSpentBroadcastError(err))) {
 				signedRef.current = null
 				await prepare({ internal: true })
 				return

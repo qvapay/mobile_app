@@ -421,6 +421,41 @@ describe('adaptador', () => {
 		await expect(solanaStakeAdapter.entryReserve(RPC, {})).resolves.toBe(2_282_880n + 890_880n + 50_000n)
 	})
 
+	// Sin esto no había con qué preguntar a la cadena por un staking difundido sin respuesta:
+	// la pantalla se quedaba en «no pudimos confirmar» y quien salía y repetía lo hacía dos veces
+	test('la tx guarda la altura de caducidad y el slot del blockhash, y el adaptador pregunta con ellos', async () => {
+		mockRpc({
+			getLatestBlockhash: () => ({ context: { slot: 4242 }, value: { blockhash: BLOCKHASH, lastValidBlockHeight: 900 } }),
+			getSignatureStatuses: () => ({ value: [{ confirmationStatus: 'finalized', err: null }] }),
+		})
+		const { inner } = await solanaStakeAdapter.prepare(RPC, { chainKey: 'solana', kind: 'solana', action: 'stake', from: USER, amount: 1_000_000_000n, target: { id: HELIUS, name: null } }, {})
+		expect(inner).toMatchObject({ lastValidBlockHeight: 900, blockhashSlot: 4242 })
+		const signed = solanaStakeAdapter.sign(inner, USER_SECRET)
+		await expect(solanaStakeAdapter.lookup(RPC, inner, signed, {})).resolves.toEqual({ status: 'landed', txid: signed.txid })
+		expect(calls.find(c => c.method === 'getSignatureStatuses').params[0]).toEqual([signed.txid])
+	})
+
+	test('entró pero falló → dropped: se puede construir otra', async () => {
+		mockRpc({
+			getLatestBlockhash: () => ({ context: { slot: 4242 }, value: { blockhash: BLOCKHASH, lastValidBlockHeight: 900 } }),
+			getSignatureStatuses: () => ({ value: [{ confirmationStatus: 'confirmed', err: { InstructionError: [2, 'Custom'] } }] }),
+		})
+		const { inner } = await solanaStakeAdapter.prepare(RPC, { chainKey: 'solana', kind: 'solana', action: 'stake', from: USER, amount: 1_000_000_000n, target: { id: HELIUS, name: null } }, {})
+		await expect(solanaStakeAdapter.lookup(RPC, inner, solanaStakeAdapter.sign(inner, USER_SECRET), {})).resolves.toEqual({ status: 'dropped' })
+	})
+
+	test('un nodo que no da la altura de caducidad: no hay con qué probar que la tx ya no entrará → unknown', async () => {
+		mockRpc({
+			getLatestBlockhash: () => ({ context: { slot: 4242 }, value: { blockhash: BLOCKHASH } }),
+			getSignatureStatuses: () => ({ value: [null] }),
+		})
+		const { inner } = await solanaStakeAdapter.prepare(RPC, { chainKey: 'solana', kind: 'solana', action: 'stake', from: USER, amount: 1_000_000_000n, target: { id: HELIUS, name: null } }, {})
+		expect(inner.blockhashSlot).toBeNull()
+		await expect(solanaStakeAdapter.lookup(RPC, inner, solanaStakeAdapter.sign(inner, USER_SECRET), {})).resolves.toEqual({ status: 'unknown' })
+		// Ni siquiera se mira el historial: sin slot no se podría concluir nada
+		expect(calls.some(c => c.method === 'getSignaturesForAddress')).toBe(false)
+	})
+
 	test('la firma del adaptador es de verdad ed25519 del usuario', async () => {
 		mockRpc()
 		const { inner } = await solanaStakeAdapter.prepare(RPC, { chainKey: 'solana', kind: 'solana', action: 'stake', from: USER, amount: 1_000_000_000n, target: { id: HELIUS, name: null } }, {})

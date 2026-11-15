@@ -17,6 +17,7 @@ import { hexToBytes } from '@noble/hashes/utils.js'
 import { Address, OutScript, p2wpkh, Transaction } from '@scure/btc-signer'
 
 import { ChainHttpError, getJson } from '../chains/http'
+import type { TxLookup } from '../chains/txLookup'
 import type { RegistryRpc } from '../registry/types'
 
 /** Salida por debajo de esto no se crea (polvo): el cambio se deja en la fee. */
@@ -265,4 +266,52 @@ export const broadcastBtcTransaction = async (rpc: RegistryRpc, signed: SignedBt
 		if (/already in block chain|already known|txn-already-in-mempool|txn-already-known|already have/i.test(text)) return { txid: signed.txid, duplicate: true }
 		throw new ChainHttpError(`btc: broadcast rechazado (${res.status}): ${text.slice(0, 200)}`, { status: res.status, retryable: res.status >= 500 })
 	}
+}
+
+// ---------------------------------------------------------------------------
+// ¿Qué fue de una tx ya difundida?
+// ---------------------------------------------------------------------------
+
+/** Confirmaciones que debe tener el gasto AJENO de un input para dar la tx por descartada. */
+export const BTC_LOOKUP_CONFIRMATIONS = 2
+
+/** Inputs que se miran como mucho: cada uno es una petición, y basta uno gastado por otra tx. */
+const BTC_LOOKUP_MAX_INPUTS = 10
+
+/** Lo que identifica una tx firmada ante la cadena: su id y los UTXOs que gasta. */
+export type SentBtcTx = { txid: string, inputs: { txid: string, vout: number }[] }
+
+type Outspend = { spent?: unknown, txid?: unknown, status?: { confirmed?: unknown, block_height?: unknown } }
+
+/**
+ * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara?
+ *
+ * - **El nodo la conoce** (`GET /tx/:txid`, mempool o bloque): `landed`, lo mismo que una
+ *   difusión aceptada. Se pide la tx entera y no `/tx/:txid/status`: Esplora contesta
+ *   `200 {"confirmed":false}` tanto a una tx en mempool como a una que no existe.
+ * - **No la conoce:** una tx de Bitcoin no caduca, así que «no está» no prueba que no vaya
+ *   a entrar. Solo deja de poder hacerlo si OTRA tx gastó alguno de sus inputs, y eso se
+ *   da por cierto con `BTC_LOOKUP_CONFIRMATIONS` confirmaciones (`dropped`). Es prueba
+ *   positiva: el nodo enseña la tx que lo gastó. Un conflicto solo en mempool no decide.
+ */
+export const lookupBtcTransaction = async (rpc: RegistryRpc, sent: SentBtcTx, deps: Deps = {}): Promise<TxLookup> => {
+	const options = { signal: deps.signal, headers: rpc.headers }
+	const res = await fetch(`${base(rpc)}/tx/${sent.txid}`, { method: 'GET', signal: deps.signal, headers: { Accept: 'application/json', ...rpc.headers } })
+	if (res.ok) {
+		const found = await res.json().catch(() => null) as { txid?: unknown } | null
+		return found && typeof found.txid === 'string' && found.txid.toLowerCase() === sent.txid.toLowerCase() ? { status: 'landed', txid: sent.txid } : { status: 'unknown' }
+	}
+	if (res.status !== 404) throw new ChainHttpError(`btc: consulta de la tx rechazada (${res.status})`, { status: res.status, retryable: res.status === 429 || res.status >= 500 })
+
+	const tip = Number(await getJson<number>(`${base(rpc)}/blocks/tip/height`, options))
+	if (!Number.isInteger(tip) || tip <= 0) return { status: 'unknown' }
+	for (const input of sent.inputs.slice(0, BTC_LOOKUP_MAX_INPUTS)) {
+		const spend = await getJson<Outspend>(`${base(rpc)}/tx/${input.txid}/outspend/${input.vout}`, options)
+		if (!spend || spend.spent !== true || typeof spend.txid !== 'string') continue
+		// El índice de gastos sí la tiene: entró, aunque la búsqueda por id dijera que no
+		if (spend.txid.toLowerCase() === sent.txid.toLowerCase()) return { status: 'landed', txid: sent.txid }
+		const height = spend.status?.confirmed === true ? spend.status.block_height : undefined
+		if (typeof height === 'number' && Number.isInteger(height) && tip - height + 1 >= BTC_LOOKUP_CONFIRMATIONS) return { status: 'dropped' }
+	}
+	return { status: 'unknown' }
 }

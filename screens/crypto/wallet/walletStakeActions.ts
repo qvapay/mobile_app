@@ -16,6 +16,7 @@ import { solanaStakeAdapter } from '../../../wallet/solana/stake'
 import { tronStakeAdapter } from '../../../wallet/tron/stake'
 import { withWalletKey } from './walletSendActions'
 import type { StakeBroadcastResult } from '../../../wallet/staking/types'
+import type { TxLookup } from '../../../wallet/chains/txLookup'
 
 export type { StakeIntent, StakeSummary, StakeTxAdapter } from '../../../wallet/staking/types'
 
@@ -74,6 +75,23 @@ export const broadcastStake = (prepared: PreparedStake, signed: SignedStake): Pr
 		prepared.intent.chainKey,
 		(rpc, signal) => adapter.broadcast(rpc, prepared.inner, signed.signed, { signal }),
 		accept ? { accept } : undefined,
+	)
+}
+
+/**
+ * ¿Entró una tx de staking ya difundida de la que no hubo respuesta? Como `lookupSend`: se
+ * pregunta a la cadena, y lo que no se puede preguntar es `unknown` (nunca se firma otra).
+ */
+export const lookupStake = async (prepared: PreparedStake, signed: SignedStake): Promise<TxLookup> => {
+	if (signed.kind !== prepared.kind) return { status: 'unknown' }
+	const adapter = isStakingKind(prepared.kind) ? STAKE_TX_ADAPTERS[prepared.kind] : undefined
+	if (!adapter?.lookup) return { status: 'unknown' }
+	const lookup = adapter.lookup.bind(adapter)
+	const accept = adapter.accept?.bind(adapter)
+	return getAppRpcRouter().call(
+		prepared.intent.chainKey,
+		(rpc, signal) => lookup(rpc, prepared.inner, signed.signed, { signal }),
+		accept ? { accept, idempotent: true } : { idempotent: true },
 	)
 }
 

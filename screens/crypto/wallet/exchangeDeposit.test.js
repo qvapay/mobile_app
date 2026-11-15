@@ -29,12 +29,12 @@ afterEach(() => { jest.restoreAllMocks() })
 
 test('al salir hacia la red queda anotado como pendiente, con el hash calculado en el teléfono', async () => {
 	await markDepositAttempt('ex-1', '0xabc')
-	expect(await readDepositSent('ex-1')).toEqual({ uuid: 'ex-1', txid: '0xabc', at: NOW, pending: true })
+	expect(await readDepositSent('ex-1')).toEqual({ uuid: 'ex-1', txid: '0xabc', at: NOW, pending: true, ref: null })
 })
 
 test('una patrocinada aún no tiene hash: la nota vale igual', async () => {
 	await markDepositAttempt('ex-1', null)
-	expect(await readDepositSent('ex-1')).toEqual({ uuid: 'ex-1', txid: null, at: NOW, pending: true })
+	expect(await readDepositSent('ex-1')).toEqual({ uuid: 'ex-1', txid: null, at: NOW, pending: true, ref: null })
 })
 
 test('cuando la red lo acepta deja de estar pendiente', async () => {
@@ -81,7 +81,7 @@ test('lo que acota el fichero es el número de notas: se quedan las 100 más nue
 
 test('una nota del formato anterior (sin `pending`) se lee como enviada', async () => {
 	disk[KEY] = JSON.stringify({ 'ex-1': { txid: '0xabc', at: NOW - 1000 } })
-	expect(await readDepositSent('ex-1')).toEqual({ uuid: 'ex-1', txid: '0xabc', at: NOW - 1000, pending: false })
+	expect(await readDepositSent('ex-1')).toEqual({ uuid: 'ex-1', txid: '0xabc', at: NOW - 1000, pending: false, ref: null })
 })
 
 describe('disco que falla', () => {
@@ -107,5 +107,27 @@ describe('disco que falla', () => {
 		expect(await readDepositSent('ex-1')).toBeNull()
 		await markDepositAttempt('ex-1', '0xabc')
 		expect(await readDepositSent('ex-1')).toMatchObject({ txid: '0xabc' })
+	})
+})
+
+// Con ella se pregunta a la cadena por el envío cuando la pantalla que lo firmó ya no existe
+describe('referencia para preguntar después a la cadena', () => {
+	const REF = { kind: 'evm', chainKey: 'bsc', hash: `0x${'ab'.repeat(32)}`, from: `0x${'11'.repeat(20)}`, nonce: 7 }
+
+	test('la nota pendiente la guarda tal cual', async () => {
+		await markDepositAttempt('ex-1', REF.hash, REF)
+		expect(await readDepositSent('ex-1')).toEqual({ uuid: 'ex-1', txid: REF.hash, at: NOW, pending: true, ref: REF })
+		expect(JSON.parse(disk[KEY])['ex-1'].ref).toEqual(REF)
+	})
+
+	test('sin referencia no se escribe el campo', async () => {
+		await markDepositAttempt('ex-1', '0xabc')
+		expect('ref' in JSON.parse(disk[KEY])['ex-1']).toBe(false)
+	})
+
+	test('una vez que consta enviada, la referencia ya no hace falta', async () => {
+		await markDepositAttempt('ex-1', REF.hash, REF)
+		await markDepositSent('ex-1', REF.hash)
+		expect(await readDepositSent('ex-1')).toEqual({ uuid: 'ex-1', txid: REF.hash, at: NOW, pending: false, ref: null })
 	})
 })

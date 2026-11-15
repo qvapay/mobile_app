@@ -18,6 +18,10 @@
  * la difusión contesta (`markDepositSent`) y se borra solo si consta que NO entró ni
  * entrará (`clearDepositSent`). Un `pending` que nunca se aclara bloquea reenviar a ESA
  * orden; lo seguro entonces es abrir otro intercambio, no mandar dos veces al mismo depósito.
+ *
+ * Para que sí se pueda aclarar después, la nota pendiente guarda una REFERENCIA al envío
+ * (`ref`, ver `sentRef.ts`): con ella se pregunta a la cadena qué fue de él aunque la
+ * pantalla que lo firmó ya no exista (`settleDepositNote` en `depositGuard.ts`).
  */
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -31,10 +35,14 @@ const KEY = '@qpexchange:deposit'
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
 const MAX_NOTES = 100
 
-/** `pending`: salió hacia la red y aún no consta que entrara. `txid` null: patrocinada, sin hash hasta que el patrocinador firma. */
-export type SentDeposit = { uuid: string, txid: string | null, at: number, pending: boolean }
+/**
+ * `pending`: salió hacia la red y aún no consta que entrara. `txid` null: patrocinada, sin
+ * hash hasta que el patrocinador firma. `ref`: con qué preguntar a la cadena por él, tal
+ * como salió del disco (sin validar: quien lo use lo pasa por `parseSentRef`).
+ */
+export type SentDeposit = { uuid: string, txid: string | null, at: number, pending: boolean, ref: unknown }
 
-type Entry = { txid: string | null, at: number, pending?: boolean }
+type Entry = { txid: string | null, at: number, pending?: boolean, ref?: unknown }
 type Store = Record<string, Entry>
 
 const readStore = async ({ strict = false }: { strict?: boolean } = {}): Promise<Store> => {
@@ -59,12 +67,16 @@ const prune = (store: Store): Store => {
 	return Object.fromEntries(fresh.sort((a, b) => b[1].at - a[1].at).slice(0, MAX_NOTES))
 }
 
-/** El depósito va a salir hacia la red. No rebaja una nota que ya consta como enviada. */
-export const markDepositAttempt = async (uuid: string, txid: string | null): Promise<void> => {
+/**
+ * El depósito va a salir hacia la red. No rebaja una nota que ya consta como enviada.
+ *
+ * @param ref - Con qué preguntar después a la cadena por este envío (`sentRefOf`).
+ */
+export const markDepositAttempt = async (uuid: string, txid: string | null, ref: unknown = null): Promise<void> => {
 	if (!uuid) { return }
 	const store = prune(await readStore())
 	if (store[uuid] && !store[uuid].pending) { return }
-	store[uuid] = { txid: txid || null, at: Date.now(), pending: true }
+	store[uuid] = { txid: txid || null, at: Date.now(), pending: true, ...(ref ? { ref } : {}) }
 	await writeStore(prune(store))
 }
 
@@ -85,7 +97,7 @@ export const readDepositSent = async (uuid: string, { strict = false }: { strict
 	const entry = (await readStore({ strict }))[uuid]
 	if (!entry || typeof entry.at !== 'number') { return null }
 	if (Date.now() - entry.at > MAX_AGE_MS) { return null }
-	return { uuid, txid: entry.txid || null, at: entry.at, pending: entry.pending === true }
+	return { uuid, txid: entry.txid || null, at: entry.at, pending: entry.pending === true, ref: entry.ref ?? null }
 }
 
 /** La orden avanzó, o consta que el envío NO entró ni entrará. */

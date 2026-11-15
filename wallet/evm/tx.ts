@@ -19,6 +19,7 @@ import { signTransaction } from 'viem/accounts'
 import type { TransactionSerializable, TransactionSerialized } from 'viem'
 
 import { ChainHttpError, hexToBigInt, jsonRpc } from '../chains/http'
+import type { TxLookup } from '../chains/txLookup'
 import type { RegistryChain, RegistryRpc } from '../registry/types'
 
 const TRANSFER_SELECTOR = '0xa9059cbb'
@@ -293,4 +294,93 @@ export const broadcastEvmTransaction = async (rpc: RegistryRpc, signed: SignedEv
 		}
 		throw err
 	}
+}
+
+// ---------------------------------------------------------------------------
+// ¿Qué fue de una tx ya difundida?
+// ---------------------------------------------------------------------------
+
+/** Tiempo que debe llevar gastado el nonce de una tx para dar por buena su ausencia (como en TRON). */
+export const EVM_LOOKUP_MARGIN_S = 180n
+
+/**
+ * Ese margen, en bloques, no pasa de lo que un nodo completo guarda de estado (128 bloques,
+ * con algo de aire): en las redes rápidas se queda corto en tiempo (~45 s en BNB Chain,
+ * ~20 s en Base). Ni baja de `EVM_LOOKUP_MIN_DEPTH`.
+ */
+export const EVM_LOOKUP_MAX_DEPTH = 100n
+export const EVM_LOOKUP_MIN_DEPTH = 12n
+
+/** Lo que identifica una tx firmada ante la cadena: su hash, quién la firma y con qué nonce. */
+export type SentEvmTx = { hash: string, from: string, nonce: number }
+
+type EvmReceipt = { transactionHash?: unknown, blockNumber?: unknown, status?: unknown }
+type EvmBlockHead = { number?: string, timestamp?: string }
+
+/** El recibo de ESA tx, si el nodo lo tiene. `null`: no hay recibo. */
+const readEvmReceipt = async (rpc: RegistryRpc, hash: string, deps: Deps): Promise<TxLookup | null> => {
+	const receipt = await jsonRpc<EvmReceipt | null>(rpc.url, 'eth_getTransactionReceipt', [hash], rpcOpts(rpc, deps))
+	if (!receipt || typeof receipt !== 'object') return null
+	if (typeof receipt.transactionHash !== 'string' || receipt.transactionHash.toLowerCase() !== hash.toLowerCase()) return { status: 'unknown' }
+	// Con recibo, la tx está en un bloque: gastó su nonce y esa firma ya no vale. `0x0` =
+	// revirtió (no movió el importe); cualquier otra cosa se cuenta como ejecutada, que es
+	// el lado seguro: nunca invita a firmar otra
+	return receipt.status === '0x0' ? { status: 'dropped' } : { status: 'landed', txid: hash }
+}
+
+/** ¿Conoce el nodo esa tx (minada o en su mempool)? */
+const knowsEvmTransaction = async (rpc: RegistryRpc, hash: string, deps: Deps): Promise<boolean> => {
+	const found = await jsonRpc<{ hash?: unknown } | null>(rpc.url, 'eth_getTransactionByHash', [hash], rpcOpts(rpc, deps))
+	return !!found && typeof found === 'object' && typeof found.hash === 'string' && found.hash.toLowerCase() === hash.toLowerCase()
+}
+
+/**
+ * El bloque en el que se mira el nonce: el que queda `EVM_LOOKUP_MARGIN_S` por detrás de
+ * la punta, medido con las marcas de tiempo de la propia cadena (los bloques van de 12 s
+ * en Ethereum a 0,2 s en Base, y cambian). `null`: la cadena no da para medirlo.
+ */
+const evmLookupBlock = async (rpc: RegistryRpc, deps: Deps): Promise<bigint | null> => {
+	const latest = await jsonRpc<EvmBlockHead | null>(rpc.url, 'eth_getBlockByNumber', ['latest', false], rpcOpts(rpc, deps))
+	const head = hexToBigInt(latest?.number)
+	if (head <= EVM_LOOKUP_MAX_DEPTH) return null
+	const old = await jsonRpc<EvmBlockHead | null>(rpc.url, 'eth_getBlockByNumber', [`0x${(head - EVM_LOOKUP_MAX_DEPTH).toString(16)}`, false], rpcOpts(rpc, deps))
+	// Segundos que ocupan los últimos `EVM_LOOKUP_MAX_DEPTH` bloques
+	const span = hexToBigInt(latest?.timestamp) - hexToBigInt(old?.timestamp)
+	const wanted = span > 0n ? (EVM_LOOKUP_MARGIN_S * EVM_LOOKUP_MAX_DEPTH + span - 1n) / span : EVM_LOOKUP_MAX_DEPTH
+	const depth = wanted > EVM_LOOKUP_MAX_DEPTH ? EVM_LOOKUP_MAX_DEPTH : wanted < EVM_LOOKUP_MIN_DEPTH ? EVM_LOOKUP_MIN_DEPTH : wanted
+	return head - depth
+}
+
+/**
+ * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara?
+ *
+ * - **Con recibo:** se ejecutó (`landed`) o entró y revirtió (`dropped`).
+ * - **Sin recibo pero el nodo la conoce** (mempool): `landed`, lo mismo que una difusión
+ *   aceptada. Si luego no se mina, eso ya es seguimiento, no un segundo envío.
+ * - **Sin rastro:** una tx EVM no caduca, así que «no está» no prueba que no vaya a entrar…
+ *   salvo que su nonce lo haya gastado OTRA tx. Solo eso da `dropped`, y solo si el nonce
+ *   ya estaba gastado hace `EVM_LOOKUP_MARGIN_S` y, vuelta a buscar DESPUÉS de leerlo, la
+ *   tx sigue sin aparecer. El orden importa: si el nonce lo gastó ESTA tx, un nodo que ya
+ *   lo vio gastado la encuentra al buscarla después.
+ *
+ * Detrás de un balanceador, el nonce y la búsqueda por hash pueden contestarlos nodos
+ * distintos: para que uno rezagado diga «no está» de una tx que sí entró tendría que ir
+ * más de ese margen por detrás. Mitigación, no prueba (como `TRON_LOOKUP_MARGIN_MS`). Un
+ * nodo que ya podó el estado de esa altura lanza, y quien llama lo trata como `unknown`.
+ */
+export const lookupEvmTransaction = async (rpc: RegistryRpc, sent: SentEvmTx, deps: Deps = {}): Promise<TxLookup> => {
+	const receipt = await readEvmReceipt(rpc, sent.hash, deps)
+	if (receipt) return receipt
+	if (await knowsEvmTransaction(rpc, sent.hash, deps)) return { status: 'landed', txid: sent.hash }
+
+	const block = await evmLookupBlock(rpc, deps)
+	if (block === null) return { status: 'unknown' }
+	const spentBy = hexToBigInt(await jsonRpc<string>(rpc.url, 'eth_getTransactionCount', [sent.from, `0x${block.toString(16)}`], rpcOpts(rpc, deps)))
+	// El nonce sigue libre (o se gastó hace poco): la tx aún puede entrar, o acaba de hacerlo
+	if (spentBy <= BigInt(sent.nonce)) return { status: 'unknown' }
+
+	const again = await readEvmReceipt(rpc, sent.hash, deps)
+	if (again) return again
+	if (await knowsEvmTransaction(rpc, sent.hash, deps)) return { status: 'landed', txid: sent.hash }
+	return { status: 'dropped' }
 }

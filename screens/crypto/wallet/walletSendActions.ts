@@ -11,17 +11,18 @@ import { derivePrivateKey } from '../../../wallet/derive'
 import type { RegistryChain } from '../../../wallet/registry/types'
 import { broadcastTronTransaction, isValidTronAddress, lookupTronTransaction, prepareTronSend, signTronTransaction, tronTxId, TRON_TX_RPC } from '../../../wallet/tron/tx'
 import type { PreparedTronSend } from '../../../wallet/tron/tx'
-import { broadcastEvmTransaction, getEvmFeeData, isValidEvmAddress, NATIVE_TRANSFER_GAS, prepareEvmSend, signEvmTransaction } from '../../../wallet/evm/tx'
+import { broadcastEvmTransaction, getEvmFeeData, isValidEvmAddress, lookupEvmTransaction, NATIVE_TRANSFER_GAS, prepareEvmSend, signEvmTransaction } from '../../../wallet/evm/tx'
 import type { PreparedEvmSend, SignedEvmTx } from '../../../wallet/evm/tx'
-import { broadcastBtcTransaction, estimateVsize, feeFor, FEE_TIER_ETA_MINUTES, isValidBtcAddress, prepareBtcSend, signBtcTransaction } from '../../../wallet/btc/tx'
+import { broadcastBtcTransaction, estimateVsize, feeFor, FEE_TIER_ETA_MINUTES, isValidBtcAddress, lookupBtcTransaction, prepareBtcSend, signBtcTransaction } from '../../../wallet/btc/tx'
 import type { FeeTier, PreparedBtcSend, SignedBtcTx } from '../../../wallet/btc/tx'
-import { broadcastStacksTransaction, isValidStacksAddress, prepareStacksSend, signStacksTransaction } from '../../../wallet/stacks/tx'
+import { broadcastStacksTransaction, isValidStacksAddress, lookupStacksTransaction, prepareStacksSend, signStacksTransaction } from '../../../wallet/stacks/tx'
 import type { PreparedStacksSend, SignedStacksTx } from '../../../wallet/stacks/tx'
 import { broadcastSolanaTransaction, getSolanaRentExemptMinimum, lookupSolanaTransaction, lookupSponsoredSolanaTransaction, prepareSolanaSend, signSolanaTransaction } from '../../../wallet/solana/tx'
 import type { PreparedSolanaSend, SignedSolanaTx } from '../../../wallet/solana/tx'
-import { isValidSolanaAddress } from '../../../wallet/solana/codec'
+import { fromBase64, isValidSolanaAddress, toBase64 } from '../../../wallet/solana/codec'
 import type { WalletAsset } from '../../../wallet/assets'
 import type { TxLookup } from '../../../wallet/chains/txLookup'
+import type { SentRef } from './sentRef'
 
 /** Todas las familias del registry envían: TRON, EVM, Bitcoin, Stacks y Solana. */
 export const canSendAsset = (asset: Pick<WalletAsset, 'kind'>): boolean => ['tron', 'evm', 'btc', 'stacks', 'solana'].includes(asset.kind)
@@ -303,26 +304,74 @@ export const broadcastSigned = async (prepared: PreparedSend, signed: SignedSend
 }
 
 /**
- * ¿Entró un envío ya difundido? Solo TRON y Solana caducan, que es cuando el motor necesita
- * saberlo antes de construir otro; el resto se re-difunde siempre (`unknown`). Una patrocinada
- * de Solana también se consulta, aunque su id sea la firma del pagador de QvaPay (que la app
- * no tiene): se la reconoce por su mensaje en el historial del remitente.
+ * Lo que identifica ante la cadena un envío ya firmado, en una forma que cabe en disco
+ * (`SentRef`). null: no hay con qué preguntar por él (una patrocinada de Stacks cambia de
+ * id al co-firmarla; una firma de otra familia).
  */
-export const lookupSend = async (prepared: PreparedSend, signed: SignedSend): Promise<TxLookup> => {
+export const sentRefOf = (prepared: PreparedSend, signed: SignedSend): SentRef | null => {
+	const chainKey = prepared.intent.chainKey
+	if (prepared.kind === 'tron') return { kind: 'tron', chainKey, rawHex: prepared.inner.tx.raw_data_hex }
+	if (prepared.kind === 'solana' && signed.kind === 'solana') {
+		const { lastValidBlockHeight, blockhashSlot } = prepared.inner
+		// Su id es la firma del pagador, que la app no tiene: se la reconoce por su mensaje
+		if (prepared.inner.sponsored) return { kind: 'solana-sponsored', chainKey, owner: prepared.intent.from, message: toBase64(prepared.inner.messageBytes), lastValidBlockHeight, blockhashSlot }
+		return signed.signed.txid ? { kind: 'solana', chainKey, signature: signed.signed.txid, owner: prepared.intent.from, lastValidBlockHeight, blockhashSlot } : null
+	}
+	if (prepared.kind === 'evm' && signed.kind === 'evm') {
+		// Vale también para la patrocinada de BSC: es la misma tx, con el mismo hash y nonce
+		const nonce = prepared.inner.tx.nonce
+		return typeof nonce === 'number' ? { kind: 'evm', chainKey, hash: signed.signed.hash, from: prepared.intent.from, nonce } : null
+	}
+	if (prepared.kind === 'btc' && signed.kind === 'btc') {
+		return { kind: 'btc', chainKey, txid: signed.signed.txid, inputs: prepared.inner.selection.inputs.map(({ txid, vout }) => ({ txid, vout })) }
+	}
+	if (prepared.kind === 'stacks' && signed.kind === 'stacks' && !prepared.inner.sponsored) {
+		return { kind: 'stacks', chainKey, txid: signed.signed.txid, from: prepared.intent.from, nonce: prepared.inner.nonce.toString() }
+	}
+	return null
+}
+
+/**
+ * ¿Entró ese envío? Se pregunta a la cadena en todas las familias.
+ *
+ * TRON y Solana caducan: pasada su vigencia sin estar en un bloque, ya no entrarán. EVM,
+ * Bitcoin y Stacks no caducan, así que ahí «no está» nunca basta para `dropped`: hace falta
+ * que otra tx haya gastado su nonce o sus inputs (ver el `lookup` de cada una). Una
+ * patrocinada de Solana también se consulta, aunque su id sea la firma del pagador de
+ * QvaPay (que la app no tiene): se la reconoce por su mensaje en el historial del remitente.
+ */
+export const lookupSentRef = async (ref: SentRef): Promise<TxLookup> => {
 	const router = getAppRpcRouter()
-	if (prepared.kind === 'tron') {
-		return router.call(prepared.intent.chainKey, (rpc, signal) => lookupTronTransaction(rpc, prepared.inner.tx.raw_data_hex, { signal }), { accept: TRON_TX_RPC, idempotent: true })
+	switch (ref.kind) {
+		case 'tron':
+			return router.call(ref.chainKey, (rpc, signal) => lookupTronTransaction(rpc, ref.rawHex, { signal }), { accept: TRON_TX_RPC, idempotent: true })
+		case 'solana': {
+			const sent = { signature: ref.signature, owner: ref.owner, lastValidBlockHeight: ref.lastValidBlockHeight, blockhashSlot: ref.blockhashSlot }
+			return router.call(ref.chainKey, (rpc, signal) => lookupSolanaTransaction(rpc, sent, signal), { idempotent: true })
+		}
+		case 'solana-sponsored': {
+			const sent = { owner: ref.owner, messageBytes: fromBase64(ref.message), lastValidBlockHeight: ref.lastValidBlockHeight, blockhashSlot: ref.blockhashSlot }
+			return router.call(ref.chainKey, (rpc, signal) => lookupSponsoredSolanaTransaction(rpc, sent, signal), { idempotent: true })
+		}
+		case 'evm': {
+			const sent = { hash: ref.hash, from: ref.from, nonce: ref.nonce }
+			return router.call(ref.chainKey, (rpc, signal) => lookupEvmTransaction(rpc, sent, { signal }), { idempotent: true })
+		}
+		case 'btc': {
+			const sent = { txid: ref.txid, inputs: ref.inputs }
+			return router.call(ref.chainKey, (rpc, signal) => lookupBtcTransaction(rpc, sent, { signal }), { idempotent: true })
+		}
+		case 'stacks': {
+			const sent = { txid: ref.txid, from: ref.from, nonce: BigInt(ref.nonce) }
+			return router.call(ref.chainKey, (rpc, signal) => lookupStacksTransaction(rpc, sent, { signal }), { idempotent: true })
+		}
+		default:
+			return { status: 'unknown' }
 	}
-	if (prepared.kind === 'solana' && signed.kind === 'solana' && !prepared.inner.sponsored && signed.signed.txid) {
-		const signature = signed.signed.txid
-		const sent = { signature, owner: prepared.intent.from, lastValidBlockHeight: prepared.inner.lastValidBlockHeight, blockhashSlot: prepared.inner.blockhashSlot }
-		return router.call(prepared.intent.chainKey, (rpc, signal) => lookupSolanaTransaction(rpc, sent, signal), { idempotent: true })
-	}
-	if (prepared.kind === 'solana' && prepared.inner.sponsored) {
-		// Su id es la firma del pagador, que la app no tiene: se la busca en el historial del
-		// remitente por el mensaje exacto que firmó
-		const sent = { owner: prepared.intent.from, messageBytes: prepared.inner.messageBytes, lastValidBlockHeight: prepared.inner.lastValidBlockHeight, blockhashSlot: prepared.inner.blockhashSlot }
-		return router.call(prepared.intent.chainKey, (rpc, signal) => lookupSponsoredSolanaTransaction(rpc, sent, signal), { idempotent: true })
-	}
-	return { status: 'unknown' }
+}
+
+/** ¿Entró un envío ya difundido? Lo que no se puede preguntar contesta `unknown`. */
+export const lookupSend = async (prepared: PreparedSend, signed: SignedSend): Promise<TxLookup> => {
+	const ref = sentRefOf(prepared, signed)
+	return ref ? lookupSentRef(ref) : { status: 'unknown' }
 }

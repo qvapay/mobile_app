@@ -16,6 +16,7 @@
 import { ChainHttpError, postJson } from '../chains/http'
 import { parseTronAccount, tronPowerSun, tronToHex20, tronVotesUsed } from '../chains/tron'
 import type { TronAccountState } from '../chains/tron'
+import type { TxLookup } from '../chains/txLookup'
 import type { RegistryRpc } from '../registry/types'
 import type { StakeBroadcastResult, StakeIntent, StakeNotice, StakePosition, StakeSummary, StakeTxAdapter } from '../staking/types'
 import { TRON_ACTIVE_SRS, tronVoteApr } from '../staking/apy'
@@ -28,6 +29,7 @@ import {
 	getTronChainParams,
 	getTronResources,
 	isValidTronAddress,
+	lookupTronTransaction,
 	SIGNATURE_OVERHEAD_BYTES,
 	signTronTransaction,
 	SUN_PER_TRX,
@@ -518,6 +520,16 @@ export const tronStakeAdapter: StakeTxAdapter<PreparedTronStake, SignedTronStake
 	},
 	broadcast(rpc, inner, signed, { signal }) {
 		return broadcastTronStake(rpc, inner, signed, { signal })
+	},
+	async lookup(rpc, inner, _signed, { signal }) {
+		const [first, second] = inner.txs
+		if (!first) return { status: 'unknown' }
+		const outcome = await lookupTronTransaction(rpc, first.tx.raw_data_hex, { signal })
+		if (outcome.status !== 'landed' || !second) return outcome
+		// `stake` son dos tx: el congelado entró. Si del voto no consta que también, se dice
+		// (el dinero está congelado y sin votar; la pantalla de éxito ofrece votar)
+		const vote = await lookupTronTransaction(rpc, second.tx.raw_data_hex, { signal }).catch((): TxLookup => ({ status: 'unknown' }))
+		return vote.status === 'landed' ? outcome : { ...outcome, note: 'votePending' }
 	},
 	async entryMinimum() {
 		// La red no deja congelar menos de 1 TRX

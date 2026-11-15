@@ -21,6 +21,7 @@ import { useExchangeOrderQuery } from './exchangeQueries'
 import { depositAmountLabel, depositViewFor, deviationBps, isDeviationNotable, isLive, phaseOf, stepsFor } from './exchangeModel'
 import { useFocusEffect } from '@react-navigation/native'
 import { clearDepositSent, readDepositSent } from './exchangeDeposit'
+import { settleDepositNote } from './depositGuard'
 import type { ExchangePhase } from './exchangeModel'
 
 // UI
@@ -109,10 +110,17 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 	// vieja y seguía ofreciendo «Enviar ahora» justo después de enviar
 	useFocusEffect(useCallback(() => {
 		let cancelled = false
-		readDepositSent(uuid).then(found => {
+		readDepositSent(uuid).then(async found => {
 			if (cancelled || !found) { return }
 			setNoted(true)
 			if (found.txid) { setSent(previous => previous ?? found.txid) }
+			// Un «quizá salió» (la difusión no contestó) se aclara con la cadena: si entró,
+			// queda con su hash; si consta que ya no entrará, la nota se va y vuelve «Enviar ahora»
+			if (!found.pending) { return }
+			const settled = await settleDepositNote(found).catch(() => found)
+			if (cancelled) { return }
+			if (!settled) { setNoted(false); setSent(null); return }
+			if (settled.txid) { setSent(settled.txid) }
 		})
 		return () => { cancelled = true }
 	}, [uuid]))

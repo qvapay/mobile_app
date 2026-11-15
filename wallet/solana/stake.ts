@@ -49,6 +49,7 @@ import {
 	broadcastSolanaTransaction,
 	getSolanaRentExemptMinimum,
 	LAMPORTS_PER_SIGNATURE,
+	lookupSolanaTransaction,
 	MAX_PRIORITY_MICROLAMPORTS,
 	priorityFeeFrom,
 	signSolanaMessageAs,
@@ -333,6 +334,10 @@ export type PreparedSolanaStake = {
 	message: SolanaMessage
 	messageBytes: Uint8Array
 	recentBlockhash: string
+	/** Altura hasta la que el blockhash vale: la referencia de la CADENA para saber si la tx caducó. */
+	lastValidBlockHeight: number
+	/** Slot en que se leyó el blockhash: la tx no puede haber entrado antes. null = no se sabe. */
+	blockhashSlot: number | null
 	feeLamports: bigint
 	computeUnitPrice: bigint
 	computeUnitLimit: number
@@ -375,7 +380,7 @@ export const prepareSolanaStake = async (rpc: Rpc, intent: SolanaStakeIntent, de
 	if (!isValidSolanaAddress(owner)) throw invalid('dirección propia inválida')
 
 	const [latest, fees, info, slotMs] = await Promise.all([
-		rpcCall<{ value: { blockhash: string } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], signal),
+		rpcCall<{ context?: { slot?: number }, value: { blockhash: string, lastValidBlockHeight?: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], signal),
 		rpcCall<Array<{ prioritizationFee?: number }>>(rpc, 'getRecentPrioritizationFees', [], signal).catch(() => []),
 		getEpochInfo(rpc, { signal }),
 		getSlotMs(rpc, { signal }),
@@ -439,6 +444,7 @@ export const prepareSolanaStake = async (rpc: Rpc, intent: SolanaStakeIntent, de
 	const message = compileMessage(owner, instructions, latest.value.blockhash)
 	const feeLamports = LAMPORTS_PER_SIGNATURE * BigInt(message.numRequiredSignatures) + (computeUnitPrice > 0n ? priorityLamports(computeUnitPrice, limit) : 0n)
 	const at = now()
+	const validUntil = typeof latest.value.lastValidBlockHeight === 'number' ? latest.value.lastValidBlockHeight : null
 
 	return {
 		intent,
@@ -449,6 +455,10 @@ export const prepareSolanaStake = async (rpc: Rpc, intent: SolanaStakeIntent, de
 		message,
 		messageBytes: serializeMessage(message),
 		recentBlockhash: latest.value.blockhash,
+		// Sin altura de caducidad no hay con qué probar que la tx ya no entrará: el slot a
+		// null hace que `lookup` conteste `unknown` (nunca `dropped`)
+		lastValidBlockHeight: validUntil ?? 0,
+		blockhashSlot: validUntil !== null && typeof latest.context?.slot === 'number' ? latest.context.slot : null,
 		feeLamports,
 		computeUnitPrice,
 		computeUnitLimit: limit,
@@ -624,6 +634,11 @@ export const solanaStakeAdapter: StakeTxAdapter<PreparedSolanaStake, SignedSolan
 	},
 	broadcast(rpc, _inner, signed, { signal }) {
 		return broadcastSolanaTransaction(rpc, signed, { signal })
+	},
+	async lookup(rpc, inner, signed, { signal }) {
+		if (!signed.txid) return { status: 'unknown' }
+		const sent = { signature: signed.txid, owner: inner.intent.owner, lastValidBlockHeight: inner.lastValidBlockHeight, blockhashSlot: inner.blockhashSlot }
+		return lookupSolanaTransaction(rpc, sent, signal)
 	},
 	entryMinimum(rpc, { signal }) {
 		return getSolanaStakeMinimum(rpc, signal)

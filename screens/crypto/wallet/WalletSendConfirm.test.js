@@ -344,10 +344,11 @@ describe('depósito de un intercambio', () => {
 		expect(navigation.popTo).not.toHaveBeenCalled()
 	})
 
-	test('la nota se escribe en cuanto la firma va a salir, con su hash, y se retira si consta que no entró', async () => {
+	test('la nota se escribe en cuanto la firma va a salir, con su hash y con qué preguntar después a la cadena, y se retira si consta que no entró', async () => {
 		await render(BOB, { exchangeUuid: 'ex-1' })
-		await engineArgs().onAttempt('0xhash')
-		expect(markDepositAttempt).toHaveBeenCalledWith('ex-1', '0xhash')
+		const ref = { kind: 'evm', chainKey: 'bsc', hash: '0xhash', from: '0xFROM', nonce: 7 }
+		await engineArgs().onAttempt('0xhash', ref)
+		expect(markDepositAttempt).toHaveBeenCalledWith('ex-1', '0xhash', ref)
 		engineArgs().onDropped()
 		expect(clearDepositSent).toHaveBeenCalledWith('ex-1')
 	})

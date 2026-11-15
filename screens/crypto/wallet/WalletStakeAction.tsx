@@ -22,7 +22,7 @@ import type { RegistryStakeTarget } from '../../../wallet/registry/types'
 import { useWalletAssets } from './walletQueries'
 import { useInvalidateStaking, useStakingConfig, useStakingSnapshot, useTargetApys } from './stakingQueries'
 import { TRX_MAX_RESERVE_SUN } from './walletSendActions'
-import { broadcastStake, estimateStakeMinimum, estimateStakeReserve, prepareStake, signStake, StakeUnsupportedError } from './walletStakeActions'
+import { broadcastStake, estimateStakeMinimum, estimateStakeReserve, lookupStake, prepareStake, signStake, StakeUnsupportedError } from './walletStakeActions'
 import type { PreparedStake, SignedStake, StakeIntent } from './walletStakeActions'
 import { maxStakeUnits, validateStakeForm } from './stakeFormModel'
 import type { StakeFormError } from './stakeFormModel'
@@ -225,6 +225,9 @@ const WalletStakeAction = ({ navigation, route }: Props) => {
 		submit: broadcastStake,
 		onSent,
 		describeError,
+		// Antes de construir otra tx tras una difusión sin respuesta: ¿entró la anterior?
+		// Sin esto, quien salía de un «no pudimos confirmar» y repetía hacía el staking dos veces
+		lookup: lookupStake,
 	})
 	const { phase, prepared, error, busy } = tx
 

@@ -1,5 +1,5 @@
 /**
- * Qué fue de una tx difundida sin respuesta clara, en TRON y Solana. Solo `dropped` deja
+ * Qué fue de una tx difundida sin respuesta clara, en las cinco familias. Solo `dropped` deja
  * firmar otra: si se devolviera de más, el usuario pagaría dos veces.
  * @jest-environment node
  */
@@ -7,6 +7,10 @@ import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex, encodeVarintField } from '../tron/protobuf'
 import { lookupTronTransaction, TRON_LOOKUP_MARGIN_MS } from '../tron/tx'
 import { lookupSolanaTransaction, lookupSponsoredSolanaTransaction } from '../solana/tx'
+import { EVM_LOOKUP_MAX_DEPTH, EVM_LOOKUP_MIN_DEPTH, lookupEvmTransaction } from '../evm/tx'
+import { BTC_LOOKUP_CONFIRMATIONS, lookupBtcTransaction } from '../btc/tx'
+import { lookupStacksTransaction } from '../stacks/tx'
+import { isDataUnavailable, isRetryableRpcError } from '../registry/rpcRouter'
 import { toBase64 } from '../solana/codec'
 
 const RPC = { url: 'https://node.example', api: 'trongrid', owner: 'test', priority: 1 }
@@ -276,5 +280,268 @@ describe('lookupSponsoredSolanaTransaction', () => {
 	test('un nodo rezagado no puede contestar el historial: error (el router rota), nunca «no está»', async () => {
 		mockRpc({ historyNodeSlot: POST_EXPIRY_SLOT - 50 })
 		await expect(lookup()).rejects.toThrow()
+	})
+})
+
+// Una tx EVM no caduca: «no está» solo vale si OTRA tx gastó su nonce, y hace tiempo
+describe('lookupEvmTransaction', () => {
+	const NODE = { url: 'https://evm.example', owner: 'test', priority: 1 }
+	const HASH = `0x${'ab'.repeat(32)}`
+	const FROM = '0x9858EfFD232B4033E47d90003D41EC34EcaEda94'
+	const SENT = { hash: HASH, from: FROM, nonce: 7 }
+	const HEAD = 5_000_000n
+	const hex = (value) => `0x${BigInt(value).toString(16)}`
+
+	let calls
+	/** Cada método contesta con su lista de respuestas, una por llamada (la última se repite). */
+	const mockNode = (answers) => {
+		calls = []
+		const seen = {}
+		global.fetch = jest.fn(async (_url, init) => {
+			const { method, params } = JSON.parse(init.body)
+			calls.push([method, ...params])
+			const list = answers[method] ?? [null]
+			const index = Math.min(seen[method] ?? 0, list.length - 1)
+			seen[method] = (seen[method] ?? 0) + 1
+			const answer = list[index]
+			if (answer instanceof Error) return { ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id: 1, error: { code: -32000, message: answer.message } }) }
+			return { ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id: 1, result: answer }) }
+		})
+	}
+	const receipt = (status, hash = HASH) => ({ transactionHash: hash, blockNumber: '0x4c4b3f', status })
+	/** La punta y el bloque de `EVM_LOOKUP_MAX_DEPTH` atrás, separados por `span` segundos. */
+	const blocks = (span) => [{ number: hex(HEAD), timestamp: hex(1_800_000_000) }, { timestamp: hex(1_800_000_000 - span) }]
+	// Ethereum: 12 s por bloque → 3 min son 15 bloques
+	const ETHEREUM = blocks(1200)
+
+	test('con recibo y status 0x1 → landed', async () => {
+		mockNode({ eth_getTransactionReceipt: [receipt('0x1')] })
+		await expect(lookupEvmTransaction(NODE, SENT)).resolves.toEqual({ status: 'landed', txid: HASH })
+		expect(calls).toEqual([['eth_getTransactionReceipt', HASH]])
+	})
+
+	test('con recibo y status 0x0 (revirtió) → dropped: gastó su nonce y no movió el importe', async () => {
+		mockNode({ eth_getTransactionReceipt: [receipt('0x0')] })
+		await expect(lookupEvmTransaction(NODE, SENT)).resolves.toEqual({ status: 'dropped' })
+	})
+
+	test('un recibo de OTRA tx no dice nada → unknown', async () => {
+		mockNode({ eth_getTransactionReceipt: [receipt('0x1', `0x${'cd'.repeat(32)}`)] })
+		await expect(lookupEvmTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('sin recibo pero el nodo la conoce (mempool) → landed, como una difusión aceptada', async () => {
+		mockNode({ eth_getTransactionReceipt: [null], eth_getTransactionByHash: [{ hash: HASH, blockNumber: null }] })
+		await expect(lookupEvmTransaction(NODE, SENT)).resolves.toEqual({ status: 'landed', txid: HASH })
+		expect(calls.map(c => c[0])).toEqual(['eth_getTransactionReceipt', 'eth_getTransactionByHash'])
+	})
+
+	test('sin rastro y el nonce sigue libre → unknown: una tx EVM no caduca y aún puede entrar', async () => {
+		mockNode({ eth_getBlockByNumber: ETHEREUM, eth_getTransactionCount: [hex(7)] })
+		await expect(lookupEvmTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+		// Sin nonce gastado no se vuelve a buscar
+		expect(calls.map(c => c[0])).toEqual(['eth_getTransactionReceipt', 'eth_getTransactionByHash', 'eth_getBlockByNumber', 'eth_getBlockByNumber', 'eth_getTransactionCount'])
+	})
+
+	test('sin rastro y OTRA tx gastó su nonce hace ya 3 min → dropped, tras volver a buscarla', async () => {
+		mockNode({ eth_getBlockByNumber: ETHEREUM, eth_getTransactionCount: [hex(8)] })
+		await expect(lookupEvmTransaction(NODE, SENT)).resolves.toEqual({ status: 'dropped' })
+		// El nonce se mira 3 min atrás (15 bloques de 12 s), no en `latest`, y la tx se busca otra vez DESPUÉS
+		expect(calls).toEqual([
+			['eth_getTransactionReceipt', HASH],
+			['eth_getTransactionByHash', HASH],
+			['eth_getBlockByNumber', 'latest', false],
+			['eth_getBlockByNumber', hex(HEAD - EVM_LOOKUP_MAX_DEPTH), false],
+			['eth_getTransactionCount', FROM, hex(HEAD - 15n)],
+			['eth_getTransactionReceipt', HASH],
+			['eth_getTransactionByHash', HASH],
+		])
+	})
+
+	// Los bloques van de 12 s (Ethereum) a 0,2 s (Base): el margen se mide con la propia cadena
+	test.each([
+		['red rápida (100 bloques en 20 s): se queda en el tope que guarda un nodo completo', 20, EVM_LOOKUP_MAX_DEPTH],
+		['bloques de 2 s: 3 min son 90 bloques', 200, 90n],
+		['red lenta (bloques de 1 min): nunca menos del mínimo', 6000, EVM_LOOKUP_MIN_DEPTH],
+		['marcas de tiempo iguales o al revés: el tope', 0, EVM_LOOKUP_MAX_DEPTH],
+	])('%s', async (_name, span, depth) => {
+		mockNode({ eth_getBlockByNumber: blocks(span), eth_getTransactionCount: [hex(7)] })
+		await lookupEvmTransaction(NODE, SENT)
+		expect(calls.find(c => c[0] === 'eth_getTransactionCount')).toEqual(['eth_getTransactionCount', FROM, hex(HEAD - depth)])
+	})
+
+	// Detrás de un balanceador, la primera búsqueda pudo contestarla un nodo rezagado
+	test('si al volver a buscarla aparece, es que fue ELLA la que gastó el nonce → landed', async () => {
+		mockNode({ eth_getTransactionReceipt: [null, receipt('0x1')], eth_getBlockByNumber: ETHEREUM, eth_getTransactionCount: [hex(8)] })
+		await expect(lookupEvmTransaction(NODE, SENT)).resolves.toEqual({ status: 'landed', txid: HASH })
+	})
+
+	test('…o aparece en el mempool en la segunda vuelta → landed', async () => {
+		mockNode({ eth_getTransactionByHash: [null, { hash: HASH }], eth_getBlockByNumber: ETHEREUM, eth_getTransactionCount: [hex(8)] })
+		await expect(lookupEvmTransaction(NODE, SENT)).resolves.toEqual({ status: 'landed', txid: HASH })
+	})
+
+	test('una cadena recién nacida (menos bloques que el margen) → unknown', async () => {
+		mockNode({ eth_getBlockByNumber: [{ number: hex(EVM_LOOKUP_MAX_DEPTH), timestamp: hex(1_800_000_000) }] })
+		await expect(lookupEvmTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('un nodo que ya podó el estado de esa altura lanza, y el router rota sin darlo por caído', async () => {
+		mockNode({ eth_getBlockByNumber: ETHEREUM, eth_getTransactionCount: [new Error('missing trie node 9f3c (path ) state 0x9f3c is not available')] })
+		const error = await lookupEvmTransaction(NODE, SENT).catch(err => err)
+		expect(error).toBeInstanceOf(Error)
+		expect(isRetryableRpcError(error)).toBe(true)
+		expect(isDataUnavailable(error)).toBe(true)
+	})
+})
+
+// Una tx de Bitcoin tampoco caduca: «no está» solo vale si otra tx gastó uno de sus inputs
+describe('lookupBtcTransaction', () => {
+	const NODE = { url: 'https://esplora.example/api', api: 'esplora', owner: 'test', priority: 1 }
+	const TXID = 'ab'.repeat(32)
+	const OTHER = 'cd'.repeat(32)
+	const INPUTS = [{ txid: '11'.repeat(32), vout: 0 }, { txid: '22'.repeat(32), vout: 3 }]
+	const SENT = { txid: TXID, inputs: INPUTS }
+	const TIP = 900_000
+
+	let paths
+	const mockNode = ({ tx, outspends = {}, status = 404 }) => {
+		paths = []
+		global.fetch = jest.fn(async (url) => {
+			const path = new URL(url).pathname.replace('/api', '')
+			paths.push(path)
+			if (path === `/tx/${TXID}`) {
+				if (tx) return { ok: true, status: 200, json: async () => tx }
+				return { ok: false, status, json: async () => { throw new Error('texto plano') }, text: async () => 'Transaction not found' }
+			}
+			if (path === '/blocks/tip/height') return { ok: true, status: 200, json: async () => TIP }
+			const match = path.match(/^\/tx\/([0-9a-f]{64})\/outspend\/(\d+)$/)
+			if (match) return { ok: true, status: 200, json: async () => outspends[`${match[1]}:${match[2]}`] ?? { spent: false } }
+			return { ok: false, status: 404, json: async () => ({}) }
+		})
+	}
+	const spentBy = (txid, confirmations) => ({ spent: true, txid, vin: 0, status: confirmations > 0 ? { confirmed: true, block_height: TIP - confirmations + 1 } : { confirmed: false } })
+
+	test('el nodo la conoce (mempool o bloque) → landed', async () => {
+		mockNode({ tx: { txid: TXID, status: { confirmed: false } } })
+		await expect(lookupBtcTransaction(NODE, SENT)).resolves.toEqual({ status: 'landed', txid: TXID })
+		expect(paths).toEqual([`/tx/${TXID}`])
+	})
+
+	// `/tx/:txid/status` contesta 200 {"confirmed":false} también a una tx que no existe
+	test('nunca usa /status, que no distingue una tx en mempool de una que no existe', async () => {
+		mockNode({})
+		await lookupBtcTransaction(NODE, SENT)
+		expect(paths.some(path => path.endsWith('/status'))).toBe(false)
+	})
+
+	test('una respuesta que no es esa tx → unknown', async () => {
+		mockNode({ tx: { txid: OTHER } })
+		await expect(lookupBtcTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('no está y sus inputs siguen sin gastar → unknown: aún puede entrar', async () => {
+		mockNode({})
+		await expect(lookupBtcTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+		expect(paths).toEqual([`/tx/${TXID}`, '/blocks/tip/height', `/tx/${INPUTS[0].txid}/outspend/0`, `/tx/${INPUTS[1].txid}/outspend/3`])
+	})
+
+	test('no está y OTRA tx gastó un input con las confirmaciones exigidas → dropped', async () => {
+		mockNode({ outspends: { [`${INPUTS[1].txid}:3`]: spentBy(OTHER, BTC_LOOKUP_CONFIRMATIONS) } })
+		await expect(lookupBtcTransaction(NODE, SENT)).resolves.toEqual({ status: 'dropped' })
+	})
+
+	test('…con una confirmación de menos, o solo en mempool, no decide → unknown', async () => {
+		mockNode({ outspends: { [`${INPUTS[0].txid}:0`]: spentBy(OTHER, BTC_LOOKUP_CONFIRMATIONS - 1) } })
+		await expect(lookupBtcTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+		mockNode({ outspends: { [`${INPUTS[0].txid}:0`]: spentBy(OTHER, 0) } })
+		await expect(lookupBtcTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('el índice de gastos dice que el input lo gastó ESTA tx → landed', async () => {
+		mockNode({ outspends: { [`${INPUTS[0].txid}:0`]: spentBy(TXID, 1) } })
+		await expect(lookupBtcTransaction(NODE, SENT)).resolves.toEqual({ status: 'landed', txid: TXID })
+	})
+
+	test('un fallo del nodo no es «no está»: lanza y el router rota', async () => {
+		mockNode({ status: 503 })
+		const error = await lookupBtcTransaction(NODE, SENT).catch(err => err)
+		expect(isRetryableRpcError(error)).toBe(true)
+	})
+})
+
+// Hiro da `dropped_*` de forma transitoria: lo que decide es qué tx lleva ese nonce en un bloque
+describe('lookupStacksTransaction', () => {
+	const NODE = { url: 'https://hiro.example', api: 'hiro', owner: 'test', priority: 1 }
+	const TXID = 'ab'.repeat(32)
+	const OTHER = `0x${'cd'.repeat(32)}`
+	const FROM = 'SP3XXK8BG5X7CRH7W07RRJK3JZJXJ799WX3Y0SMCR'
+	const SENT = { txid: TXID, from: FROM, nonce: 12n }
+
+	let paths
+	const mockNode = ({ tx, history = [], status = 404 }) => {
+		paths = []
+		global.fetch = jest.fn(async (url) => {
+			const { pathname } = new URL(url)
+			paths.push(pathname)
+			if (pathname === `/extended/v1/tx/0x${TXID}`) {
+				if (tx) return { ok: true, status: 200, json: async () => tx }
+				return { ok: false, status, json: async () => ({ statusCode: status, error: 'Not Found', message: 'could not find transaction by ID' }) }
+			}
+			if (pathname === `/extended/v2/addresses/${FROM}/transactions`) return { ok: true, status: 200, json: async () => ({ results: history.map(row => ({ tx: row })) }) }
+			return { ok: false, status: 404, json: async () => ({}) }
+		})
+	}
+	const mined = (over = {}) => ({ tx_id: `0x${TXID}`, tx_status: 'success', canonical: true, block_height: 9_487_645, nonce: 12, sender_address: FROM, ...over })
+
+	test('por id y con éxito → landed (sin mirar el historial)', async () => {
+		mockNode({ tx: mined() })
+		await expect(lookupStacksTransaction(NODE, SENT)).resolves.toEqual({ status: 'landed', txid: TXID })
+		expect(paths).toEqual([`/extended/v1/tx/0x${TXID}`])
+	})
+
+	test('en el mempool → landed, como una difusión aceptada', async () => {
+		mockNode({ tx: mined({ tx_status: 'pending', block_height: undefined }) })
+		await expect(lookupStacksTransaction(NODE, SENT)).resolves.toEqual({ status: 'landed', txid: TXID })
+	})
+
+	test.each(['abort_by_response', 'abort_by_post_condition'])('entró y falló (%s) → dropped: gastó su nonce y no movió el importe', async (status) => {
+		mockNode({ tx: mined({ tx_status: status }) })
+		await expect(lookupStacksTransaction(NODE, SENT)).resolves.toEqual({ status: 'dropped' })
+	})
+
+	test('`dropped_*` de Hiro NO decide: sin otra tx con ese nonce en un bloque → unknown', async () => {
+		mockNode({ tx: mined({ tx_status: 'dropped_replace_by_fee', block_height: undefined }) })
+		await expect(lookupStacksTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+		expect(paths).toEqual([`/extended/v1/tx/0x${TXID}`, `/extended/v2/addresses/${FROM}/transactions`])
+	})
+
+	test('no está, y OTRA tx del remitente con ese nonce ya está en un bloque → dropped', async () => {
+		mockNode({ history: [mined({ tx_id: OTHER })] })
+		await expect(lookupStacksTransaction(NODE, SENT)).resolves.toEqual({ status: 'dropped' })
+	})
+
+	test('no está por id, pero el historial la enseña minada → landed', async () => {
+		mockNode({ history: [mined({ nonce: 13, tx_id: OTHER }), mined()] })
+		await expect(lookupStacksTransaction(NODE, SENT)).resolves.toEqual({ status: 'landed', txid: TXID })
+	})
+
+	test('otra tx con ese nonce que aún no está en un bloque, o fuera de la cadena canónica, no decide', async () => {
+		mockNode({ history: [mined({ tx_id: OTHER, tx_status: 'pending', block_height: undefined })] })
+		await expect(lookupStacksTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+		mockNode({ history: [mined({ tx_id: OTHER, canonical: false })] })
+		await expect(lookupStacksTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+	})
+
+	// El historial de una dirección trae también lo que RECIBE: el nonce de otro remitente no cuenta
+	test('una tx de OTRO remitente con el mismo nonce no cuenta', async () => {
+		mockNode({ history: [mined({ tx_id: OTHER, sender_address: 'SP3SBQ9PZEMBNBAWTR7FRPE3XK0EFW9JWVX4G80S2' })] })
+		await expect(lookupStacksTransaction(NODE, SENT)).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('un fallo del nodo no es «no está»: lanza y el router rota', async () => {
+		mockNode({ status: 502 })
+		const error = await lookupStacksTransaction(NODE, SENT).catch(err => err)
+		expect(isRetryableRpcError(error)).toBe(true)
 	})
 })

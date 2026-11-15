@@ -260,6 +260,103 @@ test('sin vigencia (EVM, Bitcoin), "Reintentar" re-difunde la MISMA tx', async (
 	unmount()
 })
 
+// EVM, Bitcoin y Stacks no caducan: lo que deja una firma sin valor es que su nonce o sus
+// inputs ya estén gastados. Y eso pudo hacerlo ella misma en un intento sin respuesta
+describe('la red dice que lo que la tx gasta ya está gastado', () => {
+	const SPENT = () => new ChainHttpError('https://bsc: eth_sendRawTransaction → nonce too low: next nonce 8, tx nonce 7', { retryable: false })
+
+	test('fue ESTA tx en un intento anterior sin respuesta: consta como enviada, una vez', async () => {
+		const chain = makeChain({ expires: false })
+		let first = true
+		const submit = jest.fn(async (_prepared, signed) => {
+			// El primer intento entra y la respuesta se pierde; al reintentar, un nodo que no la
+			// encuentra por su hash contesta «nonce too low»
+			if (first) { first = false; chain.execute(signed.txid); throw new Error('Network request failed') }
+			throw SPENT()
+		})
+		const args = baseArgs(chain, submit)
+		const { out, unmount } = mount(args)
+		await settle()
+		await confirm(out)
+		await retry(out)
+
+		expect(chain.built).toBe(1)
+		expectSentOnce(args.onSent, 'tx-1', true)
+		expect(out.tx.phase).toBe('sent')
+		unmount()
+	})
+
+	test('lo gastó OTRA tx: la cadena lo confirma, se construye otra y hay que volver a autorizarla', async () => {
+		const chain = makeChain({ expires: false })
+		chain.dropped.add('tx-1')
+		const submit = jest.fn(async (_prepared, signed) => {
+			if (signed.txid === 'tx-1') throw SPENT()
+			chain.execute(signed.txid)
+			return { txid: signed.txid, duplicate: false }
+		})
+		const args = baseArgs(chain, submit)
+		const { out, unmount } = mount(args)
+		await settle()
+		await confirm(out)
+		await settle()
+
+		// No se re-difunde la firma muerta ni se envía nada sin otro PIN
+		expect(chain.built).toBe(2)
+		expect(out.tx.phase).toBe('ready')
+		expect(out.tx.prepared.id).toBe('tx-2')
+		expect(args.onSent).not.toHaveBeenCalled()
+
+		await confirm(out)
+		expect(chain.executed).toEqual(['tx-2'])
+		expectSentOnce(args.onSent, 'tx-2', false)
+		unmount()
+	})
+
+	test('la cadena aún no lo sabe: no se firma otra, y «Reintentar» vuelve a preguntar en vez de re-difundir', async () => {
+		const chain = makeChain({ expires: false })
+		const lookup = jest.fn(chain.lookup)
+		const submit = jest.fn(async () => { throw SPENT() })
+		const args = baseArgs(chain, submit, { lookup })
+		const { out, unmount } = mount(args)
+		await settle()
+		await confirm(out)
+		await settle()
+
+		expect(out.tx.phase).toBe('error')
+		expect(out.tx.error).toBe('unconfirmed')
+		expect(lookup).toHaveBeenCalledTimes(1)
+
+		await retry(out)
+		expect(submit).toHaveBeenCalledTimes(1)
+		expect(lookup).toHaveBeenCalledTimes(2)
+		expect(chain.built).toBe(1)
+
+		// Cuando la cadena por fin lo confirma, deja construir otra
+		chain.dropped.add('tx-1')
+		await retry(out)
+		expect(out.tx.phase).toBe('ready')
+		expect(out.tx.prepared.id).toBe('tx-2')
+		unmount()
+	})
+
+	test('sin nadie a quien preguntar (`lookup`), la firma no se suelta: se enseña el rechazo y se re-difunde la misma', async () => {
+		const chain = makeChain({ expires: false })
+		const submit = jest.fn(async () => { throw SPENT() })
+		const args = baseArgs(chain, submit, { lookup: undefined })
+		const { out, unmount } = mount(args)
+		await settle()
+		await confirm(out)
+		await settle()
+
+		expect(out.tx.phase).toBe('error')
+		expect(out.tx.error).toMatch(/nonce too low/)
+		await retry(out)
+		expect(submit.mock.calls.map(([, signed]) => signed.txid)).toEqual(['tx-1', 'tx-1'])
+		expect(chain.built).toBe(1)
+		unmount()
+	})
+})
+
 test('dos resoluciones del mismo intento a la vez no pueden pisar un envío más nuevo', async () => {
 	// «Reintentar» y una reconstrucción por cambio de datos preguntan por la misma tx a la vez
 	const chain = makeChain()
@@ -434,6 +531,24 @@ describe('fase terminal `sent`', () => {
 	})
 
 	// Un swap con permiso son dos tx: tras el permiso, quien lleva la pantalla dice «sigue»
+	// TRON: congelado sin voto. La pantalla de éxito tiene que decirlo aunque el envío conste por la cadena
+	test('la nota con la que la cadena dice que entró llega a quien enseña el éxito', async () => {
+		const chain = makeChain()
+		const submit = jest.fn(async (_prepared, signed) => { chain.execute(signed.txid); throw new Error('Network request failed') })
+		const lookup = async (prepared) => ({ ...(await chain.lookup(prepared)), note: 'votePending' })
+		const args = baseArgs(chain, submit, { lookup })
+		const { out, unmount } = mount(args)
+		await settle()
+		await confirm(out)
+		clock += VALIDITY_MS + 1_000
+		await retry(out)
+
+		expect(args.onSent).toHaveBeenCalledTimes(1)
+		expect(args.onSent.mock.calls[0][0]).toBe('tx-1')
+		expect(args.onSent.mock.calls[0][3]).toBe('votePending')
+		unmount()
+	})
+
 	test('`advance()` es la única salida: construye el paso siguiente y deja firmarlo', async () => {
 		const chain = makeChain()
 		const args = baseArgs(chain, accepting(chain))

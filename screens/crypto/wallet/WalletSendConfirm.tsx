@@ -14,6 +14,7 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { toast } from 'sonner-native'
 import { clearDepositSent, markDepositAttempt, markDepositSent } from './exchangeDeposit'
 import { checkDeposit } from './depositGuard'
+import type { SentRef } from './sentRef'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, nativeAssetId } from '../../../wallet/assets'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
@@ -122,7 +123,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	// Depósito de un intercambio: la nota se escribe en cuanto la firma va a salir hacia la
 	// red (si la respuesta se pierde, el envío pudo entrar igual) y se retira solo si consta
 	// que no entró ni entrará
-	const onDepositAttempt = useCallback((txid: string | null) => markDepositAttempt(exchangeUuid!, txid), [exchangeUuid])
+	const onDepositAttempt = useCallback((txid: string | null, ref: SentRef | null) => markDepositAttempt(exchangeUuid!, txid, ref), [exchangeUuid])
 	const onDepositDropped = useCallback(() => { clearDepositSent(exchangeUuid!) }, [exchangeUuid])
 
 	// Patrocinio: QvaPay paga el fee de un GOLD en USDT/USDC de Solana y USDT de BSC. Si

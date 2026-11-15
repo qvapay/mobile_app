@@ -32,6 +32,7 @@ import {
 import type { StacksTransactionWire } from '@stacks/transactions'
 
 import { ChainHttpError, getJson, postJson } from '../chains/http'
+import type { TxLookup } from '../chains/txLookup'
 import type { RegistryRpc } from '../registry/types'
 
 export type FeeTier = 'fast' | 'normal' | 'slow'
@@ -263,4 +264,57 @@ export const broadcastStacksTransaction = async (rpc: RegistryRpc, signed: Signe
 		if (/AlreadyInMempool|ContractAlreadyExists|already/i.test(reason)) return { txid: signed.txid, duplicate: true }
 		throw new ChainHttpError(`stacks: broadcast rechazado (${res.status}): ${reason.slice(0, 200)}`, { status: res.status, retryable: res.status >= 500 })
 	}
+}
+
+// ---------------------------------------------------------------------------
+// ¿Qué fue de una tx ya difundida?
+// ---------------------------------------------------------------------------
+
+/** Lo que identifica una tx firmada ante la cadena: su id, quién la firma y con qué nonce. */
+export type SentStacksTx = { txid: string, from: string, nonce: bigint }
+
+type HiroTx = { tx_id?: unknown, tx_status?: unknown, canonical?: unknown, block_height?: unknown, nonce?: unknown, sender_address?: unknown }
+
+const sameTxid = (a: unknown, b: string): boolean => typeof a === 'string' && a.toLowerCase().replace(/^0x/, '') === b.toLowerCase().replace(/^0x/, '')
+
+/** Estados de Hiro de una tx que está en un bloque: ya gastó su nonce, salga bien o mal. */
+const settledStatus = (status: unknown): 'success' | 'failed' | null =>
+	status === 'success' ? 'success' : status === 'abort_by_response' || status === 'abort_by_post_condition' ? 'failed' : null
+
+/**
+ * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara?
+ *
+ * - **Por id** (`/extended/v1/tx/:txid`): `success` o `pending` (mempool) es `landed`;
+ *   `abort_*` es `dropped` (entró, falló, gastó su nonce y no movió el importe).
+ * - **`dropped_*` NO decide:** Hiro lo da de forma transitoria mientras la tx se mina.
+ *   Ni un 404: una tx de Stacks no caduca.
+ * - Sin respuesta clara, se busca en el historial del remitente la tx que lleva ESE nonce
+ *   y ya está en un bloque. Si es esta, entró; si es otra, esta ya no puede entrar
+ *   (`dropped`). Es prueba positiva: el nodo enseña la tx que gastó el nonce.
+ */
+export const lookupStacksTransaction = async (rpc: RegistryRpc, sent: SentStacksTx, deps: Deps = {}): Promise<TxLookup> => {
+	const txid = sent.txid.replace(/^0x/, '')
+	const res = await fetch(`${base(rpc)}/extended/v1/tx/0x${txid}`, { method: 'GET', signal: deps.signal, headers: { Accept: 'application/json', ...rpc.headers } })
+	if (res.ok) {
+		const found = await res.json().catch(() => null) as HiroTx | null
+		if (!found || !sameTxid(found.tx_id, txid)) return { status: 'unknown' }
+		if (found.tx_status === 'pending') return { status: 'landed', txid }
+		const settled = found.canonical === false ? null : settledStatus(found.tx_status)
+		if (settled) return settled === 'success' ? { status: 'landed', txid } : { status: 'dropped' }
+	} else if (res.status !== 404) {
+		throw new ChainHttpError(`stacks: consulta de la tx rechazada (${res.status})`, { status: res.status, retryable: res.status === 429 || res.status >= 500 })
+	}
+
+	const history = await getJson<{ results?: { tx?: HiroTx }[] }>(`${base(rpc)}/extended/v2/addresses/${sent.from}/transactions?limit=50`, { signal: deps.signal, headers: rpc.headers })
+	if (!Array.isArray(history?.results)) return { status: 'unknown' }
+	for (const row of history.results) {
+		const tx = row?.tx
+		if (!tx || tx.sender_address !== sent.from || tx.canonical !== true || typeof tx.block_height !== 'number') continue
+		if (typeof tx.nonce !== 'number' || BigInt(tx.nonce) !== sent.nonce) continue
+		const settled = settledStatus(tx.tx_status)
+		if (!settled) continue
+		if (sameTxid(tx.tx_id, txid)) return settled === 'success' ? { status: 'landed', txid } : { status: 'dropped' }
+		return { status: 'dropped' }
+	}
+	return { status: 'unknown' }
 }
