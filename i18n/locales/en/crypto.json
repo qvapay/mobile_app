@@ -172,6 +172,7 @@
 			"security": "Security"
 		},
 		"asset": {
+			"spoof": "Possible spoofing",
 			"direction": {
 				"in": "Received",
 				"out": "Sent",
@@ -376,7 +377,8 @@
 			"network": "Network",
 			"contract": "Contract",
 			"hash": "Hash",
-			"pendingHint": "It’s on the network waiting for a block. Bitcoin can take a few minutes; other networks, seconds."
+			"pendingHint": "It’s on the network waiting for a block. Bitcoin can take a few minutes; other networks, seconds.",
+			"spoofHint": "You didn't make this transfer. Anyone can record a transfer of 0 in your name to leave an address in your history that looks like one you use. Don't copy it or send anything to it."
 		},
 		"swap": {
 			"title": "Swap",

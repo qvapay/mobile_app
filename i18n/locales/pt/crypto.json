@@ -172,6 +172,7 @@
 			"security": "Segurança"
 		},
 		"asset": {
+			"spoof": "Possível falsificação",
 			"direction": {
 				"in": "Recebido",
 				"out": "Enviado",
@@ -376,7 +377,8 @@
 			"network": "Rede",
 			"contract": "Contrato",
 			"hash": "Hash",
-			"pendingHint": "Está na rede aguardando bloco. No Bitcoin pode levar alguns minutos; nas outras, segundos."
+			"pendingHint": "Está na rede aguardando bloco. No Bitcoin pode levar alguns minutos; nas outras, segundos.",
+			"spoofHint": "Você não fez esta movimentação. Qualquer pessoa pode registrar uma transferência de 0 em seu nome para deixar no seu histórico um endereço parecido com um que você usa. Não copie nem envie nada para ele."
 		},
 		"swap": {
 			"title": "Swap",
