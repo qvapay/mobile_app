@@ -289,6 +289,24 @@ test('imita a la dirección PROPIA: la única comparación en la que el aviso pu
 	expect(confirmButton().props.disabled).toBe(true)
 })
 
+// ── Lo que se le dice a quien envía cuando la red lo rechazaría ───────────────
+describe('errores que se enseñan', () => {
+	const describeError = () => useWalletSendTx.mock.calls[useWalletSendTx.mock.calls.length - 1][0].describeError
+	const WOULD_REVERT = 'La red rechazaría este envío, así que no se ha firmado. Revisa tu saldo del token o inténtalo más tarde.'
+
+	// T-02: el motivo del nodo («REVERT opcode executed») no le dice nada a nadie
+	test('una simulación que revierte se explica sin la jerga del nodo, en TRON y en EVM', async () => {
+		await render(BOB)
+		expect(describeError()(new Error('tron: el envío revertiría: REVERT opcode executed'))).toBe(WOULD_REVERT)
+		expect(describeError()(new Error('https://bsc: eth_estimateGas → execution reverted'))).toBe(WOULD_REVERT)
+	})
+
+	test('el saldo insuficiente conserva su mensaje, aunque llegue dentro de un revert', async () => {
+		await render(BOB)
+		expect(describeError()(new Error('https://bsc: eth_estimateGas → execution reverted: ERC20: transfer amount exceeds balance'))).toBe('La red rechazó la transacción por saldo insuficiente.')
+	})
+})
+
 // ── El depósito de un intercambio no se manda dos veces ──────────────────────
 // El proveedor espera UN envío de un importe exacto: un segundo no se cambia, se queda a la
 // espera de una devolución manual. Había tres caminos para repetirlo (un seguimiento viejo

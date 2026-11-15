@@ -250,6 +250,22 @@ describe('preparar contra un nodo simulado', () => {
 		expect(calls.some(c => c.path === '/wallet/triggersmartcontract')).toBe(false)
 	})
 
+	// T-02: la forma REAL de una simulación que revierte lleva `result: true`
+	test('…tampoco si revierte con `result: true`, que es como contesta java-tron', async () => {
+		const calls = mockNode({ allowance: 20_000_000n })
+		const honest = global.fetch
+		global.fetch = jest.fn(async (url, init) => {
+			const body = JSON.parse(init.body)
+			if (new URL(url).pathname === '/wallet/triggerconstantcontract' && body.function_selector.startsWith('swap')) {
+				const json = { result: { result: true, message: 'REVERT opcode executed' }, energy_used: 8624, constant_result: [''], transaction: { ret: [{ ret: 'FAILED' }] } }
+				return { ok: true, status: 200, json: async () => json, text: async () => JSON.stringify(json) }
+			}
+			return honest(url, init)
+		})
+		await expect(prepareTronSwapStep(RPC, SELL_USDT, { now })).rejects.toThrow('tron: la simulación revierte: REVERT opcode executed')
+		expect(calls.some(c => c.path === '/wallet/triggersmartcontract')).toBe(false)
+	})
+
 	test('estado de la tx: entró bien, revirtió o aún no', async () => {
 		mockNode()
 		expect(await tronTxStatus(RPC, 'ok')).toBe(true)

@@ -656,6 +656,9 @@ const describeError = (err: unknown, t: (key: string, opts?: Record<string, unkn
 	// el mensaje útil lo pone `prepareSolanaSend` antes de firmar
 	if (/seguir existiendo|InsufficientFundsForRent/i.test(message)) return t('crypto.wallet.send.errors.solanaRent')
 	if (/balance is not sufficient|insufficient funds|exceeds balance|insufficient/i.test(message)) return t('crypto.wallet.send.errors.nodeInsufficient')
+	// La simulación ya dice que el contrato lo rechazaría: no se firma. El motivo del nodo
+	// («REVERT opcode executed», «execution reverted») no le dice nada a quien envía
+	if (/revertir[ií]a|\brevert/i.test(message)) return t('crypto.wallet.send.errors.wouldRevert')
 	return message ? t('crypto.wallet.send.errors.generic', { message }) : t('crypto.wallet.send.errors.unknown')
 }
 

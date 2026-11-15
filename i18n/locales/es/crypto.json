@@ -271,6 +271,7 @@
 				"verifyFailed": "El nodo devolvió una transacción distinta a la pedida. No se firmó nada. Inténtalo de nuevo o cambia de nodo en Ajustes → Nodos.",
 				"noNodes": "Ningún nodo de TRON responde. Revisa tu conexión e inténtalo de nuevo.",
 				"nodeInsufficient": "La red rechazó la transacción por saldo insuficiente.",
+				"wouldRevert": "La red rechazaría este envío, así que no se ha firmado. Revisa tu saldo del token o inténtalo más tarde.",
 				"generic": "No se pudo enviar: {{message}}",
 				"unknown": "No se pudo enviar. Inténtalo de nuevo.",
 				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad.",

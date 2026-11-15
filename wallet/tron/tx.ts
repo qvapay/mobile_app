@@ -25,7 +25,8 @@ import { secp256k1 } from '@noble/curves/secp256k1.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 
 import { ChainHttpError, postJson } from '../chains/http'
-import { tronToHex20 } from '../chains/tron'
+import { tronCallFailure, tronToHex20 } from '../chains/tron'
+import type { TronCallResult } from '../chains/tron'
 import type { RegistryRpc } from '../registry/types'
 import type { TxLookup } from '../chains/txLookup'
 import {
@@ -591,12 +592,14 @@ export const prepareTronSend = async (rpc: RegistryRpc, intent: TronSendIntent, 
 	}
 
 	const parameter = encodeTrc20TransferParams(intent.to, intent.amount)
-	const estimate = await post<{ result?: { result?: boolean, message?: string }, energy_used?: number }>(rpc, '/wallet/triggerconstantcontract', {
+	const estimate = await post<TronCallResult & { energy_used?: number }>(rpc, '/wallet/triggerconstantcontract', {
 		owner_address: intent.from, contract_address: intent.contract, function_selector: 'transfer(address,uint256)', parameter, visible: true,
 	}, deps)
-	if (estimate?.result?.result === false || typeof estimate?.energy_used !== 'number') {
-		throw nodeError(decodeNodeMessage(estimate?.result?.message) || 'tron: no se pudo estimar la energía')
-	}
+	// La simulación ES el envío: si aquí revierte (saldo que no alcanza, dirección congelada
+	// por el emisor, token en pausa), en la red también, y la comisión se quema igual
+	const failure = tronCallFailure(estimate)
+	if (failure) throw nodeError(`tron: el envío revertiría: ${failure}`)
+	if (typeof estimate?.energy_used !== 'number') throw nodeError('tron: no se pudo estimar la energía')
 	const energyNeeded = BigInt(estimate.energy_used)
 	const feeLimitSun = computeFeeLimit(energyNeeded, params)
 

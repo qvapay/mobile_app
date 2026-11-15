@@ -271,6 +271,7 @@
 				"verifyFailed": "The node returned a transaction different from the one requested. Nothing was signed. Try again or switch nodes in Settings → Nodes.",
 				"noNodes": "No TRON node is responding. Check your connection and try again.",
 				"nodeInsufficient": "The network rejected the transaction for insufficient balance.",
+				"wouldRevert": "The network would reject this transfer, so nothing was signed. Check your token balance or try again later.",
 				"generic": "Couldn’t send: {{message}}",
 				"unknown": "Couldn’t send. Please try again.",
 				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount.",
