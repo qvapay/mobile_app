@@ -9,8 +9,9 @@
  *
  * - El router y el WTRX son constantes del CÓDIGO (verificados on-chain el 10 oct 2026:
  *   `UniswapV2Router02`, y su `WETH()` devuelve el WTRX). No viven en el registry remoto.
- * - El mínimo a recibir sale de `getAmountsOut` del propio router en el momento de firmar,
- *   menos un 0,5%; y no puede quedar por debajo del mínimo que se le enseñó al usuario.
+ * - El mínimo a recibir es el MAYOR de dos: lo que da `getAmountsOut` del propio router en
+ *   el momento de firmar menos un 0,5 %, y el mínimo que se le enseñó al usuario. Nunca
+ *   queda por debajo de lo prometido; y si el precio de ahora ya no llega a eso, no se firma.
  * - `triggerconstantcontract` con la misma llamada es la simulación: si revertiría, no se
  *   firma (y de paso da la energía real que consumirá).
  * - Pagar con un token exige antes un `approve` EXACTO al router: otro paso, como en EVM.
@@ -171,7 +172,7 @@ export const readTronAllowance = async (rpc: RegistryRpc, token: string, owner: 
 
 /**
  * Prepara el SIGUIENTE paso (permiso o swap) con lo que hay en la cadena ahora. Lanza si
- * el precio empeoró por debajo del mínimo enseñado o si la simulación revierte.
+ * el precio de ahora ya no llega al mínimo enseñado o si la simulación revierte.
  */
 export const prepareTronSwapStep = async (rpc: RegistryRpc, intent: TronSwapIntent, deps: Deps = {}): Promise<PreparedTronSwapStep> => {
 	const now = deps.now ?? Date.now
@@ -202,9 +203,15 @@ export const prepareTronSwapStep = async (rpc: RegistryRpc, intent: TronSwapInte
 		contract = SUNSWAP_V2_ROUTER
 		const quote = await constant(rpc, intent.owner, SUNSWAP_V2_ROUTER, 'getAmountsOut', uint(intent.amountIn) + uint(0x40) + addressArray(swapPath(intent)), 0n, deps)
 		quotedOut = lastUintOfArray(quote.constant_result?.[0] ?? '')
-		amountOutMin = quotedOut * (10_000n - SLIPPAGE_BPS) / 10_000n
-		// El precio de ahora, con su deslizamiento, no puede quedar por debajo de lo prometido
-		if (amountOutMin < intent.minOut) throw new TronVerifyError('el precio empeoró por debajo del mínimo garantizado')
+		// El precio de ahora ya no da ni lo prometido: la llamada revertiría
+		if (quotedOut < intent.minOut) throw new TronVerifyError('el precio empeoró por debajo del mínimo garantizado')
+		// Lo que el contrato hará cumplir: el precio de ahora con su deslizamiento o, si eso
+		// queda por debajo, lo que se le enseñó al usuario. Exigir que el primero no bajara
+		// de lo segundo (O-05) no dejaba margen ninguno: los dos salen de restarle el mismo
+		// 0,5 % a una cotización, así que tras el permiso cualquier −0,01 % del precio daba
+		// «no pudimos verificar» una y otra vez, con el approve ya pagado
+		const fresh = quotedOut * (10_000n - SLIPPAGE_BPS) / 10_000n
+		amountOutMin = fresh > intent.minOut ? fresh : intent.minOut
 		const call = encodeSwapCall(intent, amountOutMin, Math.floor(now() / 1000) + DEADLINE_SECONDS)
 		fn = call.fn
 		parameter = call.parameter

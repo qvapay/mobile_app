@@ -16,7 +16,7 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, explorerAddressUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
-import { splitDust } from '../../../wallet/dust'
+import { isZeroTransfer, splitDust } from '../../../wallet/dust'
 import { markHistoryFresh, usePriceMap, useTronForeignControl, useWalletAssets, useWalletHistory } from './walletQueries'
 import { useXStockShares } from '../stocks/xstocksPrices'
 import { formatUsd } from './walletFormat'
@@ -38,6 +38,7 @@ import { useSettings } from '../../../settings/SettingsContext'
 import { useAuth } from '../../../auth/AuthContext'
 import AccountUpsellCard from './components/AccountUpsellCard'
 import TronControlWarning from './components/TronControlWarning'
+import CustomNodeNotice, { useCustomNodeChains } from './components/CustomNodeNotice'
 
 // Helpers
 import { timeAgo } from '../../../helpers'
@@ -75,25 +76,28 @@ const TxRow = ({ tx, theme, onPress, activity = null, names }: TxRowProps) => {
 	const { t } = useTranslation()
 	const failed = tx.status === 'failed'
 	const isFee = tx.kind === 'fee'
+	// Una transferencia de 0 no la hizo el usuario: es como se cuela una dirección parecida en
+	// su historial. Ni «Enviado» ni «Recibido»: se dice lo que es
+	const spoof = isZeroTransfer(tx)
 	// Meter en staking, salir o votar NO es dinero que se fue: sigue siendo del usuario (sin signo, color neutro)
 	const staked = isNeutralStakeActivity(activity)
 	// Comisión: fila atenuada (no es dinero que fue a nadie, se quemó en la red)
-	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : staked ? theme.colors.primary : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
-	const iconColor = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary
+	const tint = failed ? theme.colors.danger : isFee || spoof ? theme.colors.secondaryText : staked ? theme.colors.primary : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
+	const iconColor = failed ? theme.colors.danger : spoof ? theme.colors.warning : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary
 	const counterpart = tx.direction === 'in' ? tx.from : tx.to
 	// Con nombre en el registry, el nombre; si no, la dirección (en mono, dentro de la frase)
 	const counterpartName = counterpart ? names?.[counterpart] ?? null : null
 	const counterpartKey = tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to'
-	const sign = staked ? '' : tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : ''
+	const sign = staked || spoof ? '' : tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : ''
 
 	return (
 		<QPPressable onPress={() => onPress(tx)} style={[styles.txRow, { borderBottomColor: theme.colors.border + '40' }]}>
 			<View style={[styles.txIcon, { backgroundColor: iconColor + '18' }]}>
-				<FontAwesome6 name={failed ? 'xmark' : activity ? STAKE_ACTIVITY_ICON[activity] : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={14} color={iconColor} iconStyle="solid" />
+				<FontAwesome6 name={failed ? 'xmark' : spoof ? 'triangle-exclamation' : activity ? STAKE_ACTIVITY_ICON[activity] : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={14} color={iconColor} iconStyle="solid" />
 			</View>
 			<View style={styles.txInfo}>
 				<Text style={{ color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }} numberOfLines={1}>
-					{activity ? t(`crypto.staking.activity.${activity}`) : isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)}
+					{spoof ? t('crypto.wallet.asset.spoof') : activity ? t(`crypto.staking.activity.${activity}`) : isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)}
 				</Text>
 				<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }, styles.txSub]} numberOfLines={1}>
 					{isFee
@@ -157,6 +161,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const { all, isLoading: balancesLoading, refetch: refetchBalances } = useWalletAssets()
 	const prices = usePriceMap()
 	const asset = useMemo(() => all.find(a => a.id === assetId), [all, assetId])
+	// El saldo de este activo lo dice un nodo que añadió el usuario: se avisa siempre
+	const customNodeChains = useCustomNodeChains()
+	const customNode = !!asset && customNodeChains.includes(asset.chainKey)
 	const chain = asset ? registry.chains[asset.chainKey] : undefined
 	const address = asset && addresses ? addressForKind(addresses, asset.kind) : null
 	// Acción tokenizada: aquí se envía y se recibe en TOKENS (crudo); las acciones van debajo
@@ -295,6 +302,12 @@ const WalletAsset = ({ navigation, route }: Props) => {
 			{tronBlocked && (
 				<View style={styles.tronWarning}>
 					<TronControlWarning controllers={tronControllers} />
+				</View>
+			)}
+
+			{customNode && (
+				<View style={styles.tronWarning}>
+					<CustomNodeNotice chains={[asset.chainName]} />
 				</View>
 			)}
 

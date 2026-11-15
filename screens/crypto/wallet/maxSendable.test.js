@@ -23,6 +23,15 @@ describe('máximo entregable', () => {
 		expect(maxSendableUnits({ balance: 5_000000n, isNative: true, kind: 'btc', reserve: 50_000n })).toBe(5_000000n)
 	})
 
+	// X-05: el depósito de un intercambio tiene que llegar por el importe de la orden
+	it('pero en un intercambio sí: lo que se cotiza es lo que se deposita, tal cual', () => {
+		expect(maxSendableUnits({ balance: 5_000000n, isNative: true, kind: 'btc', reserve: 50_000n, exact: true })).toBe(4_950000n)
+		expect(maxSendableUnits({ balance: 40_000n, isNative: true, kind: 'btc', reserve: 50_000n, exact: true })).toBe(0n)
+		// En las demás cadenas no cambia nada
+		expect(maxSendableUnits({ balance: 100_000000n, isNative: true, kind: 'tron', reserve: TRX_MAX_RESERVE_SUN, exact: true })).toBe(98_600000n)
+		expect(maxSendableUnits({ balance: 90_000000n, isNative: false, kind: 'btc', reserve: 50_000n, exact: true })).toBe(90_000000n)
+	})
+
 	it('con menos saldo que la reserva devuelve CERO, no un número negativo', () => {
 		// Un negativo se colaría al campo y el envío moriría con un error sin sentido
 		expect(maxSendableUnits({ balance: 500_000n, isNative: true, kind: 'tron', reserve: TRX_MAX_RESERVE_SUN })).toBe(0n)

@@ -10,11 +10,13 @@ jest.mock('../../../theme/ThemeContext', () => {
 	const { createTheme } = jest.requireActual('../../../theme/themeTokens')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
-jest.mock('../../../auth/AuthContext', () => ({ useAuth: () => ({ user: { balance: '0' }, isAuthenticated: false }) }))
+let mockAuth = { user: { balance: '0' }, isAuthenticated: false }
+jest.mock('../../../auth/AuthContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('../../../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
 jest.mock('../../../wallet/registry/appRpcRouter', () => ({ useEffectiveRegistry: () => ({ chains: { bsc: { kind: 'evm', native: { symbol: 'BNB', decimals: 18 } } } }) }))
 jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), usePriceMap: jest.fn() }))
-jest.mock('./energyQueries', () => ({ useEnergyPricesQuery: () => ({ data: undefined }), estimatePrice: () => null }))
+jest.mock('./energyQueries', () => ({ useEnergyPricesQuery: jest.fn(() => ({ data: undefined })), estimatePrice: jest.fn(() => null) }))
+jest.mock('./usePendingEnergyOrder', () => ({ __esModule: true, default: jest.fn(() => null) }))
 jest.mock('./historyCache', () => ({ loadHistoryCache: jest.fn() }))
 jest.mock('./exchangeDeposit', () => ({ markDepositSent: jest.fn(), markDepositAttempt: jest.fn(async () => {}), clearDepositSent: jest.fn(async () => {}) }))
 jest.mock('./depositGuard', () => ({ checkDeposit: jest.fn() }))
@@ -33,6 +35,8 @@ import { Text } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import { useWallet } from '../../../wallet/WalletContext'
 import { usePriceMap, useWalletAssets } from './walletQueries'
+import { estimatePrice, useEnergyPricesQuery } from './energyQueries'
+import usePendingEnergyOrder from './usePendingEnergyOrder'
 import { loadHistoryCache } from './historyCache'
 import { toast } from 'sonner-native'
 import useWalletSendTx from './useWalletSendTx'
@@ -93,18 +97,25 @@ const hasText = (text) => texts().some(value => value.includes(text))
 const SCAM = 'Así funciona una estafa conocida'
 const checkbox = () => tree.root.find(node => node.props.testID === 'recipient-checked' && typeof node.type === 'string')
 
+/** Lo que devuelve el motor de envío con una tx lista para firmar. */
+const baseEngine = () => ({
+	phase: 'ready', prepared: PREPARED, error: null, feeTier: 'normal', busy: false, authVisible: false,
+	setFeeTier: jest.fn(), openAuth, closeAuth: jest.fn(), onAuthorized: jest.fn(), retry: jest.fn(),
+	energyRented: false, energySlow: false, energyPending: false, markEnergyRented: jest.fn(), markEnergyPending: jest.fn(), onEnergyRented: jest.fn(),
+})
+
 beforeEach(() => {
 	jest.clearAllMocks()
 	caches = {}
+	mockAuth = { user: { balance: '0' }, isAuthenticated: false }
+	usePendingEnergyOrder.mockReturnValue(null)
+	useEnergyPricesQuery.mockReturnValue({ data: undefined })
+	estimatePrice.mockReturnValue(null)
 	useWallet.mockReturnValue({ addresses: { evm: ME, tron: 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8', btc: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', stx: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R', sol: 'So1ana1111111111111111111111111111111111111' } })
 	useWalletAssets.mockReturnValue({ all: [USDT_BSC, BNB, USDT_ETH] })
 	loadHistoryCache.mockImplementation(async (assetId) => caches[assetId] ?? cache([]))
 	usePriceMap.mockReturnValue({})
-	useWalletSendTx.mockReturnValue({
-		phase: 'ready', prepared: PREPARED, error: null, feeTier: 'normal', busy: false, authVisible: false,
-		setFeeTier: jest.fn(), openAuth, closeAuth: jest.fn(), onAuthorized: jest.fn(), retry: jest.fn(),
-		energyRented: false, energySlow: false, markEnergyRented: jest.fn(), onEnergyRented: jest.fn(),
-	})
+	useWalletSendTx.mockReturnValue(baseEngine())
 })
 
 afterEach(() => { act(() => tree?.unmount()) })
@@ -327,6 +338,20 @@ describe('depósito de un intercambio', () => {
 	/** Lo que la pantalla le pasó al motor de envío. */
 	const engineArgs = () => useWalletSendTx.mock.calls[useWalletSendTx.mock.calls.length - 1][0]
 
+	// X-05: en Bitcoin «enviar todo» descuenta la comisión de lo enviado; a un depósito no le vale
+	test('el depósito se prepara por el importe EXACTO de la orden; un envío normal, no', async () => {
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		expect(engineArgs().exact).toBe(true)
+		act(() => tree.unmount())
+		await render(BOB)
+		expect(engineArgs().exact).toBeUndefined()
+	})
+
+	test('si el saldo no da para el importe más la comisión, se dice así', async () => {
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		expect(engineArgs().describeError(new Error('btc: sin fondos suficientes para la cantidad más la comisión'))).toBe('Tu saldo no cubre el importe más la comisión de red. Prueba con un poco menos.')
+	})
+
 	test('un envío normal no pregunta nada: abre el PIN', async () => {
 		await render(BOB)
 		await press()
@@ -340,7 +365,11 @@ describe('depósito de un intercambio', () => {
 		checkDeposit.mockResolvedValue({ allowed: true })
 		await render(BOB, { exchangeUuid: 'ex-1' })
 		await press()
-		expect(checkDeposit).toHaveBeenCalledWith('ex-1')
+		// Con lo que hace falta para comprobar que la orden es de esta wallet (X-06)
+		expect(checkDeposit).toHaveBeenCalledWith('ex-1', { to: BOB, own: expect.any(Function) })
+		const { own } = checkDeposit.mock.calls[0][1]
+		expect(own(USDT_BSC.id)).toEqual({ kind: 'evm', address: ME })
+		expect(own('no:existe')).toBeNull()
 		expect(openAuth).toHaveBeenCalledTimes(1)
 		expect(navigation.popTo).not.toHaveBeenCalled()
 	})
@@ -363,6 +392,15 @@ describe('depósito de un intercambio', () => {
 		expect(navigation.popTo).toHaveBeenCalledWith(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: 'ex-1' })
 	})
 
+
+	test('una orden que paga a otra dirección: no se abre el PIN, se avisa y no se va a ninguna parte', async () => {
+		checkDeposit.mockResolvedValue({ allowed: false, reason: 'foreign' })
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		await act(async () => { await confirmButton().props.onPress() })
+		expect(openAuth).not.toHaveBeenCalled()
+		expect(toast.error).toHaveBeenCalledWith('Este intercambio paga o devuelve a una dirección que no es de tu wallet. No se ha firmado nada.')
+		expect(navigation.popTo).not.toHaveBeenCalled()
+	})
 	test('si no se pudo comprobar no se firma, y la pantalla se queda para reintentar', async () => {
 		checkDeposit.mockResolvedValue({ allowed: false, reason: 'unknown' })
 		await render(BOB, { exchangeUuid: 'ex-1' })
@@ -394,5 +432,74 @@ describe('depósito de un intercambio', () => {
 		act(() => { engineArgs().onSent('0xhash') })
 		expect(navigation.replace).toHaveBeenCalledWith(ROUTES.WALLET_SEND_SUCCESS, { assetId: USDT_BSC.id, txid: '0xhash', amount: '10', to: BOB })
 		expect(markDepositSent).not.toHaveBeenCalled()
+	})
+})
+
+// ── Un alquiler de energía ya cobrado no se vuelve a ofrecer (N-02) ───────────
+describe('energía ya alquilada antes de abrir la pantalla', () => {
+	const TRON_ME = 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8'
+	// Un envío de USDT en TRON sin energía: quema TRX, así que la pantalla ofrece alquilarla
+	const PREPARED_TRON = {
+		kind: 'tron',
+		summary: PREPARED.summary,
+		inner: {
+			sponsored: false,
+			fee: { energyNeeded: 65_000n, bandwidthNeeded: 345n, activatesAccount: false },
+			resources: { energy: 0n, freeBandwidth: 600n, stakedBandwidth: 0n },
+			params: { energyFeeSun: 100n, bandwidthFeeSun: 1000n, createAccountFeeSun: 1_000_000n },
+		},
+		intent: { from: TRON_ME },
+	}
+	const pendingOrder = (target) => ({ uuid: 'order-1', target_address: target, volume: 66_000, duration: '1h', status: 'dispatching' })
+	const OFFER = 'Alquilar energía'
+	const PAID = 'Ya pagaste un alquiler de energía para esta dirección'
+	let markEnergyPending
+	const engine = (over = {}) => {
+		markEnergyPending = jest.fn()
+		useWalletSendTx.mockReturnValue({ ...baseEngine(), prepared: PREPARED_TRON, markEnergyPending, ...over })
+	}
+
+	beforeEach(() => {
+		mockAuth = { user: { uuid: 'ana', balance: '5' }, isAuthenticated: true }
+		estimatePrice.mockReturnValue(0.55)
+		usePriceMap.mockReturnValue({ BNB: 600 })
+	})
+
+	test('sin nada pendiente, se ofrece alquilar', async () => {
+		engine()
+		await render(BOB)
+		expect(usePendingEnergyOrder).toHaveBeenCalledWith('ana')
+		expect(hasText(OFFER)).toBe(true)
+		expect(markEnergyPending).not.toHaveBeenCalled()
+	})
+
+	test('uno cobrado y sin entregar para la dirección que FIRMA arma el latch', async () => {
+		usePendingEnergyOrder.mockReturnValue(pendingOrder(TRON_ME))
+		engine()
+		await render(BOB)
+		expect(markEnergyPending).toHaveBeenCalled()
+	})
+
+	test('si era para otra dirección, no', async () => {
+		usePendingEnergyOrder.mockReturnValue(pendingOrder('TOtraDireccionQueNoFirmaEsteEnvio1'))
+		engine()
+		await render(BOB)
+		expect(markEnergyPending).not.toHaveBeenCalled()
+		expect(hasText(OFFER)).toBe(true)
+	})
+
+	test('con el latch armado no se ofrece otro: se dice que ya está pagado', async () => {
+		usePendingEnergyOrder.mockReturnValue(pendingOrder(TRON_ME))
+		engine({ energyRented: true, energyPending: true })
+		await render(BOB)
+		expect(hasText(PAID)).toBe(true)
+		expect(hasText(OFFER)).toBe(false)
+	})
+
+	test('sin sesión no se mira nada: el alquiler sale del saldo de la cuenta', async () => {
+		mockAuth = { user: null, isAuthenticated: false }
+		engine()
+		await render(BOB)
+		expect(usePendingEnergyOrder).toHaveBeenCalledWith(null)
 	})
 })

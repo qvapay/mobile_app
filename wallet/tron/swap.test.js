@@ -238,10 +238,35 @@ describe('preparar contra un nodo simulado', () => {
 		await expect(prepareTronSwapStep(RPC, SELL_USDT, { now })).rejects.toThrow(/fee_limit/)
 	})
 
-	test('si el precio empeoró por debajo del mínimo enseñado, no se construye nada', async () => {
-		const calls = mockNode({ allowance: 20_000_000n, quoted: 59_000_000n })
+	// O-05: lo enseñado (59,9 TRX) ya era la cotización de entonces menos el 0,5 %. Exigir que
+	// la de ahora menos su 0,5 % no bajara de ahí no dejaba margen: tras pagar el permiso, una
+	// bajada del 0,08 % daba «no pudimos verificar» en bucle
+	test('una bajada pequeña del precio tras el permiso no rompe el swap: la tx garantiza lo que se enseñó', async () => {
+		const shown = { ...SELL_USDT, minOut: 59_900_000n }
+		mockNode({ allowance: 20_000_000n, quoted: 60_150_000n, tx: VECTORS.tokensForTrx })
+		const prepared = await prepareTronSwapStep(RPC, shown, { now })
+		expect(prepared.step).toBe('swap')
+		expect(prepared.quotedOut).toBe(60_150_000n)
+		// 60,15 − 0,5 % serían 59,849: se queda con lo prometido, que es más
+		expect(prepared.amountOutMin).toBe(59_900_000n)
+	})
+
+	test('si el precio mejoró, el mínimo sube con él', async () => {
+		mockNode({ allowance: 20_000_000n, tx: VECTORS.tokensForTrx })
+		const prepared = await prepareTronSwapStep(RPC, { ...SELL_USDT, minOut: 59_000_000n }, { now })
+		expect(prepared.amountOutMin).toBe(59_900_000n)
+	})
+
+	test('si el precio de ahora ya no llega al mínimo enseñado, no se construye nada', async () => {
+		const calls = mockNode({ allowance: 20_000_000n, quoted: 58_999_999n })
 		await expect(prepareTronSwapStep(RPC, SELL_USDT, { now })).rejects.toThrow(/precio empeoró/)
 		expect(calls.some(c => c.path === '/wallet/triggersmartcontract')).toBe(false)
+		// Justo en el mínimo todavía sale: la tx lo lleva tal cual y la simulación decide
+		const edge = mockNode({ allowance: 20_000_000n, quoted: 59_000_000n })
+		await prepareTronSwapStep(RPC, SELL_USDT, { now }).catch(() => {})
+		const simulated = edge.filter(c => c.path === '/wallet/triggerconstantcontract' && c.body.function_selector.startsWith('swap'))
+		expect(simulated).toHaveLength(1)
+		expect(simulated[0].body.parameter.slice(64, 128)).toBe(word(59_000_000))
 	})
 
 	test('si la simulación revierte, no se construye nada', async () => {

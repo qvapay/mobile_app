@@ -49,6 +49,7 @@ import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 import QPCheckbox from '../../../ui/particles/QPCheckbox'
 import WalletAuthModal from './components/WalletAuthModal'
 import EnergyRentModal from './components/EnergyRentModal'
+import usePendingEnergyOrder from './usePendingEnergyOrder'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -134,11 +135,18 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 
 	const tx = useWalletSendTx({
 		asset, chain, addresses, to, amount, assetId, onSent, describeError: describe, sponsor: gasless.bridge, sponsorResolver: gasless.resolver,
-		...(exchangeUuid && { onAttempt: onDepositAttempt, onDropped: onDepositDropped }),
+		// Un depósito tiene que llegar por el importe EXACTO de la orden: en Bitcoin, nada de «enviar todo»
+		...(exchangeUuid && { onAttempt: onDepositAttempt, onDropped: onDepositDropped, exact: true }),
 	})
 	const { phase, prepared, error, feeTier, busy } = tx
 
-	// Antes de pedir el PIN de un depósito: ¿salió ya uno?, ¿la orden sigue esperándolo?
+	// La dirección propia de cada activo: contra ellas se contrasta a quién paga y devuelve una orden
+	const ownAddress = useCallback((id: string) => {
+		const found = all.find(candidate => candidate.id === id)
+		return found && addresses ? { kind: found.kind, address: addressForKind(addresses, found.kind) } : null
+	}, [all, addresses])
+
+	// Antes de pedir el PIN de un depósito: ¿salió ya uno?, ¿la orden sigue esperándolo?, ¿es de esta wallet?
 	const [checkingDeposit, setCheckingDeposit] = useState(false)
 	const { openAuth } = tx
 	const confirm = useCallback(async () => {
@@ -146,14 +154,16 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		if (checkingDeposit) return
 		setCheckingDeposit(true)
 		try {
-			const check = await checkDeposit(exchangeUuid)
+			const check = await checkDeposit(exchangeUuid, { to, own: ownAddress })
 			if (check.allowed) { openAuth(); return }
 			// Si no se pudo comprobar no se firma: reintentar es gratis, un doble depósito no
 			if (check.reason === 'unknown') { toast.error(t('crypto.wallet.exchange.depositGuard.checkFailed')); return }
+			// La orden paga o devuelve a una dirección que no es de esta wallet: no se firma, y no hay nada que reintentar
+			if (check.reason === 'foreign') { toast.error(t('crypto.wallet.exchange.depositGuard.foreign')); return }
 			toast(t(check.reason === 'sent' ? 'crypto.wallet.exchange.depositGuard.alreadySent' : 'crypto.wallet.exchange.depositGuard.closed'))
 			navigation.popTo(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid, ...(check.reason === 'sent' && check.txid ? { sentTxid: check.txid } : {}) })
 		} finally { setCheckingDeposit(false) }
-	}, [exchangeUuid, checkingDeposit, openAuth, navigation, t])
+	}, [exchangeUuid, checkingDeposit, openAuth, navigation, t, to, ownAddress])
 
 	// Cuánto exige la red y si el nativo alcanza para pagarlo
 	const { feeEstimated, feeMax, sentNative, feeRequired, insufficientNative } = sendFeeState({
@@ -178,6 +188,16 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		priceRows: energyPrices.data?.data,
 		bounds: energyPrices.data?.meta,
 	})
+
+	// Un alquiler ya COBRADO para la dirección que firma y aún sin entregar (se compró antes
+	// de cerrar la app): se arma el mismo latch que al comprarlo aquí. Sin esto, al volver
+	// el aviso ofrecía alquilar otra vez
+	const pendingEnergy = usePendingEnergyOrder(isAuthenticated ? user?.uuid : null)
+	const signer = prepared?.kind === 'tron' ? prepared.intent.from : null
+	const { markEnergyPending } = tx
+	useEffect(() => {
+		if (pendingEnergy && signer && pendingEnergy.target_address === signer) { markEnergyPending() }
+	}, [pendingEnergy, signer, markEnergyPending])
 
 	// ¿El destino imita a una dirección de confianza (address poisoning)? Sin veredicto, o con
 	// uno de los que bloquean sin que el usuario diga que lo revisó, no se firma
@@ -277,6 +297,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				phase={phase}
 				rented={tx.energyRented}
 				slow={tx.energySlow}
+				pending={tx.energyPending}
 				onRent={() => setRentOpen(true)}
 			/>
 
@@ -520,9 +541,9 @@ const useEnergyOffer = ({ prepared, nativeBalanceSun, sentNativeSun, trxPriceUsd
  * Una vez comprada la energía para este envío, el aviso no vuelve a
  * ofrecerla: el nodo puede tardar en verla y reofrecerla sería un doble cobro.
  */
-const EnergyNotice = ({ theme, decision, fee, phase, rented, slow, onRent }: {
+const EnergyNotice = ({ theme, decision, fee, phase, rented, slow, pending, onRent }: {
 	theme: Theme, decision: RentalDecision | null, fee: (value: bigint) => string,
-	phase: SendPhase, rented: boolean, slow: boolean, onRent: () => void
+	phase: SendPhase, rented: boolean, slow: boolean, pending: boolean, onRent: () => void
 }) => {
 
 	const { t } = useTranslation()
@@ -532,6 +553,10 @@ const EnergyNotice = ({ theme, decision, fee, phase, rented, slow, onRent }: {
 	}
 	if (slow) {
 		return <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t('crypto.wallet.send.energy.waitingSlow')} />
+	}
+	// Solo mientras el envío siga quemando TRX: con la energía ya entregada no hay nada que decir
+	if (pending && decision && decision.reason !== 'no') {
+		return <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t('crypto.wallet.send.energy.pendingOrder')} />
 	}
 	if (!decision || rented) { return null }
 
@@ -658,6 +683,8 @@ const describeError = (err: unknown, t: (key: string, opts?: Record<string, unkn
 	// el mensaje útil lo pone `prepareSolanaSend` antes de firmar
 	if (/seguir existiendo|InsufficientFundsForRent/i.test(message)) return t('crypto.wallet.send.errors.solanaRent')
 	if (/balance is not sufficient|insufficient funds|exceeds balance|insufficient/i.test(message)) return t('crypto.wallet.send.errors.nodeInsufficient')
+	// Bitcoin: el saldo da para el importe pero no para el importe MÁS la comisión
+	if (/sin fondos suficientes para la cantidad más la comisión|el saldo no cubre la comisión/.test(message)) return t('crypto.wallet.send.errors.feeNotCovered')
 	// La simulación ya dice que el contrato lo rechazaría: no se firma. El motivo del nodo
 	// («REVERT opcode executed», «execution reverted») no le dice nada a quien envía
 	if (/revertir[ií]a|\brevert/i.test(message)) return t('crypto.wallet.send.errors.wouldRevert')

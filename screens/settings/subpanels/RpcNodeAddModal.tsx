@@ -8,7 +8,7 @@ import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
 
 // Wallet registry
-import { PROBE_TIMEOUT_MS, probeRpc } from '../../../wallet/registry/rpcRouter'
+import { PROBE_TIMEOUT_MS, probeRpc, RpcNetworkMismatchError, verifyRpcNetwork } from '../../../wallet/registry/rpcRouter'
 import { MAX_CUSTOM_RPCS_PER_CHAIN, normalizeRpcUrl, toCustomRpc, validateCustomRpc } from '../../../wallet/registry/customRpcs'
 import type { CustomRpcError, CustomRpcMap } from '../../../wallet/registry/customRpcs'
 import type { RegistryChain } from '../../../wallet/registry/types'
@@ -40,7 +40,7 @@ const RpcNodeAddModal = ({ target, customRpcs, onClose, onAdd }: RpcNodeAddModal
 	const containerStyles = createContainerStyles(theme)
 
 	const [url, setUrl] = useState('')
-	const [error, setError] = useState<CustomRpcError | 'unreachable' | null>(null)
+	const [error, setError] = useState<CustomRpcError | 'unreachable' | 'wrongNetwork' | 'unverified' | null>(null)
 	const [testing, setTesting] = useState(false)
 
 	// Cada apertura arranca limpia.
@@ -60,6 +60,15 @@ const RpcNodeAddModal = ({ target, customRpcs, onClose, onAdd }: RpcNodeAddModal
 			setError('unreachable')
 			return
 		}
+		// Responder no basta: tiene que ser de ESTA red. Un nodo de otra cadena, o de una de
+		// pruebas, enseñaría como saldos de la wallet los de otra red
+		try {
+			await verifyRpcNetwork(target.chain, toCustomRpc(normalized), PROBE_TIMEOUT_MS)
+		} catch (err) {
+			setTesting(false)
+			setError(err instanceof RpcNetworkMismatchError ? 'wrongNetwork' : 'unverified')
+			return
+		}
 		await onAdd(target.chainKey, normalized)
 		setTesting(false)
 	}
@@ -73,6 +82,10 @@ const RpcNodeAddModal = ({ target, customRpcs, onClose, onAdd }: RpcNodeAddModal
 					<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{t('crypto.nodes.add.title', { chain: chainLabel })}</Text>
 					<Text style={[textStyles.h6, styles.subtitle, { color: theme.colors.secondaryText }]}>
 						{t('crypto.nodes.add.subtitle', { chain: chainLabel })}
+					</Text>
+					{/* Lo que se ve en la wallet pasa a decirlo este nodo: es lo que hace posible la estafa del «cambia el nodo» */}
+					<Text testID="rpc-add-warning" style={[textStyles.h6, styles.warning, { color: theme.colors.warning }]}>
+						{t('crypto.nodes.add.warning')}
 					</Text>
 
 					<QPInput
@@ -93,7 +106,7 @@ const RpcNodeAddModal = ({ target, customRpcs, onClose, onAdd }: RpcNodeAddModal
 					<View style={styles.errorSlot}>
 						{error && (
 							<Text style={[textStyles.h6, { color: theme.colors.danger }]}>
-								{t(`crypto.nodes.add.errors.${error}`, { count: MAX_CUSTOM_RPCS_PER_CHAIN })}
+								{t(`crypto.nodes.add.errors.${error}`, { count: MAX_CUSTOM_RPCS_PER_CHAIN, chain: chainLabel })}
 							</Text>
 						)}
 					</View>
@@ -114,7 +127,8 @@ const RpcNodeAddModal = ({ target, customRpcs, onClose, onAdd }: RpcNodeAddModal
 }
 
 const styles = StyleSheet.create({
-	subtitle: { marginTop: 6, marginBottom: 16 },
+	subtitle: { marginTop: 6, marginBottom: 8 },
+	warning: { marginBottom: 16 },
 	input: { marginVertical: 0 },
 	errorSlot: { minHeight: 22, justifyContent: 'center', marginTop: 8, marginBottom: 8 },
 	cancel: { alignSelf: 'center', paddingVertical: 12 },

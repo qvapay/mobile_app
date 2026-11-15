@@ -82,6 +82,7 @@
 		"add": {
 			"title": "Nodo para {{chain}}",
 			"subtitle": "URL https de un RPC de {{chain}}. Se prueba antes de guardar y tendrá prioridad sobre los del registro.",
+			"warning": "Añade solo un nodo en el que confíes: verá tus direcciones y de él saldrán los saldos que veas. Un nodo falso puede enseñarte dinero que no existe.",
 			"placeholder": "https://…",
 			"save": "Probar y guardar",
 			"testing": "Probando…",
@@ -92,7 +93,9 @@
 				"credentials": "La URL no puede llevar usuario ni contraseña",
 				"duplicate": "Ese nodo ya está en la lista",
 				"limit": "Máximo {{count}} nodos por cadena",
-				"unreachable": "El nodo no respondió a la prueba"
+				"unreachable": "El nodo no respondió a la prueba",
+				"wrongNetwork": "Ese nodo no es de la red principal de {{chain}}",
+				"unverified": "No se pudo comprobar de qué red es ese nodo"
 			}
 		},
 		"toasts": {
@@ -101,6 +104,11 @@
 		}
 	},
 	"wallet": {
+		"customNode": {
+			"title": "Saldos leídos de un nodo tuyo",
+			"body": "En {{chains}} manda un nodo que añadiste tú. Si alguien te pidió cambiarlo para «ver» un pago, es una estafa: quítalo.",
+			"action": "Ver nodos"
+		},
 		"card": {
 			"title": "Mi Wallet",
 			"subtitle": "Tus llaves, tus fondos. QvaPay no puede tocarlos.",
@@ -172,6 +180,7 @@
 			"security": "Seguridad"
 		},
 		"asset": {
+			"spoof": "Posible suplantación",
 			"direction": {
 				"in": "Recibido",
 				"out": "Enviado",
@@ -273,6 +282,7 @@
 				"nodeInsufficient": "La red rechazó la transacción por saldo insuficiente.",
 				"wouldRevert": "La red rechazaría este envío, así que no se ha firmado. Revisa tu saldo del token o inténtalo más tarde.",
 				"feeTooHigh": "La comisión de la red está muy por encima de lo normal, así que no se ha firmado nada. Inténtalo más tarde.",
+				"feeNotCovered": "Tu saldo no cubre el importe más la comisión de red. Prueba con un poco menos.",
 				"generic": "No se pudo enviar: {{message}}",
 				"unknown": "No se pudo enviar. Inténtalo de nuevo.",
 				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad.",
@@ -296,7 +306,8 @@
 				"bandwidth": "Te faltan {{needed}} para el ancho de banda de esta transferencia. Alquilar energía no lo cubre.",
 				"cta": "Alquilar energía",
 				"waiting": "Confirmando la delegación en la red…",
-				"waitingSlow": "La energía ya es tuya, pero la red tarda un poco en reflejarla. Reintenta en un minuto."
+				"waitingSlow": "La energía ya es tuya, pero la red tarda un poco en reflejarla. Reintenta en un minuto.",
+				"pendingOrder": "Ya pagaste un alquiler de energía para esta dirección y la entrega sigue en curso. No hace falta alquilar otra vez."
 			},
 			"gasless": {
 				"free": "Gratis · la paga QvaPay",
@@ -374,7 +385,8 @@
 			"network": "Red",
 			"contract": "Contrato",
 			"hash": "Hash",
-			"pendingHint": "Está en la red esperando bloque. En Bitcoin puede tardar unos minutos; en el resto, segundos."
+			"pendingHint": "Está en la red esperando bloque. En Bitcoin puede tardar unos minutos; en el resto, segundos.",
+			"spoofHint": "Tú no hiciste este movimiento. Cualquiera puede registrar una transferencia de 0 a tu nombre para dejar en tu historial una dirección parecida a una que usas. No la copies ni le envíes nada."
 		},
 		"swap": {
 			"title": "Swap",
@@ -475,6 +487,7 @@
 			"sentHint": "Tu envío ya está en la red. En cuanto {{provider}} lo vea, el cambio arranca solo. No envíes otra vez.",
 			"sentTx": "Transacción del envío",
 			"sendNow": "Enviar ahora",
+			"foreignOrder": "Este intercambio paga o devuelve a una dirección que no es de tu wallet. No envíes nada a su dirección de depósito.",
 			"copied": "Copiado",
 			"refundLabel": "Si algo falla, vuelve a",
 			"youSend": "Envías",
@@ -615,6 +628,7 @@
 				"alreadySent": "Ya enviaste el depósito de este intercambio.",
 				"closed": "Este intercambio ya no espera un depósito.",
 				"checkFailed": "No pudimos comprobar el intercambio. Inténtalo de nuevo.",
+				"foreign": "Este intercambio paga o devuelve a una dirección que no es de tu wallet. No se ha firmado nada.",
 				"pendingHash": "Enviado, a la espera de confirmación"
 			}
 		},
@@ -725,7 +739,8 @@
 			"REFUNDED": "No se pudo entregar la energía y te devolvimos el saldo",
 			"PROVIDER_UNAVAILABLE": "El alquiler de energía no está disponible ahora mismo",
 			"RATE_LIMITED": "Demasiados intentos seguidos. Espera unos segundos.",
-			"generic": "No se pudo completar el alquiler"
+			"generic": "No se pudo completar el alquiler",
+			"doubt": "Puede que ya se haya cobrado. Al reintentar se comprueba antes de volver a comprar."
 		},
 		"orders": {
 			"title": "Compras de energía",

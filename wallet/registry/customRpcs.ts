@@ -68,6 +68,15 @@ export const removeCustomRpc = (map: CustomRpcMap, chainKey: string, url: string
 	return next
 }
 
+/**
+ * Cadenas del registro cuyas lecturas pasan primero por un nodo del usuario. Es lo que la
+ * wallet avisa junto a los saldos: lo que se ve ahí lo dice ese nodo.
+ */
+export const customRpcChains = (registry: RpcRegistry, custom: CustomRpcMap | null | undefined): string[] =>
+	Object.entries(custom ?? {})
+		.filter(([key, urls]) => !!registry.chains[key] && Array.isArray(urls) && urls.length > 0)
+		.map(([key]) => key)
+
 export const toCustomRpc = (url: string): RegistryRpc => ({
 	url,
 	priority: CUSTOM_RPC_PRIORITY,

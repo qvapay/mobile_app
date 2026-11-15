@@ -13,7 +13,7 @@ import { useSettings } from '../../settings/SettingsContext'
 import { applyCustomRpcs } from './customRpcs'
 import { withXStocks } from '../xstocks'
 import type { CustomRpcMap } from './customRpcs'
-import { createRpcRouter } from './rpcRouter'
+import { createRpcRouter, createTrailingWriter } from './rpcRouter'
 import type { HealthMap, RpcRouter } from './rpcRouter'
 import { bundledRegistry, useRegistry } from './useRegistry'
 import type { RpcRegistry } from './types'
@@ -29,9 +29,15 @@ export const setCurrentRegistry = (registry: RpcRegistry): void => {
 	currentRegistry = registry
 }
 
-const persistHealth = (health: HealthMap): void => {
+// La pantalla Nodos lo ve al momento; el disco, la última versión cada pocos segundos (la
+// salud cambia con cada llamada a un nodo y solo sirve de sesgo para el arranque siguiente)
+const healthWriter = createTrailingWriter<HealthMap>(health => {
 	AsyncStorage.setItem(RPC_HEALTH_STORAGE_KEY, JSON.stringify(health)).catch(() => {})
+})
+
+const persistHealth = (health: HealthMap): void => {
 	listeners.forEach(listener => listener(health))
+	healthWriter.push(health)
 }
 
 export const getAppRpcRouter = (): RpcRouter => {

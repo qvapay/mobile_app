@@ -11,6 +11,10 @@
  *   firma: firmar una tx caducada es tirar la firma. Se avisa y «Reintentar» la reconstruye
  *   (lo que el usuario autorizó ya no es lo que saldría). Si es la RED la que la da por
  *   caducada al difundir (antes que nuestro reloj), se reconstruye sin más.
+ * - Una tx que no caduca en la cadena pero lleva datos que envejecen (la ruta de un swap EVM:
+ *   precios y plazos del momento en que se cotizó) trae `staleAt`: pasado ese momento no se
+ *   FIRMA. Lo ya firmado sí se re-difunde: es la misma tx, y re-difundirla es además la
+ *   única forma de saber qué fue de ella (en EVM «no está» nunca prueba que no vaya a entrar).
  * - Pero una firma que YA salió hacia la red no se tira sin preguntar a la cadena qué fue de
  *   ella (`lookup`): un fallo de red al difundir es ambiguo (el nodo pudo aceptarla y perderse
  *   la respuesta), "caducada" al re-difundir no prueba que no se ejecutara (java-tron valida la
@@ -35,10 +39,12 @@ import { isExpiredBroadcastError, isSpentBroadcastError } from './txExpiry'
 export type TxPhase = 'preparing' | 'ready' | 'waitingEnergy' | 'signing' | 'broadcasting' | 'sent' | 'error'
 
 /**
- * Lo mínimo que el núcleo necesita saber de una tx preparada. `expiresAt` se compara con
- * `Date.now()`: tiene que estar en el reloj del TELÉFONO, nunca ser una hora de la cadena.
+ * Lo mínimo que el núcleo necesita saber de una tx preparada. `expiresAt` y `staleAt` se
+ * comparan con `Date.now()`: tienen que estar en el reloj del TELÉFONO, nunca ser una hora
+ * de la cadena. `expiresAt`: la tx deja de valer (ni se firma ni se re-difunde). `staleAt`:
+ * solo deja de poder FIRMARSE.
  */
-export type PreparedTx = { summary: { expiresAt: number | null } }
+export type PreparedTx = { summary: { expiresAt: number | null, staleAt?: number | null } }
 
 /**
  * `rebuild`: la difusión no gastó nada pero la tx ya no vale (p. ej. blockhash caducado): se reconstruye.
@@ -199,6 +205,7 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 	useEffect(() => { prepare() }, [prepare])
 
 	const isExpired = useCallback((current: P) => current.summary.expiresAt !== null && current.summary.expiresAt <= Date.now(), [])
+	const isStale = useCallback((current: P) => typeof current.summary.staleAt === 'number' && current.summary.staleAt <= Date.now(), [])
 
 	const broadcast = useCallback(async (current: P, signed: S) => {
 		setPhase('broadcasting')
@@ -249,8 +256,10 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 		if (!prepared || inFlightRef.current || sentRef.current) return
 		inFlightRef.current = true
 		try {
-			// Reconstruirla aquí en silencio devolvía la pantalla a «Confirmar» tras el PIN, sin decir nada
-			if (isExpired(prepared)) {
+			const held = signedRef.current?.prepared === prepared ? signedRef.current : null
+			// Reconstruirla aquí en silencio devolvía la pantalla a «Confirmar» tras el PIN, sin decir nada.
+			// Lo viejo (`staleAt`) solo impide una firma NUEVA: con la firma ya hecha, se re-difunde
+			if (isExpired(prepared) || (!held && isStale(prepared))) {
 				setPhase('error')
 				setError(describeError(new TxExpiredError()))
 				return
@@ -261,7 +270,6 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			setPhase('signing')
 			// Un tick para que el spinner pinte antes del PBKDF2 (síncrono, ~1-2s en Hermes)
 			await new Promise<void>(resolve => setTimeout(resolve, 30))
-			const held = signedRef.current?.prepared === prepared ? signedRef.current : null
 			const signed = held ? held.signed : await sign(prepared)
 			signedRef.current = { prepared, signed }
 			await broadcast(prepared, signed)
@@ -272,7 +280,7 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			lockedRef.current = false
 			inFlightRef.current = false
 		}
-	}, [prepared, sign, broadcast, isExpired, describeError, setPhase])
+	}, [prepared, sign, broadcast, isExpired, isStale, describeError, setPhase])
 
 	/**
 	 * Reconstruye SIEMPRE, tirando la firma retenida. `retry()` no vale para

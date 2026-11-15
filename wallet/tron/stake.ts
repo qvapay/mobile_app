@@ -18,7 +18,7 @@ import { parseTronAccount, tronPowerSun, tronToHex20, tronVotesUsed } from '../c
 import type { TronAccountState } from '../chains/tron'
 import type { TxLookup } from '../chains/txLookup'
 import type { RegistryRpc } from '../registry/types'
-import type { StakeBroadcastResult, StakeIntent, StakeNotice, StakePosition, StakeSummary, StakeTxAdapter } from '../staking/types'
+import type { StakeBroadcastResult, StakeIntent, StakeNotice, StakePosition, StakeRpcRunner, StakeSummary, StakeTxAdapter } from '../staking/types'
 import { TRON_ACTIVE_SRS, tronVoteApr } from '../staking/apy'
 import { concatBytes, encodeBytesField, encodeVarintField, hexToBytes } from './protobuf'
 import {
@@ -43,8 +43,12 @@ import type { DecodedTronContract, DecodedTronRaw, TronNodeTx, TronStakeResource
 
 /** Vida del voto construido localmente: tiempo de sobra para que el congelado se confirme. */
 export const LOCAL_VOTE_TTL_MS = 10 * 60_000
-/** Espera máxima a que la red vea el TRX congelado antes de difundir el voto. */
-export const VOTE_WAIT_DEADLINE_MS = 60_000
+/**
+ * Espera máxima a que la red vea el TRX congelado antes de difundir el voto. El congelado
+ * entra en el bloque siguiente (3 s) y el TRON Power se ve en cuanto el nodo lo procesa:
+ * 24 s son ocho bloques. Pasado el plazo se intenta el voto igualmente, una vez.
+ */
+export const VOTE_WAIT_DEADLINE_MS = 24_000
 const VOTE_WAIT_INTERVAL_MS = 3_000
 /** Entre cobros de recompensas la red exige 24 h. */
 export const CLAIM_INTERVAL_MS = 24 * 3600_000
@@ -439,30 +443,61 @@ export const signTronStake = (prepared: PreparedTronStake, privateKey: Uint8Arra
 }
 
 /**
- * Difunde en orden. En `stake`, entre el congelado y el voto espera a que la red vea el
- * TRON Power nuevo; si el voto no entra, el resultado es el del congelado con
- * `note: 'votePending'` (el dinero ya está congelado: no se reintenta en bucle).
+ * Difunde la PRIMERA tx de la acción (en `stake`, el congelado). Lo que queda de un `stake`
+ * (esperar el TRON Power y votar) lo hace `finishTronStake`, fuera de esta llamada.
  */
 export const broadcastTronStake = async (rpc: Rpc, prepared: PreparedTronStake, signed: SignedTronStake, deps: Deps = {}): Promise<StakeBroadcastResult> => {
-	const { signal } = deps
+	if (signed.signatures.length !== prepared.txs.length) throw new TronVerifyError('firmas y transacciones no cuadran')
+	return broadcastTronTransaction(rpc, prepared.txs[0].tx.raw_data_hex, signed.signatures[0], { signal: deps.signal })
+}
+
+/**
+ * El nodo que recibe el voto aún no ha procesado el bloque del congelado: java-tron lo
+ * rechaza con «The total number of votes[…] is greater than the tronPower[…]».
+ */
+const isPowerNotSeen = (err: unknown): boolean => err instanceof Error && /greater than the tronPower/i.test(err.message)
+
+/**
+ * Lo que queda de `stake` tras el congelado: esperar a que la red vea el TRON Power nuevo y
+ * difundir el voto. Cada paso es una llamada PROPIA del router (`run`), con su señal y su
+ * tiempo (S-01): dentro de la llamada del congelado, la espera agotaba sus 8 s, todas las
+ * lecturas siguientes fallaban al instante, se esperaba un minuto entero y el voto no
+ * llegaba a salir. El TRX quedaba congelado sin votar (sin recompensas) hasta un segundo PIN.
+ *
+ * El nodo que enseña el TRON Power y el que recibe el voto pueden no ser el mismo (el router
+ * elige en cada llamada, y detrás de un balanceador contestan nodos distintos): si el voto
+ * se rechaza porque ese nodo aún no ve el congelado, se repite mientras quede plazo.
+ *
+ * Nunca lanza: el dinero ya está congelado. Si el voto no entra, el resultado es el del
+ * congelado con `note: 'votePending'` y la pantalla de éxito ofrece votar.
+ */
+export const finishTronStake = async (run: StakeRpcRunner, prepared: PreparedTronStake, signed: SignedTronStake, result: StakeBroadcastResult, deps: Pick<Deps, 'now' | 'sleep'> = {}): Promise<StakeBroadcastResult> => {
+	const rest = prepared.txs.slice(1)
+	if (rest.length === 0) return result
 	const sleep = deps.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)))
 	const now = deps.now ?? Date.now
-	if (signed.signatures.length !== prepared.txs.length) throw new TronVerifyError('firmas y transacciones no cuadran')
-	const [first, ...rest] = prepared.txs
-	const result = await broadcastTronTransaction(rpc, first.tx.raw_data_hex, signed.signatures[0], { signal })
-	if (rest.length === 0) return result
-
+	const deadline = now() + VOTE_WAIT_DEADLINE_MS
 	try {
-		if (prepared.powerNeededSun !== null) {
-			const deadline = now() + VOTE_WAIT_DEADLINE_MS
+		const needed = prepared.powerNeededSun
+		if (needed !== null) {
 			for (;;) {
-				const state = await getTronAccount(rpc, prepared.intent.owner, signal).catch(() => null)
-				if (state && tronPowerSun(state) >= prepared.powerNeededSun) break
+				const state = await run((rpc, signal) => getTronAccount(rpc, prepared.intent.owner, signal), { idempotent: true }).catch(() => null)
+				if (state && tronPowerSun(state) >= needed) break
 				if (now() >= deadline) break
 				await sleep(VOTE_WAIT_INTERVAL_MS)
 			}
 		}
-		for (let i = 0; i < rest.length; i++) await broadcastTronTransaction(rpc, rest[i].tx.raw_data_hex, signed.signatures[i + 1], { signal })
+		for (let i = 0; i < rest.length; i++) {
+			for (;;) {
+				try {
+					await run((rpc, signal) => broadcastTronTransaction(rpc, rest[i].tx.raw_data_hex, signed.signatures[i + 1], { signal }))
+					break
+				} catch (err) {
+					if (!isPowerNotSeen(err) || now() >= deadline) throw err
+					await sleep(VOTE_WAIT_INTERVAL_MS)
+				}
+			}
+		}
 		return result
 	} catch {
 		return { ...result, note: 'votePending' }
@@ -520,6 +555,9 @@ export const tronStakeAdapter: StakeTxAdapter<PreparedTronStake, SignedTronStake
 	},
 	broadcast(rpc, inner, signed, { signal }) {
 		return broadcastTronStake(rpc, inner, signed, { signal })
+	},
+	followUp(run, inner, signed, result) {
+		return finishTronStake(run, inner, signed, result)
 	},
 	async lookup(rpc, inner, _signed, { signal }) {
 		const [first, second] = inner.txs

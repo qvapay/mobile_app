@@ -125,6 +125,12 @@ export type StakeSummary = {
 export type StakeNotice = 'replacesVotes' | 'votesAdjust'
 
 /**
+ * Una llamada PROPIA del router: el nodo lo elige él y la señal (con su tiempo) es nueva.
+ * `idempotent`: una lectura, que puede repetirse en otro nodo ante cualquier error.
+ */
+export type StakeRpcRunner = <T>(fn: (rpc: RegistryRpc, signal: AbortSignal | undefined) => Promise<T>, options?: { idempotent?: boolean }) => Promise<T>
+
+/**
  * Adaptador de una cadena. Sintaxis de MÉTODO a propósito: así un adaptador
  * con tipos concretos (`sign(inner: PreparedSolanaStake …)`) encaja en el
  * mapa genérico sin casts.
@@ -134,7 +140,15 @@ export type StakeTxAdapter<Inner = unknown, Signed = unknown> = {
 	accept?(rpc: RegistryRpc): boolean
 	prepare(rpc: RegistryRpc, intent: StakeIntent, options: { signal?: AbortSignal }): Promise<{ inner: Inner, summary: StakeSummary }>
 	sign(inner: Inner, privateKey: Uint8Array): Signed | Promise<Signed>
+	/** Difunde la tx (la PRIMERA, si la acción lleva dos). Va en una sola llamada del router. */
 	broadcast(rpc: RegistryRpc, inner: Inner, signed: Signed, options: { signal?: AbortSignal }): Promise<StakeBroadcastResult>
+	/**
+	 * Lo que queda tras `broadcast` en una acción de dos tx (TRON `stake`: esperar a que la red
+	 * vea el TRON Power y votar). Va FUERA de la llamada del router de `broadcast`: cada `run`
+	 * es una llamada propia, con su señal y su tiempo. Dentro de una sola, la espera agotaba
+	 * los 8 s de la primera y el voto no llegaba a salir. No lanza: la primera tx ya entró.
+	 */
+	followUp?(run: StakeRpcRunner, inner: Inner, signed: Signed, result: StakeBroadcastResult): Promise<StakeBroadcastResult>
 	/**
 	 * ¿Qué fue de una tx ya difundida de la que no hubo respuesta? El motor lo pregunta antes
 	 * de construir otra: sin esto se quedaba en «no pudimos confirmar» y quien salía y

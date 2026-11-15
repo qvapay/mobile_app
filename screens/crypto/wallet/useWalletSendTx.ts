@@ -61,12 +61,14 @@ type Args = {
 	onAttempt?: (txid: string | null, ref: SentRef | null) => void | Promise<void>
 	/** Consta que ese envío NO entró ni entrará. */
 	onDropped?: () => void
+	/** Lo que llegue tiene que ser el importe exacto: es el depósito de un intercambio. */
+	exact?: boolean
 }
 
 /** ¿Esta tx la paga QvaPay? (Solana y BSC; el resto nunca se patrocina desde Enviar). */
 const isSponsoredTx = (prepared: PreparedSend): boolean => (prepared.kind === 'solana' || prepared.kind === 'evm') && prepared.inner.sponsored === true
 
-export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, onSent, describeError, sponsor = null, sponsorResolver = null, onAttempt, onDropped }: Args) => {
+export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, onSent, describeError, sponsor = null, sponsorResolver = null, onAttempt, onDropped, exact = false }: Args) => {
 
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
@@ -79,6 +81,8 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 	const [energyRented, setEnergyRented] = useState(false)
 	/** La delegación no se vio a tiempo: la energía está, pero la red va lenta. */
 	const [energySlow, setEnergySlow] = useState(false)
+	/** Hay un alquiler cobrado ANTES de abrir esta pantalla cuya entrega sigue en curso. */
+	const [energyPending, setEnergyPending] = useState(false)
 	const mountedRef = useRef(true)
 	useEffect(() => () => { mountedRef.current = false }, [])
 
@@ -86,8 +90,8 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		const intent = { chainKey: asset!.chainKey, from: addressForKind(addresses!, asset!.kind), fromPublicKey: addresses!.stxPublicKey, to, amount: parseUnits(amount, asset!.decimals), contract: asset!.contract }
 		// Con patrocinio en Solana el hueco 0 es de QvaPay: el usuario firma solo el suyo.
 		// En BSC no hay hueco de pagador: la tx va con gasPrice 0 y la paga el paymaster
-		return prepareSend(chain!, intent, feeTier, { feePayer: sponsor?.feePayer ?? null, zeroGas: sponsor?.chain === 'bsc' })
-	}, [asset, addresses, chain, to, amount, feeTier, sponsor?.feePayer, sponsor?.chain])
+		return prepareSend(chain!, intent, feeTier, { feePayer: sponsor?.feePayer ?? null, zeroGas: sponsor?.chain === 'bsc', exact })
+	}, [asset, addresses, chain, to, amount, feeTier, sponsor?.feePayer, sponsor?.chain, exact])
 
 	const submit = useCallback(async (current: PreparedSend, signed: SignedSend): Promise<SubmitResult> => {
 		// Una tx patrocinada NUNCA sale a la red desde aquí: va a medio firmar al
@@ -157,9 +161,16 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 	 */
 	const markEnergyRented = useCallback(() => { setEnergyRented(true) }, [])
 
+	/**
+	 * Ya había un alquiler cobrado y sin entregar para la dirección que firma (se compró
+	 * antes de cerrar la app, o desde otra pantalla). Mismo latch: no se ofrece otro.
+	 */
+	const markEnergyPending = useCallback(() => { setEnergyRented(true); setEnergyPending(true) }, [])
+
 	const onEnergyRented = useCallback(async () => {
 		setEnergyRented(true)
 		setEnergySlow(false)
+		setEnergyPending(false)
 		const current = prepared
 		if (!current || current.kind !== 'tron') { refresh(); return }
 		const needed = current.inner.fee.energyNeeded
@@ -183,9 +194,11 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		feeTier,
 		setFeeTier,
 		markEnergyRented,
+		markEnergyPending,
 		onEnergyRented,
 		energyRented,
 		energySlow,
+		energyPending,
 	}
 }
 

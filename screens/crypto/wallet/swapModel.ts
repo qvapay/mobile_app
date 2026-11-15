@@ -138,6 +138,14 @@ export const isInUnsupported = (direction: SwapDirection, pair: SwapPairLike | n
 export type SwapTimeline = { active: 0 | 1 | 2 | 3, failedAt: 1 | 2 | null }
 
 /**
+ * ¿Este swap, ya cerrado, movió el saldo QvaPay en el servidor sin pasar por la app? Un IN
+ * completado lo sube y un reembolso lo devuelve. Quien lo vea RELEE el perfil: sumar el
+ * importe al saldo local lo inflaba cada vez que se abría un swap antiguo (P-09).
+ */
+export const swapMovedBalance = (swap: { direction: string, status: string }): boolean =>
+	(swap.direction === 'in' && swap.status === 'completed') || swap.status === 'refunded'
+
+/**
  * 0 = recibido · 1 = enviando a la red · 2 = confirmando · 3 = completado.
  * Un fallo o reembolso marca el paso donde se quedó.
  */

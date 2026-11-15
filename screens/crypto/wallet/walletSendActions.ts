@@ -13,7 +13,7 @@ import { broadcastTronTransaction, isValidTronAddress, lookupTronTransaction, pr
 import type { PreparedTronSend } from '../../../wallet/tron/tx'
 import { broadcastEvmTransaction, getEvmFeeData, isValidEvmAddress, lookupEvmTransaction, NATIVE_TRANSFER_GAS, prepareEvmSend, signEvmTransaction } from '../../../wallet/evm/tx'
 import type { PreparedEvmSend, SignedEvmTx } from '../../../wallet/evm/tx'
-import { broadcastBtcTransaction, estimateVsize, feeFor, FEE_TIER_ETA_MINUTES, isValidBtcAddress, lookupBtcTransaction, prepareBtcSend, signBtcTransaction } from '../../../wallet/btc/tx'
+import { broadcastBtcTransaction, estimateBtcSendReserve, estimateVsize, feeFor, FEE_TIER_ETA_MINUTES, isValidBtcAddress, lookupBtcTransaction, prepareBtcSend, signBtcTransaction } from '../../../wallet/btc/tx'
 import type { FeeTier, PreparedBtcSend, SignedBtcTx } from '../../../wallet/btc/tx'
 import { broadcastStacksTransaction, isValidStacksAddress, lookupStacksTransaction, prepareStacksSend, signStacksTransaction } from '../../../wallet/stacks/tx'
 import type { PreparedStacksSend, SignedStacksTx } from '../../../wallet/stacks/tx'
@@ -91,6 +91,12 @@ export type PrepareOptions = {
 	feePayer?: string | null
 	/** EVM (BSC): tx patrocinada por paymaster BEP-414, legacy con gasPrice 0. */
 	zeroGas?: boolean
+	/**
+	 * El destino tiene que recibir el importe EXACTO: es el depósito de un intercambio y el
+	 * proveedor espera el de la orden. En Bitcoin impide «enviar todo», que descuenta la
+	 * comisión de lo enviado.
+	 */
+	exact?: boolean
 }
 
 export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier: FeeTier = 'normal', options: PrepareOptions = {}): Promise<PreparedSend> => {
@@ -123,7 +129,7 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier
 		}
 	}
 	if (chain.kind === 'btc') {
-		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareBtcSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount }, { signal, tier }))
+		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareBtcSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount }, { signal, tier, exact: options.exact }))
 		// Con "enviar todo" la cantidad verificada es total − fee: lo que de verdad recibe el destino
 		return {
 			kind: 'btc', chain, intent, inner,
@@ -204,23 +210,34 @@ export const percentOfUnits = (balance: bigint, percent: number): bigint => {
 	return (balance * BigInt(Math.round(percent))) / 100n
 }
 
-export const maxSendableUnits = ({ balance, isNative, kind, reserve }: {
+export const maxSendableUnits = ({ balance, isNative, kind, reserve, exact = false }: {
 	balance: bigint
 	isNative: boolean
 	kind: string
 	reserve: bigint
+	/** Lo enviado tiene que llegar tal cual (el depósito de un intercambio). */
+	exact?: boolean
 }): bigint => {
-	if (!isNative || kind === 'btc') { return balance }
+	if (!isNative) { return balance }
+	// Bitcoin en un envío normal: MÁX es todo y la comisión se descuenta de lo enviado. En un
+	// depósito no vale (X-05): la orden se abría por el total y llegaba el total menos la comisión
+	if (kind === 'btc' && !exact) { return balance }
 	return balance > reserve ? balance - reserve : 0n
 }
 
 /**
  * Reserva de gas para el botón MAX de un NATIVO: lo que costaría la propia
  * transferencia con la fee actual, con margen. TRON no lo necesita aquí
- * (reserva fija en WalletSend); EVM lee la fee del nodo; Bitcoin no reserva
- * nada: MAX = todo el saldo y la fee se descuenta del envío ("enviar todo").
+ * (reserva fija en WalletSend); EVM lee la fee del nodo; Bitcoin, en un envío
+ * normal, no reserva nada: MAX = todo el saldo y la fee se descuenta del envío
+ * ("enviar todo"). Con `address` (el MÁX de un intercambio, donde lo depositado
+ * tiene que ser el importe exacto) sí: la comisión de gastar todos sus UTXOs.
  */
-export const estimateNativeReserve = async (chain: RegistryChain, chainKey: string): Promise<bigint> => {
+export const estimateNativeReserve = async (chain: RegistryChain, chainKey: string, address?: string | null): Promise<bigint> => {
+	if (chain.kind === 'btc') {
+		if (!address) return 0n
+		return getAppRpcRouter().call(chainKey, (rpc, signal) => estimateBtcSendReserve(rpc, address, { signal }), { idempotent: true })
+	}
 	// Solana: el mínimo exento de renta MÁS la comisión. Una cuenta que hoy está exenta
 	// no puede quedarse por debajo de ese mínimo con saldo distinto de cero — el runtime
 	// lo rechaza con InsufficientFundsForRent, y el rechazo llega en la simulación como

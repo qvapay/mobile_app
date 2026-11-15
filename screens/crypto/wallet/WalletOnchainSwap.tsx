@@ -23,8 +23,8 @@ import { SolanaExpiredError } from '../../../wallet/solana/tx'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
 import { useWalletAssets } from './walletQueries'
 import { estimatePrice, useEnergyPricesQuery } from './energyQueries'
-import { OnchainSwapMismatchError, planOnchainSwap } from './onchainSwapModel'
-import type { OnchainSwapPlan } from './onchainSwapModel'
+import { OnchainSwapMismatchError, planOnchainSwap, routeForPrepare } from './onchainSwapModel'
+import type { OnchainRoute, OnchainSwapPlan } from './onchainSwapModel'
 import { broadcastOnchainSwap, lookupOnchainSwap, prepareOnchainSwap, signOnchainSwap, waitForApproval } from './walletSwapActions'
 import type { PreparedOnchainSwap, SignedOnchainSwap } from './walletSwapActions'
 import useWalletTx, { TxExpiredError, TxUnconfirmedError } from './useWalletTx'
@@ -41,6 +41,7 @@ import QPButton from '../../../ui/particles/QPButton'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 import WalletAuthModal from './components/WalletAuthModal'
 import EnergyRentModal from './components/EnergyRentModal'
+import usePendingEnergyOrder from './usePendingEnergyOrder'
 
 // Routes
 import { ROUTES } from '../../../routes'
@@ -79,6 +80,19 @@ const SUBMIT_ATTEMPTS = 3
 const ENERGY_WAIT_DEADLINE_MS = 45_000
 const ENERGY_WAIT_INTERVAL_MS = 2_000
 
+/** Qué se dice mientras la energía alquilada no se ve: recién comprada, lenta, o comprada antes de entrar. */
+const ENERGY_WAIT_COPY = {
+	waiting: 'crypto.wallet.send.energy.waiting',
+	slow: 'crypto.wallet.send.energy.waitingSlow',
+	pending: 'crypto.wallet.send.energy.pendingOrder',
+} as const
+
+/** qpweb no dio la ruta. `requote`: la cotización caducó o el precio se movió, hay que volver a cotizar. */
+class RouteBuildError extends Error {
+	requote: boolean
+	constructor(message: string, requote: boolean) { super(message); this.name = 'RouteBuildError'; this.requote = requote }
+}
+
 /**
  * Confirmación y firma de un swap ON-CHAIN (LI.FI en EVM, Jupiter en Solana).
  *
@@ -108,40 +122,58 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const toChain = to ? registry.chains[to.chainKey] : undefined
 
 	// --- La ruta, tal y como la manda qpweb (sin fiarse de ella: ver `planOnchainSwap`) ---
-	const [build, setBuild] = useState<ExchangeOnchainBuild | null>(null)
+	// Con el momento en que llegó: una ruta EVM vieja no se firma (O-06). Va también por ref,
+	// para que quien prepara lea la última sin que su identidad cambie con cada ruta nueva
+	const [swapRoute, setSwapRoute] = useState<OnchainRoute | null>(null)
+	const routeRef = useRef<OnchainRoute | null>(null)
+	const applyRoute = useCallback((next: OnchainRoute) => { routeRef.current = next; setSwapRoute(next) }, [])
+	const build = swapRoute?.build ?? null
 	const [buildError, setBuildError] = useState<{ message: string, requote: boolean } | null>(null)
 	// Cada lado con la dirección de SU familia: SunSwap (TRON) y THORChain (BTC) también son
 	// on-chain, y mandar la EVM ahí hacía que qpweb rechazase el destino por formato
 	const fromAddress = from && addresses ? addressForKind(addresses, from.kind) : null
 	const toAddress = to && addresses ? addressForKind(addresses, to.kind) : null
 
+	/** Pide la ruta a qpweb. Lanza `RouteBuildError` con lo que hay que enseñar. */
+	const fetchRoute = useCallback(async (): Promise<OnchainRoute> => {
+		const result = await exchangeApi.onchainBuild({ quoteId, fromAddress: fromAddress!, toAddress: toAddress! })
+		if (result.success) {
+			if (result.data) return { build: result.data, at: Date.now() }
+			throw new RouteBuildError(t(`${KEY}errors.build`), false)
+		}
+		const code = (result.details as { code?: string } | undefined)?.code
+		throw new RouteBuildError(
+			code === 'QUOTE_MOVED' ? t(`${KEY}errors.moved`) : code === 'QUOTE_EXPIRED' ? t(`${KEY}errors.expired`) : (result.error || t(`${KEY}errors.build`)),
+			code === 'QUOTE_MOVED' || code === 'QUOTE_EXPIRED',
+		)
+	}, [quoteId, fromAddress, toAddress, t])
+	const buildErrorOf = useCallback((err: unknown) => (err instanceof RouteBuildError
+		? { message: err.message, requote: err.requote }
+		: { message: t(`${KEY}errors.build`), requote: false }), [t])
+
 	const loadBuild = useCallback(async () => {
 		if (!fromAddress || !toAddress) return
 		setBuildError(null)
-		const result = await exchangeApi.onchainBuild({ quoteId, fromAddress, toAddress })
-		if (result.success) {
-			if (result.data) { setBuild(result.data) } else { setBuildError({ message: t(`${KEY}errors.build`), requote: false }) }
-			return
-		}
-		const code = (result.details as { code?: string } | undefined)?.code
-		setBuildError({
-			message: code === 'QUOTE_MOVED' ? t(`${KEY}errors.moved`) : code === 'QUOTE_EXPIRED' ? t(`${KEY}errors.expired`) : (result.error || t(`${KEY}errors.build`)),
-			requote: code === 'QUOTE_MOVED' || code === 'QUOTE_EXPIRED',
-		})
-	}, [quoteId, fromAddress, toAddress, t])
+		try { applyRoute(await fetchRoute()) } catch (err) { setBuildError(buildErrorOf(err)) }
+	}, [fromAddress, toAddress, fetchRoute, applyRoute, buildErrorOf])
 	useEffect(() => { loadBuild() }, [loadBuild])
+
+	/** De la ruta a la intención verificada. Lanza si la ruta no dice lo que el usuario confirmó. */
+	const planFor = useCallback((current: ExchangeOnchainBuild) => planOnchainSwap({
+		build: current, from: from!, to: to!, addresses: addresses!, amount, expectedOut, chainId: chain?.chainId, toChainId: toChain?.chainId, serviceFeeBps,
+	}), [from, to, addresses, amount, expectedOut, chain?.chainId, toChain?.chainId, serviceFeeBps])
 
 	const planned = useMemo((): { plan: OnchainSwapPlan | null, error: string | null } => {
 		if (!build || !from || !to || !addresses) return { plan: null, error: null }
 		try {
-			return { plan: planOnchainSwap({ build, from, to, addresses, amount, expectedOut, chainId: chain?.chainId, toChainId: toChain?.chainId, serviceFeeBps }), error: null }
+			return { plan: planFor(build), error: null }
 		} catch (err) {
 			// Una ruta por una función que la wallet no sabe leer no es un engaño: es que no se puede comprobar
 			if (err instanceof EvmUnsupportedRouteError) return { plan: null, error: t(`${KEY}errors.unsupportedRoute`) }
 			if (err instanceof EvmRouteExpiredError) return { plan: null, error: t(`${KEY}errors.expired`) }
 			return { plan: null, error: err instanceof OnchainSwapMismatchError || err instanceof EvmVerifyError ? t(`${KEY}errors.verify`) : (err as Error).message }
 		}
-	}, [build, from, to, addresses, amount, expectedOut, chain?.chainId, toChain?.chainId, serviceFeeBps, t])
+	}, [build, from, to, addresses, planFor, t])
 	const { plan } = planned
 
 	// --- Firma y difusión: el núcleo común de toda tx de la wallet ---
@@ -167,7 +199,15 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		return message ? t(`${KEY}errors.generic`, { message }) : t(`${KEY}errors.unknown`)
 	}, [t])
 
-	const prepare = useCallback(() => prepareOnchainSwap(build!, plan!), [build, plan])
+	const prepare = useCallback(async () => {
+		// Una ruta EVM vieja no se vuelve a preparar (O-06): se pide otra, que pasa las mismas
+		// comprobaciones que la primera, y la pantalla pasa a enseñar la nueva. Si qpweb ya no
+		// la da (la cotización caducó, el precio se movió), toca volver a cotizar
+		let fresh
+		try { fresh = await routeForPrepare(routeRef.current!, Date.now(), fetchRoute) } catch (err) { setBuildError(buildErrorOf(err)); throw err }
+		if (fresh.refreshed) applyRoute(fresh.route)
+		return prepareOnchainSwap(fresh.route.build, planFor(fresh.route.build), { routeAt: fresh.route.at })
+	}, [fetchRoute, buildErrorOf, applyRoute, planFor])
 
 	// Se declaran antes que `tx` y se leen por ref. `advance` es para después de un permiso
 	// (lo que entró era un paso previo: toca construir el swap); `refresh`, para recalcular
@@ -233,7 +273,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	// Antes el botón llevaba a la pantalla de Energía y, al volver, la tx seguía preparada con
 	// los recursos viejos: la comisión no bajaba y el aviso seguía pidiendo alquilar. Ahora es
 	// el patrón de Enviar: modal en sitio, se espera a ver la delegación y se re-prepara.
-	const { isAuthenticated } = useAuth()
+	const { isAuthenticated, user } = useAuth()
 	const tronInner = prepared?.family === 'tron' ? prepared.inner : null
 	// El alquiler se cobra del saldo QvaPay: sin sesión ni se pide ni se ofrece
 	const energyPrices = useEnergyPricesQuery(isAuthenticated && !!tronInner)
@@ -244,7 +284,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const [rentedForStep, setRentedForStep] = useState<string | null>(null)
 	const tronStep = tronInner?.step ?? null
 	const energyRented = !!tronStep && rentedForStep === tronStep
-	const [energyWait, setEnergyWait] = useState<'waiting' | 'slow' | null>(null)
+	const [energyWait, setEnergyWait] = useState<'waiting' | 'slow' | 'pending' | null>(null)
 	const mountedRef = useRef(true)
 	useEffect(() => {
 		mountedRef.current = true
@@ -260,6 +300,16 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		if (volume === null) return null
 		return { volume, needed: tronInner.fee.energyNeeded, owner: tronInner.intent.owner, priceUsd: estimatePrice(energyPrices.data?.data, volume, '1h') }
 	}, [tronInner, energyPrices.data])
+
+	// Un alquiler ya COBRADO para quien firma y aún sin entregar (se compró antes de abrir
+	// esta pantalla): el mismo latch que al comprarlo aquí, mientras a este paso le falte energía
+	const pendingEnergy = usePendingEnergyOrder(isAuthenticated ? user?.uuid : null)
+	const pendingForOwner = !!pendingEnergy && !!energyOffer && pendingEnergy.target_address === energyOffer.owner
+	useEffect(() => {
+		if (!pendingForOwner || !tronStep) return
+		setRentedForStep(tronStep)
+		setEnergyWait(current => current ?? 'pending')
+	}, [pendingForOwner, tronStep])
 
 	const onEnergyRented = useCallback(async () => {
 		setRentOpen(false)
@@ -338,7 +388,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 			</View>
 
 			{plan?.family === 'btc' && !fatal && <Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t(`${KEY}btcNotice`, { symbol: to.symbol })} />}
-			{!!energyWait && !fatal && <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t(energyWait === 'waiting' ? 'crypto.wallet.send.energy.waiting' : 'crypto.wallet.send.energy.waitingSlow')} />}
+			{!!energyWait && !fatal && (energyWait !== 'pending' || !!energyOffer) && <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t(ENERGY_WAIT_COPY[energyWait])} />}
 			{!!energyOffer && isAuthenticated && !energyRented && prepared?.family === 'tron' && prepared.summary.feeEstimated > 0n && !fatal && (
 				<>
 					<Notice theme={theme} icon="circle-info" color={theme.colors.warning} text={t(`${KEY}tronEnergyNotice`, { amount: nativeFee(prepared.summary.feeEstimated) })} />

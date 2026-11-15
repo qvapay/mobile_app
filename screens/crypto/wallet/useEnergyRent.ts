@@ -11,6 +11,11 @@
  * Dos plazos gobiernan la espera: el del `202` (la orden se cobró y el
  * proveedor aún no entregó) y el de la cotización congelada, que dura 90 s y
  * se renueva sola mientras el usuario decide.
+ *
+ * Y una compra que se queda SIN RESPUESTA pudo cobrarse: su clave y su pedido
+ * van al disco antes de salir (`energyPending`), el mismo pedido se repite
+ * siempre con esa clave, y antes de mandar nada más se mira si su orden ya
+ * consta en el historial.
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { AppState } from 'react-native'
@@ -25,9 +30,9 @@ import type { ApiFailure } from '../../../types/api'
 import { useAuth } from '../../../auth/AuthContext'
 
 // Estado
-import { credentialsFor, initialRentState, isTerminalOrder, pollDelayMs, rentReducer } from './energyRentMachine'
-import type { RentParams, RentState } from './energyRentMachine'
-import { clearPendingOrder, savePendingOrder } from './energyPending'
+import { credentialsFor, findAttemptOrder, initialRentState, isTerminalOrder, paramsFromKey, pollDelayMs, rentReducer } from './energyRentMachine'
+import type { PendingEnergyAttempt, RentParams, RentState } from './energyRentMachine'
+import { clearPendingAttempt, clearPendingOrder, readPendingEnergy, savePendingAttempt, savePendingOrder } from './energyPending'
 import { ENERGY_ORDERS_KEY } from './energyQueries'
 import { WALLET_TRON_RESOURCES_KEY } from './walletQueries'
 import { HOME_QUERY_KEY } from '../../home/homeQueries'
@@ -82,6 +87,8 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 
 	const queryClient = useQueryClient()
 	const { user, updateUser } = useAuth()
+	// La nota en disco es de la cuenta que paga
+	const userKey = user?.uuid ? String(user.uuid) : null
 
 	const params = useMemo<RentParams>(() => ({ targetAddress, volume, duration }), [targetAddress, volume, duration])
 	const [state, dispatch] = useReducer(rentReducer, params, initialRentState)
@@ -99,6 +106,17 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 	useEffect(() => { onChargedRef.current = onCharged }, [onCharged])
 
 	useEffect(() => { dispatch({ type: 'setParams', params }) }, [params])
+
+	// Un intento que quedó en duda en una sesión anterior (la app se cerró con la compra en
+	// vuelo): su clave vuelve a ser la de ese pedido. Se lee una vez, al abrirse
+	const restoredRef = useRef<Promise<PendingEnergyAttempt | null> | null>(null)
+	useEffect(() => {
+		if (!active || !userKey || restoredRef.current) { return }
+		restoredRef.current = readPendingEnergy(userKey).then(({ attempt }) => {
+			if (attempt) { dispatch({ type: 'restore', key: attempt.key, params: attempt.params, at: attempt.at }) }
+			return attempt
+		})
+	}, [active, userKey])
 
 	// --- Precio -------------------------------------------------------------
 
@@ -140,16 +158,52 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 
 	// --- Compra -------------------------------------------------------------
 
+	/** Una orden de esta compra: recién creada, replicada por su clave o encontrada en el historial. */
+	const settle = useCallback((order: EnergyOrder, { http, balance, duplicate, price }: { http: number, balance?: number, duplicate?: boolean, price: number | null }) => {
+		dispatch({ type: 'rented', order, http, duplicate })
+		// El backend devuelve el saldo ya debitado; el replay de una clave no
+		if (typeof balance === 'number') { updateUser({ balance }) }
+		else if (!duplicate && typeof price === 'number') { updateUser({ balance: Number(user?.balance || 0) - price }) }
+		queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY })
+		queryClient.invalidateQueries({ queryKey: ENERGY_ORDERS_KEY })
+		// Cobrada y sin cerrar: la nota en disco es lo que impide que, tras un cierre de
+		// app, el usuario no sepa si pagó y vuelva a comprar. Con la orden conocida, el
+		// intento deja de estar en duda
+		if (!isTerminalOrder(order)) { savePendingOrder(userKey, order.uuid) }
+		else { clearPendingAttempt(userKey) }
+	}, [queryClient, updateUser, user?.balance, userKey])
+
 	const confirm = useCallback(async () => {
 		if (inFlightRef.current) { return }
-		const current = stateRef.current
-		if (current.phase === 'renting' || current.phase === 'polling') { return }
-		// Lo que se manda y lo que se guarda salen del MISMO sitio
-		const { key, keyParams, quote } = credentialsFor(current)
-		const price = quote?.price_usd ?? estimatedUsd
+		if (stateRef.current.phase === 'renting' || stateRef.current.phase === 'polling') { return }
 		inFlightRef.current = true
-		dispatch({ type: 'confirm', key, keyParams, quote })
 		try {
+			// La nota del disco puede no haber llegado aún al estado (el dispatch no es síncrono)
+			const restored = await (restoredRef.current ?? Promise.resolve(null))
+			let current = stateRef.current
+			if (restored && !current.doubt) { current = rentReducer(current, { type: 'restore', key: restored.key, params: restored.params, at: restored.at }) }
+
+			// Un intento anterior pudo cobrarse sin que llegara la respuesta: antes de mandar
+			// nada se mira si su orden ya consta. Encontrarla es lo único que aclara algo; no
+			// encontrarla no prueba que no se cobrara, así que ese pedido sigue con su clave
+			if (current.doubt && current.keySentAt !== null) {
+				const attempt = paramsFromKey(current.keyParams)
+				const listed = attempt ? await energyApi.orders({ page: 1 }) : null
+				const found = attempt && listed?.success && listed.data?.data
+					? findAttemptOrder(listed.data.data, { params: attempt, since: current.keySentAt })
+					: null
+				if (found) { settle(found, { http: 200, duplicate: true, price: null }); return }
+			}
+
+			// Lo que se manda y lo que se guarda salen del MISMO sitio
+			const { key, keyParams, quote } = credentialsFor(current)
+			const price = quote?.price_usd ?? estimatedUsd
+			const at = Date.now()
+			dispatch({ type: 'confirm', key, keyParams, quote, at })
+			// Al disco ANTES de salir: si la app muere con la petición en vuelo, la sesión
+			// siguiente repite este pedido con ESTA clave (un replay) y no con una nueva
+			await savePendingAttempt(userKey, { key, params: current.params, at: key === current.key && current.keySentAt !== null ? current.keySentAt : at })
+
 			const result = await callWithDuplicateRetry(() => energyApi.rent({
 				targetAddress: current.params.targetAddress,
 				volume: current.params.volume,
@@ -162,22 +216,14 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 
 			if (result.success && result.data?.data) {
 				const { data: order, balance, duplicate } = result.data
-				dispatch({ type: 'rented', order, http: result.status ?? 200, duplicate })
-				// El backend devuelve el saldo ya debitado; el replay de una clave no
-				if (typeof balance === 'number') { updateUser({ balance }) }
-				else if (!duplicate && typeof price === 'number') { updateUser({ balance: Number(user?.balance || 0) - price }) }
-				queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY })
-				queryClient.invalidateQueries({ queryKey: ENERGY_ORDERS_KEY })
-				// Cobrada y sin cerrar: la nota en disco es lo que impide que, tras
-				// un cierre de app, el usuario no sepa si pagó y vuelva a comprar
-				if (!isTerminalOrder(order)) { savePendingOrder(order.uuid) }
+				settle(order, { http: result.status ?? 200, balance, duplicate, price: typeof price === 'number' ? price : null })
 			} else {
 				dispatch({ type: 'failed', ...(result.success ? EMPTY_BODY : failureOf(result)) })
 			}
 		} finally {
 			inFlightRef.current = false
 		}
-	}, [estimatedUsd, queryClient, updateUser, user?.balance])
+	}, [estimatedUsd, settle, userKey])
 
 	// --- Espera del 202 -----------------------------------------------------
 
@@ -231,17 +277,21 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 		onChargedRef.current?.(order)
 	}, [charged, order])
 
+	const doubt = state.doubt
+
 	useEffect(() => {
 		if (phase !== 'done' && phase !== 'failed' && phase !== 'slow') { return }
 		// La nota en disco solo se borra cuando la orden ya no puede sorprender:
 		// entregada, o sin cobro vivo (nunca se cobró, o se reembolsó). En `slow`
 		// se queda, que es justo para lo que existe.
-		if (phase === 'done' || !charged) { clearPendingOrder() }
+		if (phase === 'done' || !charged) { clearPendingOrder(userKey) }
+		// Y la del intento, en cuanto consta que no dejó nada cobrado. En duda se queda
+		if (phase === 'failed' && !doubt) { clearPendingAttempt(userKey) }
 		if (phase !== 'done' || !order || notifiedRef.current === order.uuid) { return }
 		notifiedRef.current = order.uuid
 		queryClient.invalidateQueries({ queryKey: WALLET_TRON_RESOURCES_KEY })
 		onRentedRef.current?.(order)
-	}, [phase, order, charged, queryClient])
+	}, [phase, order, charged, doubt, queryClient, userKey])
 
 	const retry = useCallback(() => {
 		// Una cotización caducada se recotiza; el resto reintenta la compra con

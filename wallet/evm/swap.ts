@@ -94,9 +94,24 @@ export type PreparedEvmSwapStep = {
 	/** Lo que la tx debe llevar al re-parsearla tras firmar. */
 	expected: { to: string, value: bigint, data: `0x${string}` }
 	expiresAt: null
+	/** Desde cuándo la ruta es demasiado vieja para FIRMARLA (reloj del teléfono); null en un permiso. */
+	staleAt: number | null
 }
 
-type Deps = { signal?: AbortSignal }
+/**
+ * Vida de una ruta desde que qpweb la construyó (O-06). Lleva precios y, en los puentes que
+ * son una orden, plazos del momento en que se cotizó; una tx EVM no caduca, así que sin
+ * esto se podía firmar una ruta de hace media hora y «Reintentar» volvía a preparar la
+ * misma. Pasado este tiempo no se FIRMA: se pide otra. Lo que ya está firmado sí puede
+ * re-difundirse (es la misma tx, y su mínimo lo hace cumplir la cadena).
+ */
+export const EVM_ROUTE_TTL_MS = 90_000
+
+/** ¿Es ya demasiado vieja para firmarla una ruta recibida en `routeAt`? */
+export const isStaleEvmRoute = (routeAt: number, now: number): boolean => now >= routeAt + EVM_ROUTE_TTL_MS
+
+/** `routeAt`: cuándo llegó la ruta de qpweb (reloj del teléfono). Sin él, el paso no envejece. */
+type Deps = { signal?: AbortSignal, routeAt?: number }
 
 const rpcOpts = (rpc: RegistryRpc, deps: Deps) => ({ signal: deps.signal, headers: rpc.headers })
 const word = (hex: string) => hex.toLowerCase().replace(/^0x/, '').padStart(64, '0')
@@ -185,7 +200,9 @@ export const prepareEvmSwapStep = async (rpc: RegistryRpc, build: EvmRouteBuild,
 		tx = { ...base, type: 'legacy', gasPrice: feeData.gasPrice }
 		fee = { gasLimit, estimatedWei: gasLimit * feeData.gasPrice, maxWei: gasLimit * feeData.gasPrice, eip1559: false }
 	}
-	return { step, remaining, intent, tx, fee, expected: { to: call.to, value: call.value, data: call.data }, expiresAt: null }
+	// Solo el swap lleva la ruta: un permiso es igual de bueno un minuto después
+	const staleAt = step === 'swap' && deps.routeAt !== undefined ? deps.routeAt + EVM_ROUTE_TTL_MS : null
+	return { step, remaining, intent, tx, fee, expected: { to: call.to, value: call.value, data: call.data }, expiresAt: null, staleAt }
 }
 
 /** Firma y VERIFICA re-parseando: destino, valor, calldata, cadena, gas y firmante. */

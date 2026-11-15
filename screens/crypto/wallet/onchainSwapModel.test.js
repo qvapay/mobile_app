@@ -4,7 +4,7 @@
  * De la ruta que manda qpweb a lo que firma la wallet: el par, el importe, el receptor y el
  * mínimo garantizado se contrastan con lo que el usuario eligió, no se toman del backend.
  */
-import { onchainQuoteParams, OnchainSwapMismatchError, planOnchainSwap, toUnits } from './onchainSwapModel'
+import { onchainQuoteParams, OnchainSwapMismatchError, planOnchainSwap, routeForPrepare, toUnits } from './onchainSwapModel'
 import { decodeLifiCall, encodeLifiCall, EvmUnsupportedRouteError } from '../../../wallet/evm/lifi'
 import VECTORS from '../../../wallet/evm/lifiVectors.json'
 import { EvmVerifyError } from '../../../wallet/evm/tx'
@@ -172,5 +172,40 @@ describe('BTC (THORChain)', () => {
 	test('otro pool u otro importe no pasan', () => {
 		expect(() => plan({ pool: 'ETH.ETH' })).toThrow(/otro activo/)
 		expect(() => plan({ amountSats: '500001' })).toThrow(/otro importe/)
+	})
+})
+
+// O-06: una tx EVM no caduca, así que nada obligaba a pedir la ruta otra vez. «Reintentar», o
+// el paso del swap tras esperar al permiso, preparaban la de cuando se abrió la pantalla
+describe('la ruta con la que se prepara un paso', () => {
+	const AT = 1_800_000_000_000
+	const TTL = 90_000
+	const evm = { build: { family: 'evm', chainId: 8453 }, at: AT }
+	const fresh = { build: { family: 'evm', chainId: 8453 }, at: AT + TTL + 5 }
+
+	test('una ruta EVM reciente se usa tal cual, sin pedir nada', async () => {
+		const fetchRoute = jest.fn()
+		await expect(routeForPrepare(evm, AT + TTL - 1, fetchRoute)).resolves.toEqual({ route: evm, refreshed: false })
+		expect(fetchRoute).not.toHaveBeenCalled()
+	})
+
+	test('una vieja no se vuelve a preparar: se pide otra', async () => {
+		const fetchRoute = jest.fn(async () => fresh)
+		await expect(routeForPrepare(evm, AT + TTL, fetchRoute)).resolves.toEqual({ route: fresh, refreshed: true })
+		expect(fetchRoute).toHaveBeenCalledTimes(1)
+	})
+
+	test('si qpweb ya no la da (la cotización caducó, el precio se movió), el fallo llega a quien prepara', async () => {
+		const gone = new Error('La cotización caducó')
+		await expect(routeForPrepare(evm, AT + TTL, async () => { throw gone })).rejects.toBe(gone)
+	})
+
+	test('Solana, TRON y Bitcoin no pasan por aquí: su tx caduca sola o la codifica la wallet', async () => {
+		const fetchRoute = jest.fn()
+		for (const family of ['solana', 'tron', 'btc']) {
+			const route = { build: { family }, at: AT }
+			await expect(routeForPrepare(route, AT + 10 * TTL, fetchRoute)).resolves.toEqual({ route, refreshed: false })
+		}
+		expect(fetchRoute).not.toHaveBeenCalled()
 	})
 })

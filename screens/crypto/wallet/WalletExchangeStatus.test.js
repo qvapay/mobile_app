@@ -26,6 +26,7 @@ jest.mock('sonner-native', () => ({ toast: { error: jest.fn(), success: jest.fn(
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('../../../wallet/registry/appRpcRouter', () => ({ useEffectiveRegistry: () => ({ chains: {} }) }))
 jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), refreshHistoryAfterSend: jest.fn(), WALLET_BALANCES_KEY: ['wallet', 'balances'] }))
+jest.mock('../../../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
 jest.mock('./exchangeQueries', () => ({ useExchangeOrderQuery: jest.fn() }))
 jest.mock('./exchangeDeposit', () => ({ readDepositSent: jest.fn(), clearDepositSent: jest.fn(async () => {}) }))
 jest.mock('./depositGuard', () => ({ settleDepositNote: jest.fn() }))
@@ -38,6 +39,7 @@ jest.mock('../../../ui/particles/QPAddress', () => 'QPAddress')
 import React from 'react'
 import { act, create } from 'react-test-renderer'
 import { useWalletAssets } from './walletQueries'
+import { useWallet } from '../../../wallet/WalletContext'
 import { useExchangeOrderQuery } from './exchangeQueries'
 import { clearDepositSent, readDepositSent } from './exchangeDeposit'
 import { settleDepositNote } from './depositGuard'
@@ -46,9 +48,13 @@ import WalletExchangeStatus from './WalletExchangeStatus'
 
 const USDT = { id: 'bsc:0x55', chainKey: 'bsc', kind: 'evm', symbol: 'USDT', decimals: 18, contract: '0x55' }
 const SOL = { id: 'solana:native', chainKey: 'solana', kind: 'solana', symbol: 'SOL', decimals: 9, contract: null }
+// Las direcciones de la propia wallet: una orden suya paga y devuelve a ellas
+const MY_EVM = '0x2A6f3C8bD3eE0c4F5a1b7c9D0e1F2a3B4c5D6e7F'
+const MY_SOL = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
 const order = (over = {}) => ({
 	uuid: 'ex-1', status: 'awaiting_deposit', from_asset: USDT.id, to_asset: SOL.id, amount_in: '25', amount_out_expected: '0.1',
-	deposit_address: '0xDeposito000000000000000000000000000000001', provider_label: 'Proveedor', created_at: '2026-11-13T10:00:00Z', ...over,
+	deposit_address: '0xDeposito000000000000000000000000000000001', payout_address: MY_SOL, refund_address: MY_EVM,
+	provider_label: 'Proveedor', created_at: '2026-11-13T10:00:00Z', ...over,
 })
 
 let tree
@@ -66,6 +72,7 @@ beforeEach(() => {
 	jest.clearAllMocks()
 	mockFocus.callbacks = []
 	useWalletAssets.mockReturnValue({ all: [USDT, SOL] })
+	useWallet.mockReturnValue({ addresses: { evm: MY_EVM, sol: MY_SOL, tron: 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8', btc: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', stx: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R' } })
 	useExchangeOrderQuery.mockReturnValue({ data: order() })
 	readDepositSent.mockResolvedValue(null)
 	// Por defecto la cadena aún no sabe nada: la nota se queda como está
@@ -162,4 +169,38 @@ test('en cuanto la orden avanza manda su estado, y la nota se retira', async () 
 	await render()
 	expect(clearDepositSent).toHaveBeenCalledWith('ex-1')
 	expect(sendButton()).toHaveLength(0)
+})
+
+// X-06: las órdenes cuelgan del ID de wallet. Una que pague o devuelva a otra dirección no
+// es de esta wallet, y fondearla sería pagarle el intercambio a otro
+describe('una orden que no paga a esta wallet', () => {
+	const warning = () => tree.root.findAll(node => node.props.testID === 'exchange-foreign-order' && typeof node.type === 'string')
+
+	test('cobra otra dirección: ni dirección de depósito ni «Enviar ahora», y se avisa', async () => {
+		useExchangeOrderQuery.mockReturnValue({ data: order({ payout_address: 'H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS' }) })
+		await render()
+		expect(sendButton()).toHaveLength(0)
+		expect(warning()).toHaveLength(1)
+		expect(tree.root.findAll(node => node.type === 'QPAddress' && node.props.address === order().deposit_address)).toHaveLength(0)
+	})
+
+	test('la devolución va a otra dirección: igual', async () => {
+		useExchangeOrderQuery.mockReturnValue({ data: order({ refund_address: '0x000000000000000000000000000000000000dEaD' }) })
+		await render()
+		expect(sendButton()).toHaveLength(0)
+		expect(warning()).toHaveLength(1)
+	})
+
+	test('la suya (aunque el servidor escriba la dirección EVM en minúsculas) se ofrece como siempre', async () => {
+		useExchangeOrderQuery.mockReturnValue({ data: order({ refund_address: MY_EVM.toLowerCase() }) })
+		await render()
+		expect(sendButton()).toHaveLength(1)
+		expect(warning()).toHaveLength(0)
+	})
+
+	test('ya completada no hay nada que avisar: el depósito dejó de ser el tema', async () => {
+		useExchangeOrderQuery.mockReturnValue({ data: order({ status: 'completed', payout_address: 'H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS' }) })
+		await render()
+		expect(warning()).toHaveLength(0)
+	})
 })

@@ -14,7 +14,8 @@ import { useAuth } from '../../../auth/AuthContext'
 import { isHouseToken } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { formatUsd } from './walletFormat'
-import { swapTimeline } from './swapModel'
+import { swapMovedBalance, swapTimeline } from './swapModel'
+import useProfileRefresh from '../../../hooks/useProfileRefresh'
 import { HOME_QUERY_KEY } from '../../home/homeQueries'
 
 // API
@@ -61,7 +62,8 @@ const WalletSwapStatus = ({ navigation, route }: Props) => {
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 	const queryClient = useQueryClient()
-	const { user, updateUser } = useAuth()
+	const { updateUser } = useAuth()
+	const refreshProfile = useProfileRefresh()
 	const { all } = useWalletAssets()
 	const [cancelling, setCancelling] = useState(false)
 
@@ -83,9 +85,11 @@ const WalletSwapStatus = ({ navigation, route }: Props) => {
 		queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY })
 		queryClient.invalidateQueries({ queryKey: WALLET_BALANCES_KEY })
 		if (qusd) refreshHistoryAfterSend(queryClient, qusd.id)
-		// IN completado / OUT reembolsado: el saldo cambió en el servidor sin pasar por la app
-		if ((swap.direction === 'in' && swap.status === 'completed') || swap.status === 'refunded') updateUser({ balance: Number(user?.balance || 0) + swap.amount })
-	}, [swap, qusd, queryClient, updateUser, user?.balance])
+		// IN completado / OUT reembolsado: el saldo cambió en el servidor sin pasar por la app.
+		// Se RELEE el perfil: sumar el importe aquí lo añadía otra vez cada vez que se abría
+		// un swap ya cerrado (del historial), y el saldo local quedaba inflado
+		if (swapMovedBalance(swap)) refreshProfile()
+	}, [swap, qusd, queryClient, refreshProfile])
 
 	const cancel = useCallback(async () => {
 		if (!swap) return

@@ -20,6 +20,7 @@ import { decodeTronRaw, encodeDecodedTronRaw, tronTxId, TronVerifyError, TRON_ST
 import {
 	broadcastTronStake,
 	buildLocalVoteTx,
+	finishTronStake,
 	encodeTronRaw,
 	encodeVoteWitnessValue,
 	prepareTronStake,
@@ -33,6 +34,7 @@ import {
 	TRON_BROKERAGE_RPC,
 	verifyTronStake,
 	LOCAL_VOTE_TTL_MS,
+	VOTE_WAIT_DEADLINE_MS,
 } from './stake'
 import bundled from '../registry/bundled.json'
 
@@ -104,12 +106,16 @@ const mockNode = (overrides = {}) => {
 	global.fetch = jest.fn(async (url, init) => {
 		const path = url.replace('https://tron', '')
 		const body = init?.body ? JSON.parse(init.body) : {}
+		// Como el fetch de verdad: con la señal ya abortada, ni sale
+		if (init?.signal?.aborted) throw Object.assign(new Error('Aborted'), { name: 'AbortError' })
 		calls.push({ path, body })
 		const handler = handlers[path]
 		if (!handler) throw new Error(`ruta inesperada ${path}`)
 		return { ok: true, status: 200, json: async () => handler(body) }
 	})
 }
+/** Una llamada del router por paso: cada una con su señal, que nadie más comparte. */
+const freshRun = (signals = []) => (fn) => { const controller = new AbortController(); signals.push(controller.signal); return fn(RPC, controller.signal) }
 afterEach(() => { delete global.fetch })
 
 describe('decodificador contra tx reales de mainnet', () => {
@@ -317,26 +323,147 @@ describe('stake = congelar + votar en un PIN', () => {
 		expect(() => verifyTronStake(forged)).toThrow('votos distintos')
 	})
 
+	// El TRON Power del congelado se ve cuando `seen()` lo diga: nunca al preparar
+	const FROZEN = { frozenV2: [{}, { type: 'ENERGY', amount: 100_000_000 }] }
+	const stakeNode = (seen, overrides = {}) => mockNode({
+		'/wallet/getaccount': ({ address }) => (address === OWNER ? ACCOUNT(seen() ? FROZEN : {}) : { is_witness: true }),
+		...overrides,
+	})
+	const prepareStake = () => prepareTronStake(RPC, { action: 'stake', owner: OWNER, amount: 100_000_000n, sr: P2P })
+	/** Reloj de mentira: `sleep` lo adelanta, así una espera sin fin acaba en el plazo y no cuelga la suite. */
+	const fakeClock = () => { const clock = { ms: 0 }; return { clock, deps: { sleep: async (ms) => { clock.ms += ms }, now: () => clock.ms } } }
+	const FREEZE_RESULT = { txid: 'FREEZE', duplicate: false }
+
 	test('difunde el congelado, espera a ver el TRON Power y difunde el voto', async () => {
 		let powered = false
-		mockNode({
-			'/wallet/getaccount': ({ address }) => (address === OWNER ? ACCOUNT(powered ? { frozenV2: [{}, { type: 'ENERGY', amount: 100_000_000 }] } : {}) : { is_witness: true }),
-			'/wallet/broadcasthex': () => { powered = true; return { result: true } },
-		})
-		const prepared = await prepareTronStake(RPC, { action: 'stake', owner: OWNER, amount: 100_000_000n, sr: P2P })
-		powered = false
-		const result = await broadcastTronStake(RPC, prepared, signTronStake(prepared, PRIV), { sleep: async () => {} })
+		stakeNode(() => powered, { '/wallet/broadcasthex': () => { powered = true; return { result: true } } })
+		const prepared = await prepareStake()
+		const signed = signTronStake(prepared, PRIV)
+		const frozen = await broadcastTronStake(RPC, prepared, signed)
+		// La primera llamada difunde SOLO el congelado
+		expect(calls.filter(c => c.path === '/wallet/broadcasthex')).toHaveLength(1)
+		const result = await finishTronStake(freshRun(), prepared, signed, frozen, fakeClock().deps)
 		expect(result).toEqual({ txid: prepared.txs[0].tx.txID, duplicate: false })
 		expect(calls.filter(c => c.path === '/wallet/broadcasthex')).toHaveLength(2)
 	})
 
+	// S-01: todo iba dentro de la llamada del congelado, con su señal de 8 s. Si el TRON Power
+	// tardaba más, las lecturas siguientes fallaban al instante y el voto no llegaba a salir
+	test('la espera y el voto no dependen de la señal del congelado: cada paso lleva la suya', async () => {
+		let reads = -1
+		// El TRON Power tarda cuatro lecturas (9 s de espera) en verse: más que la llamada del congelado
+		stakeNode(() => reads >= 0 && ++reads >= 4)
+		const prepared = await prepareStake()
+		const signed = signTronStake(prepared, PRIV)
+		const first = new AbortController()
+		const frozen = await broadcastTronStake(RPC, prepared, signed, { signal: first.signal })
+		// La llamada del congelado se acabó: su señal ya no sirve
+		first.abort()
+		reads = 0
+		const signals = []
+		const { clock, deps } = fakeClock()
+		const result = await finishTronStake(freshRun(signals), prepared, signed, frozen, deps)
+		expect(result).toEqual({ txid: prepared.txs[0].tx.txID, duplicate: false })
+		expect(calls.filter(c => c.path === '/wallet/broadcasthex')).toHaveLength(2)
+		// Cuatro lecturas y el voto: cinco llamadas, cinco señales distintas y ninguna es la primera
+		expect(signals).toHaveLength(5)
+		expect(new Set(signals).size).toBe(5)
+		expect(signals).not.toContain(first.signal)
+		expect(clock.ms).toBe(9_000)
+	})
+
+	test('con la señal del congelado, lo de antes: ni una lectura sale y el voto no llega', async () => {
+		let powered = false
+		stakeNode(() => powered)
+		const prepared = await prepareStake()
+		const signed = signTronStake(prepared, PRIV)
+		const first = new AbortController()
+		const frozen = await broadcastTronStake(RPC, prepared, signed, { signal: first.signal })
+		first.abort()
+		powered = true
+		const before = calls.length
+		// Un `run` que reusara la señal caducada es justo el fallo: nada sale y el voto queda pendiente
+		const result = await finishTronStake((fn) => fn(RPC, first.signal), prepared, signed, frozen, fakeClock().deps)
+		expect(result).toMatchObject({ note: 'votePending' })
+		expect(calls.length).toBe(before)
+	})
+
+	test('las lecturas de la espera son idempotentes (pueden rotar de nodo); el voto no', async () => {
+		let powered = false
+		stakeNode(() => powered)
+		const prepared = await prepareStake()
+		powered = true
+		const options = []
+		const run = (fn, opts) => { options.push(opts); return fn(RPC, undefined) }
+		await finishTronStake(run, prepared, signTronStake(prepared, PRIV), FREEZE_RESULT, fakeClock().deps)
+		expect(options).toEqual([{ idempotent: true }, undefined])
+	})
+
+	test('si el TRON Power no llega a verse, el voto se intenta al cumplirse el plazo: 24 s, no un minuto', async () => {
+		stakeNode(() => false)
+		const prepared = await prepareStake()
+		const { clock, deps } = fakeClock()
+		const result = await finishTronStake(freshRun(), prepared, signTronStake(prepared, PRIV), FREEZE_RESULT, deps)
+		expect(clock.ms).toBe(VOTE_WAIT_DEADLINE_MS)
+		expect(VOTE_WAIT_DEADLINE_MS).toBeLessThanOrEqual(30_000)
+		// El nodo que se sondeaba podía ir atrasado: el voto sale igualmente, una vez
+		expect(calls.filter(c => c.path === '/wallet/broadcasthex')).toHaveLength(1)
+		expect(result).toEqual(FREEZE_RESULT)
+	})
+
+	test('una lectura que falla no corta la espera', async () => {
+		let powered = false
+		stakeNode(() => powered)
+		const prepared = await prepareStake()
+		powered = true
+		let reads = 0
+		const run = (fn, opts) => (opts?.idempotent && ++reads === 1 ? Promise.reject(new Error('ningún nodo responde')) : fn(RPC, undefined))
+		const { clock, deps } = fakeClock()
+		const result = await finishTronStake(run, prepared, signTronStake(prepared, PRIV), FREEZE_RESULT, deps)
+		expect(result).toEqual(FREEZE_RESULT)
+		expect(reads).toBe(2)
+		expect(clock.ms).toBe(3_000)
+	})
+
+	test('el nodo que recibe el voto aún no ve el congelado: se repite mientras quede plazo', async () => {
+		// El mensaje del nodo viaja en hex del texto ASCII
+		const notYet = Array.from('Contract validate error : The total number of votes[100000000] is greater than the tronPower[0]', char => char.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+		let powered = false
+		let lagging = 2
+		let votes = 0
+		stakeNode(() => powered, { '/wallet/broadcasthex': () => { votes++; return lagging-- > 0 ? { result: false, code: 'CONTRACT_VALIDATE_ERROR', message: notYet } : { result: true } } })
+		const prepared = await prepareStake()
+		const signed = signTronStake(prepared, PRIV)
+		powered = true
+		const result = await finishTronStake(freshRun(), prepared, signed, FREEZE_RESULT, fakeClock().deps)
+		expect(votes).toBe(3)
+		expect(result).toEqual(FREEZE_RESULT)
+
+		// Y si no llega a verlo dentro del plazo, queda pendiente en vez de repetirse sin fin
+		lagging = Infinity
+		const { clock, deps } = fakeClock()
+		const late = await finishTronStake(freshRun(), prepared, signed, FREEZE_RESULT, deps)
+		expect(late).toEqual({ ...FREEZE_RESULT, note: 'votePending' })
+		expect(clock.ms).toBe(VOTE_WAIT_DEADLINE_MS)
+	})
+
 	test('si el voto no entra, el congelado sí: resultado con note votePending', async () => {
 		let n = 0
-		let clock = 0
 		mockNode({ '/wallet/broadcasthex': () => (++n === 1 ? { result: true } : { result: false, code: 'CONTRACT_VALIDATE_ERROR', message: '' }) })
-		const prepared = await prepareTronStake(RPC, { action: 'stake', owner: OWNER, amount: 100_000_000n, sr: P2P })
-		const result = await broadcastTronStake(RPC, prepared, signTronStake(prepared, PRIV), { sleep: async () => { clock += 3000 }, now: () => clock })
+		const prepared = await prepareStake()
+		const signed = signTronStake(prepared, PRIV)
+		const frozen = await broadcastTronStake(RPC, prepared, signed)
+		const result = await finishTronStake(freshRun(), prepared, signed, frozen, fakeClock().deps)
 		expect(result).toMatchObject({ txid: prepared.txs[0].tx.txID, note: 'votePending' })
+		// Otro rechazo del voto no se repite: sería igual en cualquier nodo
+		expect(n).toBe(2)
+	})
+
+	test('una acción de una sola tx no tiene segunda parte', async () => {
+		const single = { txs: [{ step: 'claim', tx: { raw_data_hex: '00' } }], powerNeededSun: null, intent: { owner: OWNER } }
+		const run = jest.fn()
+		await expect(finishTronStake(run, single, { signatures: ['00'] }, { txid: 'CLAIM', duplicate: false })).resolves.toEqual({ txid: 'CLAIM', duplicate: false })
+		expect(run).not.toHaveBeenCalled()
 	})
 })
 

@@ -15,6 +15,7 @@ import { monoFont, useContainerStyles, useTextStyles } from '../../../theme/them
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { assetPrice, explorerTxUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
+import { isZeroTransfer } from '../../../wallet/dust'
 import { useAssetCatalog, usePriceMap } from './walletQueries'
 import { formatUsd } from './walletFormat'
 import { useStakeAccountSet } from './stakingQueries'
@@ -37,18 +38,22 @@ type Props = NativeStackScreenProps<RootStackParamList, 'WalletTxDetail'>
 
 const DIRECTION_ICON: Record<WalletTx['direction'], FontAwesome6SolidIconName> = { in: 'arrow-down', out: 'arrow-up', self: 'arrows-rotate' }
 
-type RowProps = { label: string, value: string, theme: Theme, mono?: boolean, address?: boolean, copy?: boolean, last?: boolean }
+type RowProps = { label: string, value: string, theme: Theme, mono?: boolean, address?: boolean, copy?: boolean, locked?: boolean, last?: boolean }
 
-/** Fila etiqueta/valor; con `copy`, tocar el valor lo copia (direcciones y hash); con `address`, extremos resaltados. */
-const Row = ({ label, value, theme, mono, address, copy, last }: RowProps) => {
+/**
+ * Fila etiqueta/valor; con `copy`, tocar el valor lo copia (direcciones y hash); con `address`,
+ * extremos resaltados. `locked`: ni se copia ni se puede seleccionar (la dirección de una
+ * transferencia de 0 está ahí precisamente para que alguien la copie).
+ */
+const Row = ({ label, value, theme, mono, address, copy, locked, last }: RowProps) => {
 	const baseStyle = [styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: mono ? theme.typography.fontSize.xs : theme.typography.fontSize.sm }]
 	const valueStyle = mono ? [...baseStyle, monoFont(theme, baseStyle)] : baseStyle
 	const body = (
 		<View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
 			<Text style={[styles.rowLabel, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{label}</Text>
 			{address
-				? <QPAddress selectable={!copy} address={value} style={baseStyle} />
-				: <Text selectable={!copy} style={valueStyle}>{value}</Text>}
+				? <QPAddress selectable={!copy && !locked} address={value} style={baseStyle} />
+				: <Text selectable={!copy && !locked} style={valueStyle}>{value}</Text>}
 			{copy && <FontAwesome6 name="copy" size={12} color={theme.colors.tertiaryText} iconStyle="regular" />}
 		</View>
 	)
@@ -77,17 +82,19 @@ const WalletTxDetail = ({ route }: Props) => {
 
 	const isFee = tx.kind === 'fee'
 	const failed = tx.status === 'failed'
+	// Una transferencia de 0 no la hizo el usuario (R-04): se dice, y sus direcciones no se copian
+	const spoof = isZeroTransfer(tx)
 	// Un "Enviado" a una stake account propia es un movimiento de staking (sigue siendo suyo)
 	const stakeAccounts = useStakeAccountSet(asset)
 	const activity = stakeActivityOf(tx, stakeAccounts)
 	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary
-	const sign = isNeutralStakeActivity(activity) ? '' : isFee || tx.direction === 'out' ? '−' : tx.direction === 'in' ? '+' : ''
+	const sign = isNeutralStakeActivity(activity) || spoof ? '' : isFee || tx.direction === 'out' ? '−' : tx.direction === 'in' ? '+' : ''
 	// Valor al precio de HOY (no al del momento de la tx): se dice en la etiqueta
 	const price = asset ? assetPrice(asset, prices) : null
 	const usd = price !== null && Number.isFinite(Number(tx.amount)) ? Number(tx.amount) * price : null
 	const nativeSymbol = chain?.native.symbol ?? ''
 
-	const title = activity ? t(`crypto.staking.activity.${activity}`) : isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)
+	const title = spoof ? t('crypto.wallet.asset.spoof') : activity ? t(`crypto.staking.activity.${activity}`) : isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)
 	const statusKey = tx.status === 'confirmed' ? 'crypto.wallet.txDetail.confirmed' : `crypto.wallet.asset.status.${tx.status}`
 
 	return (
@@ -113,11 +120,18 @@ const WalletTxDetail = ({ route }: Props) => {
 			<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 				<Row theme={theme} label={t('crypto.wallet.txDetail.date')} value={getShortDateTime(tx.time * 1000)} />
 				<Row theme={theme} label={t('crypto.wallet.txDetail.network')} value={asset?.chainName ?? ''} />
-				{!!tx.from && <Row theme={theme} label={t('crypto.wallet.send.fromLabel')} value={tx.from} mono address copy />}
-				{!!tx.to && <Row theme={theme} label={isFee ? t('crypto.wallet.txDetail.contract') : t('crypto.wallet.send.toLabel')} value={tx.to} mono address copy />}
+				{!!tx.from && <Row theme={theme} label={t('crypto.wallet.send.fromLabel')} value={tx.from} mono address copy={!spoof} locked={spoof} />}
+				{!!tx.to && <Row theme={theme} label={isFee ? t('crypto.wallet.txDetail.contract') : t('crypto.wallet.send.toLabel')} value={tx.to} mono address copy={!spoof} locked={spoof} />}
 				{!!tx.fee && !isFee && <Row theme={theme} label={t('crypto.wallet.send.networkFee')} value={`${displayAmount(tx.fee)} ${nativeSymbol}`} />}
 				<Row theme={theme} label={t('crypto.wallet.txDetail.hash')} value={tx.hash} mono copy last />
 			</View>
+
+			{spoof && (
+				<View style={[styles.notice, { backgroundColor: theme.colors.warning + '14' }]}>
+					<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" />
+					<Text testID="tx-spoof-hint" style={[styles.noticeText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{t('crypto.wallet.txDetail.spoofHint')}</Text>
+				</View>
+			)}
 
 			{tx.status === 'pending' && (
 				<View style={[styles.notice, { backgroundColor: theme.colors.warning + '14' }]}>

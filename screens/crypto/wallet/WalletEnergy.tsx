@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -21,9 +21,7 @@ import { isValidTronAddress, tronAccountExists, TRON_TX_RPC } from '../../../wal
 import { ENERGY_MAX_VOLUME, ENERGY_MIN_VOLUME, ENERGY_PRESETS } from '../../../wallet/tron/energy'
 import { useTronResourcesQuery } from './walletQueries'
 import { estimatePrice, flattenOrders, useEnergyOrdersQuery, useEnergyPricesQuery } from './energyQueries'
-import { clearPendingOrder, readPendingOrder } from './energyPending'
-import { isTerminalOrder } from './energyRentMachine'
-import { energyApi } from '../../../api/energyApi'
+import usePendingEnergyOrder from './usePendingEnergyOrder'
 import { formatUsd } from './walletFormat'
 
 // UI
@@ -39,7 +37,7 @@ import EnergyOrderRow from './components/EnergyOrderRow'
 import { ROUTES } from '../../../routes'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { EnergyDuration, EnergyOrder } from '../../../types/domain'
+import type { EnergyDuration } from '../../../types/domain'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletEnergy'>
 
@@ -128,7 +126,7 @@ const WalletEnergy = ({ navigation, route }: Props) => {
 
 	const orders = useEnergyOrdersQuery()
 	const recent = useMemo(() => flattenOrders(orders.data?.pages).slice(0, RECENT_ORDERS), [orders.data])
-	const pending = usePendingOrder()
+	const pending = usePendingEnergyOrder(user?.uuid)
 
 	const onRented = useCallback(() => { resources.refetch(); orders.refetch() }, [resources, orders])
 	const seeOrders = useCallback(() => { setModalOpen(false); navigation.navigate(ROUTES.WALLET_ENERGY_ORDERS) }, [navigation])
@@ -288,32 +286,6 @@ const WalletEnergy = ({ navigation, route }: Props) => {
 			/>
 		</ScrollView>
 	)
-}
-
-/**
- * La orden que quedó en curso al cerrarse la app. Se consulta una vez al
- * entrar: si ya cerró, la nota se borra; si sigue viva, se avisa en vez de
- * dejar que el usuario compre otra creyendo que la primera se perdió.
- */
-const usePendingOrder = (): EnergyOrder | null => {
-
-	const [order, setOrder] = useState<EnergyOrder | null>(null)
-
-	useEffect(() => {
-		let cancelled = false
-		readPendingOrder().then(async pending => {
-			if (!pending || cancelled) { return }
-			const result = await energyApi.order(pending.uuid)
-			if (cancelled) { return }
-			const fresh = result.success ? result.data?.data ?? null : null
-			if (!fresh) { return }
-			if (isTerminalOrder(fresh)) { clearPendingOrder(); return }
-			setOrder(fresh)
-		})
-		return () => { cancelled = true }
-	}, [])
-
-	return order
 }
 
 const Section = ({ title, theme }: { title: string, theme: Theme }) => (

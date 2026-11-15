@@ -4,7 +4,7 @@
  * Lógica pura del Swap: saneado del importe, máximo movible, chips de porcentaje, prioridad
  * del botón y línea de tiempo del estado.
  */
-import { buildSwapForm, floorCents, maxSwapAmount, percentAmount, sanitizeAmountInput, swapTimeline } from './swapModel'
+import { buildSwapForm, floorCents, maxSwapAmount, percentAmount, sanitizeAmountInput, swapMovedBalance, swapTimeline } from './swapModel'
 
 const PAIR = { id: 'QVAPAY:QUSD_STACKS', enabled: true, min: 1, max: 5000, rate: 1, fee_bps: 0, network: 'stacks', asset: 'SP1.QUSD::QUSD', asset_name: 'QUSD' }
 const form = (over = {}) => buildSwapForm({ direction: 'out', amountText: '5', pair: PAIR, payBalance: 120.5, limitAvailable: 100, walletReady: true, loading: false, ...over })
@@ -79,5 +79,22 @@ describe('línea de tiempo', () => {
 		expect(swapTimeline('sent')).toEqual({ active: 2, failedAt: null })
 		expect(swapTimeline('completed')).toEqual({ active: 3, failedAt: null })
 		expect(swapTimeline('refunded')).toEqual({ active: 2, failedAt: 2 })
+	})
+})
+
+// P-09: al abrir un swap ya cerrado la pantalla SUMABA su importe al saldo local, una vez por
+// visita. Ahora solo decide si hay que releer el perfil
+describe('swapMovedBalance', () => {
+	test('un IN completado y cualquier reembolso cambiaron el saldo en el servidor', () => {
+		expect(swapMovedBalance({ direction: 'in', status: 'completed' })).toBe(true)
+		expect(swapMovedBalance({ direction: 'out', status: 'refunded' })).toBe(true)
+		expect(swapMovedBalance({ direction: 'in', status: 'refunded' })).toBe(true)
+	})
+
+	test('un OUT completado ya se descontó al crearlo; lo demás no ha movido nada todavía', () => {
+		expect(swapMovedBalance({ direction: 'out', status: 'completed' })).toBe(false)
+		for (const status of ['pending', 'dispatching', 'sent', 'failed', 'needs_review']) {
+			expect(swapMovedBalance({ direction: 'in', status })).toBe(false)
+		}
 	})
 })

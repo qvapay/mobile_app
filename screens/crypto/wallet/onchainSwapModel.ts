@@ -13,7 +13,7 @@
 import { addressForKind } from '../../../wallet/assets'
 import type { WalletAsset } from '../../../wallet/assets'
 import type { WalletAddresses } from '../../../wallet/derive'
-import { verifyRouteBuild } from '../../../wallet/evm/swap'
+import { isStaleEvmRoute, verifyRouteBuild } from '../../../wallet/evm/swap'
 import type { EvmSwapIntent } from '../../../wallet/evm/swap'
 import type { SolanaSwapIntent } from '../../../wallet/solana/swap'
 import { TOKEN_2022_PROGRAM } from '../../../wallet/solana/codec'
@@ -21,6 +21,22 @@ import type { TronSwapIntent } from '../../../wallet/tron/swap'
 import { THORCHAIN_POOLS } from '../../../wallet/btc/thorchain'
 import type { ThorchainBtcIntent } from '../../../wallet/btc/thorchain'
 import type { ExchangeOnchainBuild } from '../../../types/domain'
+
+/** La ruta que mandó qpweb y cuándo llegó (reloj del teléfono). */
+export type OnchainRoute = { build: ExchangeOnchainBuild, at: number }
+
+/**
+ * La ruta con la que se prepara un paso: la que hay o, si es una ruta EVM que ya es vieja
+ * para firmarla (O-06), una recién pedida. Antes «Reintentar», o el paso del swap tras
+ * esperar al permiso, volvían a preparar la ruta de cuando se abrió la pantalla.
+ *
+ * Las de Solana y TRON no pasan por aquí: su tx caduca sola, y la de TRON la codifica la
+ * propia wallet con el precio del momento.
+ */
+export const routeForPrepare = async (current: OnchainRoute, now: number, fetchRoute: () => Promise<OnchainRoute>): Promise<{ route: OnchainRoute, refreshed: boolean }> => {
+	if (current.build.family !== 'evm' || !isStaleEvmRoute(current.at, now)) return { route: current, refreshed: false }
+	return { route: await fetchRoute(), refreshed: true }
+}
 
 /**
  * Familias cuyo swap on-chain sabe firmar esta versión. Es el interruptor por fases (como

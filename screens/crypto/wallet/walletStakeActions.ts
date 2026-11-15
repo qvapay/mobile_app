@@ -10,7 +10,7 @@
  */
 import { getAppRpcRouter } from '../../../wallet/registry/appRpcRouter'
 import type { RegistryChain } from '../../../wallet/registry/types'
-import type { StakeAction, StakeIntent, StakeSummary, StakeTxAdapter, StakingKind } from '../../../wallet/staking/types'
+import type { StakeAction, StakeIntent, StakeRpcRunner, StakeSummary, StakeTxAdapter, StakingKind } from '../../../wallet/staking/types'
 import { isStakingKind } from '../../../wallet/staking/types'
 import { solanaStakeAdapter } from '../../../wallet/solana/stake'
 import { tronStakeAdapter } from '../../../wallet/tron/stake'
@@ -67,15 +67,23 @@ export const signStake = (prepared: PreparedStake): Promise<SignedStake> => {
 	return withWalletKey(prepared.kind, async privateKey => ({ kind: prepared.kind, signed: await adapter.sign(prepared.inner, privateKey) }))
 }
 
-export const broadcastStake = (prepared: PreparedStake, signed: SignedStake): Promise<StakeBroadcastResult> => {
+/**
+ * Difunde. Una acción de dos tx (TRON `stake`: congelar y votar) sigue después con
+ * `followUp`, donde cada paso es una llamada propia del router: la espera entre las dos no
+ * cabe en el tiempo de una sola.
+ */
+export const broadcastStake = async (prepared: PreparedStake, signed: SignedStake): Promise<StakeBroadcastResult> => {
 	if (signed.kind !== prepared.kind) throw new Error('wallet: firma y transacción de cadenas distintas')
 	const adapter = adapterFor(prepared.kind, prepared.intent.action)
 	const accept = adapter.accept?.bind(adapter)
-	return getAppRpcRouter().call(
+	const router = getAppRpcRouter()
+	const run: StakeRpcRunner = (fn, { idempotent = false } = {}) => router.call(
 		prepared.intent.chainKey,
-		(rpc, signal) => adapter.broadcast(rpc, prepared.inner, signed.signed, { signal }),
-		accept ? { accept } : undefined,
+		fn,
+		{ ...(accept ? { accept } : {}), ...(idempotent ? { idempotent } : {}) },
 	)
+	const result = await run((rpc, signal) => adapter.broadcast(rpc, prepared.inner, signed.signed, { signal }))
+	return adapter.followUp ? adapter.followUp(run, prepared.inner, signed.signed, result) : result
 }
 
 /**

@@ -10,6 +10,7 @@ import {
 	addCustomRpc,
 	removeCustomRpc,
 	applyCustomRpcs,
+	customRpcChains,
 	CUSTOM_RPC_OWNER,
 	CUSTOM_RPC_PRIORITY,
 	MAX_CUSTOM_RPCS_PER_CHAIN,
@@ -110,5 +111,21 @@ describe('applyCustomRpcs', () => {
 		const merged = applyCustomRpcs(registry(), { tron: ['https://mio.io'] })
 		const router = createRpcRouter(() => merged)
 		expect(router.pickRpc('tron').url).toBe('https://mio.io')
+	})
+})
+
+// R-03: junto a los saldos se avisa de qué redes los leen de un nodo del usuario
+describe('customRpcChains', () => {
+	const known = { version: 1, updated_at: '', chains: { tron: { kind: 'tron', rpcs: [] }, bsc: { kind: 'evm', chainId: 56, rpcs: [] } } }
+
+	test('las cadenas del registro con algún nodo del usuario', () => {
+		expect(customRpcChains(known, { tron: ['https://mio.example'], bsc: ['https://a.example', 'https://b.example'] })).toEqual(['tron', 'bsc'])
+	})
+
+	test('ni las vacías, ni las que el registro no conoce, ni un mapa ausente o roto', () => {
+		expect(customRpcChains(known, { tron: [], dogecoin: ['https://x.example'] })).toEqual([])
+		expect(customRpcChains(known, null)).toEqual([])
+		expect(customRpcChains(known, undefined)).toEqual([])
+		expect(customRpcChains(known, { tron: 'https://mio.example' })).toEqual([])
 	})
 })
