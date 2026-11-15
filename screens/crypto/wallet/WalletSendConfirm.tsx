@@ -20,7 +20,7 @@ import { addressForKind, assetPrice, nativeAssetId } from '../../../wallet/asset
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
 import { AllRpcsFailedError } from '../../../wallet/registry/rpcRouter'
 import { computeTronBurnBreakdown, TronVerifyError } from '../../../wallet/tron/tx'
-import { EvmVerifyError } from '../../../wallet/evm/tx'
+import { EvmVerifyError, isGasPriceOutOfRange } from '../../../wallet/evm/tx'
 import { StacksVerifyError } from '../../../wallet/stacks/tx'
 import { SolanaExpiredError, SolanaVerifyError } from '../../../wallet/solana/tx'
 import { usePriceMap, useWalletAssets } from './walletQueries'
@@ -650,6 +650,8 @@ const describeError = (err: unknown, t: (key: string, opts?: Record<string, unkn
 	if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
 	if (err instanceof TxExpiredError) return t('crypto.wallet.send.errors.expired')
 	if (err instanceof TxUnconfirmedError) return t('crypto.wallet.send.errors.unconfirmed')
+	// Ningún nodo dio un precio de gas razonable: no es que no haya nodos
+	if (isGasPriceOutOfRange(err)) return t('crypto.wallet.send.errors.feeTooHigh')
 	if (err instanceof AllRpcsFailedError) return t('crypto.wallet.send.errors.noNodes')
 	const message = (err as Error)?.message ?? ''
 	// La regla de renta de Solana llega como un rechazo de simulación sin explicación:

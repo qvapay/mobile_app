@@ -24,8 +24,62 @@ import type { RegistryChain, RegistryRpc } from '../registry/types'
 
 const TRANSFER_SELECTOR = '0xa9059cbb'
 
-/** Gas fijo de una transferencia de nativo a una cuenta externa. */
+/** Gas de una transferencia de nativo a una cuenta externa (el mínimo de cualquier tx). */
 export const NATIVE_TRANSFER_GAS = 21_000n
+
+/**
+ * Margen sobre la estimación cuando el destino EJECUTA código al recibir nativo: un
+ * contrato, una smart wallet (Safe, cuentas 4337) o una cuenta con delegación EIP-7702.
+ */
+const NATIVE_CODE_GAS_MARGIN_PERCENT = 25n
+
+/** Tope duro del gas de un envío de nativo: por encima, el destino hace algo más que recibir. */
+export const MAX_NATIVE_GAS = 150_000n
+
+const GWEI = 1_000_000_000n
+
+/**
+ * Tope de cordura del precio del gas por red, en wei por unidad de gas (E-02).
+ *
+ * El precio lo da el nodo, y la tx autoriza `gas × precio`: un nodo propio, uno del
+ * registro o uno con un fallo que conteste ×1000 hacía firmar una comisión que podía
+ * comerse el nativo. Los topes son holgados respecto a los picos reales de cada red (lo
+ * normal va de 0,05 gwei en BNB Chain o Base a unos pocos en Ethereum) y dejan lo máximo
+ * que puede costar un envío de token en el orden de unos pocos dólares, salvo en
+ * Ethereum, donde un pico de verdad ya cuesta eso.
+ */
+export const MAX_GAS_PRICE_WEI: Readonly<Record<number, bigint>> = {
+	1: 500n * GWEI, // Ethereum
+	56: 50n * GWEI, // BNB Chain
+	137: 5_000n * GWEI, // Polygon
+	8453: 100n * GWEI, // Base
+}
+
+/** Para una red EVM sin tope propio. */
+export const DEFAULT_MAX_GAS_PRICE_WEI = 1_000n * GWEI
+
+/**
+ * Lanza si el precio que la tx autorizaría por unidad de gas pasa del tope de su red.
+ * `retryable`: el router prueba con otro nodo, que es lo que arregla un nodo que miente o
+ * falla; si todos dicen lo mismo es un pico real y no se firma hasta que baje.
+ */
+export const assertSaneGasPrice = (chainId: number, pricePerGas: bigint): void => {
+	const cap = MAX_GAS_PRICE_WEI[chainId] ?? DEFAULT_MAX_GAS_PRICE_WEI
+	if (pricePerGas > cap) throw new ChainHttpError(`evm: precio de gas fuera de rango (${pricePerGas} wei por gas, tope ${cap})`, { retryable: true })
+}
+
+const OUT_OF_RANGE = /precio de gas fuera de rango/
+
+/**
+ * ¿No se preparó la tx porque el precio del gas pasa del tope? Vale para el error suelto y
+ * para el del router cuando ningún nodo dio un precio razonable (`AllRpcsFailedError.errors`):
+ * ahí lo que hay que decir no es «sin nodos», sino que la comisión está disparada.
+ */
+export const isGasPriceOutOfRange = (err: unknown): boolean => {
+	const inner = (err as { errors?: unknown } | null)?.errors
+	const list = Array.isArray(inner) && inner.length > 0 ? inner : [err]
+	return list.some(item => item instanceof Error && OUT_OF_RANGE.test(item.message))
+}
 
 /** Margen sobre `eth_estimateGas` en tokens: los saldos que cruzan de 0 y los tokens con hooks (USDT) cuestan más al ejecutar que al estimar. */
 const TOKEN_GAS_MARGIN_PERCENT = 25n
@@ -157,6 +211,20 @@ export const getEvmFeeData = async (rpc: RegistryRpc, deps: Deps = {}): Promise<
 }
 
 /**
+ * Un `eth_estimateGas` que el nodo rechaza porque la tx REVERTIRÍA o no hay saldo no es un
+ * fallo del nodo: sería igual en cualquiera. Varios (geth) lo devuelven con el código
+ * genérico -32000, que `jsonRpc` trata como «prueba con otro nodo»; aquí se marca como
+ * definitivo para que no se recorran todos y el motivo llegue a la pantalla.
+ */
+const rejectedEstimate = (err: unknown): never => {
+	const message = (err as Error)?.message ?? ''
+	if (/revert|insufficient funds|exceeds balance|insufficient balance/i.test(message)) {
+		throw new ChainHttpError(message, { retryable: false, data: (err as ChainHttpError)?.data })
+	}
+	throw err
+}
+
+/**
  * Construye la tx sin firmar con nonce, gas y fee reales del nodo. Lanza
  * `ChainHttpError` no reintentable con el mensaje del nodo si la estimación
  * revierte (saldo de token insuficiente, contrato pausado…).
@@ -176,15 +244,22 @@ export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, int
 		// `pending`: si hay una tx nuestra en el mempool, la siguiente no debe pisar su nonce
 		jsonRpc<string>(rpc.url, 'eth_getTransactionCount', [intent.from, 'pending'], rpcOpts(rpc, deps)),
 		getEvmFeeData(rpc, deps),
-		intent.contract
-			? jsonRpc<string>(rpc.url, 'eth_estimateGas', [{ from: intent.from, to, data, value: '0x0' }], rpcOpts(rpc, deps))
-			: Promise.resolve(`0x${NATIVE_TRANSFER_GAS.toString(16)}`),
+		// También en nativo (E-01): con 21.000 fijos, un destino que ejecuta código se
+		// quedaba sin gas, la tx se minaba, revertía y se quemaba la comisión. Y si la
+		// simulación revierte, no se firma
+		jsonRpc<string>(rpc.url, 'eth_estimateGas', [{ from: intent.from, to, data, value: `0x${value.toString(16)}` }], rpcOpts(rpc, deps)).catch(rejectedEstimate),
 	])
 
 	let gasLimit = hexToBigInt(gasHex)
 	if (intent.contract) {
 		gasLimit = gasLimit * (100n + TOKEN_GAS_MARGIN_PERCENT) / 100n
 		if (gasLimit > MAX_TOKEN_GAS) throw new ChainHttpError(`evm: gas estimado anómalo (${gasLimit})`, { retryable: false })
+	} else if (gasLimit <= NATIVE_TRANSFER_GAS) {
+		// Una cuenta externa: exactamente el mínimo, sin margen (MÁX lo da por hecho)
+		gasLimit = NATIVE_TRANSFER_GAS
+	} else {
+		gasLimit = gasLimit * (100n + NATIVE_CODE_GAS_MARGIN_PERCENT) / 100n
+		if (gasLimit > MAX_NATIVE_GAS) throw new ChainHttpError(`evm: gas estimado anómalo para un envío de nativo (${gasLimit})`, { retryable: false })
 	}
 
 	const base = { chainId: intent.chainId, nonce: Number(hexToBigInt(nonceHex)), to, value, data, gas: gasLimit }
@@ -192,12 +267,14 @@ export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, int
 	if (feeData.eip1559) {
 		const priority = tierPriority(feeData.priorityFee, tier)
 		const maxFeePerGas = feeData.baseFee * 2n + priority
+		assertSaneGasPrice(intent.chainId, maxFeePerGas)
 		const tx: TransactionSerializable = { ...base, type: 'eip1559', maxFeePerGas, maxPriorityFeePerGas: priority }
 		const feeByTier = Object.fromEntries(tiers.map(t => [t, gasLimit * (feeData.baseFee + tierPriority(feeData.priorityFee, t))])) as Record<FeeTier, bigint>
 		return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * (feeData.baseFee + priority), maxWei: gasLimit * maxFeePerGas, eip1559: true }, tier, feeByTier, sponsored: false }
 	}
 	// Legacy: el "priority" es el propio gasPrice escalado
 	const gasPrice = tierPriority(feeData.gasPrice, tier)
+	assertSaneGasPrice(intent.chainId, gasPrice)
 	const tx: TransactionSerializable = { ...base, type: 'legacy', gasPrice }
 	const feeByTier = Object.fromEntries(tiers.map(t => [t, gasLimit * tierPriority(feeData.gasPrice, t)])) as Record<FeeTier, bigint>
 	return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * gasPrice, maxWei: gasLimit * gasPrice, eip1559: false }, tier, feeByTier, sponsored: false }

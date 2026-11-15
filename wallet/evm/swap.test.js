@@ -128,7 +128,7 @@ describe('pasos: permiso exacto y luego swap', () => {
 
 describe('contra un nodo simulado', () => {
 
-	const mockRpc = ({ allowance = 0n, gas = 300_000n, revert = false, receipt } = {}) => {
+	const mockRpc = ({ allowance = 0n, gas = 300_000n, revert = false, receipt, baseFee = 1_000_000_000n } = {}) => {
 		const calls = []
 		global.fetch = jest.fn(async (_url, init) => {
 			const { method, params, id } = JSON.parse(init.body)
@@ -137,7 +137,7 @@ describe('contra un nodo simulado', () => {
 			const error = (message) => ({ ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id, error: { code: 3, message } }), text: async () => '' })
 			if (method === 'eth_call') return reply('0x' + allowance.toString(16).padStart(64, '0'))
 			if (method === 'eth_getTransactionCount') return reply('0x7')
-			if (method === 'eth_getBlockByNumber') return reply({ baseFeePerGas: '0x3b9aca00' })
+			if (method === 'eth_getBlockByNumber') return reply({ baseFeePerGas: '0x' + baseFee.toString(16) })
 			if (method === 'eth_maxPriorityFeePerGas') return reply('0x3b9aca00')
 			if (method === 'eth_estimateGas') return revert ? error('execution reverted') : reply('0x' + gas.toString(16))
 			if (method === 'eth_getTransactionReceipt') return reply(receipt ?? null)
@@ -177,6 +177,15 @@ describe('contra un nodo simulado', () => {
 	test('un gas desorbitado no se firma', async () => {
 		mockRpc({ allowance: 20_000_000n, gas: MAX_SWAP_GAS })
 		await expect(prepareEvmSwapStep(RPC, VECTORS.same, SAME)).rejects.toThrow(/anómalo/)
+	})
+
+	// E-02: el precio lo da el nodo; uno que conteste ×1000 hacía firmar una comisión desmesurada
+	test('un precio de gas fuera de rango tampoco, y se prueba con otro nodo', async () => {
+		// Base: tope de 100 gwei por gas; con 60 de base la tx autorizaría 2·60 + 1 = 121
+		mockRpc({ allowance: 30_000_000n, baseFee: 60_000_000_000n })
+		const err = await prepareEvmSwapStep(RPC, VECTORS.same, SAME).catch(e => e)
+		expect(err.message).toMatch(/precio de gas fuera de rango/)
+		expect(err.retryable).toBe(true)
 	})
 
 	test('firmar con otra clave no pasa', async () => {

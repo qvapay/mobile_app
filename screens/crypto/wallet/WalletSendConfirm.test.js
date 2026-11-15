@@ -301,6 +301,16 @@ describe('errores que se enseñan', () => {
 		expect(describeError()(new Error('https://bsc: eth_estimateGas → execution reverted'))).toBe(WOULD_REVERT)
 	})
 
+	// E-02: ningún nodo dio un precio de gas dentro del tope. Antes habría salido «sin nodos»
+	test('una comisión disparada en todos los nodos no se cuenta como falta de nodos', async () => {
+		const { AllRpcsFailedError } = require('../../../wallet/registry/rpcRouter')
+		await render(BOB)
+		const spike = new AllRpcsFailedError('bsc', [new Error('evm: precio de gas fuera de rango (60000000000 wei por gas, tope 50000000000)')])
+		expect(describeError()(spike)).toBe('La comisión de la red está muy por encima de lo normal, así que no se ha firmado nada. Inténtalo más tarde.')
+		// Y sin nodos de verdad, el mensaje ya no nombra una red que quizá no es la del envío
+		expect(describeError()(new AllRpcsFailedError('bsc', [new Error('timeout')]))).toBe('Ningún nodo de la red responde. Revisa tu conexión e inténtalo de nuevo.')
+	})
+
 	test('el saldo insuficiente conserva su mensaje, aunque llegue dentro de un revert', async () => {
 		await render(BOB)
 		expect(describeError()(new Error('https://bsc: eth_estimateGas → execution reverted: ERC20: transfer amount exceeds balance'))).toBe('La red rechazó la transacción por saldo insuficiente.')

@@ -27,7 +27,7 @@ import type { TransactionSerializable, TransactionSerialized } from 'viem'
 
 import { ChainHttpError, hexToBigInt, jsonRpc } from '../chains/http'
 import type { RegistryRpc } from '../registry/types'
-import { EvmVerifyError, getEvmFeeData, isValidEvmAddress } from './tx'
+import { assertSaneGasPrice, EvmVerifyError, getEvmFeeData, isValidEvmAddress } from './tx'
 import type { EvmFeeEstimate, SignedEvmTx } from './tx'
 
 /** Diamond de LI.FI: el mismo en Ethereum, BNB Chain, Polygon y Base (verificado 10 oct 2026). */
@@ -180,9 +180,11 @@ export const prepareEvmSwapStep = async (rpc: RegistryRpc, build: EvmRouteBuild,
 	let fee: EvmFeeEstimate
 	if (feeData.eip1559) {
 		const maxFeePerGas = feeData.baseFee * 2n + feeData.priorityFee
+		assertSaneGasPrice(intent.chainId, maxFeePerGas)
 		tx = { ...base, type: 'eip1559', maxFeePerGas, maxPriorityFeePerGas: feeData.priorityFee }
 		fee = { gasLimit, estimatedWei: gasLimit * (feeData.baseFee + feeData.priorityFee), maxWei: gasLimit * maxFeePerGas, eip1559: true }
 	} else {
+		assertSaneGasPrice(intent.chainId, feeData.gasPrice)
 		tx = { ...base, type: 'legacy', gasPrice: feeData.gasPrice }
 		fee = { gasLimit, estimatedWei: gasLimit * feeData.gasPrice, maxWei: gasLimit * feeData.gasPrice, eip1559: false }
 	}

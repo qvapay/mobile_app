@@ -17,6 +17,7 @@ import { rentVolumeFor } from '../../../wallet/tron/energy'
 import { useAuth } from '../../../auth/AuthContext'
 import { addressForKind } from '../../../wallet/assets'
 import { AllRpcsFailedError } from '../../../wallet/registry/rpcRouter'
+import { isGasPriceOutOfRange } from '../../../wallet/evm/tx'
 import { SolanaExpiredError } from '../../../wallet/solana/tx'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
 import { useWalletAssets } from './walletQueries'
@@ -144,6 +145,8 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const idempotencyRef = useRef(makeIdempotencyKey())
 
 	const describeError = useCallback((err: unknown): string => {
+		// Ningún nodo dio un precio de gas razonable: no es que no haya nodos
+		if (isGasPriceOutOfRange(err)) return t('crypto.wallet.send.errors.feeTooHigh')
 		if (err instanceof AllRpcsFailedError) return t(`${KEY}errors.noNodes`)
 		if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
 		if (err instanceof TxExpiredError) return t('crypto.wallet.send.errors.expired')
