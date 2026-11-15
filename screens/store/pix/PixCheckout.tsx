@@ -32,7 +32,7 @@ import { copyTextToClipboard } from '../../../helpers'
 import { ROUTES } from '../../../routes'
 
 // Carrito y compras
-import { remove as removeCartLine } from '../market/marketCartStore'
+import { settleCartLines } from './pixCartLines'
 import { MY_PURCHASES_KEY } from '../storeQueries'
 
 // Logic
@@ -71,7 +71,7 @@ const PixQr = memo(({ data, size, dimmed }: { data: string, size: number, dimmed
  */
 const PixCheckout = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 'PixCheckout'>) => {
 
-	const { charge: initial, holdHours = 72, doneDepth = 1, cartKeys } = route.params
+	const { charge: initial, holdHours = 72, doneDepth = 1 } = route.params
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -128,10 +128,10 @@ const PixCheckout = ({ navigation, route }: NativeStackScreenProps<RootStackPara
 		if (surface === 'market') { queryClient.invalidateQueries({ queryKey: ['market', 'orders'] }) }
 	}, [awaiting, paid, queryClient, stage, surface])
 
-	// Las líneas cobradas salen del carrito; las de un cobro devuelto se quedan
+	// Las líneas cobradas salen del carrito, las que se mandaron con ESTE cobro; las de uno devuelto se quedan
 	useEffect(() => {
-		if (stage === 'verifying' || stage === 'delivered') { cartKeys?.forEach(removeCartLine) }
-	}, [cartKeys, stage])
+		if (!awaiting) { settleCartLines(uuid, stage) }
+	}, [awaiting, stage, uuid])
 
 	// Cerrar un cobro pagado también saca el wizard: quedarse en él invitaría a pagar dos veces
 	const leave = useCallback((target?: string) => {

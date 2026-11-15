@@ -2,13 +2,19 @@
  * La opción de pago: qué se ofrece, y que cada respuesta del servidor acabe donde tiene que acabar.
  * @jest-environment node
  */
-const mockFocus = { current: null }
+// Volver a la pantalla vuelve a correr todos sus efectos de foco, como en la app
+const mockFocus = new Set()
 jest.mock('@react-navigation/native', () => ({
 	useNavigation: jest.fn(),
-	useFocusEffect: (effect) => require('react').useEffect(() => { mockFocus.current = effect; return effect() }, [effect]),
+	useFocusEffect: (effect) => require('react').useEffect(() => {
+		mockFocus.add(effect)
+		const cleanup = effect()
+		return () => { mockFocus.delete(effect); cleanup?.() }
+	}, [effect]),
 }))
 jest.mock('sonner-native', () => ({ toast: { error: jest.fn() } }))
-jest.mock('../../../api/pixApi', () => ({ pixApi: { getEligibility: jest.fn(), createCheckout: jest.fn() } }))
+jest.mock('../../../api/pixApi', () => ({ pixApi: { getEligibility: jest.fn(), createCheckout: jest.fn(), getCheckout: jest.fn() } }))
+jest.mock('../market/marketCartStore', () => ({ remove: jest.fn(), hydrate: jest.fn(async () => {}) }))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
@@ -16,12 +22,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useNavigation } from '@react-navigation/native'
 import { toast } from 'sonner-native'
 import { pixApi } from '../../../api/pixApi'
+import { remove as removeCartLine } from '../market/marketCartStore'
+import { rememberCartLines, settleCartLines } from './pixCartLines'
 import usePixPayment from './usePixPayment'
 
 const ELIGIBLE = { eligible: true, reason: null, surfaces: ['topup', 'voucher'], quote: { usd_per_brl: 0.18, surcharge_pct: 3, provider_pct: 4.5 }, cap: { cap: 400, used: 0, remaining: 400, resets_at: null, window_days: 30 }, hold_hours: 72, instant_max_usd: 25 }
 const CHARGE = { uuid: 'c1', surface: 'topup', stage: 'awaiting_payment' }
 
+const MARKET = { ...ELIGIBLE, surfaces: ['market'] }
 const settle = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
+const refocus = () => act(async () => { mockFocus.forEach(effect => effect()) })
+const removed = () => removeCartLine.mock.calls.map(call => call[0])
 
 describe('usePixPayment', () => {
 	let client
@@ -34,10 +45,18 @@ describe('usePixPayment', () => {
 		return null
 	}
 
-	const render = async (props = {}) => {
+	const element = (props) => {
 		const args = { surface: 'topup', base: 10, enabled: true, buildBody: () => ({ offer_id: 'o1' }), ...props }
+		return <QueryClientProvider client={client}><Harness {...args} /></QueryClientProvider>
+	}
+	const render = async (props = {}) => {
 		client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-		await act(async () => { tree = create(<QueryClientProvider client={client}><Harness {...args} /></QueryClientProvider>) })
+		await act(async () => { tree = create(element(props)) })
+		await settle()
+	}
+	// La misma pantalla con otras props (el carrito cambió)
+	const rerender = async (props) => {
+		await act(async () => { tree.update(element(props)) })
 		await settle()
 	}
 
@@ -46,6 +65,8 @@ describe('usePixPayment', () => {
 		navigate = jest.fn()
 		useNavigation.mockReturnValue({ navigate })
 		pixApi.getEligibility.mockResolvedValue({ success: true, data: ELIGIBLE })
+		// Sin red: lo apuntado por otros tests se queda donde está
+		pixApi.getCheckout.mockResolvedValue({ success: false, error: 'Network Error' })
 	})
 
 	afterEach(async () => {
@@ -117,7 +138,7 @@ describe('usePixPayment', () => {
 
 		// Vuelve con GOLD: ya puede verificar el CPF
 		pixApi.getEligibility.mockResolvedValue({ success: true, data: { ...ELIGIBLE, eligible: false, reason: 'CPF_REQUIRED', gold_required: false, quote: null } })
-		await act(async () => { mockFocus.current() })
+		await refocus()
 		await settle()
 		expect(pix.offer.kind).toBe('cpf')
 	})
@@ -156,12 +177,91 @@ describe('usePixPayment', () => {
 		expect(toast.error).not.toHaveBeenCalled()
 	})
 
-	test('las líneas del carrito no viajan con el QR abierto de otra compra', async () => {
-		pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge: { ...CHARGE, surface: 'topup' } } })
-		pixApi.getEligibility.mockResolvedValue({ success: true, data: { ...ELIGIBLE, surfaces: ['market'] } })
-		await render({ surface: 'market', cartKeys: ['a'] })
-		await act(async () => { await pix.pay() })
-		expect(navigate.mock.calls[0][1].cartKeys).toBeUndefined()
+	describe('carrito', () => {
+		test('el cobro nuevo se lleva las líneas que se mandaron en él', async () => {
+			const charge = { ...CHARGE, uuid: 'm1', surface: 'market' }
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.createCheckout.mockResolvedValue({ success: true, data: charge })
+			await render({ surface: 'market', cartKeys: ['a:', 'b:v1'] })
+			await act(async () => { await pix.pay() })
+			expect(navigate).toHaveBeenCalledWith('PixCheckout', { charge, holdHours: 72, doneDepth: 1 })
+			await settleCartLines('m1', 'verifying')
+			expect(removed()).toEqual(['a:', 'b:v1'])
+		})
+
+		test('el QR viejo reabierto tras añadir algo al carrito solo saca lo que cobra', async () => {
+			const charge = { ...CHARGE, uuid: 'm2', surface: 'market' }
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.createCheckout.mockResolvedValue({ success: true, data: charge })
+			await render({ surface: 'market', cartKeys: ['a:'], base: 10 })
+			await act(async () => { await pix.pay() })
+
+			// Vuelve sin cancelar, añade B y paga otra vez: la cuenta solo admite un QR, el de A
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
+			await rerender({ surface: 'market', cartKeys: ['a:', 'b:'], base: 25 })
+			await act(async () => { await pix.pay() })
+			expect(navigate).toHaveBeenLastCalledWith('PixCheckout', { charge, holdHours: 72, doneDepth: 1 })
+
+			await settleCartLines('m2', 'verifying')
+			expect(removed()).toEqual(['a:'])
+		})
+
+		test('el QR abierto de otra compra no se lleva nada del carrito', async () => {
+			const charge = { ...CHARGE, uuid: 'm3', surface: 'topup' }
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
+			await render({ surface: 'market', cartKeys: ['a:'] })
+			await act(async () => { await pix.pay() })
+			expect(navigate).toHaveBeenCalledWith('PixCheckout', { charge, holdHours: 72, doneDepth: 1 })
+			await settleCartLines('m3', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
+		})
+
+		test('al enfocarse saca lo que se pagó sin el QR delante', async () => {
+			await rememberCartLines('m4', ['z:'])
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.getCheckout.mockImplementation(async uuid => (uuid === 'm4' ? { success: true, data: { ...CHARGE, uuid, surface: 'market', stage: 'awaiting_payment' } } : { success: false, error: 'Network Error' }))
+			await render({ surface: 'market', cartKeys: [] })
+			expect(pixApi.getCheckout).toHaveBeenCalledWith('m4')
+			expect(removeCartLine).not.toHaveBeenCalled()
+
+			// Se pagó en el banco con la app cerrada; al volver al carrito ya no está
+			pixApi.getCheckout.mockImplementation(async uuid => (uuid === 'm4' ? { success: true, data: { ...CHARGE, uuid, surface: 'market', stage: 'delivered' } } : { success: false, error: 'Network Error' }))
+			await refocus()
+			await settle()
+			expect(removed()).toEqual(['z:'])
+		})
+
+		test('fuera del carrito no se pregunta por los cobros del carrito', async () => {
+			await rememberCartLines('m5', ['y:'])
+			await render({ surface: 'voucher' })
+			await refocus()
+			await settle()
+			expect(pixApi.getCheckout).not.toHaveBeenCalled()
+		})
+
+		test('si la respuesta se perdió, el QR del 409 del reintento no se lleva el carrito', async () => {
+			// Pudo crearlo el intento, o estar abierto desde la web con el mismo importe: nada lo distingue
+			const charge = { ...CHARGE, uuid: 'm7', surface: 'market', total_usd: 10.79 }
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.createCheckout.mockResolvedValue({ success: false, error: 'timeout of 30000ms exceeded' })
+			await render({ surface: 'market', cartKeys: ['a:'] })
+			await act(async () => { await pix.pay() })
+
+			pixApi.createCheckout.mockResolvedValue({ success: false, status: 409, details: { code: 'PIX_QR_OPEN', charge } })
+			await act(async () => { await pix.pay() })
+			expect(navigate).toHaveBeenCalledWith('PixCheckout', { charge, holdHours: 72, doneDepth: 1 })
+			await settleCartLines('m7', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
+		})
+
+		test('una compra que no es del carrito no apunta líneas', async () => {
+			pixApi.createCheckout.mockResolvedValue({ success: true, data: { ...CHARGE, uuid: 'm6' } })
+			await render()
+			await act(async () => { await pix.pay() })
+			await settleCartLines('m6', 'verifying')
+			expect(removeCartLine).not.toHaveBeenCalled()
+		})
 	})
 
 	test('el tope dice cuánto queda y cuándo se renueva', async () => {
