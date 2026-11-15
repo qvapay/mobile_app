@@ -457,8 +457,12 @@ type KeyMeta = { isSigner: boolean, isWritable: boolean, isInvoked: boolean }
 /**
  * Compila a mensaje v0 (= `MessageV0.compile` de web3.js). Una cuenta va a una tabla solo si
  * no firma, no es un programa invocado y la tabla la contiene; el resto, estática.
+ *
+ * `staticOnly`: cuentas que NUNCA se referencian por tabla aunque una las contenga. El
+ * contenido de una tabla lo dice el nodo: una cuenta propia puesta ahí por índice sería, en
+ * la cadena, la que la tabla de verdad tenga en ese índice.
  */
-export const compileV0Message = (feePayer: string, instructions: Instruction[], recentBlockhash: string, tables: AddressLookupTable[] = []): SolanaMessageV0 => {
+export const compileV0Message = (feePayer: string, instructions: Instruction[], recentBlockhash: string, tables: AddressLookupTable[] = [], staticOnly?: ReadonlySet<string>): SolanaMessageV0 => {
 	const metas = new Map<string, KeyMeta>()
 	const touch = (pubkey: string): KeyMeta => {
 		pubkeyBytes(pubkey)
@@ -485,7 +489,7 @@ export const compileV0Message = (feePayer: string, instructions: Instruction[], 
 		const indexes: number[] = []
 		const drained: string[] = []
 		for (const [address, meta] of [...metas.entries()]) {
-			if (!filter(meta)) continue
+			if (!filter(meta) || staticOnly?.has(address)) continue
 			const index = table.addresses.indexOf(address)
 			if (index < 0) continue
 			if (index > 255) throw new SolanaCodecError('solana: índice de lookup table > 255')
