@@ -26,6 +26,7 @@ import { getWalletCheck, getWalletMnemonic, removeWalletCheck, removeWalletId, r
 import { hydrateWallet, sameWallet } from './walletHydration'
 import type { Hydration, HydrationDeps, WalletMeta, WalletRecovery } from './walletHydration'
 import { useAppRpcRouter } from './registry/appRpcRouter'
+import { BACKGROUND_PROBE_TOP } from './registry/rpcRouter'
 import { walletApi } from '../api/walletApi'
 import { useAuth } from '../auth/AuthContext'
 
@@ -34,6 +35,8 @@ const WALLET_META_KEY = '@qpwallet:meta'
 
 /** Cadencia del probe de RPCs con la app en foreground (plan crypto, Fase 1). */
 const PROBE_INTERVAL_MS = 10 * 60_000
+/** El primer probe espera: al arrancar la red ya va cargada con saldos, precios y el perfil. */
+const STARTUP_PROBE_DELAY_MS = 8_000
 
 /**
  * Resultado de restaurar una wallet en `recovery` con su frase.
@@ -204,12 +207,16 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 	// Nodos, o la wallet hablaría con el bundled hasta que alguien la abriera.
 	const router = useAppRpcRouter()
 
-	// Probe de RPCs: al armar la wallet y cada 10 min en foreground. Solo con
-	// wallet creada — sin ella no hay tráfico on-chain que optimizar.
+	// Probe de RPCs: poco después de armar la wallet y cada 10 min en foreground. Solo con
+	// wallet creada — sin ella no hay tráfico on-chain que optimizar. Y solo los nodos que
+	// el router usaría (los del usuario y los primeros de cada cadena): medirlos todos eran
+	// ~120 peticiones a la vez en cada arranque. La pantalla Nodos sí los mide todos
 	useEffect(() => {
 		if (!meta) return
-		router.probe().catch(() => {})
-		return startForegroundLoop(() => { router.probe().catch(() => {}) }, PROBE_INTERVAL_MS)
+		const probe = () => { router.probe(undefined, { top: BACKGROUND_PROBE_TOP }).catch(() => {}) }
+		const first = setTimeout(probe, STARTUP_PROBE_DELAY_MS)
+		const stop = startForegroundLoop(probe, PROBE_INTERVAL_MS)
+		return () => { clearTimeout(first); stop() }
 	}, [meta, router])
 
 	// Registro de direcciones públicas una vez por cuenta y sesión: cubre las

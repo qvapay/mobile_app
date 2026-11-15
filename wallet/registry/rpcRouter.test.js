@@ -14,6 +14,8 @@ import {
 	AllRpcsFailedError,
 	MAX_FAILURES,
 	BREAKER_REOPEN_MS,
+	BACKGROUND_PROBE_TOP,
+	createTrailingWriter,
 	NETWORK_IDENTITY,
 	RpcNetworkMismatchError,
 	verifyRpcNetwork,
@@ -338,6 +340,105 @@ describe('seedHealth', () => {
 		const h = router.getHealth()
 		expect(h['https://api.trongrid.io']).toEqual(fresh)
 		expect(h['https://tron-rpc.publicnode.com'].latencyMs).toBe(80)
+	})
+})
+
+// R-05: el sondeo de fondo medía los ~120 nodos del registro en cada arranque y cada 10 min
+describe('sondeo de fondo: solo los nodos que se usarían', () => {
+	const many = (count, extra = []) => makeRegistry([
+		...extra,
+		...Array.from({ length: count }, (_, i) => ({ url: `https://n${i + 1}.example`, priority: (i + 1) * 10, owner: `op${i + 1}` })),
+	])
+	const probed = (registry, run, deps = {}) => {
+		const seen = []
+		const { router, clock } = makeRouter(registry, { probeRequest: async (_k, _c, rpc) => { seen.push(rpc.url) }, ...deps })
+		return run(router, clock).then(() => seen.sort())
+	}
+
+	test('con `top`, los primeros por prioridad; sin él (la pantalla Nodos), todos', async () => {
+		const registry = many(12)
+		expect(await probed(registry, router => router.probe(undefined, { top: BACKGROUND_PROBE_TOP }))).toEqual(['https://n1.example', 'https://n2.example', 'https://n3.example'])
+		expect(await probed(registry, router => router.probe())).toHaveLength(12)
+		expect(await probed(registry, router => router.probe('tron'))).toHaveLength(12)
+	})
+
+	test('los nodos del usuario se miden siempre, además de esos', async () => {
+		const registry = many(12, [
+			{ url: 'https://mio.example', priority: -1, owner: 'user' },
+			{ url: 'https://mio2.example', priority: -1, owner: 'user' },
+		])
+		expect(await probed(registry, router => router.probe(undefined, { top: 3 }))).toEqual(['https://mio.example', 'https://mio2.example', 'https://n1.example', 'https://n2.example', 'https://n3.example'])
+	})
+
+	test('uno deshabilitado no cuenta, y uno con el breaker abierto cede su sitio al siguiente', async () => {
+		const registry = many(6)
+		registry.chains.tron.rpcs[1].enabled = false
+		const seen = await probed(registry, async (router) => {
+			// n1 cae tres veces: el breaker lo aparta, y `call` ya no lo intentaría
+			for (let i = 0; i < MAX_FAILURES; i++) {
+				await router.call('tron', async (rpc) => { if (rpc.url === 'https://n1.example') throw Object.assign(new Error('timeout'), { retryable: true }); return 'ok' })
+			}
+			await router.probe(undefined, { top: 3 })
+		})
+		expect(seen).toEqual(['https://n3.example', 'https://n4.example', 'https://n5.example'])
+	})
+
+	test('el registro de la app: de 119 nodos pasa a medir tres por cadena', async () => {
+		const total = Object.values(bundled.chains).reduce((sum, chain) => sum + chain.rpcs.filter(r => r.enabled !== false).length, 0)
+		const seen = []
+		const router = createRpcRouter(() => bundled, { probeRequest: async (_k, _c, rpc) => { seen.push(rpc.url) } })
+		await router.probe(undefined, { top: BACKGROUND_PROBE_TOP })
+		expect(total).toBeGreaterThan(100)
+		expect(seen.length).toBeLessThanOrEqual(Object.keys(bundled.chains).length * BACKGROUND_PROBE_TOP)
+		expect(seen.length).toBeGreaterThanOrEqual(Object.keys(bundled.chains).length)
+	})
+})
+
+// Cada llamada a un nodo cambia la salud: escribirla en disco cada vez eran ~120 escrituras
+// por sondeo y una más por cada lectura
+describe('la salud se escribe en disco una vez por ráfaga', () => {
+	const fakeTimers = () => {
+		const timers = { pending: null, set: (fn, ms) => { timers.pending = { fn, ms }; return timers.pending }, clear: () => { timers.pending = null }, fire: () => { const { fn } = timers.pending; timers.pending = null; fn() } }
+		return timers
+	}
+
+	test('cien cambios seguidos: una escritura, con el último', () => {
+		const timers = fakeTimers()
+		const write = jest.fn()
+		const writer = createTrailingWriter(write, 3_000, timers)
+		for (let i = 1; i <= 100; i++) writer.push({ version: i })
+		expect(write).not.toHaveBeenCalled()
+		expect(timers.pending.ms).toBe(3_000)
+		timers.fire()
+		expect(write).toHaveBeenCalledTimes(1)
+		expect(write).toHaveBeenCalledWith({ version: 100 })
+	})
+
+	test('el reloj no se reinicia con cada cambio: con actividad continua se sigue escribiendo', () => {
+		const timers = fakeTimers()
+		const write = jest.fn()
+		const writer = createTrailingWriter(write, 3_000, timers)
+		writer.push('a')
+		const armed = timers.pending
+		writer.push('b')
+		expect(timers.pending).toBe(armed)
+		timers.fire()
+		writer.push('c')
+		timers.fire()
+		expect(write.mock.calls.map(call => call[0])).toEqual(['b', 'c'])
+	})
+
+	test('sin cambios no escribe, y `flush` adelanta lo pendiente una sola vez', () => {
+		const timers = fakeTimers()
+		const write = jest.fn()
+		const writer = createTrailingWriter(write, 3_000, timers)
+		writer.flush()
+		expect(write).not.toHaveBeenCalled()
+		writer.push('a')
+		writer.flush()
+		writer.flush()
+		expect(write).toHaveBeenCalledTimes(1)
+		expect(timers.pending).toBeNull()
 	})
 })
 

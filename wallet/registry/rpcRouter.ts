@@ -364,17 +364,35 @@ export const createRpcRouter = (getRegistry: () => RpcRegistry, deps: RouterDeps
 	}
 
 	/**
-	 * Mide TODOS los candidatos habilitados en paralelo (timeout 3s) y guarda
-	 * su salud. Así, cuando un nodo qvapay pase a `enabled: true`, el próximo
-	 * probe ya lo deja ganando por priority 0.
+	 * Los nodos que el sondeo de fondo mide de una cadena: los del usuario y los `top`
+	 * primeros que `call` usaría (los que no tiene el breaker abiertos, por prioridad).
 	 */
-	const probe = async (chainKey?: string): Promise<void> => {
+	const probeTargets = (chain: RegistryChain, top: number): RegistryRpc[] => {
+		const ordered = orderedCandidates(chain)
+		const usable = ordered.filter(r => !isBroken(r.url))
+		const pool = (usable.length > 0 ? usable : ordered).filter(r => r.owner !== 'user')
+		return [...ordered.filter(r => r.owner === 'user'), ...pool.slice(0, Math.max(0, top))]
+	}
+
+	/**
+	 * Mide candidatos habilitados en paralelo (timeout 3s) y guarda su salud. Así, cuando
+	 * un nodo qvapay pase a `enabled: true`, el próximo probe ya lo deja ganando por
+	 * priority 0.
+	 *
+	 * Sin `top` los mide TODOS: es lo que pide la pantalla Nodos. Con `top`, solo los que
+	 * el router usaría de verdad (R-05): el sondeo de fondo medía los ~120 nodos del
+	 * registro en cada arranque y cada 10 min, con lo que gastaba datos y batería, competía
+	 * con la red del arranque y repartía la IP del usuario entre todos los operadores,
+	 * también los que nunca iba a usar.
+	 */
+	const probe = async (chainKey?: string, { top }: { top?: number } = {}): Promise<void> => {
 		const registry = getRegistry()
 		const keys = chainKey ? [chainKey] : Object.keys(registry.chains)
 		await Promise.all(keys.flatMap(key => {
 			const chain = registry.chains[key]
 			if (!chain) return []
-			return chain.rpcs.filter(r => r.enabled !== false).map(async rpc => {
+			const targets = top === undefined ? chain.rpcs.filter(r => r.enabled !== false) : probeTargets(chain, top)
+			return targets.map(async rpc => {
 				const started = now()
 				try {
 					await probeRequest(key, chain, rpc, PROBE_TIMEOUT_MS)
@@ -404,3 +422,35 @@ export const createRpcRouter = (getRegistry: () => RpcRegistry, deps: RouterDeps
 }
 
 export type RpcRouter = ReturnType<typeof createRpcRouter>
+
+/** Nodos por cadena que mide el sondeo de fondo, además de los del usuario: los que `call` llega a probar. */
+export const BACKGROUND_PROBE_TOP = MAX_ATTEMPTS
+
+/** Cada cuánto, como mucho, se escribe la salud en disco mientras va cambiando. */
+export const HEALTH_PERSIST_DELAY_MS = 3_000
+
+type Timers = { set: (fn: () => void, ms: number) => unknown, clear: (id: unknown) => void }
+const REAL_TIMERS: Timers = { set: (fn, ms) => setTimeout(fn, ms), clear: id => clearTimeout(id as ReturnType<typeof setTimeout>) }
+
+/**
+ * Escribe solo la ÚLTIMA versión, una vez por ráfaga (R-05). La salud cambia con cada
+ * llamada a un nodo; escribirla cada vez eran ~120 escrituras en disco por sondeo y una
+ * más por cada lectura de saldo. El reloj se arma con el primer cambio y no se reinicia:
+ * con actividad continua se sigue escribiendo, cada `delayMs`.
+ */
+export const createTrailingWriter = <T>(write: (value: T) => void, delayMs: number = HEALTH_PERSIST_DELAY_MS, timers: Timers = REAL_TIMERS) => {
+	let pending: { value: T } | null = null
+	let timer: unknown = null
+	const flush = (): void => {
+		if (timer !== null) { timers.clear(timer); timer = null }
+		if (!pending) return
+		const { value } = pending
+		pending = null
+		write(value)
+	}
+	const push = (value: T): void => {
+		pending = { value }
+		if (timer === null) timer = timers.set(() => { timer = null; flush() }, delayMs)
+	}
+	return { push, flush }
+}
