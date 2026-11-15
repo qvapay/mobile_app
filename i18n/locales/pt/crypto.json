@@ -600,6 +600,7 @@
 					"moved": "O preço mudou desde a cotação. Cote novamente para ver o novo.",
 					"expired": "A cotação expirou. Cote novamente.",
 					"verify": "Não conseguimos verificar esta rota, então nada foi assinado. Tente outra rota.",
+					"unsupportedRoute": "A carteira ainda não consegue verificar esta rota, então nada foi assinado. Tente outra rota ou tente mais tarde.",
 					"simulation": "Esta rota falharia agora (a simulação não passa). Nada foi assinado; tente de novo ou outra rota.",
 					"approvalFailed": "A permissão não foi confirmada. Verifique seu saldo para a taxa de rede e tente novamente.",
 					"noNodes": "Não há nós disponíveis agora. Tente novamente em instantes.",

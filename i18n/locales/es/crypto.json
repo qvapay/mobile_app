@@ -600,6 +600,7 @@
 					"moved": "El precio cambió desde que cotizaste. Vuelve a cotizar para ver el nuevo.",
 					"expired": "La cotización caducó. Vuelve a cotizar.",
 					"verify": "No pudimos verificar esta ruta, así que no se ha firmado nada. Prueba con otra ruta.",
+					"unsupportedRoute": "La wallet todavía no sabe verificar esta ruta, así que no se ha firmado nada. Prueba con otra ruta o inténtalo más tarde.",
 					"simulation": "Esta ruta fallaría ahora mismo (la simulación no pasa). No se ha firmado nada; prueba de nuevo o con otra ruta.",
 					"approvalFailed": "El permiso no se confirmó. Revisa tu saldo para la comisión de red e inténtalo de nuevo.",
 					"noNodes": "No hay nodos disponibles ahora mismo. Inténtalo en un momento.",

@@ -17,7 +17,8 @@ import { rentVolumeFor } from '../../../wallet/tron/energy'
 import { useAuth } from '../../../auth/AuthContext'
 import { addressForKind } from '../../../wallet/assets'
 import { AllRpcsFailedError } from '../../../wallet/registry/rpcRouter'
-import { isGasPriceOutOfRange } from '../../../wallet/evm/tx'
+import { EvmRouteExpiredError, EvmUnsupportedRouteError } from '../../../wallet/evm/lifi'
+import { EvmVerifyError, isGasPriceOutOfRange } from '../../../wallet/evm/tx'
 import { SolanaExpiredError } from '../../../wallet/solana/tx'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
 import { useWalletAssets } from './walletQueries'
@@ -103,6 +104,8 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const from = useMemo(() => all.find(a => a.id === fromAssetId), [all, fromAssetId])
 	const to = useMemo(() => all.find(a => a.id === toAssetId), [all, toAssetId])
 	const chain = from ? registry.chains[from.chainKey] : undefined
+	// La red de destino, también del registry de la wallet: contra ella se decodifica la ruta
+	const toChain = to ? registry.chains[to.chainKey] : undefined
 
 	// --- La ruta, tal y como la manda qpweb (sin fiarse de ella: ver `planOnchainSwap`) ---
 	const [build, setBuild] = useState<ExchangeOnchainBuild | null>(null)
@@ -131,11 +134,14 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const planned = useMemo((): { plan: OnchainSwapPlan | null, error: string | null } => {
 		if (!build || !from || !to || !addresses) return { plan: null, error: null }
 		try {
-			return { plan: planOnchainSwap({ build, from, to, addresses, amount, expectedOut, chainId: chain?.chainId, serviceFeeBps }), error: null }
+			return { plan: planOnchainSwap({ build, from, to, addresses, amount, expectedOut, chainId: chain?.chainId, toChainId: toChain?.chainId, serviceFeeBps }), error: null }
 		} catch (err) {
-			return { plan: null, error: err instanceof OnchainSwapMismatchError ? t(`${KEY}errors.verify`) : (err as Error).message }
+			// Una ruta por una función que la wallet no sabe leer no es un engaño: es que no se puede comprobar
+			if (err instanceof EvmUnsupportedRouteError) return { plan: null, error: t(`${KEY}errors.unsupportedRoute`) }
+			if (err instanceof EvmRouteExpiredError) return { plan: null, error: t(`${KEY}errors.expired`) }
+			return { plan: null, error: err instanceof OnchainSwapMismatchError || err instanceof EvmVerifyError ? t(`${KEY}errors.verify`) : (err as Error).message }
 		}
-	}, [build, from, to, addresses, amount, expectedOut, chain?.chainId, serviceFeeBps, t])
+	}, [build, from, to, addresses, amount, expectedOut, chain?.chainId, toChain?.chainId, serviceFeeBps, t])
 	const { plan } = planned
 
 	// --- Firma y difusión: el núcleo común de toda tx de la wallet ---
@@ -151,6 +157,9 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
 		if (err instanceof TxExpiredError) return t('crypto.wallet.send.errors.expired')
 		if (err instanceof TxUnconfirmedError) return t('crypto.wallet.send.errors.unconfirmed')
+		if (err instanceof EvmUnsupportedRouteError) return t(`${KEY}errors.unsupportedRoute`)
+		// La ruta llevaba una orden con fecha y se ha hecho vieja mientras se esperaba (el permiso, el PIN)
+		if (err instanceof EvmRouteExpiredError) return t(`${KEY}errors.expired`)
 		if (err instanceof Error && /VerifyError$/.test(err.name)) return t(`${KEY}errors.verify`)
 		const message = (err as Error)?.message ?? ''
 		if (/simulación del swap falló|reverted|revert/i.test(message)) return t(`${KEY}errors.simulation`)

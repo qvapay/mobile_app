@@ -600,6 +600,7 @@
 					"moved": "The price changed since you got the quote. Get a new quote to see it.",
 					"expired": "The quote expired. Get a new one.",
 					"verify": "We couldn't verify this route, so nothing was signed. Try another route.",
+					"unsupportedRoute": "The wallet can't verify this route yet, so nothing was signed. Try another route, or try again later.",
 					"simulation": "This route would fail right now (the simulation doesn't pass). Nothing was signed; try again or pick another route.",
 					"approvalFailed": "The approval didn't confirm. Check your balance for the network fee and try again.",
 					"noNodes": "No nodes are available right now. Try again in a moment.",

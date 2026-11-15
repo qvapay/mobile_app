@@ -2,14 +2,15 @@
  * Swap en cadenas EVM vía LI.FI. Módulo PURO (fetch vía `jsonRpc` + viem), tests en node.
  *
  * El backend (qpweb) pide a LI.FI la transacción con las direcciones del propio usuario y
- * nos la pasa. La calldata del router es OPACA (cada puente y DEX codifica distinto) y no se
- * decodifica entera; en su lugar se exigen cuatro cosas que juntas acotan qué puede hacer:
+ * nos la pasa. De ella no se da nada por bueno; se exigen cuatro cosas:
  *
  * 1. El destino es el router de LI.FI de ESA cadena, de una lista blanca que vive en el
  *    CÓDIGO (no en el registry remoto: cambiarla exige publicar versión, que es la idea).
  * 2. El valor es 0 si se paga con un token, o exactamente el importe si se paga con nativo.
- * 3. La dirección que cobra (EVM, o la de Solana si cruza) aparece en la calldata. Sin ella
- *    el router no tiene a quién pagar salvo a otro.
+ * 3. La calldata se DECODIFICA (`lifi.ts`): es una función de la lista y en ella consta que
+ *    sale el activo y el importe confirmados, que cobra la wallet del usuario en la red y
+ *    en el activo del destino, y que el mínimo que el contrato hace cumplir no queda por
+ *    debajo de lo cotizado. Una función que la wallet no sabe leer no se firma.
  * 4. `eth_estimateGas` desde la propia dirección no revierte: es la simulación. Una ruta
  *    que fuera a fallar no se firma (y no se quema gas).
  *
@@ -20,14 +21,15 @@
  * llegar su turno, leyendo el permiso actual de la cadena (`nextEvmSwapStep`): nada de
  * firmar el swap antes de que el permiso exista, porque su simulación fallaría.
  */
-import { base58 } from '@scure/base'
 import { keccak256, parseTransaction, recoverTransactionAddress } from 'viem'
 import { signTransaction } from 'viem/accounts'
 import type { TransactionSerializable, TransactionSerialized } from 'viem'
 
 import { ChainHttpError, hexToBigInt, jsonRpc } from '../chains/http'
 import type { RegistryRpc } from '../registry/types'
-import { assertSaneGasPrice, EvmVerifyError, getEvmFeeData, isValidEvmAddress } from './tx'
+import { verifyLifiCalldata } from './lifi'
+import type { LifiDestination } from './lifi'
+import { assertSaneGasPrice, EvmVerifyError, getEvmFeeData } from './tx'
 import type { EvmFeeEstimate, SignedEvmTx } from './tx'
 
 /** Diamond de LI.FI: el mismo en Ethereum, BNB Chain, Polygon y Base (verificado 10 oct 2026). */
@@ -68,8 +70,16 @@ export type EvmSwapIntent = {
 	receiver: string
 	/** null = nativo. */
 	token: string | null
+	/** Decimales de lo que se paga. */
+	decimals: number
 	/** Unidades mínimas que se pagan. */
 	amountIn: bigint
+	/** Red, activo y decimales de lo que tiene que llegar: del registry de la wallet, nunca del backend. */
+	to: LifiDestination
+	/** Lo mínimo que la cadena tiene que garantizar, en unidades del destino (lo cotizado menos la holgura). */
+	minOut: bigint
+	/** Lo que la ruta prometía entregar cuando el usuario la eligió; null si no se enseñó nada. */
+	quoted: bigint | null
 }
 
 export type EvmSwapStep = 'reset' | 'approve' | 'swap'
@@ -95,23 +105,15 @@ const same = (a: string | null | undefined, b: string | null | undefined) => !!a
 /** `approve(spender, amount)`. */
 export const encodeApprove = (spender: string, amount: bigint): `0x${string}` => `${APPROVE_SELECTOR}${word(spender)}${amount.toString(16).padStart(64, '0')}` as `0x${string}`
 
-/**
- * Cómo aparece quien cobra en la calldata: una dirección EVM como palabra de 32 bytes; una
- * de Solana como sus 32 bytes crudos (así la codifican los puentes de LI.FI). Exportado
- * para tests.
- */
-export const receiverWord = (receiver: string): string => {
-	if (isValidEvmAddress(receiver)) return word(receiver)
-	const bytes = base58.decode(receiver)
-	if (bytes.length !== 32) throw new EvmVerifyError('receptor con formato desconocido')
-	return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
-}
+/** La llamada al router, ya comprobada, con el mínimo que la CADENA hace cumplir. */
+export type VerifiedRoute = { to: string, data: `0x${string}`, value: bigint, minOut: bigint, fn: string }
 
 /**
  * Las comprobaciones 1-3 de la cabecera sobre lo que mandó el backend. Exportado para tests.
- * Devuelve la llamada al router ya normalizada.
+ * Devuelve la llamada al router ya normalizada. `now` (segundos Unix) solo cuenta para la
+ * caducidad de las rutas que llevan una orden con fecha.
  */
-export const verifyRouteBuild = (build: EvmRouteBuild, intent: EvmSwapIntent): { to: string, data: `0x${string}`, value: bigint } => {
+export const verifyRouteBuild = (build: EvmRouteBuild, intent: EvmSwapIntent, now?: number): VerifiedRoute => {
 	const allowed = EVM_SWAP_ROUTERS[intent.chainId]
 	if (!allowed) throw new EvmVerifyError('cadena sin router de swap permitido')
 	if (build.chainId !== intent.chainId) throw new EvmVerifyError('la ruta es de otra cadena')
@@ -120,12 +122,7 @@ export const verifyRouteBuild = (build: EvmRouteBuild, intent: EvmSwapIntent): {
 	if (!/^0x[0-9a-f]{8,}$/.test(data) || data.length % 2 !== 0) throw new EvmVerifyError('calldata inválida')
 	const value = hexToBigInt(build.tx.value)
 	if (value !== (intent.token ? 0n : intent.amountIn)) throw new EvmVerifyError('valor distinto del importe')
-	// Busca la palabra del receptor ALINEADA tras el selector: un acierto a mitad de palabra no cuenta
-	const target = receiverWord(intent.receiver)
-	const body = data.slice(10)
-	let found = false
-	for (let i = 0; i + 64 <= body.length; i += 64) { if (body.slice(i, i + 64) === target) { found = true; break } }
-	if (!found) throw new EvmVerifyError('la ruta no paga a tu wallet')
+	const checked = verifyLifiCalldata(data, intent, now)
 
 	if (intent.token) {
 		const approval = build.approval
@@ -136,7 +133,7 @@ export const verifyRouteBuild = (build: EvmRouteBuild, intent: EvmSwapIntent): {
 	} else if (build.approval) {
 		throw new EvmVerifyError('permiso en un pago con nativo')
 	}
-	return { to: allowed.router, data: data as `0x${string}`, value }
+	return { to: allowed.router, data: data as `0x${string}`, value, minOut: checked.minOut, fn: checked.fn }
 }
 
 /** Permiso actual de `owner` a `spender` sobre `token`. */

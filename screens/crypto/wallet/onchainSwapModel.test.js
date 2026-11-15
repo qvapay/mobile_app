@@ -5,20 +5,34 @@
  * mínimo garantizado se contrastan con lo que el usuario eligió, no se toman del backend.
  */
 import { onchainQuoteParams, OnchainSwapMismatchError, planOnchainSwap, toUnits } from './onchainSwapModel'
+import { decodeLifiCall, encodeLifiCall, EvmUnsupportedRouteError } from '../../../wallet/evm/lifi'
+import VECTORS from '../../../wallet/evm/lifiVectors.json'
+import { EvmVerifyError } from '../../../wallet/evm/tx'
 
 const ADDRESSES = { evm: '0x19E7E376E7C213B7E7e7e46cc70A5dD086DAff2A', sol: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM', tron: 'TJDENsfBJs4RFETt1X1W8wMDc8M5XnJhCe', btc: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu', stx: 's' }
 const BASE_USDC = { id: 'base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', chainKey: 'base', kind: 'evm', decimals: 6, contract: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', symbol: 'USDC' }
-const BASE_ETH = { id: 'base:native', chainKey: 'base', kind: 'evm', decimals: 18, contract: null, symbol: 'ETH' }
+const BASE_USDT = { id: 'base:0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', chainKey: 'base', kind: 'evm', decimals: 6, contract: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', symbol: 'USDT' }
+const BSC_USDT = { id: 'bsc:0x55d398326f99059fF775485246999027B3197955', chainKey: 'bsc', kind: 'evm', decimals: 18, contract: '0x55d398326f99059fF775485246999027B3197955', symbol: 'USDT' }
+const ETH = { id: 'ethereum:native', chainKey: 'ethereum', kind: 'evm', decimals: 18, contract: null, symbol: 'ETH' }
 const SOL = { id: 'solana:native', chainKey: 'solana', kind: 'solana', decimals: 9, contract: null, symbol: 'SOL' }
 const SOL_USDC = { id: 'solana:EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', chainKey: 'solana', kind: 'solana', decimals: 6, contract: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', symbol: 'USDC' }
 
-const evmBuild = (over = {}) => ({
-	family: 'evm', provider: 'lifi', quote_id: 'q', expires_at: '', from_asset: BASE_USDC.id, to_asset: BASE_ETH.id,
-	amount: 20, toAmount: 0.007985, toAmountMin: 0.007945, chainId: 8453, fromAmount: '20000000',
-	tx: { to: '0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE', data: '0x', value: '0x0', gasLimit: null },
-	approval: { token: BASE_USDC.contract, spender: '0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE', amount: '20000000' },
-	...over,
-})
+/** Copia profunda que respeta los bigint (JSON no los admite). */
+const deepClone = (value) => (Array.isArray(value)
+	? value.map(deepClone)
+	: value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, deepClone(inner)])) : value)
+
+/** La ruta tal y como la mandaría qpweb, con una transacción REAL de LI.FI dentro (`lifiVectors.json`). */
+const evmBuild = (name, from, to, over = {}) => {
+	const v = VECTORS[name]
+	const units = (value, decimals) => Number(value) / 10 ** decimals
+	return {
+		family: 'evm', provider: 'lifi', quote_id: 'q', expires_at: '', from_asset: from.id, to_asset: to.id,
+		amount: units(v.from.amount, from.decimals), toAmount: units(v.toAmount, to.decimals), toAmountMin: units(v.toAmountMin, to.decimals),
+		chainId: v.build.chainId, fromAmount: v.from.amount, tx: v.build.tx, approval: v.build.approval,
+		...over,
+	}
+}
 const solBuild = (over = {}) => ({
 	family: 'solana', provider: 'jupiter', quote_id: 'q', expires_at: '', from_asset: SOL.id, to_asset: SOL_USDC.id,
 	amount: 0.1, toAmount: 10.875069, toAmountMin: 10.820694, toAmountMinUnits: '10820694', inAmount: '100000000',
@@ -43,30 +57,68 @@ describe('cotizar pidiendo rutas on-chain', () => {
 })
 
 describe('EVM (LI.FI)', () => {
-	const plan = (over = {}, args = {}) => planOnchainSwap({ build: evmBuild(over), from: BASE_USDC, to: BASE_ETH, addresses: ADDRESSES, amount: 20, expectedOut: 0.007985, chainId: 8453, ...args })
+	// 30 USDC → USDT en Base: cotizados 29,957319 USDT; la transacción garantiza 29,807532
+	const SWAP = VECTORS.swapTokenToToken
+	const plan = (over = {}, args = {}) => planOnchainSwap({
+		build: evmBuild('swapTokenToToken', BASE_USDC, BASE_USDT, over), from: BASE_USDC, to: BASE_USDT, addresses: ADDRESSES, amount: 30, expectedOut: 29.957319, chainId: 8453, toChainId: 8453, ...args,
+	})
+	// 30 USDT de BNB Chain → SOL por un puente: cotizados 0,427986726 SOL
+	const toSolana = (over = {}, args = {}) => planOnchainSwap({
+		build: evmBuild('nearToSolNative', BSC_USDT, SOL, over), from: BSC_USDT, to: SOL, addresses: ADDRESSES, amount: 30, expectedOut: 0.427986726, chainId: 56, ...args,
+	})
 
-	test('la intención sale de la wallet: dueño, receptor propio, token e importe exacto', () => {
+	test('la intención sale de la wallet: dueño, receptor propio, par, importe exacto y lo mínimo que tiene que llegar', () => {
 		const p = plan()
 		expect(p.family).toBe('evm')
-		expect(p.intent).toEqual({ chainId: 8453, owner: ADDRESSES.evm, receiver: ADDRESSES.evm, token: BASE_USDC.contract, amountIn: 20_000_000n })
+		expect(p.intent).toEqual({
+			chainId: 8453, owner: ADDRESSES.evm, receiver: ADDRESSES.evm, token: BASE_USDC.contract, decimals: 6, amountIn: 30_000_000n,
+			to: { chainId: 8453, token: BASE_USDT.contract, decimals: 6 },
+			// Lo cotizado menos el 3 % de holgura, y lo cotizado
+			minOut: 29_058_599n, quoted: 29_957_319n,
+		})
 	})
 
 	test('a Solana, el receptor es la dirección de Solana del propio usuario', () => {
-		const p = planOnchainSwap({ build: evmBuild({ to_asset: SOL.id, toAmountMin: 0.18 }), from: BASE_USDC, to: SOL, addresses: ADDRESSES, amount: 20, expectedOut: 0.182, chainId: 8453 })
+		const p = toSolana()
 		expect(p.intent.receiver).toBe(ADDRESSES.sol)
+		expect(p.intent.to).toEqual({ chainId: 'solana', token: null, decimals: 9 })
+		expect(p.minOut).toBe(BigInt(VECTORS.nearToSolNative.toAmountMin))
 	})
 
 	test('otro par, otro importe u otra cadena no pasan', () => {
 		expect(() => plan({ to_asset: SOL.id })).toThrow(OnchainSwapMismatchError)
-		expect(() => plan({ amount: 21 })).toThrow(/otro importe/)
-		expect(() => plan({ fromAmount: '20000001' })).toThrow(/otro importe/)
+		expect(() => plan({ amount: 31 })).toThrow(/otro importe/)
+		expect(() => plan({ fromAmount: '30000001' })).toThrow(/otro importe/)
 		expect(() => plan({ chainId: 56 })).toThrow(/otra cadena/)
+		expect(() => plan({}, { toChainId: undefined })).toThrow(/red de destino desconocida/)
 	})
 
-	test('un mínimo garantizado muy por debajo de lo enseñado no pasa', () => {
-		expect(() => plan({ toAmountMin: 0.0075 })).toThrow(/mucho menos/)
-		// Dentro del margen (slippage 0,5% + deriva): pasa
-		expect(plan({ toAmountMin: 0.0078 }).minOut).toBe(toUnits(0.0078, 18))
+	test('un mínimo del JSON muy por debajo de lo enseñado no pasa', () => {
+		expect(() => plan({ toAmountMin: 28 })).toThrow(/mucho menos/)
+	})
+
+	// O-02: el JSON podía decir un mínimo y la transacción llevar otro. El que se pinta es el de la cadena
+	test('el mínimo que se enseña es el que lleva la TRANSACCIÓN, no el que dice el JSON', () => {
+		expect(plan().minOut).toBe(BigInt(SWAP.toAmountMin))
+		// El JSON presume de más: no cuenta
+		expect(plan({ toAmountMin: 29.9 }).minOut).toBe(29_807_532n)
+		// Sin nada cotizado, el suelo es el del JSON (menos el ruido de pasar por un decimal)
+		expect(plan({}, { expectedOut: null }).intent).toMatchObject({ minOut: 29_807_532n - 29n, quoted: null })
+		expect(() => plan({ toAmountMin: null }, { expectedOut: null })).toThrow(/no garantiza un mínimo/)
+	})
+
+	test('una transacción que garantiza menos de lo cotizado no se firma, diga lo que diga el JSON', () => {
+		const { name, args } = decodeLifiCall(SWAP.build.tx.data)
+		const forged = (change) => { const next = deepClone(args); change(next); return { tx: { ...SWAP.build.tx, data: encodeLifiCall(name, next) } } }
+		expect(() => plan(forged((next) => { next[4] = 1n }))).toThrow(EvmVerifyError)
+		expect(() => plan(forged((next) => { next[4] = 1n }))).toThrow(/menos de lo cotizado/)
+		// Ni una que pague a otro, aunque el JSON sea impecable
+		expect(() => plan(forged((next) => { next[3] = '0x000000000000000000000000000000000000dEaD' }))).toThrow(/no paga a tu wallet/)
+	})
+
+	test('una ruta por una función que la wallet no sabe leer no se planifica', () => {
+		const relay = evmBuild('relayDepository', ETH, SOL)
+		expect(() => planOnchainSwap({ build: relay, from: ETH, to: SOL, addresses: ADDRESSES, amount: 0.01, expectedOut: 0.25, chainId: 1 })).toThrow(EvmUnsupportedRouteError)
 	})
 })
 
