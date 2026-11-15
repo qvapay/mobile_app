@@ -6,7 +6,7 @@
  */
 import { displayAmount, formatUnits } from './units'
 import { encodeBalanceOf, getEvmNativeBalance, getEvmTokenBalance } from './evm'
-import { getTronNativeBalance, getTronTokenBalance, tronJsonRpcUrl, tronToHex20 } from './tron'
+import { getTronNativeBalance, getTronTokenBalance, tronCallFailure, tronJsonRpcUrl, tronToHex20 } from './tron'
 import { esploraBalance, getBtcBalance } from './btc'
 import { ftBalanceOf, stxBalanceOf, stxLockedOf } from './stacks'
 import { ChainHttpError, hexToBigInt, jsonRpc } from './http'
@@ -123,6 +123,49 @@ describe('tron', () => {
 		expect(calls[0].url).toBe('https://api.trongrid.io/wallet/triggerconstantcontract')
 		expect(calls[0].body).toMatchObject({ owner_address: TRON, contract_address: USDT_TRC20, function_selector: 'balanceOf(address)', visible: true })
 		expect(calls[0].body.parameter).toHaveLength(64)
+	})
+
+	// Respuestas REALES de TronGrid, publicnode y tron.qvapay.com (2026-11-14) a un `transfer`
+	// de USDT simulado: desde una dirección sin saldo y desde una con saldo
+	const REVERTED = { result: { result: true, message: 'REVERT opcode executed' }, energy_used: 8624, energy_penalty: 6640, constant_result: [''], transaction: { ret: [{ ret: 'FAILED' }] } }
+	const SUCCEEDED = { result: { result: true }, energy_used: 64285, energy_penalty: 49635, constant_result: ['0'.repeat(64)], transaction: { ret: [{}] } }
+
+	describe('tronCallFailure: `result.result: true` no significa que la llamada saliera bien', () => {
+		test('la que revierte llega con result true: el fallo está en el mensaje y en ret', () => {
+			expect(tronCallFailure(REVERTED)).toBe('REVERT opcode executed')
+		})
+
+		test('la que sale bien no trae ni mensaje ni ret', () => {
+			expect(tronCallFailure(SUCCEEDED)).toBeNull()
+			expect(tronCallFailure({ result: { result: true } })).toBeNull()
+		})
+
+		test('basta una de las dos señales', () => {
+			expect(tronCallFailure({ result: { result: true }, transaction: { ret: [{ ret: 'FAILED' }] } })).toBe('FAILED')
+			expect(tronCallFailure({ result: { result: true, message: 'Not enough energy for LOG3 operation executing' } })).toBe('Not enough energy for LOG3 operation executing')
+		})
+
+		test('el rechazo de la petición (`result: false`) sigue contando, con el mensaje en hex o en texto', () => {
+			expect(tronCallFailure({ result: { result: false, message: '5452414e534645525f4641494c4544' } })).toBe('TRANSFER_FAILED')
+			expect(tronCallFailure({ result: { result: false } })).toBe('el nodo rechazó la llamada')
+		})
+
+		test('el éxito escrito a mano (el enum de java-tron es `SUCESS`, sic) no es un fallo', () => {
+			expect(tronCallFailure({ result: { result: true }, transaction: { ret: [{ ret: 'SUCESS' }] } })).toBeNull()
+			expect(tronCallFailure({ result: { result: true }, transaction: { ret: [{ ret: 'SUCCESS' }] } })).toBeNull()
+		})
+
+		test('una respuesta vacía o sin forma no afirma nada', () => {
+			expect(tronCallFailure(null)).toBeNull()
+			expect(tronCallFailure({})).toBeNull()
+			expect(tronCallFailure({ transaction: { ret: null } })).toBeNull()
+		})
+	})
+
+	// Antes un `balanceOf` que revertía se leía como saldo 0 y pisaba el saldo bueno
+	test('un balanceOf que revierte no es un saldo de 0: lanza', async () => {
+		mockFetch(() => jsonResponse(REVERTED))
+		await expect(getTronTokenBalance({ url: 'https://api.trongrid.io' }, USDT_TRC20, TRON)).rejects.toThrow('REVERT opcode executed')
 	})
 
 	test('jsonrpc: habla hex de 20 bytes', async () => {

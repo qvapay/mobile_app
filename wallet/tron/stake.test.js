@@ -419,6 +419,64 @@ describe('cobrar, votar, descongelar y retirar', () => {
 	})
 })
 
+// Sin esto el staking no preguntaba a la cadena: tras una difusión sin respuesta la pantalla
+// se quedaba en «no pudimos confirmar» y quien salía y repetía congelaba dos veces
+describe('lookup: ¿qué fue de un staking ya difundido?', () => {
+	const { tronStakeAdapter } = require('./stake')
+	const { TRON_LOOKUP_MARGIN_MS } = require('./tx')
+	const NOW = 1790788201000
+
+	/** El nodo conoce (con ese resultado) las tx de `known`; `headTime` es la hora de su punta. */
+	const withChain = (known, headTime = NOW) => mockNode({
+		'/wallet/getnowblock': () => ({ ...BLOCK, block_header: { ...BLOCK.block_header, raw_data: { ...BLOCK.block_header.raw_data, timestamp: headTime } } }),
+		'/wallet/gettransactionbyid': ({ value }) => (value in known ? { txID: value, ret: [{ contractRet: known[value] }] } : {}),
+	})
+	const prepareStake = async () => {
+		mockNode()
+		return prepareTronStake(RPC, { action: 'stake', owner: OWNER, amount: 100_000_000n, sr: P2P }, { now: () => NOW })
+	}
+	const ids = (prepared) => prepared.txs.map(({ tx }) => tronTxId(tx.raw_data_hex))
+
+	test('el congelado y el voto están en la cadena → landed, con el id del congelado', async () => {
+		const prepared = await prepareStake()
+		const [freeze, vote] = ids(prepared)
+		withChain({ [freeze]: 'SUCCESS', [vote]: 'SUCCESS' })
+		await expect(tronStakeAdapter.lookup(RPC, prepared, { signatures: [] }, {})).resolves.toEqual({ status: 'landed', txid: freeze })
+	})
+
+	test('el congelado entró y del voto no consta: landed, pero avisando de que falta votar', async () => {
+		const prepared = await prepareStake()
+		const [freeze] = ids(prepared)
+		withChain({ [freeze]: 'SUCCESS' })
+		await expect(tronStakeAdapter.lookup(RPC, prepared, { signatures: [] }, {})).resolves.toEqual({ status: 'landed', txid: freeze, note: 'votePending' })
+	})
+
+	test('el congelado no entró y su vigencia ya pasó → dropped (el voto ni se mira)', async () => {
+		const prepared = await prepareStake()
+		const [freeze, vote] = ids(prepared)
+		withChain({}, Number(prepared.txs[0].raw.expiration) + TRON_LOOKUP_MARGIN_MS + 1_000)
+		await expect(tronStakeAdapter.lookup(RPC, prepared, { signatures: [] }, {})).resolves.toEqual({ status: 'dropped' })
+		const asked = calls.filter(c => c.path === '/wallet/gettransactionbyid').map(c => c.body.value)
+		expect(asked).toEqual([freeze])
+		expect(asked).not.toContain(vote)
+	})
+
+	test('el congelado no está y aún puede entrar → unknown', async () => {
+		const prepared = await prepareStake()
+		withChain({})
+		await expect(tronStakeAdapter.lookup(RPC, prepared, { signatures: [] }, {})).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('una acción de una sola tx (cobrar) pregunta por ella y no añade nota', async () => {
+		mockNode()
+		const prepared = await prepareTronStake(RPC, { action: 'claim', owner: OWNER }, { now: () => NOW })
+		expect(prepared.txs).toHaveLength(1)
+		const [claim] = ids(prepared)
+		withChain({ [claim]: 'SUCCESS' })
+		await expect(tronStakeAdapter.lookup(RPC, prepared, { signatures: [] }, {})).resolves.toEqual({ status: 'landed', txid: claim })
+	})
+})
+
 describe('adaptador', () => {
 	test('mínimo de la red para congelar: 1 TRX', async () => {
 		const { tronStakeAdapter } = require('./stake')

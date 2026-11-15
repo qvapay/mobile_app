@@ -14,12 +14,13 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { toast } from 'sonner-native'
 import { clearDepositSent, markDepositAttempt, markDepositSent } from './exchangeDeposit'
 import { checkDeposit } from './depositGuard'
+import type { SentRef } from './sentRef'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, nativeAssetId } from '../../../wallet/assets'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
 import { AllRpcsFailedError } from '../../../wallet/registry/rpcRouter'
 import { computeTronBurnBreakdown, TronVerifyError } from '../../../wallet/tron/tx'
-import { EvmVerifyError } from '../../../wallet/evm/tx'
+import { EvmVerifyError, isGasPriceOutOfRange } from '../../../wallet/evm/tx'
 import { StacksVerifyError } from '../../../wallet/stacks/tx'
 import { SolanaExpiredError, SolanaVerifyError } from '../../../wallet/solana/tx'
 import { usePriceMap, useWalletAssets } from './walletQueries'
@@ -122,7 +123,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	// Depósito de un intercambio: la nota se escribe en cuanto la firma va a salir hacia la
 	// red (si la respuesta se pierde, el envío pudo entrar igual) y se retira solo si consta
 	// que no entró ni entrará
-	const onDepositAttempt = useCallback((txid: string | null) => markDepositAttempt(exchangeUuid!, txid), [exchangeUuid])
+	const onDepositAttempt = useCallback((txid: string | null, ref: SentRef | null) => markDepositAttempt(exchangeUuid!, txid, ref), [exchangeUuid])
 	const onDepositDropped = useCallback(() => { clearDepositSent(exchangeUuid!) }, [exchangeUuid])
 
 	// Patrocinio: QvaPay paga el fee de un GOLD en USDT/USDC de Solana y USDT de BSC. Si
@@ -649,12 +650,17 @@ const describeError = (err: unknown, t: (key: string, opts?: Record<string, unkn
 	if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
 	if (err instanceof TxExpiredError) return t('crypto.wallet.send.errors.expired')
 	if (err instanceof TxUnconfirmedError) return t('crypto.wallet.send.errors.unconfirmed')
+	// Ningún nodo dio un precio de gas razonable: no es que no haya nodos
+	if (isGasPriceOutOfRange(err)) return t('crypto.wallet.send.errors.feeTooHigh')
 	if (err instanceof AllRpcsFailedError) return t('crypto.wallet.send.errors.noNodes')
 	const message = (err as Error)?.message ?? ''
 	// La regla de renta de Solana llega como un rechazo de simulación sin explicación:
 	// el mensaje útil lo pone `prepareSolanaSend` antes de firmar
 	if (/seguir existiendo|InsufficientFundsForRent/i.test(message)) return t('crypto.wallet.send.errors.solanaRent')
 	if (/balance is not sufficient|insufficient funds|exceeds balance|insufficient/i.test(message)) return t('crypto.wallet.send.errors.nodeInsufficient')
+	// La simulación ya dice que el contrato lo rechazaría: no se firma. El motivo del nodo
+	// («REVERT opcode executed», «execution reverted») no le dice nada a quien envía
+	if (/revertir[ií]a|\brevert/i.test(message)) return t('crypto.wallet.send.errors.wouldRevert')
 	return message ? t('crypto.wallet.send.errors.generic', { message }) : t('crypto.wallet.send.errors.unknown')
 }
 

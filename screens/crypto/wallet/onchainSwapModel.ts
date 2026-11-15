@@ -7,11 +7,13 @@
  *   · otro par u otro importe (se exige el importe EXACTO cotizado, en unidades mínimas);
  *   · otro receptor (sale de las direcciones de la propia wallet, nunca del backend);
  *   · un mínimo garantizado irrisorio: si el que dice la ruta queda muy por debajo de lo que
- *     se le enseñó al elegirla, no se sigue.
+ *     se le enseñó al elegirla, no se sigue. En EVM ese mínimo no es el del JSON: es el que
+ *     lleva la propia transacción, leído al decodificarla (`wallet/evm/lifi.ts`).
  */
 import { addressForKind } from '../../../wallet/assets'
 import type { WalletAsset } from '../../../wallet/assets'
 import type { WalletAddresses } from '../../../wallet/derive'
+import { verifyRouteBuild } from '../../../wallet/evm/swap'
 import type { EvmSwapIntent } from '../../../wallet/evm/swap'
 import type { SolanaSwapIntent } from '../../../wallet/solana/swap'
 import { TOKEN_2022_PROGRAM } from '../../../wallet/solana/codec'
@@ -55,9 +57,16 @@ export const toUnits = (amount: number | string, decimals: number): bigint | nul
 	return units > 0n ? units : null
 }
 
+/**
+ * Lo que el JSON puede quedar por debajo de sí mismo al pasar por un número de coma flotante
+ * (el mínimo viaja como decimal): una millonésima. Solo cuenta si no hay nada cotizado contra
+ * lo que medir.
+ */
+const FLOAT_SLACK_DIVISOR = 1_000_000n
+
 /** `minOut`: el mínimo garantizado, SIEMPRE en unidades del activo de destino (para pintarlo). */
 export type OnchainSwapPlan =
-	| { family: 'evm', chainKey: string, intent: EvmSwapIntent, minOut: bigint | null }
+	| { family: 'evm', chainKey: string, intent: EvmSwapIntent, minOut: bigint }
 	| { family: 'solana', chainKey: string, intent: SolanaSwapIntent, minOut: bigint }
 	| { family: 'tron', chainKey: string, intent: TronSwapIntent, minOut: bigint }
 	| { family: 'btc', chainKey: string, intent: ThorchainBtcIntent, minOut: bigint | null }
@@ -69,8 +78,9 @@ export type OnchainSwapPlan =
  * @param amount       el importe COTIZADO que el usuario confirmó
  * @param expectedOut  lo que la ruta elegida prometía recibir (en la hoja de rutas)
  * @param chainId      el de la red de origen según el registry de la wallet (solo EVM)
+ * @param toChainId    el de la red de destino, si es EVM (solo EVM)
  */
-export const planOnchainSwap = ({ build, from, to, addresses, amount, expectedOut, chainId, serviceFeeBps = 0 }: {
+export const planOnchainSwap = ({ build, from, to, addresses, amount, expectedOut, chainId, toChainId, serviceFeeBps = 0 }: {
 	build: ExchangeOnchainBuild
 	from: WalletAsset
 	to: WalletAsset
@@ -78,6 +88,7 @@ export const planOnchainSwap = ({ build, from, to, addresses, amount, expectedOu
 	amount: number
 	expectedOut: number | null
 	chainId?: number
+	toChainId?: number
 	/** La comisión que se le dijo al usuario (THORChain: tope del afiliado del memo). */
 	serviceFeeBps?: number
 }): OnchainSwapPlan => {
@@ -99,19 +110,30 @@ export const planOnchainSwap = ({ build, from, to, addresses, amount, expectedOu
 		if (chainId === undefined || build.chainId !== chainId) throw new OnchainSwapMismatchError('la ruta es de otra cadena')
 		if (build.fromAmount !== null && BigInt(build.fromAmount) !== amountIn) throw new OnchainSwapMismatchError('la ruta es por otro importe')
 		if (to.kind !== 'evm' && to.kind !== 'solana') throw new OnchainSwapMismatchError('destino no soportado')
-		return {
-			family: 'evm',
-			chainKey: from.chainKey,
-			minOut,
-			intent: {
-				chainId,
-				owner: addresses.evm,
-				// SIEMPRE una wallet del propio usuario, de la familia del destino
-				receiver: addressForKind(addresses, to.kind),
-				token: from.contract,
-				amountIn,
-			},
+		if (to.kind === 'evm' && toChainId === undefined) throw new OnchainSwapMismatchError('red de destino desconocida')
+		// Lo que la TRANSACCIÓN tiene que garantizar: lo cotizado menos la holgura. Sin nada
+		// cotizado, lo que dice el JSON (menos el ruido de pasar por un decimal)
+		const floor = shown !== null
+			? shown * (10_000n - MAX_MIN_OUT_GAP_BPS) / 10_000n
+			: (minOut !== null ? minOut - minOut / FLOAT_SLACK_DIVISOR : null)
+		if (floor === null || floor <= 0n) throw new OnchainSwapMismatchError('la ruta no garantiza un mínimo')
+		const intent: EvmSwapIntent = {
+			chainId,
+			owner: addresses.evm,
+			// SIEMPRE una wallet del propio usuario, de la familia del destino
+			receiver: addressForKind(addresses, to.kind),
+			token: from.contract,
+			decimals: from.decimals,
+			amountIn,
+			to: { chainId: to.kind === 'solana' ? 'solana' : toChainId!, token: to.contract, decimals: to.decimals },
+			minOut: floor,
+			quoted: shown,
 		}
+		// Se decodifica YA, no al ir a firmar: lo que se pinta como «mínimo garantizado» es
+		// el que la cadena hará cumplir. Lanza `EvmVerifyError` (o `EvmUnsupportedRouteError`
+		// si la ruta va por una función que esta versión no sabe leer)
+		const route = verifyRouteBuild(build, intent)
+		return { family: 'evm', chainKey: from.chainKey, minOut: route.minOut, intent }
 	}
 
 	if (build.family === 'tron') {

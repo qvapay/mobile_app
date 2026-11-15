@@ -9,12 +9,19 @@
  *    solo dice cuáles; su contenido decide a qué cuenta apunta cada índice).
  * 2. Se verifica instrucción a instrucción (`verifySwapInstructions`): solo programas
  *    conocidos; el único firmante es el usuario; el wrap/unwrap de SOL y las cuentas de
- *    token creadas son SIEMPRE del propio usuario. La instrucción de Jupiter es opaca (su
- *    ruta cruza AMMs que no decodificamos), y eso lo cubre el paso 3.
- * 3. Se SIMULA y se miran los saldos resultantes del propio usuario: tiene que recibir al
- *    menos el mínimo garantizado y no gastar más de lo pedido (+ comisión y renta). Una ruta
- *    que mandara los fondos a otro sitio o gastara de más no pasa de aquí, sea cual sea
- *    la instrucción que la cause.
+ *    token creadas son SIEMPRE del propio usuario. La instrucción de Jupiter se DECODIFICA
+ *    por su discriminador (`verifyJupiterInstruction`): sale de la cuenta del usuario del
+ *    token de entrada, paga a la del de salida, por el importe exacto y con un mínimo que el
+ *    programa hace cumplir. Sus tramos (los AMM que cruza) siguen siendo opacos: paso 3.
+ * 3. Se SIMULA y se miran TODAS las cuentas de token del usuario que la tx puede escribir,
+ *    no solo las del par: la firma del usuario vale para cualquiera de ellas, y un tramo
+ *    podía sacar de otra (su USDT en un swap de SOL a USDC) y devolver el mínimo en la de
+ *    salida. Ninguna puede bajar, cerrarse, cambiar de dueño ni quedar con permisos para
+ *    otro; la de entrada baja como mucho lo pedido y la de salida sube al menos el mínimo.
+ *
+ * Las tablas y la simulación salen del mismo nodo, así que las cuentas del usuario van
+ * SIEMPRE como claves estáticas del mensaje (`userAccounts`): si fueran por índice, en la
+ * cadena serían las que la tabla tenga de verdad en ese índice, no las que dijo el nodo.
  *
  * Tras simular se ajusta el límite de cómputo a lo consumido (Jupiter no lo da) y se vuelve
  * a verificar el mensaje final: lo que se firma es exactamente lo que se comprobó.
@@ -32,8 +39,10 @@ import {
 	deserializeTransactionV0,
 	encodeBase58,
 	fromBase64,
+	pubkeyBytes,
 	readU32le,
 	readU64le,
+	resolveV0Accounts,
 	serializeTransactionV0,
 	serializeV0Message,
 	setComputeUnitLimitIx,
@@ -140,6 +149,105 @@ export const assembleInstructions = (build: JupiterBuild, computeUnitLimit: numb
 }
 
 // ---------------------------------------------------------------------------
+// La instrucción de Jupiter
+// ---------------------------------------------------------------------------
+
+/** Lo que el swap mueve por los dos lados: SOL viaja como wSOL en la cuenta asociada del usuario. */
+export const swapAccounts = (intent: SolanaSwapIntent) => {
+	const sourceMint = intent.inputMint ?? WSOL_MINT
+	const destinationMint = intent.outputMint ?? WSOL_MINT
+	const sourceProgram: TokenProgramId = intent.inputMint ? intent.inputProgram ?? TOKEN_PROGRAM : TOKEN_PROGRAM
+	const destinationProgram: TokenProgramId = intent.outputMint ? intent.outputProgram ?? TOKEN_PROGRAM : TOKEN_PROGRAM
+	return {
+		sourceMint, destinationMint, sourceProgram, destinationProgram,
+		source: associatedTokenAddress(intent.owner, sourceMint, sourceProgram),
+		destination: associatedTokenAddress(intent.owner, destinationMint, destinationProgram),
+	}
+}
+
+/**
+ * Las cuentas del usuario que la tx toca: él, las dos del swap, su wSOL y las de token que
+ * se crean. Van siempre estáticas en el mensaje, nunca por índice de una tabla.
+ */
+export const userAccounts = (build: JupiterBuild, intent: SolanaSwapIntent): Set<string> => {
+	const { source, destination } = swapAccounts(intent)
+	const accounts = new Set([intent.owner, source, destination, associatedTokenAddress(intent.owner, WSOL_MINT)])
+	for (const raw of [...build.instructions.setup, ...build.instructions.other]) {
+		if (raw.programId === ASSOCIATED_TOKEN_PROGRAM && raw.accounts[1]) accounts.add(raw.accounts[1].pubkey)
+	}
+	return accounts
+}
+
+type JupiterLayout = {
+	name: string
+	/** Posición de cada cuenta fija y cuántas son; el resto son las de los tramos. */
+	authority: number, source: number, destination: number, sourceMint: number, destinationMint: number, sourceProgram: number, destinationProgram: number
+	/** Cuenta opcional a la que pagar en vez de a `destination` (ausente = el propio programa). */
+	optionalDestination: number | null
+	fixed: number
+	/** Byte en el que empiezan `in_amount` · `quoted_out_amount` · `slippage_bps` · comisiones · tramos. */
+	args: number
+	/** Los tramos los firma una cuenta del programa, no el usuario. */
+	sharedAccounts: boolean
+}
+
+/**
+ * Las dos instrucciones que devuelve `/swap/v2/build`, por su discriminador de Anchor (los
+ * 8 primeros bytes de sha256("global:<nombre>")). Formas sacadas de builds REALES (14 nov
+ * 2026). Otra instrucción (las viejas `route`/`shared_accounts_route`, las de importe exacto
+ * de salida) no se firma: añadirla = capturar un build real y fijar aquí su forma.
+ */
+const JUPITER_LAYOUTS: Record<string, JupiterLayout> = {
+	bb64facc31c4af14: { name: 'route_v2', authority: 0, source: 1, destination: 2, sourceMint: 3, destinationMint: 4, sourceProgram: 5, destinationProgram: 6, optionalDestination: 7, fixed: 10, args: 8, sharedAccounts: false },
+	d19853937cfed8e9: { name: 'shared_accounts_route_v2', authority: 1, source: 2, destination: 5, sourceMint: 6, destinationMint: 7, sourceProgram: 8, destinationProgram: 9, optionalDestination: null, fixed: 12, args: 9, sharedAccounts: true },
+}
+/** in_amount (8) + quoted_out_amount (8) + slippage_bps (2) + platform_fee_bps (2) + positive_slippage_bps (2) + nº de tramos (4). */
+const JUPITER_ARGS_SIZE = 26
+
+export type JupiterSwapCheck = {
+	instruction: string
+	source: string
+	destination: string
+	/** El mínimo que el PROGRAMA hace cumplir: `quoted_out_amount` menos el deslizamiento. */
+	minOut: bigint
+}
+
+/**
+ * Lo que la instrucción de Jupiter dice de sí misma, en posiciones fijas. Exportado para
+ * tests. No cubre los tramos (cada AMM tiene su forma): eso lo prueba la simulación.
+ */
+export const verifyJupiterInstruction = (ix: Instruction, intent: SolanaSwapIntent): JupiterSwapCheck => {
+	const { keys, data } = ix
+	const layout = JUPITER_LAYOUTS[Array.from(data.slice(0, 8), b => b.toString(16).padStart(2, '0')).join('')]
+	if (!layout) throw new SolanaVerifyError('instrucción de Jupiter que la wallet no sabe leer')
+	if (keys.length < layout.fixed || data.length < layout.args + JUPITER_ARGS_SIZE) throw new SolanaVerifyError('instrucción de Jupiter incompleta')
+	const at = (i: number) => keys[i].pubkey
+	const expected = swapAccounts(intent)
+
+	if (at(layout.authority) !== intent.owner || !keys[layout.authority].isSigner) throw new SolanaVerifyError('quien autoriza el swap no es el usuario')
+	if (at(layout.source) !== expected.source) throw new SolanaVerifyError('el swap no sale de la cuenta del usuario')
+	if (at(layout.destination) !== expected.destination) throw new SolanaVerifyError('el swap no paga a la cuenta del usuario')
+	if (layout.optionalDestination !== null && at(layout.optionalDestination) !== JUPITER_PROGRAM && at(layout.optionalDestination) !== expected.destination) throw new SolanaVerifyError('el swap paga a otra cuenta')
+	if (at(layout.sourceMint) !== expected.sourceMint || at(layout.destinationMint) !== expected.destinationMint) throw new SolanaVerifyError('el swap es de otro par')
+	if (at(layout.sourceProgram) !== expected.sourceProgram || at(layout.destinationProgram) !== expected.destinationProgram) throw new SolanaVerifyError('el swap usa otro programa de token')
+	// La firma del usuario solo hace falta para sacar la entrada. Con cuentas compartidas los
+	// tramos los firma el programa: si el usuario aparece en ellos, autoriza algo más
+	keys.forEach((key, i) => {
+		if (key.pubkey === intent.owner && i !== layout.authority && (layout.sharedAccounts || i < layout.fixed)) throw new SolanaVerifyError('el usuario autoriza algo más que la entrada')
+	})
+
+	const inAmount = readU64le(data, layout.args)
+	const quotedOut = readU64le(data, layout.args + 8)
+	const slippageBps = data[layout.args + 16] + data[layout.args + 17] * 256
+	if (inAmount !== intent.amountIn) throw new SolanaVerifyError('el swap es por otro importe')
+	if (slippageBps > 10_000) throw new SolanaVerifyError('deslizamiento imposible')
+	// Redondeado hacia arriba, como lo anuncia la API (`otherAmountThreshold`)
+	const minOut = (quotedOut * BigInt(10_000 - slippageBps) + 9_999n) / 10_000n
+	if (minOut < intent.minOut) throw new SolanaVerifyError('el swap garantiza menos del mínimo')
+	return { instruction: layout.name, source: expected.source, destination: expected.destination, minOut }
+}
+
+// ---------------------------------------------------------------------------
 // Verificación estática
 // ---------------------------------------------------------------------------
 
@@ -150,6 +258,11 @@ export type SwapInstructionCheck = {
 	persistentAccounts: number
 	/** De esas, cuántas son Token-2022 (más grandes: otra renta). */
 	persistent2022: number
+	/** Todas las cuentas de token que la tx crea (siempre del usuario). */
+	created: string[]
+	/** ¿La tx cierra el wSOL del usuario devolviéndole el SOL? */
+	closesWsol: boolean
+	jupiter: JupiterSwapCheck
 }
 
 /**
@@ -166,6 +279,7 @@ export const verifySwapInstructions = (message: SolanaMessageV0, tables: Address
 	const wsolAccount = associatedTokenAddress(owner, WSOL_MINT)
 	let computeUnitLimit: number | null = null
 	let computeUnitPrice: bigint | null = null
+	let jupiter: JupiterSwapCheck | null = null
 	let swaps = 0
 	let wrapped = 0n
 	const created: Array<{ account: string, program: TokenProgramId }> = []
@@ -206,10 +320,16 @@ export const verifySwapInstructions = (message: SolanaMessageV0, tables: Address
 			}
 		} else {
 			swaps++
+			jupiter = verifyJupiterInstruction(ix, intent)
 		}
 	}
 
-	if (swaps !== 1) throw new SolanaVerifyError('la tx no tiene exactamente un swap')
+	if (swaps !== 1 || !jupiter) throw new SolanaVerifyError('la tx no tiene exactamente un swap')
+	// Las cuentas del usuario, por clave y no por índice de una tabla (ver la cabecera)
+	const statics = new Set(message.staticAccountKeys)
+	for (const account of [jupiter.source, jupiter.destination, ...created.map(c => c.account)]) {
+		if (!statics.has(account)) throw new SolanaVerifyError('una cuenta del usuario llega por una lookup table')
+	}
 	if (intent.inputMint !== null && wrapped > 0n) throw new SolanaVerifyError('envuelve SOL en un swap que no sale de SOL')
 	if (wrapped > intent.amountIn) throw new SolanaVerifyError('envuelve más SOL del pedido')
 	if (computeUnitLimit === null || computeUnitLimit > MAX_COMPUTE_UNITS) throw new SolanaVerifyError('límite de cómputo ausente o excesivo')
@@ -220,6 +340,9 @@ export const verifySwapInstructions = (message: SolanaMessageV0, tables: Address
 		computeUnitPrice: computeUnitPrice ?? 0n,
 		persistentAccounts: persistent.length,
 		persistent2022: persistent.filter(({ program }) => program === TOKEN_2022_PROGRAM).length,
+		created: created.map(c => c.account),
+		closesWsol,
+		jupiter,
 	}
 }
 
@@ -234,7 +357,27 @@ export const balanceAccounts = (intent: SolanaSwapIntent): { owner: string, inpu
 	output: intent.outputMint ? associatedTokenAddress(intent.owner, intent.outputMint, intent.outputProgram ?? TOKEN_PROGRAM) : null,
 })
 
-type AccountState = { lamports: number, data: [string, string] } | null
+type AccountState = { lamports: number, data: [string, string], owner?: string } | null
+
+/** Bytes de una cuenta de token: dueño (32), saldo (64), delegado (72-108), importe delegado (121-129) y autoridad de cierre (129-165). */
+const TOKEN_ACCOUNT_SIZE = 165
+const tokenData = (account: AccountState): Uint8Array | null => {
+	if (!account?.data?.[0]) return null
+	const data = fromBase64(account.data[0])
+	return data.length >= TOKEN_ACCOUNT_SIZE ? data : null
+}
+const tokenOwner = (data: Uint8Array): string => encodeBase58(data.slice(32, 64))
+/** ¿Alguien más puede mover o cerrar esta cuenta? (delegado o autoridad de cierre puestos) */
+const tokenGrants = (data: Uint8Array): string => (readU32le(data, 72) === 0 && readU32le(data, 129) === 0
+	? ''
+	: Array.from([...data.slice(72, 108), ...data.slice(121, 165)], b => b.toString(16).padStart(2, '0')).join(''))
+
+/** ¿Es una cuenta de token (clásica o Token-2022) cuyo dueño es `owner`? Exportado para tests. */
+export const isTokenAccountOf = (account: AccountState, owner: string): boolean => {
+	if (!account?.owner || !isTokenProgram(account.owner)) return false
+	const data = tokenData(account)
+	return !!data && tokenOwner(data) === owner
+}
 
 /** Saldo de una cuenta de token SPL: u64 en el byte 64 (igual en Token-2022: las extensiones van detrás). Sin cuenta = 0. */
 export const tokenAmount = (account: AccountState): bigint => {
@@ -243,7 +386,8 @@ export const tokenAmount = (account: AccountState): bigint => {
 	return data.length >= 72 ? readU64le(data, 64) : 0n
 }
 
-export type Balances = { lamports: bigint, input: bigint, output: bigint }
+/** `wsol`: lo que hay en la cuenta de wSOL del usuario. Cuenta como SOL suyo (cerrarla se lo devuelve). */
+export type Balances = { lamports: bigint, input: bigint, output: bigint, wsol?: bigint }
 
 /**
  * ¿Lo que cambiaron los saldos es un swap honrado? Exportado para tests.
@@ -253,11 +397,15 @@ export type Balances = { lamports: bigint, input: bigint, output: bigint }
  *     las cuentas de token que la tx crea y deja abiertas (`rentLamports`, contada en la
  *     verificación: es SU cuenta, recuperable al cerrarla).
  * Si sale a SOL, lo recibido se mide en el SOL del usuario, neto de comisión y esas rentas.
+ * El SOL del usuario es el suyo MÁS el que tenga envuelto en su cuenta de wSOL: la tx la
+ * cierra y se lo devuelve, así que vaciársela por un tramo es gastarle SOL.
  */
 export const checkSimulatedBalances = ({ intent, before, after, feeLamports, rentLamports }: { intent: SolanaSwapIntent, before: Balances, after: Balances, feeLamports: bigint, rentLamports: bigint }): bigint => {
-	const solSpent = before.lamports - after.lamports
+	const solBefore = before.lamports + (before.wsol ?? 0n)
+	const solAfter = after.lamports + (after.wsol ?? 0n)
+	const solSpent = solBefore - solAfter
 	if (intent.outputMint === null) {
-		const received = after.lamports - before.lamports + feeLamports + rentLamports
+		const received = solAfter - solBefore + feeLamports + rentLamports
 		if (received < intent.minOut) throw new SolanaVerifyError('la simulación recibe menos del mínimo')
 		if (intent.inputMint !== null && before.input - after.input > intent.amountIn) throw new SolanaVerifyError('la simulación gasta más token del pedido')
 		return received
@@ -270,13 +418,55 @@ export const checkSimulatedBalances = ({ intent, before, after, feeLamports, ren
 	return received
 }
 
-const readBalances = (intent: SolanaSwapIntent, accounts: AccountState[], order: Array<'owner' | 'input' | 'output'>): Balances => {
-	const get = (name: 'owner' | 'input' | 'output') => accounts[order.indexOf(name)] ?? null
+const readBalances = (intent: SolanaSwapIntent, state: Map<string, AccountState>): Balances => {
+	const watched = balanceAccounts(intent)
+	const get = (address: string | null) => (address ? state.get(address) ?? null : null)
 	return {
-		lamports: BigInt(get('owner')?.lamports ?? 0),
-		input: intent.inputMint ? tokenAmount(get('input')) : 0n,
-		output: intent.outputMint ? tokenAmount(get('output')) : 0n,
+		lamports: BigInt(get(intent.owner)?.lamports ?? 0),
+		input: tokenAmount(get(watched.input)),
+		output: tokenAmount(get(watched.output)),
+		wsol: tokenAmount(get(associatedTokenAddress(intent.owner, WSOL_MINT))),
 	}
+}
+
+/**
+ * Las cuentas de token del usuario que la tx puede escribir, antes y después. Exportado para
+ * tests. La firma del usuario vale para todas, y un tramo de la ruta puede usar cualquiera:
+ *   · ninguna se cierra (salvo su wSOL, cuando la tx lo cierra devolviéndole el SOL);
+ *   · ninguna cambia de dueño ni queda con un delegado o una autoridad de cierre que no tenía;
+ *   · ninguna baja, salvo la de entrada (que `checkSimulatedBalances` acota) y su wSOL (que
+ *     cuenta como SOL suyo, también allí).
+ */
+export const checkUserTokenAccounts = ({ intent, accounts, closesWsol }: {
+	intent: SolanaSwapIntent
+	accounts: Array<{ address: string, before: AccountState, after: AccountState }>
+	closesWsol: boolean
+}): void => {
+	const wsolAccount = associatedTokenAddress(intent.owner, WSOL_MINT)
+	const input = balanceAccounts(intent).input
+	for (const { address, before, after } of accounts) {
+		const pre = tokenData(before)
+		const post = tokenData(after)
+		if (!post) {
+			if (!pre || (address === wsolAccount && closesWsol)) continue
+			throw new SolanaVerifyError('la simulación cierra una cuenta de token tuya')
+		}
+		if (tokenOwner(post) !== intent.owner) throw new SolanaVerifyError('una cuenta de token tuya cambia de dueño')
+		if (tokenGrants(post) !== '' && tokenGrants(post) !== (pre ? tokenGrants(pre) : '')) throw new SolanaVerifyError('una cuenta de token tuya queda con permisos para otro')
+		if (pre && address !== input && address !== wsolAccount && readU64le(post, 64) < readU64le(pre, 64)) throw new SolanaVerifyError('la simulación gasta un token tuyo que no es el del swap')
+	}
+}
+
+/** Lectura de cuentas por lotes: el proxy de QvaPay admite 16 direcciones por llamada. */
+const ACCOUNTS_BATCH = 16
+const readAccounts = async (rpc: RegistryRpc, addresses: string[], signal?: AbortSignal): Promise<Map<string, AccountState>> => {
+	const batches: string[][] = []
+	for (let i = 0; i < addresses.length; i += ACCOUNTS_BATCH) batches.push(addresses.slice(i, i + ACCOUNTS_BATCH))
+	// `confirmed`, como la simulación: el antes y el después se comparan sobre el mismo estado
+	const results = await Promise.all(batches.map(batch => rpcCall<{ value: AccountState[] }>(rpc, 'getMultipleAccounts', [batch, { encoding: 'base64', commitment: 'confirmed' }], signal)))
+	const state = new Map<string, AccountState>()
+	batches.forEach((batch, i) => batch.forEach((address, j) => state.set(address, results[i].value?.[j] ?? null)))
+	return state
 }
 
 type SimulationValue = { err: unknown, logs?: string[] | null, unitsConsumed?: number, accounts?: AccountState[] | null }
@@ -294,16 +484,15 @@ const feeFor = (limit: number, price: bigint): bigint => LAMPORTS_PER_SIGNATURE 
 export const prepareSolanaSwap = async (rpc: RegistryRpc, build: JupiterBuild, intent: SolanaSwapIntent, deps: Deps = {}): Promise<PreparedSolanaSwap> => {
 	const now = deps.now ?? Date.now
 	if (build.lookupTables.length > MAX_LOOKUP_TABLES) throw new SolanaVerifyError('demasiadas lookup tables')
-	const watched = balanceAccounts(intent)
-	const order = (['owner', 'input', 'output'] as const).filter(name => watched[name] !== null)
-	const addresses = order.map(name => watched[name]!) as string[]
+	pubkeyBytes(intent.owner)
 
-	const [tableInfos, blockhashInfo, beforeInfos, tokenRent, token2022Rent] = await Promise.all([
+	const [tableInfos, blockhashInfo, tokenRent, token2022Rent] = await Promise.all([
 		build.lookupTables.length
-			? rpcCall<{ value: Array<{ data: [string, string] } | null> }>(rpc, 'getMultipleAccounts', [build.lookupTables, { encoding: 'base64' }], deps.signal)
+			// `confirmed`, como la simulación: una tabla recién ampliada leída en `finalized` sale sin
+			// sus últimas direcciones, y esas cuentas irían estáticas hasta no caber en la tx
+			? rpcCall<{ value: Array<{ data: [string, string] } | null> }>(rpc, 'getMultipleAccounts', [build.lookupTables, { encoding: 'base64', commitment: 'confirmed' }], deps.signal)
 			: Promise.resolve({ value: [] }),
 		rpcCall<{ context?: { slot?: number }, value: { blockhash: string, lastValidBlockHeight: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], deps.signal),
-		rpcCall<{ value: AccountState[] }>(rpc, 'getMultipleAccounts', [addresses, { encoding: 'base64' }], deps.signal),
 		rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [TOKEN_ACCOUNT_SPACE], deps.signal),
 		// Siempre, no solo cuando el intent marca Token-2022: Jupiter puede crear una cuenta
 		// Token-2022 que el intent no anunció, y contarla con la renta clásica (menor) dejaría
@@ -321,10 +510,21 @@ export const prepareSolanaSwap = async (rpc: RegistryRpc, build: JupiterBuild, i
 	const blockhashSlot = typeof blockhashInfo.context?.slot === 'number' ? blockhashInfo.context.slot : null
 
 	// 1ª vuelta: con el tope de cómputo, para simular y medir
-	const probe = compileV0Message(intent.owner, assembleInstructions(build, MAX_COMPUTE_UNITS), blockhash, tables)
-	const { computeUnitPrice, persistentAccounts, persistent2022 } = verifySwapInstructions(probe, tables, intent)
+	const staticOnly = userAccounts(build, intent)
+	const probe = compileV0Message(intent.owner, assembleInstructions(build, MAX_COMPUTE_UNITS), blockhash, tables, staticOnly)
+	const { computeUnitPrice, persistentAccounts, persistent2022, created, closesWsol } = verifySwapInstructions(probe, tables, intent)
 	// Un xStock sin cuenta previa obliga a crear una Token-2022, más grande: otra renta
 	const rentLamports = BigInt(persistentAccounts - persistent2022) * BigInt(tokenRent) + BigInt(persistent2022) * BigInt(token2022Rent)
+
+	// Qué vigilar: las cuentas del par, el wSOL, las que la tx crea y, de todo lo que la tx
+	// puede ESCRIBIR, lo que ya es una cuenta de token del usuario (un tramo podría sacar de ahí)
+	const pair = balanceAccounts(intent)
+	const known = [...new Set([pair.input, pair.output, associatedTokenAddress(intent.owner, WSOL_MINT), ...created].filter((a): a is string => a !== null))]
+	const writable = resolveV0Accounts(probe, tables).filter(a => a.isWritable && a.pubkey !== intent.owner).map(a => a.pubkey)
+	const before = await readAccounts(rpc, [...new Set([intent.owner, ...known, ...writable])], deps.signal)
+	const watched = [...new Set([...known, ...writable.filter(address => isTokenAccountOf(before.get(address) ?? null, intent.owner))])]
+	const addresses = [intent.owner, ...watched]
+
 	const probeTx = serializeTransactionV0({ signatures: [null], message: probe, messageBytes: serializeV0Message(probe) })
 	const simulation = await rpcCall<{ value: SimulationValue }>(rpc, 'simulateTransaction', [
 		toBase64(probeTx),
@@ -340,17 +540,20 @@ export const prepareSolanaSwap = async (rpc: RegistryRpc, build: JupiterBuild, i
 	const computeUnitLimit = Math.min(MAX_COMPUTE_UNITS, Math.ceil(consumed * (100 + COMPUTE_MARGIN_PERCENT) / 100))
 	const feeLamports = feeFor(computeUnitLimit, computeUnitPrice)
 
+	if ((sim.accounts ?? []).length !== addresses.length) throw new SolanaVerifyError('la simulación no devolvió las cuentas pedidas')
+	const after = new Map<string, AccountState>(addresses.map((address, i) => [address, sim.accounts?.[i] ?? null]))
 	const simulatedOut = checkSimulatedBalances({
 		intent,
-		before: readBalances(intent, beforeInfos.value, order),
-		after: readBalances(intent, sim.accounts ?? [], order),
+		before: readBalances(intent, before),
+		after: readBalances(intent, after),
 		// La simulación cobró con el límite de la sonda: se compara contra ESA comisión
 		feeLamports: feeFor(MAX_COMPUTE_UNITS, computeUnitPrice),
 		rentLamports,
 	})
+	checkUserTokenAccounts({ intent, closesWsol, accounts: watched.map(address => ({ address, before: before.get(address) ?? null, after: after.get(address) ?? null })) })
 
 	// 2ª vuelta: el mensaje FINAL, que se vuelve a verificar entero
-	const message = compileV0Message(intent.owner, assembleInstructions(build, computeUnitLimit), blockhash, tables)
+	const message = compileV0Message(intent.owner, assembleInstructions(build, computeUnitLimit), blockhash, tables, staticOnly)
 	const check = verifySwapInstructions(message, tables, intent)
 	if (check.computeUnitLimit !== computeUnitLimit || check.computeUnitPrice !== computeUnitPrice) throw new SolanaVerifyError('el mensaje final no es el simulado')
 

@@ -289,6 +289,34 @@ test('imita a la dirección PROPIA: la única comparación en la que el aviso pu
 	expect(confirmButton().props.disabled).toBe(true)
 })
 
+// ── Lo que se le dice a quien envía cuando la red lo rechazaría ───────────────
+describe('errores que se enseñan', () => {
+	const describeError = () => useWalletSendTx.mock.calls[useWalletSendTx.mock.calls.length - 1][0].describeError
+	const WOULD_REVERT = 'La red rechazaría este envío, así que no se ha firmado. Revisa tu saldo del token o inténtalo más tarde.'
+
+	// T-02: el motivo del nodo («REVERT opcode executed») no le dice nada a nadie
+	test('una simulación que revierte se explica sin la jerga del nodo, en TRON y en EVM', async () => {
+		await render(BOB)
+		expect(describeError()(new Error('tron: el envío revertiría: REVERT opcode executed'))).toBe(WOULD_REVERT)
+		expect(describeError()(new Error('https://bsc: eth_estimateGas → execution reverted'))).toBe(WOULD_REVERT)
+	})
+
+	// E-02: ningún nodo dio un precio de gas dentro del tope. Antes habría salido «sin nodos»
+	test('una comisión disparada en todos los nodos no se cuenta como falta de nodos', async () => {
+		const { AllRpcsFailedError } = require('../../../wallet/registry/rpcRouter')
+		await render(BOB)
+		const spike = new AllRpcsFailedError('bsc', [new Error('evm: precio de gas fuera de rango (60000000000 wei por gas, tope 50000000000)')])
+		expect(describeError()(spike)).toBe('La comisión de la red está muy por encima de lo normal, así que no se ha firmado nada. Inténtalo más tarde.')
+		// Y sin nodos de verdad, el mensaje ya no nombra una red que quizá no es la del envío
+		expect(describeError()(new AllRpcsFailedError('bsc', [new Error('timeout')]))).toBe('Ningún nodo de la red responde. Revisa tu conexión e inténtalo de nuevo.')
+	})
+
+	test('el saldo insuficiente conserva su mensaje, aunque llegue dentro de un revert', async () => {
+		await render(BOB)
+		expect(describeError()(new Error('https://bsc: eth_estimateGas → execution reverted: ERC20: transfer amount exceeds balance'))).toBe('La red rechazó la transacción por saldo insuficiente.')
+	})
+})
+
 // ── El depósito de un intercambio no se manda dos veces ──────────────────────
 // El proveedor espera UN envío de un importe exacto: un segundo no se cambia, se queda a la
 // espera de una devolución manual. Había tres caminos para repetirlo (un seguimiento viejo
@@ -344,10 +372,11 @@ describe('depósito de un intercambio', () => {
 		expect(navigation.popTo).not.toHaveBeenCalled()
 	})
 
-	test('la nota se escribe en cuanto la firma va a salir, con su hash, y se retira si consta que no entró', async () => {
+	test('la nota se escribe en cuanto la firma va a salir, con su hash y con qué preguntar después a la cadena, y se retira si consta que no entró', async () => {
 		await render(BOB, { exchangeUuid: 'ex-1' })
-		await engineArgs().onAttempt('0xhash')
-		expect(markDepositAttempt).toHaveBeenCalledWith('ex-1', '0xhash')
+		const ref = { kind: 'evm', chainKey: 'bsc', hash: '0xhash', from: '0xFROM', nonce: 7 }
+		await engineArgs().onAttempt('0xhash', ref)
+		expect(markDepositAttempt).toHaveBeenCalledWith('ex-1', '0xhash', ref)
 		engineArgs().onDropped()
 		expect(clearDepositSent).toHaveBeenCalledWith('ex-1')
 	})

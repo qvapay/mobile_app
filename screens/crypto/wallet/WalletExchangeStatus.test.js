@@ -28,6 +28,7 @@ jest.mock('../../../wallet/registry/appRpcRouter', () => ({ useEffectiveRegistry
 jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), refreshHistoryAfterSend: jest.fn(), WALLET_BALANCES_KEY: ['wallet', 'balances'] }))
 jest.mock('./exchangeQueries', () => ({ useExchangeOrderQuery: jest.fn() }))
 jest.mock('./exchangeDeposit', () => ({ readDepositSent: jest.fn(), clearDepositSent: jest.fn(async () => {}) }))
+jest.mock('./depositGuard', () => ({ settleDepositNote: jest.fn() }))
 jest.mock('../../../helpers', () => ({ timeAgo: () => 'hace un momento' }))
 jest.mock('../../../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../../../ui/particles/QPPressable', () => 'QPPressable')
@@ -39,6 +40,7 @@ import { act, create } from 'react-test-renderer'
 import { useWalletAssets } from './walletQueries'
 import { useExchangeOrderQuery } from './exchangeQueries'
 import { clearDepositSent, readDepositSent } from './exchangeDeposit'
+import { settleDepositNote } from './depositGuard'
 import { ROUTES } from '../../../routes'
 import WalletExchangeStatus from './WalletExchangeStatus'
 
@@ -66,6 +68,8 @@ beforeEach(() => {
 	useWalletAssets.mockReturnValue({ all: [USDT, SOL] })
 	useExchangeOrderQuery.mockReturnValue({ data: order() })
 	readDepositSent.mockResolvedValue(null)
+	// Por defecto la cadena aún no sabe nada: la nota se queda como está
+	settleDepositNote.mockImplementation(async note => note)
 })
 afterEach(() => { act(() => { tree?.unmount() }) })
 
@@ -106,6 +110,42 @@ test('si la nota llega entre pintar el botón y tocarlo, no se abre el envío', 
 	await act(async () => { await sendButton()[0].props.onPress() })
 	expect(navigation.navigate).not.toHaveBeenCalled()
 	expect(sendButton()).toHaveLength(0)
+})
+
+// Antes un «quizá salió» se quedaba así para siempre y la orden ya no se podía fondear desde la app
+describe('una nota pendiente se aclara con la cadena al volver a la pantalla', () => {
+	const pending = { uuid: 'ex-1', txid: '0xabc', at: 1, pending: true, ref: { kind: 'evm' } }
+
+	test('la cadena confirma que no entró ni entrará: vuelve «Enviar ahora»', async () => {
+		readDepositSent.mockResolvedValue(pending)
+		settleDepositNote.mockResolvedValue(null)
+		await render()
+		expect(settleDepositNote).toHaveBeenCalledWith(pending)
+		expect(sendButton()).toHaveLength(1)
+	})
+
+	test('la cadena dice que entró: sigue sin ofrecer enviar', async () => {
+		readDepositSent.mockResolvedValue({ ...pending, txid: null })
+		settleDepositNote.mockResolvedValue({ ...pending, txid: '0xreal', pending: false, ref: null })
+		await render()
+		expect(sendButton()).toHaveLength(0)
+	})
+
+	test('la cadena aún no lo sabe, o la consulta falla: sigue sin ofrecer enviar', async () => {
+		readDepositSent.mockResolvedValue(pending)
+		await render()
+		expect(sendButton()).toHaveLength(0)
+
+		settleDepositNote.mockRejectedValue(new Error('sin nodos'))
+		await focusAgain()
+		expect(sendButton()).toHaveLength(0)
+	})
+
+	test('una nota que ya consta enviada no se pregunta', async () => {
+		readDepositSent.mockResolvedValue({ ...pending, pending: false })
+		await render()
+		expect(settleDepositNote).not.toHaveBeenCalled()
+	})
 })
 
 // Al volver del envío con `popTo` esta pantalla es la MISMA, con parámetros nuevos

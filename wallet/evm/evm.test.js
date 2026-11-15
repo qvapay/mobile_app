@@ -7,11 +7,16 @@
 import { parseTransaction } from 'viem'
 
 import {
+	assertSaneGasPrice,
 	broadcastEvmTransaction,
 	checksumAddress,
+	DEFAULT_MAX_GAS_PRICE_WEI,
 	encodeErc20Transfer,
 	EvmVerifyError,
+	isGasPriceOutOfRange,
 	isValidEvmAddress,
+	MAX_GAS_PRICE_WEI,
+	MAX_NATIVE_GAS,
 	NATIVE_TRANSFER_GAS,
 	prepareEvmSend,
 	signEvmTransaction,
@@ -19,7 +24,7 @@ import {
 } from './tx'
 import { deriveAddresses, derivePrivateKey } from '../derive'
 import { mnemonicToSeed } from '../seed'
-import { isRetryableRpcError } from '../registry/rpcRouter'
+import { AllRpcsFailedError, isRetryableRpcError } from '../registry/rpcRouter'
 
 const MNEMONIC = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
 const SEED = mnemonicToSeed(MNEMONIC)
@@ -30,15 +35,19 @@ const RPC = { url: 'https://bsc', priority: 10, owner: 'x' }
 const BSC = { kind: 'evm', chainId: 56, native: { symbol: 'BNB', decimals: 18 }, explorer: '', rpcs: [RPC] }
 
 let calls
-const mockRpc = (handlers) => {
+/** Un error JSON-RPC con el código que se quiera (por defecto 3, el de un revert). */
+const rpcError = (message, code = 3) => Object.assign(new Error(message), { code })
+const mockRpc = (given) => {
 	calls = []
+	// Un envío de nativo a una cuenta externa estima justo el mínimo
+	const handlers = { eth_estimateGas: () => `0x${(21_000).toString(16)}`, ...given }
 	global.fetch = jest.fn(async (url, init) => {
 		const body = JSON.parse(init.body)
 		calls.push(body)
 		const handler = handlers[body.method]
 		if (!handler) return { ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id: 1, error: { code: -32601, message: `method ${body.method} not found` } }) }
 		const result = handler(body.params)
-		if (result instanceof Error) return { ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id: 1, error: { code: 3, message: result.message } }) }
+		if (result instanceof Error) return { ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id: 1, error: { code: result.code ?? 3, message: result.message } }) }
 		return { ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id: 1, result }) }
 	})
 }
@@ -72,7 +81,113 @@ describe('prepareEvmSend', () => {
 		const prepared = await prepareEvmSend(RPC, BSC, { chainId: 56, from: FROM, to: TO, amount: 10n ** 15n, contract: null })
 		expect(prepared.tx).toMatchObject({ type: 'eip1559', chainId: 56, nonce: 3, to: TO, value: 10n ** 15n, data: '0x', gas: NATIVE_TRANSFER_GAS, maxFeePerGas: gwei(4), maxPriorityFeePerGas: gwei(2) })
 		expect(prepared.fee).toEqual({ gasLimit: 21_000n, estimatedWei: 21_000n * gwei(3), maxWei: 21_000n * gwei(4), eip1559: true })
-		expect(calls.map(c => c.method)).not.toContain('eth_estimateGas')
+		// También en nativo se simula, con el valor que se va a enviar
+		expect(calls.find(c => c.method === 'eth_estimateGas').params[0]).toEqual({ from: FROM, to: TO, data: '0x', value: hex(10n ** 15n) })
+	})
+
+	// E-01: con 21.000 fijos, un destino que ejecuta código (contrato, Safe, cuenta 4337 o con
+	// delegación EIP-7702) se quedaba sin gas: la tx se minaba, revertía y se quemaba la comisión
+	describe('nativo a un destino que ejecuta código', () => {
+		const node = (estimate) => ({
+			eth_getTransactionCount: () => '0x0',
+			eth_getBlockByNumber: () => ({ baseFeePerGas: hex(gwei(1)) }),
+			eth_maxPriorityFeePerGas: () => hex(gwei(1)),
+			eth_estimateGas: estimate,
+		})
+		const send = () => prepareEvmSend(RPC, BSC, { chainId: 56, from: FROM, to: TO, amount: 10n ** 15n, contract: null })
+
+		test('lleva el gas que estima el nodo, con un 25 % de margen', async () => {
+			mockRpc(node(() => hex(32_000)))
+			const prepared = await send()
+			expect(prepared.tx.gas).toBe(40_000n)
+			expect(prepared.fee.maxWei).toBe(40_000n * gwei(3))
+		})
+
+		test('una cuenta externa se queda en el mínimo exacto, sin margen (MÁX lo da por hecho)', async () => {
+			mockRpc(node(() => hex(21_000)))
+			expect((await send()).tx.gas).toBe(NATIVE_TRANSFER_GAS)
+			// Un nodo que estime de menos no baja del mínimo de cualquier tx
+			mockRpc(node(() => hex(20_000)))
+			expect((await send()).tx.gas).toBe(NATIVE_TRANSFER_GAS)
+		})
+
+		test('por encima del tope el destino hace algo más que recibir: no se firma', async () => {
+			mockRpc(node(() => hex(Number(MAX_NATIVE_GAS))))
+			const err = await send().catch(e => e)
+			expect(err.message).toMatch(/gas estimado anómalo para un envío de nativo/)
+			expect(isRetryableRpcError(err)).toBe(false)
+		})
+
+		// geth devuelve el revert y la falta de saldo con el código genérico -32000, que `jsonRpc`
+		// trata como «prueba con otro nodo»: se recorrerían todos y saldría «sin nodos»
+		test.each([
+			['el destino no acepta el envío (revert)', 'execution reverted', 3],
+			['revert con el código genérico de geth', 'execution reverted', -32000],
+			['saldo que no alcanza, con el código genérico', 'insufficient funds for transfer', -32000],
+		])('%s: no se firma y no se prueba en otro nodo', async (_name, message, code) => {
+			mockRpc(node(() => rpcError(message, code)))
+			const err = await send().catch(e => e)
+			expect(err.message).toContain(message)
+			expect(isRetryableRpcError(err)).toBe(false)
+		})
+
+		test('un nodo que no ofrece la simulación no es un rechazo del envío: el error sale tal cual', async () => {
+			mockRpc(node(() => rpcError('the method eth_estimateGas is not available', -32601)))
+			const err = await send().catch(e => e)
+			expect(err.message).toMatch(/not available/)
+		})
+	})
+
+	// E-02: el precio lo da el nodo y la tx autoriza gas × precio. Sin tope, uno que conteste
+	// ×1000 hacía firmar una comisión que podía comerse el nativo
+	describe('tope de cordura del precio del gas', () => {
+		const eip1559 = (baseFee, priority = gwei(1)) => ({ eth_getTransactionCount: () => '0x0', eth_getBlockByNumber: () => ({ baseFeePerGas: hex(baseFee) }), eth_maxPriorityFeePerGas: () => hex(priority) })
+		const legacy = (gasPrice) => ({ eth_getTransactionCount: () => '0x0', eth_getBlockByNumber: () => ({}), eth_gasPrice: () => hex(gasPrice) })
+		const send = () => prepareEvmSend(RPC, BSC, { chainId: 56, from: FROM, to: TO, amount: 1n, contract: null })
+		const CAP = MAX_GAS_PRICE_WEI[56]
+
+		test('EIP-1559: lo que cuenta es el máximo que la tx autoriza (2·base + prioridad)', async () => {
+			mockRpc(eip1559(CAP / 2n, 1n))
+			const err = await send().catch(e => e)
+			expect(err.message).toMatch(/precio de gas fuera de rango/)
+			// El router prueba con otro nodo: es lo que arregla un nodo que miente o falla
+			expect(isRetryableRpcError(err)).toBe(true)
+			mockRpc(eip1559(CAP / 2n - 1n, 2n))
+			expect((await send()).tx.maxFeePerGas).toBe(CAP)
+		})
+
+		test('legacy: el gasPrice, también tras escalarlo por el nivel elegido', async () => {
+			mockRpc(legacy(CAP + 1n))
+			await expect(send()).rejects.toThrow(/precio de gas fuera de rango/)
+			mockRpc(legacy(CAP))
+			expect((await send()).tx.gasPrice).toBe(CAP)
+			// «Rápido» dobla el precio: lo que se comprueba es lo que acabaría firmado
+			mockRpc(legacy(CAP / 2n + 1n))
+			await expect(prepareEvmSend(RPC, BSC, { chainId: 56, from: FROM, to: TO, amount: 1n, contract: null }, { tier: 'fast' })).rejects.toThrow(/precio de gas fuera de rango/)
+		})
+
+		test('cada red tiene el suyo, y una sin tope propio usa el general', () => {
+			expect(() => assertSaneGasPrice(1, MAX_GAS_PRICE_WEI[1])).not.toThrow()
+			expect(() => assertSaneGasPrice(8453, MAX_GAS_PRICE_WEI[8453] + 1n)).toThrow(/fuera de rango/)
+			expect(() => assertSaneGasPrice(999_999, DEFAULT_MAX_GAS_PRICE_WEI)).not.toThrow()
+			expect(() => assertSaneGasPrice(999_999, DEFAULT_MAX_GAS_PRICE_WEI + 1n)).toThrow(/fuera de rango/)
+		})
+
+		// Si todos los nodos coinciden es un pico real, y lo que hay que decir no es «sin nodos»
+		test('se reconoce suelto y dentro del error del router cuando ningún nodo dio un precio razonable', () => {
+			const outOfRange = (() => { try { assertSaneGasPrice(56, CAP + 1n) } catch (err) { return err } return null })()
+			expect(isGasPriceOutOfRange(outOfRange)).toBe(true)
+			expect(isGasPriceOutOfRange(new AllRpcsFailedError('bsc', [new Error('timeout'), outOfRange]))).toBe(true)
+			expect(isGasPriceOutOfRange(new AllRpcsFailedError('bsc', [new Error('timeout')]))).toBe(false)
+			expect(isGasPriceOutOfRange(new Error('insufficient funds'))).toBe(false)
+			expect(isGasPriceOutOfRange(null)).toBe(false)
+		})
+
+		test('una patrocinada (gasPrice 0) no pasa por aquí', async () => {
+			mockRpc({ eth_getTransactionCount: () => '0x0', eth_estimateGas: () => hex(52_000) })
+			const prepared = await prepareEvmSend(RPC, BSC, { chainId: 56, from: FROM, to: TO, amount: 1n, contract: USDT_BSC }, { zeroGas: true })
+			expect(prepared.tx.gasPrice).toBe(0n)
+		})
 	})
 
 	test('token: estimateGas +25%, value 0, calldata transfer; legacy si el bloque no trae baseFee', async () => {

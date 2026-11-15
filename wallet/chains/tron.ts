@@ -38,11 +38,48 @@ export const getTronNativeBalance = async (rpc: RegistryRpc, address: string, { 
 	return BigInt(account?.balance ?? 0)
 }
 
+/** Lo que java-tron contesta a una llamada simulada, en lo que dice si falló. */
+export type TronCallResult = {
+	result?: { result?: boolean, message?: string } | null
+	transaction?: { ret?: Array<{ ret?: string } | null> | null } | null
+}
+
+/** Los mensajes del nodo llegan en texto o en hex (ASCII), según el nodo y el camino. */
+const readNodeMessage = (value: unknown): string => {
+	if (typeof value !== 'string') return ''
+	if (!/^[0-9a-f]+$/i.test(value) || value.length % 2 !== 0) return value.trim()
+	let out = ''
+	for (let i = 0; i < value.length; i += 2) out += String.fromCharCode(parseInt(value.slice(i, i + 2), 16))
+	return out.replace(/[^\x20-\x7e]/g, '').trim()
+}
+
+/**
+ * ¿Falló la llamada que el nodo simuló (`triggerconstantcontract`)?
+ *
+ * java-tron contesta `result.result: true` AUNQUE el contrato revierta: eso solo dice que
+ * la petición se atendió. El fallo va en `result.message` y en `transaction.ret[0].ret`.
+ * Medido el 2026-11-14 en TronGrid, publicnode y tron.qvapay.com con un `transfer` de USDT
+ * desde una dirección sin saldo: `result: true`, `message: "REVERT opcode executed"`,
+ * `energy_used: 8624`, `constant_result: [""]` y `ret: [{ ret: "FAILED" }]`; con saldo, ni
+ * `message` ni `ret`. Mirar solo `result === false` dejaba firmar y difundir un envío que
+ * iba a revertir: se quemaba la comisión y la pantalla decía «Enviado».
+ *
+ * @returns El motivo que da el nodo, o null si la llamada no falló.
+ */
+export const tronCallFailure = (res: TronCallResult | null | undefined): string | null => {
+	const message = readNodeMessage(res?.result?.message)
+	if (res?.result?.result === false) return message || 'el nodo rechazó la llamada'
+	const ret = res?.transaction?.ret?.[0]?.ret
+	// El éxito es el valor por defecto del enum (`SUCESS`, sic) y no viaja en el JSON
+	if (typeof ret === 'string' && ret !== '' && !/^SUCC?ESS$/.test(ret)) return message || ret
+	return message || null
+}
+
 export const getTronTokenBalance = async (rpc: RegistryRpc, token: string, owner: string, { signal }: Options = {}): Promise<bigint> => {
 	if (rpc.api === 'jsonrpc') {
 		return getEvmTokenBalance(tronJsonRpcUrl(rpc.url), `0x${tronToHex20(token)}`, `0x${tronToHex20(owner)}`, { signal, headers: rpc.headers })
 	}
-	const response = await postJson<{ constant_result?: string[], result?: { result?: boolean, message?: string } }>(
+	const response = await postJson<TronCallResult & { constant_result?: string[] }>(
 		`${rpc.url.replace(/\/+$/, '')}/wallet/triggerconstantcontract`,
 		{
 			owner_address: owner,
@@ -54,7 +91,9 @@ export const getTronTokenBalance = async (rpc: RegistryRpc, token: string, owner
 		},
 		{ signal, headers: rpc.headers },
 	)
-	if (response?.result?.result === false) throw new Error(`tron: balanceOf falló (${response.result.message ?? 'sin mensaje'})`)
+	// Un `balanceOf` que revierte no es un saldo de 0: se lanza y la lectura anterior se conserva
+	const failure = tronCallFailure(response)
+	if (failure) throw new Error(`tron: balanceOf falló (${failure})`)
 	return hexToBigInt(response?.constant_result?.[0])
 }
 

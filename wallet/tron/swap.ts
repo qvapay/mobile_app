@@ -19,7 +19,8 @@
  * indirectamente, el alquiler de energía (un swap consume ~100-150k).
  */
 import { ChainHttpError, postJson } from '../chains/http'
-import { tronToHex20 } from '../chains/tron'
+import { tronCallFailure, tronToHex20 } from '../chains/tron'
+import type { TronCallResult } from '../chains/tron'
 import type { RegistryRpc } from '../registry/types'
 import {
 	computeFeeLimit,
@@ -148,14 +149,16 @@ export const verifyTronCall = (tx: { txID: string, raw_data_hex: string }, expec
 // Construir
 // ---------------------------------------------------------------------------
 
-type ConstantResult = { result?: { result?: boolean, message?: string }, energy_used?: number, constant_result?: string[] }
+type ConstantResult = TronCallResult & { energy_used?: number, constant_result?: string[] }
 
 const constant = async (rpc: RegistryRpc, owner: string, contract: string, fn: keyof typeof TRON_SWAP_FUNCTIONS, parameter: string, callValue: bigint, deps: Deps): Promise<ConstantResult> => {
 	const res = await post<ConstantResult>(rpc, '/wallet/triggerconstantcontract', {
 		owner_address: owner, contract_address: contract, function_selector: TRON_SWAP_FUNCTIONS[fn].signature, parameter,
 		...(callValue > 0n ? { call_value: Number(callValue) } : {}), visible: true,
 	}, deps)
-	if (res?.result?.result === false) throw new ChainHttpError(`tron: la simulación revierte: ${decodeNodeMessage(res.result.message)}`, { retryable: false })
+	// `result.result: true` no basta: java-tron lo da también cuando el contrato revierte
+	const failure = tronCallFailure(res)
+	if (failure) throw new ChainHttpError(`tron: la simulación revierte: ${failure}`, { retryable: false })
 	return res
 }
 

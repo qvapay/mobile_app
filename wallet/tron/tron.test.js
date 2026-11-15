@@ -483,6 +483,37 @@ describe('prepareTronSend / broadcast (nodo simulado)', () => {
 		await expect(prepareTronSend(RPC, INTENT)).rejects.toThrow(TronVerifyError)
 	})
 
+	// T-02: java-tron contesta `result: true` AUNQUE el transfer revierta. Forma real (TronGrid,
+	// publicnode y tron.qvapay.com, 2026-11-14) de un `transfer` de USDT desde una dirección sin saldo
+	test('TRC-20: la simulación revierte con `result: true` → no se construye ni se firma nada', async () => {
+		const paths = []
+		mockNode({
+			'/wallet/getchainparameters': chainParams,
+			'/wallet/getaccountresource': () => ({}),
+			'/wallet/triggerconstantcontract': () => { paths.push('estimate'); return { result: { result: true, message: 'REVERT opcode executed' }, energy_used: 8624, energy_penalty: 6640, constant_result: [''], transaction: { ret: [{ ret: 'FAILED' }] } } },
+			'/wallet/triggersmartcontract': () => { paths.push('build'); return {} },
+		})
+		const err = await prepareTronSend(RPC, INTENT).catch(e => e)
+		expect(err.message).toBe('tron: el envío revertiría: REVERT opcode executed')
+		expect(isRetryableRpcError(err)).toBe(false)
+		// Antes seguía hasta construir la tx con esa «estimación» de 8.624 de energía
+		expect(paths).toEqual(['estimate'])
+	})
+
+	test('TRC-20: la forma real de una simulación que sale bien (ret vacío) sigue pasando', async () => {
+		mockNode({
+			'/wallet/getchainparameters': chainParams,
+			'/wallet/getaccountresource': () => ({ freeNetLimit: 600, freeNetUsed: 0 }),
+			'/wallet/triggerconstantcontract': () => ({ result: { result: true }, energy_used: 64_285, energy_penalty: 49_635, constant_result: ['0'.repeat(64)], transaction: { ret: [{}] } }),
+			'/wallet/triggersmartcontract': (body) => {
+				const raw_data_hex = withFeeLimit(FIXTURE.raw_data_hex, BigInt(body.fee_limit))
+				return { result: { result: true }, transaction: { txID: tronTxId(raw_data_hex), raw_data_hex } }
+			},
+		})
+		const prepared = await prepareTronSend(RPC, INTENT)
+		expect(prepared.fee.energyNeeded).toBe(64_285n)
+	})
+
 	test('TRC-20: el nodo rechaza la estimación con mensaje en hex → error no reintentable legible', async () => {
 		mockNode({
 			'/wallet/getchainparameters': chainParams,

@@ -12,7 +12,7 @@
 import { getAppRpcRouter } from '../../../wallet/registry/appRpcRouter'
 import { evmReceiptStatus, prepareEvmSwapStep, signEvmSwapStep } from '../../../wallet/evm/swap'
 import type { EvmRouteBuild, EvmSwapStep, PreparedEvmSwapStep } from '../../../wallet/evm/swap'
-import { broadcastEvmTransaction } from '../../../wallet/evm/tx'
+import { broadcastEvmTransaction, lookupEvmTransaction } from '../../../wallet/evm/tx'
 import type { SignedEvmTx } from '../../../wallet/evm/tx'
 import { prepareSolanaSwap, signSolanaSwap } from '../../../wallet/solana/swap'
 import type { JupiterBuild, PreparedSolanaSwap } from '../../../wallet/solana/swap'
@@ -23,7 +23,7 @@ import type { PreparedTronSwapStep } from '../../../wallet/tron/swap'
 import { broadcastTronTransaction, lookupTronTransaction, signTronTransaction, TRON_TX_RPC } from '../../../wallet/tron/tx'
 import { prepareThorchainBtcSwap, signThorchainBtcSwap } from '../../../wallet/btc/thorchain'
 import type { PreparedThorchainBtc } from '../../../wallet/btc/thorchain'
-import { broadcastBtcTransaction } from '../../../wallet/btc/tx'
+import { broadcastBtcTransaction, lookupBtcTransaction } from '../../../wallet/btc/tx'
 import type { SignedBtcTx } from '../../../wallet/btc/tx'
 import type { ExchangeOnchainBuild } from '../../../types/domain'
 import type { TxLookup } from '../../../wallet/chains/txLookup'
@@ -131,8 +131,9 @@ export const broadcastOnchainSwap = async (prepared: PreparedOnchainSwap, signed
 }
 
 /**
- * ¿Entró un paso de swap ya difundido? Como en Enviar (`lookupSend`): solo TRON y Solana
- * caducan; EVM y Bitcoin se re-difunden siempre (`unknown`).
+ * ¿Entró un paso de swap ya difundido? Como en Enviar (`lookupSend`), se pregunta a la
+ * cadena en todas las familias. TRON y Solana caducan; EVM y Bitcoin no, así que ahí solo
+ * hay `dropped` si otra tx gastó su nonce o sus inputs.
  */
 export const lookupOnchainSwap = async (prepared: PreparedOnchainSwap, signed: SignedOnchainSwap): Promise<TxLookup> => {
 	const router = getAppRpcRouter()
@@ -144,6 +145,16 @@ export const lookupOnchainSwap = async (prepared: PreparedOnchainSwap, signed: S
 		const signature = signed.signed.txid
 		const sent = { signature, owner: prepared.inner.intent.owner, lastValidBlockHeight: prepared.inner.lastValidBlockHeight, blockhashSlot: prepared.inner.blockhashSlot }
 		return router.call(prepared.chainKey, (rpc, signal) => lookupSolanaTransaction(rpc, sent, signal), { idempotent: true })
+	}
+	if (prepared.family === 'evm' && signed.family === 'evm') {
+		const nonce = prepared.inner.tx.nonce
+		if (typeof nonce !== 'number') return { status: 'unknown' }
+		const sent = { hash: signed.signed.hash, from: prepared.inner.intent.owner, nonce }
+		return router.call(prepared.chainKey, (rpc, signal) => lookupEvmTransaction(rpc, sent, { signal }), { idempotent: true })
+	}
+	if (prepared.family === 'btc' && signed.family === 'btc') {
+		const sent = { txid: signed.signed.txid, inputs: prepared.inner.selection.inputs.map(({ txid, vout }) => ({ txid, vout })) }
+		return router.call(prepared.chainKey, (rpc, signal) => lookupBtcTransaction(rpc, sent, { signal }), { idempotent: true })
 	}
 	return { status: 'unknown' }
 }

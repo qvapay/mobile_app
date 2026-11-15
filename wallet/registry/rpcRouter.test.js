@@ -178,6 +178,11 @@ describe('call', () => {
 		expect(isDataUnavailable(rpc('Transaction history is not available from this node'))).toBe(true)
 		expect(isDataUnavailable(rpc('Rewards cannot be found because slot 1 is not the epoch boundary.This may be due to gap in the queried node\'s local ledger or long-term storage'))).toBe(true)
 		expect(isDataUnavailable(rpc('Epoch rewards period still active at slot 457920100'))).toBe(true)
+		// Un nodo EVM completo al que se le pide estado de un bloque ya podado (lookupEvmTransaction)
+		expect(isDataUnavailable(rpc('missing trie node 9f3c (path ) state 0x9f3c is not available'))).toBe(true)
+		expect(isDataUnavailable(rpc('required historical state unavailable (reexec=128)'))).toBe(true)
+		expect(isDataUnavailable(rpc('historical state at block 123 is not available'))).toBe(true)
+		expect(isDataUnavailable(rpc('No state available for block 0xabc'))).toBe(true)
 		// Un nodo atrasado o enfermo SÍ es un fallo del nodo
 		expect(isDataUnavailable(rpc('Block not available for slot 1'))).toBe(false)
 		expect(isDataUnavailable(rpc('Node is behind by 120 slots'))).toBe(false)

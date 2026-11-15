@@ -7,6 +7,7 @@
  * usuario (stake account, TRX congelado, STX bloqueado); QvaPay no custodia
  * nada, solo lee y construye transacciones que firma el usuario.
  */
+import type { TxLookup } from '../chains/txLookup'
 import type { ChainKind, RegistryRpc } from '../registry/types'
 
 /** Familias con staking. EVM y BTC no ofrecen staking nativo desde una wallet. */
@@ -134,6 +135,12 @@ export type StakeTxAdapter<Inner = unknown, Signed = unknown> = {
 	prepare(rpc: RegistryRpc, intent: StakeIntent, options: { signal?: AbortSignal }): Promise<{ inner: Inner, summary: StakeSummary }>
 	sign(inner: Inner, privateKey: Uint8Array): Signed | Promise<Signed>
 	broadcast(rpc: RegistryRpc, inner: Inner, signed: Signed, options: { signal?: AbortSignal }): Promise<StakeBroadcastResult>
+	/**
+	 * ¿Qué fue de una tx ya difundida de la que no hubo respuesta? El motor lo pregunta antes
+	 * de construir otra: sin esto se quedaba en «no pudimos confirmar» y quien salía y
+	 * repetía hacía el staking dos veces. Ausente = `unknown` (nunca se firma otra).
+	 */
+	lookup?(rpc: RegistryRpc, inner: Inner, signed: Signed, options: { signal?: AbortSignal }): Promise<TxLookup>
 	/**
 	 * Lo que MÁX debe dejar sin tocar al ENTRAR en staking: comisión y depósitos
 	 * que la propia tx exige (renta de la stake account de Solana). Ausente = 0.

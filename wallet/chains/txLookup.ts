@@ -5,4 +5,8 @@
  * o entró fallida y no movió fondos) · `unknown` aún no se sabe. Solo `dropped` permite
  * construir y firmar otra: con cualquier otra respuesta, otra tx sería un segundo pago.
  */
-export type TxLookup = { status: 'landed', txid: string } | { status: 'dropped' } | { status: 'unknown' }
+export type TxLookup =
+	/** `note`: entró, pero con un matiz que la pantalla de éxito debe contar (TRON: congelado sin voto). */
+	| { status: 'landed', txid: string, note?: string }
+	| { status: 'dropped' }
+	| { status: 'unknown' }

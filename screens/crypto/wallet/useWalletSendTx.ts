@@ -18,8 +18,9 @@ import type { AssetView } from '../../../wallet/assets'
 import type { WalletAddresses } from '../../../wallet/derive'
 import type { RegistryChain } from '../../../wallet/registry/types'
 import { refreshHistoryAfterSend, WALLET_BALANCES_KEY } from './walletQueries'
-import { broadcastSigned, lookupSend, prepareSend, signedTxid, signPrepared } from './walletSendActions'
+import { broadcastSigned, lookupSend, prepareSend, sentRefOf, signedTxid, signPrepared } from './walletSendActions'
 import type { FeeTier, PreparedSend, SignedSend } from './walletSendActions'
+import type { SentRef } from './sentRef'
 import type { SponsorBridge } from './useGaslessSend'
 import useWalletTx from './useWalletTx'
 import type { DropReason, SubmitResult, TxLookup, TxPhase } from './useWalletTx'
@@ -54,9 +55,10 @@ type Args = {
 	sponsorResolver?: { lookup: () => Promise<TxLookup>, dropped: () => void } | null
 	/**
 	 * El envío firmado está a punto de salir hacia la red, con su hash calculado en el
-	 * teléfono (null: patrocinado en Solana, aún sin él). Se espera antes de difundir.
+	 * teléfono (null: patrocinado en Solana, aún sin él) y con qué preguntar después a la
+	 * cadena por él (`ref`; null si no hay con qué). Se espera antes de difundir.
 	 */
-	onAttempt?: (txid: string | null) => void | Promise<void>
+	onAttempt?: (txid: string | null, ref: SentRef | null) => void | Promise<void>
 	/** Consta que ese envío NO entró ni entrará. */
 	onDropped?: () => void
 }
@@ -112,7 +114,7 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		onSent(txid)
 	}, [queryClient, assetId, onSent, t])
 
-	const handleAttempt = useCallback((current: PreparedSend, signed: SignedSend) => onAttempt?.(signedTxid(current, signed)), [onAttempt])
+	const handleAttempt = useCallback((current: PreparedSend, signed: SignedSend) => onAttempt?.(signedTxid(current, signed), sentRefOf(current, signed)), [onAttempt])
 
 	// Primero la cadena, que es la que puede decir tanto que entró como que ya no entrará.
 	// Si no lo sabe y el envío era patrocinado, el backend puede aportar la prueba positiva

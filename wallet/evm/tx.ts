@@ -19,12 +19,67 @@ import { signTransaction } from 'viem/accounts'
 import type { TransactionSerializable, TransactionSerialized } from 'viem'
 
 import { ChainHttpError, hexToBigInt, jsonRpc } from '../chains/http'
+import type { TxLookup } from '../chains/txLookup'
 import type { RegistryChain, RegistryRpc } from '../registry/types'
 
 const TRANSFER_SELECTOR = '0xa9059cbb'
 
-/** Gas fijo de una transferencia de nativo a una cuenta externa. */
+/** Gas de una transferencia de nativo a una cuenta externa (el mínimo de cualquier tx). */
 export const NATIVE_TRANSFER_GAS = 21_000n
+
+/**
+ * Margen sobre la estimación cuando el destino EJECUTA código al recibir nativo: un
+ * contrato, una smart wallet (Safe, cuentas 4337) o una cuenta con delegación EIP-7702.
+ */
+const NATIVE_CODE_GAS_MARGIN_PERCENT = 25n
+
+/** Tope duro del gas de un envío de nativo: por encima, el destino hace algo más que recibir. */
+export const MAX_NATIVE_GAS = 150_000n
+
+const GWEI = 1_000_000_000n
+
+/**
+ * Tope de cordura del precio del gas por red, en wei por unidad de gas (E-02).
+ *
+ * El precio lo da el nodo, y la tx autoriza `gas × precio`: un nodo propio, uno del
+ * registro o uno con un fallo que conteste ×1000 hacía firmar una comisión que podía
+ * comerse el nativo. Los topes son holgados respecto a los picos reales de cada red (lo
+ * normal va de 0,05 gwei en BNB Chain o Base a unos pocos en Ethereum) y dejan lo máximo
+ * que puede costar un envío de token en el orden de unos pocos dólares, salvo en
+ * Ethereum, donde un pico de verdad ya cuesta eso.
+ */
+export const MAX_GAS_PRICE_WEI: Readonly<Record<number, bigint>> = {
+	1: 500n * GWEI, // Ethereum
+	56: 50n * GWEI, // BNB Chain
+	137: 5_000n * GWEI, // Polygon
+	8453: 100n * GWEI, // Base
+}
+
+/** Para una red EVM sin tope propio. */
+export const DEFAULT_MAX_GAS_PRICE_WEI = 1_000n * GWEI
+
+/**
+ * Lanza si el precio que la tx autorizaría por unidad de gas pasa del tope de su red.
+ * `retryable`: el router prueba con otro nodo, que es lo que arregla un nodo que miente o
+ * falla; si todos dicen lo mismo es un pico real y no se firma hasta que baje.
+ */
+export const assertSaneGasPrice = (chainId: number, pricePerGas: bigint): void => {
+	const cap = MAX_GAS_PRICE_WEI[chainId] ?? DEFAULT_MAX_GAS_PRICE_WEI
+	if (pricePerGas > cap) throw new ChainHttpError(`evm: precio de gas fuera de rango (${pricePerGas} wei por gas, tope ${cap})`, { retryable: true })
+}
+
+const OUT_OF_RANGE = /precio de gas fuera de rango/
+
+/**
+ * ¿No se preparó la tx porque el precio del gas pasa del tope? Vale para el error suelto y
+ * para el del router cuando ningún nodo dio un precio razonable (`AllRpcsFailedError.errors`):
+ * ahí lo que hay que decir no es «sin nodos», sino que la comisión está disparada.
+ */
+export const isGasPriceOutOfRange = (err: unknown): boolean => {
+	const inner = (err as { errors?: unknown } | null)?.errors
+	const list = Array.isArray(inner) && inner.length > 0 ? inner : [err]
+	return list.some(item => item instanceof Error && OUT_OF_RANGE.test(item.message))
+}
 
 /** Margen sobre `eth_estimateGas` en tokens: los saldos que cruzan de 0 y los tokens con hooks (USDT) cuestan más al ejecutar que al estimar. */
 const TOKEN_GAS_MARGIN_PERCENT = 25n
@@ -156,6 +211,20 @@ export const getEvmFeeData = async (rpc: RegistryRpc, deps: Deps = {}): Promise<
 }
 
 /**
+ * Un `eth_estimateGas` que el nodo rechaza porque la tx REVERTIRÍA o no hay saldo no es un
+ * fallo del nodo: sería igual en cualquiera. Varios (geth) lo devuelven con el código
+ * genérico -32000, que `jsonRpc` trata como «prueba con otro nodo»; aquí se marca como
+ * definitivo para que no se recorran todos y el motivo llegue a la pantalla.
+ */
+const rejectedEstimate = (err: unknown): never => {
+	const message = (err as Error)?.message ?? ''
+	if (/revert|insufficient funds|exceeds balance|insufficient balance/i.test(message)) {
+		throw new ChainHttpError(message, { retryable: false, data: (err as ChainHttpError)?.data })
+	}
+	throw err
+}
+
+/**
  * Construye la tx sin firmar con nonce, gas y fee reales del nodo. Lanza
  * `ChainHttpError` no reintentable con el mensaje del nodo si la estimación
  * revierte (saldo de token insuficiente, contrato pausado…).
@@ -175,15 +244,22 @@ export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, int
 		// `pending`: si hay una tx nuestra en el mempool, la siguiente no debe pisar su nonce
 		jsonRpc<string>(rpc.url, 'eth_getTransactionCount', [intent.from, 'pending'], rpcOpts(rpc, deps)),
 		getEvmFeeData(rpc, deps),
-		intent.contract
-			? jsonRpc<string>(rpc.url, 'eth_estimateGas', [{ from: intent.from, to, data, value: '0x0' }], rpcOpts(rpc, deps))
-			: Promise.resolve(`0x${NATIVE_TRANSFER_GAS.toString(16)}`),
+		// También en nativo (E-01): con 21.000 fijos, un destino que ejecuta código se
+		// quedaba sin gas, la tx se minaba, revertía y se quemaba la comisión. Y si la
+		// simulación revierte, no se firma
+		jsonRpc<string>(rpc.url, 'eth_estimateGas', [{ from: intent.from, to, data, value: `0x${value.toString(16)}` }], rpcOpts(rpc, deps)).catch(rejectedEstimate),
 	])
 
 	let gasLimit = hexToBigInt(gasHex)
 	if (intent.contract) {
 		gasLimit = gasLimit * (100n + TOKEN_GAS_MARGIN_PERCENT) / 100n
 		if (gasLimit > MAX_TOKEN_GAS) throw new ChainHttpError(`evm: gas estimado anómalo (${gasLimit})`, { retryable: false })
+	} else if (gasLimit <= NATIVE_TRANSFER_GAS) {
+		// Una cuenta externa: exactamente el mínimo, sin margen (MÁX lo da por hecho)
+		gasLimit = NATIVE_TRANSFER_GAS
+	} else {
+		gasLimit = gasLimit * (100n + NATIVE_CODE_GAS_MARGIN_PERCENT) / 100n
+		if (gasLimit > MAX_NATIVE_GAS) throw new ChainHttpError(`evm: gas estimado anómalo para un envío de nativo (${gasLimit})`, { retryable: false })
 	}
 
 	const base = { chainId: intent.chainId, nonce: Number(hexToBigInt(nonceHex)), to, value, data, gas: gasLimit }
@@ -191,12 +267,14 @@ export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, int
 	if (feeData.eip1559) {
 		const priority = tierPriority(feeData.priorityFee, tier)
 		const maxFeePerGas = feeData.baseFee * 2n + priority
+		assertSaneGasPrice(intent.chainId, maxFeePerGas)
 		const tx: TransactionSerializable = { ...base, type: 'eip1559', maxFeePerGas, maxPriorityFeePerGas: priority }
 		const feeByTier = Object.fromEntries(tiers.map(t => [t, gasLimit * (feeData.baseFee + tierPriority(feeData.priorityFee, t))])) as Record<FeeTier, bigint>
 		return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * (feeData.baseFee + priority), maxWei: gasLimit * maxFeePerGas, eip1559: true }, tier, feeByTier, sponsored: false }
 	}
 	// Legacy: el "priority" es el propio gasPrice escalado
 	const gasPrice = tierPriority(feeData.gasPrice, tier)
+	assertSaneGasPrice(intent.chainId, gasPrice)
 	const tx: TransactionSerializable = { ...base, type: 'legacy', gasPrice }
 	const feeByTier = Object.fromEntries(tiers.map(t => [t, gasLimit * tierPriority(feeData.gasPrice, t)])) as Record<FeeTier, bigint>
 	return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * gasPrice, maxWei: gasLimit * gasPrice, eip1559: false }, tier, feeByTier, sponsored: false }
@@ -293,4 +371,93 @@ export const broadcastEvmTransaction = async (rpc: RegistryRpc, signed: SignedEv
 		}
 		throw err
 	}
+}
+
+// ---------------------------------------------------------------------------
+// ¿Qué fue de una tx ya difundida?
+// ---------------------------------------------------------------------------
+
+/** Tiempo que debe llevar gastado el nonce de una tx para dar por buena su ausencia (como en TRON). */
+export const EVM_LOOKUP_MARGIN_S = 180n
+
+/**
+ * Ese margen, en bloques, no pasa de lo que un nodo completo guarda de estado (128 bloques,
+ * con algo de aire): en las redes rápidas se queda corto en tiempo (~45 s en BNB Chain,
+ * ~20 s en Base). Ni baja de `EVM_LOOKUP_MIN_DEPTH`.
+ */
+export const EVM_LOOKUP_MAX_DEPTH = 100n
+export const EVM_LOOKUP_MIN_DEPTH = 12n
+
+/** Lo que identifica una tx firmada ante la cadena: su hash, quién la firma y con qué nonce. */
+export type SentEvmTx = { hash: string, from: string, nonce: number }
+
+type EvmReceipt = { transactionHash?: unknown, blockNumber?: unknown, status?: unknown }
+type EvmBlockHead = { number?: string, timestamp?: string }
+
+/** El recibo de ESA tx, si el nodo lo tiene. `null`: no hay recibo. */
+const readEvmReceipt = async (rpc: RegistryRpc, hash: string, deps: Deps): Promise<TxLookup | null> => {
+	const receipt = await jsonRpc<EvmReceipt | null>(rpc.url, 'eth_getTransactionReceipt', [hash], rpcOpts(rpc, deps))
+	if (!receipt || typeof receipt !== 'object') return null
+	if (typeof receipt.transactionHash !== 'string' || receipt.transactionHash.toLowerCase() !== hash.toLowerCase()) return { status: 'unknown' }
+	// Con recibo, la tx está en un bloque: gastó su nonce y esa firma ya no vale. `0x0` =
+	// revirtió (no movió el importe); cualquier otra cosa se cuenta como ejecutada, que es
+	// el lado seguro: nunca invita a firmar otra
+	return receipt.status === '0x0' ? { status: 'dropped' } : { status: 'landed', txid: hash }
+}
+
+/** ¿Conoce el nodo esa tx (minada o en su mempool)? */
+const knowsEvmTransaction = async (rpc: RegistryRpc, hash: string, deps: Deps): Promise<boolean> => {
+	const found = await jsonRpc<{ hash?: unknown } | null>(rpc.url, 'eth_getTransactionByHash', [hash], rpcOpts(rpc, deps))
+	return !!found && typeof found === 'object' && typeof found.hash === 'string' && found.hash.toLowerCase() === hash.toLowerCase()
+}
+
+/**
+ * El bloque en el que se mira el nonce: el que queda `EVM_LOOKUP_MARGIN_S` por detrás de
+ * la punta, medido con las marcas de tiempo de la propia cadena (los bloques van de 12 s
+ * en Ethereum a 0,2 s en Base, y cambian). `null`: la cadena no da para medirlo.
+ */
+const evmLookupBlock = async (rpc: RegistryRpc, deps: Deps): Promise<bigint | null> => {
+	const latest = await jsonRpc<EvmBlockHead | null>(rpc.url, 'eth_getBlockByNumber', ['latest', false], rpcOpts(rpc, deps))
+	const head = hexToBigInt(latest?.number)
+	if (head <= EVM_LOOKUP_MAX_DEPTH) return null
+	const old = await jsonRpc<EvmBlockHead | null>(rpc.url, 'eth_getBlockByNumber', [`0x${(head - EVM_LOOKUP_MAX_DEPTH).toString(16)}`, false], rpcOpts(rpc, deps))
+	// Segundos que ocupan los últimos `EVM_LOOKUP_MAX_DEPTH` bloques
+	const span = hexToBigInt(latest?.timestamp) - hexToBigInt(old?.timestamp)
+	const wanted = span > 0n ? (EVM_LOOKUP_MARGIN_S * EVM_LOOKUP_MAX_DEPTH + span - 1n) / span : EVM_LOOKUP_MAX_DEPTH
+	const depth = wanted > EVM_LOOKUP_MAX_DEPTH ? EVM_LOOKUP_MAX_DEPTH : wanted < EVM_LOOKUP_MIN_DEPTH ? EVM_LOOKUP_MIN_DEPTH : wanted
+	return head - depth
+}
+
+/**
+ * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara?
+ *
+ * - **Con recibo:** se ejecutó (`landed`) o entró y revirtió (`dropped`).
+ * - **Sin recibo pero el nodo la conoce** (mempool): `landed`, lo mismo que una difusión
+ *   aceptada. Si luego no se mina, eso ya es seguimiento, no un segundo envío.
+ * - **Sin rastro:** una tx EVM no caduca, así que «no está» no prueba que no vaya a entrar…
+ *   salvo que su nonce lo haya gastado OTRA tx. Solo eso da `dropped`, y solo si el nonce
+ *   ya estaba gastado hace `EVM_LOOKUP_MARGIN_S` y, vuelta a buscar DESPUÉS de leerlo, la
+ *   tx sigue sin aparecer. El orden importa: si el nonce lo gastó ESTA tx, un nodo que ya
+ *   lo vio gastado la encuentra al buscarla después.
+ *
+ * Detrás de un balanceador, el nonce y la búsqueda por hash pueden contestarlos nodos
+ * distintos: para que uno rezagado diga «no está» de una tx que sí entró tendría que ir
+ * más de ese margen por detrás. Mitigación, no prueba (como `TRON_LOOKUP_MARGIN_MS`). Un
+ * nodo que ya podó el estado de esa altura lanza, y quien llama lo trata como `unknown`.
+ */
+export const lookupEvmTransaction = async (rpc: RegistryRpc, sent: SentEvmTx, deps: Deps = {}): Promise<TxLookup> => {
+	const receipt = await readEvmReceipt(rpc, sent.hash, deps)
+	if (receipt) return receipt
+	if (await knowsEvmTransaction(rpc, sent.hash, deps)) return { status: 'landed', txid: sent.hash }
+
+	const block = await evmLookupBlock(rpc, deps)
+	if (block === null) return { status: 'unknown' }
+	const spentBy = hexToBigInt(await jsonRpc<string>(rpc.url, 'eth_getTransactionCount', [sent.from, `0x${block.toString(16)}`], rpcOpts(rpc, deps)))
+	// El nonce sigue libre (o se gastó hace poco): la tx aún puede entrar, o acaba de hacerlo
+	if (spentBy <= BigInt(sent.nonce)) return { status: 'unknown' }
+
+	const again = await readEvmReceipt(rpc, sent.hash, deps)
+	if (again) return again
+	if (await knowsEvmTransaction(rpc, sent.hash, deps)) return { status: 'landed', txid: sent.hash }
+	return { status: 'dropped' }
 }
