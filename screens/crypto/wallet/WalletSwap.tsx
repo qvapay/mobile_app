@@ -13,7 +13,7 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { buildSwapForm, isInUnsupported, percentAmount, sanitizeAmountInput } from './swapModel'
 import { estimateNativeReserve, maxSendableUnits, percentOfUnits, TRX_MAX_RESERVE_SUN } from './walletSendActions'
-import { parseAmountSafe } from './exchangeModel'
+import { floatSafeUnits, parseAmountSafe } from './exchangeModel'
 import { formatUnits } from '../../../wallet/chains/units'
 import { buildSwapView } from './swapView'
 import type { SwapSide } from './swapView'
@@ -419,7 +419,8 @@ const WalletSwap = ({ navigation, route }: Props) => {
 			const ceiling = isNative
 				? maxSendableUnits({ balance, isNative: true, kind: payAsset.kind, reserve: nativeReserve })
 				: balance
-			const units = percentOfUnits(ceiling, p)
+			// Y con las cifras que sobreviven al viaje como número: con más, MÁX pedía de más
+			const units = floatSafeUnits(percentOfUnits(ceiling, p), payAsset.decimals)
 			return units > 0n ? formatUnits(units, payAsset.decimals) : ''
 		}
 		return PERCENT_CHIPS.map(p => ({

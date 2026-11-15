@@ -7,11 +7,15 @@ const {
 	depositViewFor,
 	depositAmountRaw,
 	deviationBps,
+	floatSafeUnits,
 	isDeviationNotable,
 	isLive,
 	phaseOf,
 	stepsFor,
+	unitsOfNumber,
 } = require('./exchangeModel')
+const { toUnits } = require('./onchainSwapModel')
+const { formatUnits } = require('../../../wallet/chains/units')
 
 const order = (over = {}) => ({ status: 'awaiting_deposit', payin_hash: null, payout_hash: null, ...over })
 
@@ -180,5 +184,69 @@ describe('importe a depositar', () => {
 
 	it('sobrevive a un decimal con más precisión de la que la cadena admite', () => {
 		expect(() => depositAmountRaw({ amount_in: '0.1234567890123' }, 6)).not.toThrow()
+	})
+})
+
+// X-04: el importe de un intercambio viaja como número de coma flotante (app → qpweb →
+// proveedor), que guarda 15-17 cifras significativas. Con más, se redondea, y a veces hacia arriba
+describe('el importe sobrevive al viaje como número', () => {
+
+	// Un saldo de un token de 18 decimales que, como número, se redondea HACIA ARRIBA (les pasa a
+	// cuatro de cada diez saldos de 19 cifras)
+	const BALANCE = 2_345_678_901_234_567_891n
+
+	it('el fallo: el saldo entero, hecho número, es más de lo que hay', () => {
+		const travelled = unitsOfNumber(Number(formatUnits(BALANCE, 18)), 18)
+		expect(travelled).toBe(2_345_678_901_234_568_000n)
+		expect(travelled > BALANCE).toBe(true)
+	})
+
+	it('MÁX se queda con las cifras que el número guarda exactas: nunca más de lo que hay', () => {
+		const safe = floatSafeUnits(BALANCE, 18)
+		expect(safe).toBe(2_345_678_901_234_560_000n)
+		expect(unitsOfNumber(Number(formatUnits(safe, 18)), 18)).toBe(safe)
+		expect(checkAmount({ input: formatUnits(safe, 18), balance: BALANCE, decimals: 18 })).toEqual({ ok: true, amount: 2.34567890123456 })
+	})
+
+	it('lo que cabe entero no se toca', () => {
+		expect(floatSafeUnits(5_436_789n, 6)).toBe(5_436_789n)
+		expect(floatSafeUnits(100_000_000_000n, 18)).toBe(100_000_000_000n) // 0,0000001: viaja en notación científica
+		expect(floatSafeUnits(123_456n, 8)).toBe(123_456n)
+		expect(floatSafeUnits(20_000_000_000_000_000_000n, 18)).toBe(20_000_000_000_000_000_000n)
+		expect(floatSafeUnits(0n, 18)).toBe(0n)
+		expect(floatSafeUnits(-5n, 18)).toBe(0n)
+	})
+
+	it('con cualquier saldo: nunca por encima, sobrevive al viaje y lo que deja fuera es despreciable', () => {
+		let seed = 12345
+		const random = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed }
+		for (let i = 0; i < 2000; i++) {
+			const decimals = [6, 8, 9, 18][random() % 4]
+			const digits = 1 + (random() % 26)
+			let units = 0n
+			for (let d = 0; d < digits; d++) { units = units * 10n + BigInt(random() % 10) }
+			if (units === 0n) { continue }
+			const safe = floatSafeUnits(units, decimals)
+			expect(safe <= units).toBe(true)
+			expect(safe > 0n).toBe(true)
+			expect(unitsOfNumber(Number(formatUnits(safe, decimals)), decimals)).toBe(safe)
+			// Como mucho, la decimoquinta cifra significativa
+			expect((units - safe) * 10n ** 14n <= units).toBe(true)
+		}
+	})
+
+	it('es la MISMA cuenta que hace la wallet al firmar on-chain (y qpweb con lo que recibe)', () => {
+		for (const [amount, decimals] of [[1.2345678901234568, 18], [0.1, 18], [1e-7, 18], [20, 6], [0.3, 6], [5.436789, 6], [123456789.12345679, 9]]) {
+			expect(unitsOfNumber(amount, decimals)).toBe(toUnits(amount, decimals))
+		}
+		expect(unitsOfNumber(0, 6)).toBe(0n)
+		expect(unitsOfNumber(NaN, 6)).toBe(0n)
+	})
+
+	it('un importe tecleado que al redondearse pasa del saldo se da por insuficiente', () => {
+		// Lo tecleado es justo el saldo; lo que viajaría son 109 unidades más
+		expect(checkAmount({ input: formatUnits(BALANCE, 18), balance: BALANCE, decimals: 18 }).reason).toBe('insufficient')
+		// Con saldo de sobra, el mismo importe pasa
+		expect(checkAmount({ input: formatUnits(BALANCE, 18), balance: BALANCE + 1_000n, decimals: 18 }).ok).toBe(true)
 	})
 })

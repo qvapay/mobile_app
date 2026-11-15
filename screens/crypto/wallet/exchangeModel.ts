@@ -13,6 +13,49 @@ export const parseAmountSafe = (decimal: string, decimals: number): bigint => {
 	try { return parseUnits(decimal, decimals) } catch { return 0n }
 }
 
+// ── El importe viaja como número ───────────────────────────────────────────
+
+/**
+ * Las unidades mínimas a las que equivale un importe DESPUÉS de viajar como `Number`. Es la
+ * cuenta que hacen qpweb y `onchainSwapModel.toUnits` con lo que les llega: la
+ * representación más corta del número, sin pasar por `toFixed` salvo en notación científica.
+ */
+export const unitsOfNumber = (amount: number, decimals: number): bigint => {
+	if (!Number.isFinite(amount) || amount <= 0) { return 0n }
+	const text = /e/i.test(String(amount)) ? amount.toFixed(Math.min(decimals, 20)) : String(amount)
+	if (!/^\d+(\.\d+)?$/.test(text)) { return 0n }
+	const [whole, frac = ''] = text.split('.')
+	return BigInt(whole) * 10n ** BigInt(decimals) + BigInt((frac + '0'.repeat(decimals)).slice(0, decimals) || '0')
+}
+
+/** Cifras significativas que un `Number` conserva exactas, sea cual sea el decimal. */
+const FLOAT_SAFE_DIGITS = 15
+
+/**
+ * El mayor importe ≤ `units` que sobrevive al viaje por un `Number` (X-04).
+ *
+ * El importe de un intercambio va de la app a qpweb y al proveedor como número de coma
+ * flotante, que guarda 15-17 cifras significativas. Con más, se REDONDEA, y a veces hacia
+ * arriba: MÁX sobre un saldo de 1,234567890123456789 pedía 1,2345678901234568, más de lo
+ * que hay. En custodial la orden quedaba sin poder fondearse; on-chain se firmaba el
+ * permiso y el swap ya no simulaba. Hasta que el importe viaje como texto de punta a
+ * punta, MÁX y los porcentajes se quedan con las cifras que el número guarda exactas (lo
+ * que se deja fuera es menos de una milbillonésima del importe).
+ */
+export const floatSafeUnits = (units: bigint, decimals: number): bigint => {
+	if (units <= 0n) { return 0n }
+	const survives = (candidate: bigint) => unitsOfNumber(Number(formatUnits(candidate, decimals)), decimals) === candidate
+	if (survives(units)) { return units }
+	const length = units.toString().length
+	for (let digits = FLOAT_SAFE_DIGITS; digits >= 1; digits--) {
+		if (length <= digits) { continue }
+		const step = 10n ** BigInt(length - digits)
+		const floored = units / step * step
+		if (floored > 0n && survives(floored)) { return floored }
+	}
+	return 0n
+}
+
 // ── Validación del importe ─────────────────────────────────────────────────
 
 export type AmountCheck =
@@ -43,6 +86,9 @@ export const checkAmount = ({ input, balance, decimals, minAmount }: {
 	if (!Number.isFinite(amount) || amount <= 0) { return { ok: false, reason: 'invalid' } }
 
 	if (parseAmountSafe(trimmed, decimals) > balance) { return { ok: false, reason: 'insufficient' } }
+	// Lo que VIAJA es el número, no el texto: con más cifras de las que guarda se redondea,
+	// y puede quedar por encima de lo que hay aunque lo tecleado no lo esté
+	if (unitsOfNumber(amount, decimals) > balance) { return { ok: false, reason: 'insufficient' } }
 
 	if (minAmount && amount < minAmount) { return { ok: false, reason: 'below_minimum', minAmount } }
 
