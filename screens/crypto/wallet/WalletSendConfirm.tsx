@@ -135,7 +135,8 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 
 	const tx = useWalletSendTx({
 		asset, chain, addresses, to, amount, assetId, onSent, describeError: describe, sponsor: gasless.bridge, sponsorResolver: gasless.resolver,
-		...(exchangeUuid && { onAttempt: onDepositAttempt, onDropped: onDepositDropped }),
+		// Un depósito tiene que llegar por el importe EXACTO de la orden: en Bitcoin, nada de «enviar todo»
+		...(exchangeUuid && { onAttempt: onDepositAttempt, onDropped: onDepositDropped, exact: true }),
 	})
 	const { phase, prepared, error, feeTier, busy } = tx
 
@@ -674,6 +675,8 @@ const describeError = (err: unknown, t: (key: string, opts?: Record<string, unkn
 	// el mensaje útil lo pone `prepareSolanaSend` antes de firmar
 	if (/seguir existiendo|InsufficientFundsForRent/i.test(message)) return t('crypto.wallet.send.errors.solanaRent')
 	if (/balance is not sufficient|insufficient funds|exceeds balance|insufficient/i.test(message)) return t('crypto.wallet.send.errors.nodeInsufficient')
+	// Bitcoin: el saldo da para el importe pero no para el importe MÁS la comisión
+	if (/sin fondos suficientes para la cantidad más la comisión|el saldo no cubre la comisión/.test(message)) return t('crypto.wallet.send.errors.feeNotCovered')
 	// La simulación ya dice que el contrato lo rechazaría: no se firma. El motivo del nodo
 	// («REVERT opcode executed», «execution reverted») no le dice nada a quien envía
 	if (/revertir[ií]a|\brevert/i.test(message)) return t('crypto.wallet.send.errors.wouldRevert')

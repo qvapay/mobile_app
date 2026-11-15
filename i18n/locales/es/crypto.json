@@ -273,6 +273,7 @@
 				"nodeInsufficient": "La red rechazó la transacción por saldo insuficiente.",
 				"wouldRevert": "La red rechazaría este envío, así que no se ha firmado. Revisa tu saldo del token o inténtalo más tarde.",
 				"feeTooHigh": "La comisión de la red está muy por encima de lo normal, así que no se ha firmado nada. Inténtalo más tarde.",
+				"feeNotCovered": "Tu saldo no cubre el importe más la comisión de red. Prueba con un poco menos.",
 				"generic": "No se pudo enviar: {{message}}",
 				"unknown": "No se pudo enviar. Inténtalo de nuevo.",
 				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad.",

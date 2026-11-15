@@ -338,6 +338,20 @@ describe('depósito de un intercambio', () => {
 	/** Lo que la pantalla le pasó al motor de envío. */
 	const engineArgs = () => useWalletSendTx.mock.calls[useWalletSendTx.mock.calls.length - 1][0]
 
+	// X-05: en Bitcoin «enviar todo» descuenta la comisión de lo enviado; a un depósito no le vale
+	test('el depósito se prepara por el importe EXACTO de la orden; un envío normal, no', async () => {
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		expect(engineArgs().exact).toBe(true)
+		act(() => tree.unmount())
+		await render(BOB)
+		expect(engineArgs().exact).toBeUndefined()
+	})
+
+	test('si el saldo no da para el importe más la comisión, se dice así', async () => {
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		expect(engineArgs().describeError(new Error('btc: sin fondos suficientes para la cantidad más la comisión'))).toBe('Tu saldo no cubre el importe más la comisión de red. Prueba con un poco menos.')
+	})
+
 	test('un envío normal no pregunta nada: abre el PIN', async () => {
 		await render(BOB)
 		await press()

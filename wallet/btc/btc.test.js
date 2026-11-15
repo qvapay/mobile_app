@@ -10,6 +10,7 @@ import {
 	broadcastBtcTransaction,
 	BtcVerifyError,
 	DUST_SATS,
+	estimateBtcSendReserve,
 	estimateVsize,
 	feeFor,
 	isValidBtcAddress,
@@ -83,6 +84,44 @@ describe('selectUtxos', () => {
 		expect(() => selectUtxos([utxo(1_000)], 0n, 1)).toThrow(/inválida/)
 		expect(selectUtxos([utxo(100_000)], 1_000n, 0.2).feeRate).toBe(1)
 		expect(() => selectUtxos([utxo(600)], 600n, 1)).toThrow(/no cubre/)
+	})
+})
+
+// X-05: MÁX de BTC en un intercambio abría la orden por el saldo entero y depositaba el saldo
+// menos la comisión: al proveedor le llegaba menos de lo acordado
+describe('un importe que tiene que llegar EXACTO (el depósito de un intercambio)', () => {
+	test('«enviar todo» no vale: si el saldo no da para la cantidad MÁS la comisión, no hay envío', () => {
+		const utxos = [utxo(30_000), utxo(20_000, { vout: 1 })]
+		expect(() => selectUtxos(utxos, 50_000n, 2, 0, { exact: true })).toThrow(/sin fondos suficientes para la cantidad más la comisión/)
+		// Sin `exact` (un envío normal) sigue siendo «enviar todo»
+		expect(selectUtxos(utxos, 50_000n, 2).sendAll).toBe(true)
+	})
+
+	test('con sitio para la comisión, llega la cantidad pedida tal cual', () => {
+		const sel = selectUtxos([utxo(30_000), utxo(20_000, { vout: 1 })], 49_000n, 2, 0, { exact: true })
+		expect(sel.amount).toBe(49_000n)
+		expect(sel.sendAll).toBe(false)
+		expect(sel.inputs.reduce((sum, u) => sum + u.value, 0n) - sel.change - sel.fee).toBe(49_000n)
+	})
+
+	test('la reserva de MÁX deja sitio para esa comisión, también si la tasa sube', async () => {
+		global.fetch = jest.fn(async (url) => {
+			if (url.endsWith('/utxo')) return { ok: true, status: 200, json: async () => [{ txid: 'aa'.repeat(32), vout: 0, value: 30_000, status: { confirmed: true } }, { txid: 'bb'.repeat(32), vout: 1, value: 20_000, status: { confirmed: true } }] }
+			return { ok: true, status: 200, json: async () => ({ 1: 10, 3: 6, 6: 2 }) }
+		})
+		try {
+			const reserve = await estimateBtcSendReserve(RPC, FROM)
+			// Dos inputs y dos salidas a la tasa rápida, más la mitad de margen
+			expect(reserve).toBe(feeFor(estimateVsize(2, 2), 10) * 3n / 2n)
+			// Lo que MÁX ofrecería se puede depositar exacto, incluso al nivel más caro
+			const sel = selectUtxos([utxo(30_000), utxo(20_000, { vout: 1 })], 50_000n - reserve, 10, 0, { exact: true })
+			expect(sel.amount).toBe(50_000n - reserve)
+		} finally { delete global.fetch }
+	})
+
+	test('sin UTXOs no hay nada que reservar', async () => {
+		global.fetch = jest.fn(async (url) => ({ ok: true, status: 200, json: async () => (url.endsWith('/utxo') ? [] : {}) }))
+		try { await expect(estimateBtcSendReserve(RPC, FROM)).resolves.toBe(0n) } finally { delete global.fetch }
 	})
 })
 

@@ -394,7 +394,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	 * pantalla de enviar. Esconder el botón, que es lo que hacía antes, era la salida
 	 * perezosa: el usuario lo echa de menos y no entiende por qué falta.
 	 */
-	const nativeReserve = useNativeReserve(payAsset, isQusd)
+	const nativeReserve = useNativeReserve(payAsset, isQusd, addresses?.btc ?? null)
 
 	/**
 	 * Decimales que admite el campo. Los modos con saldo QvaPay son dólares; cuando paga un
@@ -416,8 +416,10 @@ const WalletSwap = ({ navigation, route }: Props) => {
 			const isNative = payAsset.contract === null
 			const balance = parseAmountSafe(payAsset.amount, payAsset.decimals)
 			// En el nativo el techo no es el saldo: hay que dejar la reserva de gas de su cadena
+			// `exact`: lo que se cotiza es lo que hay que depositar tal cual. En Bitcoin MÁX no es
+			// «todo» (la comisión saldría de lo enviado y llegaría menos de lo acordado)
 			const ceiling = isNative
-				? maxSendableUnits({ balance, isNative: true, kind: payAsset.kind, reserve: nativeReserve })
+				? maxSendableUnits({ balance, isNative: true, kind: payAsset.kind, reserve: nativeReserve, exact: true })
 				: balance
 			// Y con las cifras que sobreviven al viaje como número: con más, MÁX pedía de más
 			const units = floatSafeUnits(percentOfUnits(ceiling, p), payAsset.decimals)
@@ -559,7 +561,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
  * y entonces MÁX ofrece el saldo entero — lo mismo que ofrecía la pantalla de enviar antes
  * de que su reserva cargara.
  */
-const useNativeReserve = (asset: AssetView | null, skip: boolean): bigint => {
+const useNativeReserve = (asset: AssetView | null, skip: boolean, btcAddress: string | null): bigint => {
 
 	const registry = useEffectiveRegistry()
 	const [reserve, setReserve] = useState(0n)
@@ -568,17 +570,18 @@ const useNativeReserve = (asset: AssetView | null, skip: boolean): bigint => {
 	useEffect(() => {
 		if (!isNative || !asset) { setReserve(0n); return }
 		if (asset.kind === 'tron') { setReserve(TRX_MAX_RESERVE_SUN); return }
-		if (asset.kind === 'btc') { setReserve(0n); return }
 		let cancelled = false
 		const chain = registry.chains[asset.chainKey]
 		if (!chain) { return }
-		estimateNativeReserve(chain, asset.chainKey)
+		// Bitcoin: la comisión de gastar sus UTXOs. Aquí lo que se cotiza se deposita por el
+		// importe exacto, así que MÁX tiene que dejarla fuera
+		estimateNativeReserve(chain, asset.chainKey, asset.kind === 'btc' ? btcAddress : null)
 			.then(value => { if (!cancelled) { setReserve(value) } })
 			// Sin reserva conocida, MÁX ofrece el saldo entero y el envío avisará: es lo
 			// mismo que hace la pantalla de enviar, y mejor que quedarse sin botón
 			.catch(() => { if (!cancelled) { setReserve(0n) } })
 		return () => { cancelled = true }
-	}, [isNative, asset, registry])
+	}, [isNative, asset, registry, btcAddress])
 
 	return reserve
 }

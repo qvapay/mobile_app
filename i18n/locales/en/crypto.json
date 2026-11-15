@@ -273,6 +273,7 @@
 				"nodeInsufficient": "The network rejected the transaction for insufficient balance.",
 				"wouldRevert": "The network would reject this transfer, so nothing was signed. Check your token balance or try again later.",
 				"feeTooHigh": "The network fee is far above normal right now, so nothing was signed. Try again later.",
+				"feeNotCovered": "Your balance doesn't cover the amount plus the network fee. Try a slightly smaller amount.",
 				"generic": "Couldn’t send: {{message}}",
 				"unknown": "Couldn’t send. Please try again.",
 				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount.",

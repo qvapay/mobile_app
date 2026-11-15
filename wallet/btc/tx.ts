@@ -98,8 +98,13 @@ export const feeFor = (vsize: number, feeRate: number): bigint => BigInt(Math.ce
  * Selección de UTXOs: confirmados primero y de mayor a menor, hasta cubrir
  * cantidad + fee. Si lo que sobra es polvo, va a la fee. Con `amount` igual
  * al total disponible se gasta todo (fee descontada del envío).
+ *
+ * `exact`: lo que llegue tiene que ser `amount`, ni un satoshi menos (el depósito de un
+ * intercambio: el proveedor espera el importe de la orden). Ahí «enviar todo» no vale,
+ * porque descontaría la comisión de lo enviado (X-05): si el saldo no da para la cantidad
+ * MÁS la comisión, no hay envío.
  */
-export const selectUtxos = (utxos: Utxo[], amount: bigint, feeRate: number, extraVbytes = 0): BtcSelection => {
+export const selectUtxos = (utxos: Utxo[], amount: bigint, feeRate: number, extraVbytes = 0, { exact = false }: { exact?: boolean } = {}): BtcSelection => {
 	const rate = Math.max(feeRate, MIN_FEE_RATE)
 	// Salidas que no son de pago (el OP_RETURN de un swap) pesan en la fee igual que las demás
 	const vsizeOf = (inputs: number, outputs: number) => estimateVsize(inputs, outputs) + extraVbytes
@@ -111,6 +116,7 @@ export const selectUtxos = (utxos: Utxo[], amount: bigint, feeRate: number, extr
 
 	// Enviar todo (la cantidad ES el total): todos los inputs, una salida, fee descontada
 	if (amount === total) {
+		if (exact) throw new ChainHttpError('btc: sin fondos suficientes para la cantidad más la comisión', { retryable: false })
 		if (sorted.length > MAX_INPUTS) throw new ChainHttpError('btc: demasiados UTXOs para una sola transacción', { retryable: false })
 		const vsize = vsizeOf(sorted.length, 1)
 		const fee = feeFor(vsize, rate)
@@ -181,13 +187,26 @@ export const getBtcFeeRates = async (rpc: RegistryRpc, deps: Deps = {}): Promise
 /** Compatibilidad: la tasa del nivel Normal. */
 export const getBtcFeeRate = async (rpc: RegistryRpc, deps: Deps = {}): Promise<number> => (await getBtcFeeRates(rpc, deps)).normal
 
-export const prepareBtcSend = async (rpc: RegistryRpc, intent: BtcSendIntent, deps: Deps & { tier?: FeeTier } = {}): Promise<PreparedBtcSend> => {
+/** `exact`: el destino tiene que recibir `intent.amount` tal cual (ver `selectUtxos`). */
+export const prepareBtcSend = async (rpc: RegistryRpc, intent: BtcSendIntent, deps: Deps & { tier?: FeeTier, exact?: boolean } = {}): Promise<PreparedBtcSend> => {
 	if (!isValidBtcAddress(intent.to)) throw new ChainHttpError('btc: destino inválido', { retryable: false })
 	const tier = deps.tier ?? 'normal'
 	const [utxos, feeRates] = await Promise.all([getBtcUtxos(rpc, intent.from, deps), getBtcFeeRates(rpc, deps)])
-	const selection = selectUtxos(utxos, intent.amount, feeRates[tier])
+	const selection = selectUtxos(utxos, intent.amount, feeRates[tier], 0, { exact: deps.exact })
 	if (selection.fee > MAX_FEE_SATS) throw new ChainHttpError(`btc: comisión anómala (${selection.fee} sats)`, { retryable: false })
 	return { intent, selection, tier, feeRates }
+}
+
+/**
+ * Lo que hay que dejar sin tocar para que un envío por un importe EXACTO pueda pagar su
+ * comisión: la de gastar todos los UTXOs con salida de cambio, a la tasa más rápida y con
+ * un 50 % de margen (la tasa se mueve entre cotizar el intercambio y depositar). Es el MÁX
+ * de Bitcoin cuando lo que se va a hacer es un depósito; en un envío normal MÁX es todo.
+ */
+export const estimateBtcSendReserve = async (rpc: RegistryRpc, address: string, deps: Deps = {}): Promise<bigint> => {
+	const [utxos, feeRates] = await Promise.all([getBtcUtxos(rpc, address, deps), getBtcFeeRates(rpc, deps)])
+	if (utxos.length === 0) return 0n
+	return feeFor(estimateVsize(Math.min(utxos.length, MAX_INPUTS), 2), feeRates.fast) * 3n / 2n
 }
 
 // ---------------------------------------------------------------------------
