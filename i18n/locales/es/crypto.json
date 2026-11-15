@@ -82,6 +82,7 @@
 		"add": {
 			"title": "Nodo para {{chain}}",
 			"subtitle": "URL https de un RPC de {{chain}}. Se prueba antes de guardar y tendrá prioridad sobre los del registro.",
+			"warning": "Añade solo un nodo en el que confíes: verá tus direcciones y de él saldrán los saldos que veas. Un nodo falso puede enseñarte dinero que no existe.",
 			"placeholder": "https://…",
 			"save": "Probar y guardar",
 			"testing": "Probando…",
@@ -92,7 +93,9 @@
 				"credentials": "La URL no puede llevar usuario ni contraseña",
 				"duplicate": "Ese nodo ya está en la lista",
 				"limit": "Máximo {{count}} nodos por cadena",
-				"unreachable": "El nodo no respondió a la prueba"
+				"unreachable": "El nodo no respondió a la prueba",
+				"wrongNetwork": "Ese nodo no es de la red principal de {{chain}}",
+				"unverified": "No se pudo comprobar de qué red es ese nodo"
 			}
 		},
 		"toasts": {
@@ -101,6 +104,11 @@
 		}
 	},
 	"wallet": {
+		"customNode": {
+			"title": "Saldos leídos de un nodo tuyo",
+			"body": "En {{chains}} manda un nodo que añadiste tú. Si alguien te pidió cambiarlo para «ver» un pago, es una estafa: quítalo.",
+			"action": "Ver nodos"
+		},
 		"card": {
 			"title": "Mi Wallet",
 			"subtitle": "Tus llaves, tus fondos. QvaPay no puede tocarlos.",

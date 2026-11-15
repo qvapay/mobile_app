@@ -82,6 +82,7 @@
 		"add": {
 			"title": "Nó para {{chain}}",
 			"subtitle": "URL https de um RPC de {{chain}}. É testado antes de salvar e terá prioridade sobre os do registro.",
+			"warning": "Adicione apenas um nó em que você confia: ele verá seus endereços e os saldos que você vê virão dele. Um nó falso pode mostrar dinheiro que não existe.",
 			"placeholder": "https://…",
 			"save": "Testar e salvar",
 			"testing": "Testando…",
@@ -92,7 +93,9 @@
 				"credentials": "A URL não pode conter usuário nem senha",
 				"duplicate": "Esse nó já está na lista",
 				"limit": "No máximo {{count}} nós por cadeia",
-				"unreachable": "O nó não respondeu ao teste"
+				"unreachable": "O nó não respondeu ao teste",
+				"wrongNetwork": "Esse nó não é da rede principal de {{chain}}",
+				"unverified": "Não foi possível verificar de qual rede é esse nó"
 			}
 		},
 		"toasts": {
@@ -101,6 +104,11 @@
 		}
 	},
 	"wallet": {
+		"customNode": {
+			"title": "Saldos lidos de um nó seu",
+			"body": "Em {{chains}} manda um nó que você adicionou. Se alguém pediu para trocá-lo para “ver” um pagamento, é golpe: remova-o.",
+			"action": "Ver nós"
+		},
 		"card": {
 			"title": "Minha Wallet",
 			"subtitle": "Suas chaves, seus fundos. A QvaPay não pode tocá-los.",

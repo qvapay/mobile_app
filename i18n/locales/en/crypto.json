@@ -82,6 +82,7 @@
 		"add": {
 			"title": "Node for {{chain}}",
 			"subtitle": "An https RPC URL for {{chain}}. It is tested before saving and takes priority over the registry nodes.",
+			"warning": "Only add a node you trust: it will see your addresses, and the balances you see will come from it. A fake node can show you money that doesn't exist.",
 			"placeholder": "https://…",
 			"save": "Test and save",
 			"testing": "Testing…",
@@ -92,7 +93,9 @@
 				"credentials": "The URL cannot include a username or password",
 				"duplicate": "That node is already listed",
 				"limit": "Up to {{count}} nodes per chain",
-				"unreachable": "The node did not respond to the test"
+				"unreachable": "The node did not respond to the test",
+				"wrongNetwork": "That node isn't on {{chain}} mainnet",
+				"unverified": "Couldn't check which network that node belongs to"
 			}
 		},
 		"toasts": {
@@ -101,6 +104,11 @@
 		}
 	},
 	"wallet": {
+		"customNode": {
+			"title": "Balances read from your own node",
+			"body": "On {{chains}}, a node you added is in charge. If someone asked you to change it to “see” a payment, it’s a scam: remove it.",
+			"action": "See nodes"
+		},
 		"card": {
 			"title": "My Wallet",
 			"subtitle": "Your keys, your funds. QvaPay can’t touch them.",

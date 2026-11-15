@@ -180,6 +180,80 @@ export const probeRpc: ProbeRequest = async (_chainKey, chain, rpc, timeoutMs) =
 	}
 }
 
+/**
+ * Lo que identifica a la red principal de cada familia (comprobado el 2026-11-14 contra dos
+ * nodos públicos de cada una). Las EVM, y TRON por su capa `eth_*`, se identifican con el
+ * `chainId` del registro.
+ */
+export const NETWORK_IDENTITY = {
+	/** `blockID` del bloque 0 de TRON. */
+	tronGenesis: '00000000000000001ebf88508a03865c71d452e25f4d51194196a1d22b6653dc',
+	/** `getGenesisHash` de Solana mainnet-beta. */
+	solanaGenesis: '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d',
+	/** Hash del bloque 0 de Bitcoin. */
+	btcGenesis: '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f',
+	/** `network_id` de `/v2/info` en Stacks mainnet. */
+	stacksNetworkId: 1,
+} as const
+
+/** El nodo responde, pero no es de la red principal de esa cadena. */
+export class RpcNetworkMismatchError extends Error {
+	constructor(url: string, detail: string) {
+		super(`rpc ${url}: no es de la red esperada (${detail})`)
+		this.name = 'RpcNetworkMismatchError'
+	}
+}
+
+/**
+ * ¿Es este nodo de la RED que dice ser? (R-03) Se pregunta antes de guardar un nodo del
+ * usuario, que pasa a ser el primero al que la wallet lee y por el que difunde. `probeRpc`
+ * solo comprueba que responde: un nodo de otra cadena o de una red de pruebas pasaba, y sus
+ * saldos (los de otra red) se pintaban como si fueran los de la wallet.
+ *
+ * No detiene a un nodo que mienta a propósito (contesta lo que quiera): eso lo cubren el
+ * aviso al añadirlo y la insignia junto a los saldos. Lanza `RpcNetworkMismatchError` si
+ * la red es otra, y cualquier otro error si no se pudo preguntar.
+ */
+export const verifyRpcNetwork = async (chain: RegistryChain, rpc: RegistryRpc, timeoutMs: number): Promise<void> => {
+	const controller = new AbortController()
+	const timer = setTimeout(() => controller.abort(), timeoutMs)
+	const base = rpc.url.replace(/\/+$/, '')
+	const ok = (res: Response): Response => {
+		if (!res.ok) throw new Error(`rpc ${rpc.url}: HTTP ${res.status}`)
+		return res
+	}
+	const post = async (url: string, body: unknown): Promise<unknown> => (ok(await fetch(url, {
+		method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json', ...rpc.headers }, body: JSON.stringify(body),
+	}))).json()
+	const expect = (got: unknown, wanted: unknown): void => {
+		if (got === undefined || got === null || got === '') throw new Error(`rpc ${rpc.url}: sin respuesta a la identidad de red`)
+		if (got !== wanted) throw new RpcNetworkMismatchError(rpc.url, String(got).slice(0, 80))
+	}
+	try {
+		if (chain.kind === 'btc' || rpc.api === 'esplora') {
+			const hash = await (ok(await fetch(`${base}/block-height/0`, { signal: controller.signal, headers: rpc.headers }))).text()
+			expect(hash.trim().toLowerCase(), NETWORK_IDENTITY.btcGenesis)
+		} else if (chain.kind === 'stacks' || rpc.api === 'hiro') {
+			const info = await (ok(await fetch(`${base}/v2/info`, { signal: controller.signal, headers: rpc.headers }))).json() as { network_id?: unknown }
+			expect(info?.network_id, NETWORK_IDENTITY.stacksNetworkId)
+		} else if (chain.kind === 'solana') {
+			const body = await post(base, { jsonrpc: '2.0', id: 1, method: 'getGenesisHash' }) as { result?: unknown }
+			expect(body?.result, NETWORK_IDENTITY.solanaGenesis)
+		} else if (chain.kind === 'tron' && rpc.api !== 'jsonrpc') {
+			const block = await post(`${base}/wallet/getblockbynum`, { num: 0 }) as { blockID?: unknown }
+			expect(typeof block?.blockID === 'string' ? block.blockID.toLowerCase() : block?.blockID, NETWORK_IDENTITY.tronGenesis)
+		} else {
+			if (typeof chain.chainId !== 'number') throw new Error(`rpc ${rpc.url}: la cadena no declara chainId`)
+			const url = chain.kind === 'tron' && !base.endsWith('/jsonrpc') ? `${base}/jsonrpc` : base
+			const body = await post(url, { jsonrpc: '2.0', id: 1, method: 'eth_chainId', params: [] }) as { result?: unknown }
+			const id = typeof body?.result === 'string' && /^0x[0-9a-f]+$/i.test(body.result) ? Number(BigInt(body.result)) : body?.result
+			expect(id, chain.chainId)
+		}
+	} finally {
+		clearTimeout(timer)
+	}
+}
+
 type RouterDeps = {
 	now?: () => number
 	/** Salud precargada (AsyncStorage) para no arrancar a ciegas. */

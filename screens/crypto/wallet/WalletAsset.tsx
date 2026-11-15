@@ -38,6 +38,7 @@ import { useSettings } from '../../../settings/SettingsContext'
 import { useAuth } from '../../../auth/AuthContext'
 import AccountUpsellCard from './components/AccountUpsellCard'
 import TronControlWarning from './components/TronControlWarning'
+import CustomNodeNotice, { useCustomNodeChains } from './components/CustomNodeNotice'
 
 // Helpers
 import { timeAgo } from '../../../helpers'
@@ -160,6 +161,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const { all, isLoading: balancesLoading, refetch: refetchBalances } = useWalletAssets()
 	const prices = usePriceMap()
 	const asset = useMemo(() => all.find(a => a.id === assetId), [all, assetId])
+	// El saldo de este activo lo dice un nodo que añadió el usuario: se avisa siempre
+	const customNodeChains = useCustomNodeChains()
+	const customNode = !!asset && customNodeChains.includes(asset.chainKey)
 	const chain = asset ? registry.chains[asset.chainKey] : undefined
 	const address = asset && addresses ? addressForKind(addresses, asset.kind) : null
 	// Acción tokenizada: aquí se envía y se recibe en TOKENS (crudo); las acciones van debajo
@@ -298,6 +302,12 @@ const WalletAsset = ({ navigation, route }: Props) => {
 			{tronBlocked && (
 				<View style={styles.tronWarning}>
 					<TronControlWarning controllers={tronControllers} />
+				</View>
+			)}
+
+			{customNode && (
+				<View style={styles.tronWarning}>
+					<CustomNodeNotice chains={[asset.chainName]} />
 				</View>
 			)}
 

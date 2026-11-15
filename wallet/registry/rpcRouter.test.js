@@ -14,6 +14,9 @@ import {
 	AllRpcsFailedError,
 	MAX_FAILURES,
 	BREAKER_REOPEN_MS,
+	NETWORK_IDENTITY,
+	RpcNetworkMismatchError,
+	verifyRpcNetwork,
 } from './rpcRouter'
 import bundled from './bundled.json'
 
@@ -335,5 +338,83 @@ describe('seedHealth', () => {
 		const h = router.getHealth()
 		expect(h['https://api.trongrid.io']).toEqual(fresh)
 		expect(h['https://tron-rpc.publicnode.com'].latencyMs).toBe(80)
+	})
+})
+
+// R-03: al añadir un nodo propio solo se comprobaba que respondía. Uno de otra cadena, o de
+// una red de pruebas, pasaba, y sus saldos se pintaban como los de la wallet
+describe('un nodo del usuario tiene que ser de ESA red', () => {
+	afterEach(() => { delete global.fetch })
+	const RPC = { url: 'https://nodo.example/', priority: -1, owner: 'user' }
+	const reply = (json, { text } = {}) => ({ ok: true, status: 200, json: async () => json, text: async () => text ?? JSON.stringify(json) })
+	/** Nodo de mentira: contesta por ruta (REST) o por método (JSON-RPC). */
+	const node = (answers) => {
+		const calls = []
+		global.fetch = jest.fn(async (url, init) => {
+			const body = init?.body ? JSON.parse(init.body) : null
+			const key = body?.method ?? new URL(url).pathname
+			calls.push({ url, key })
+			const answer = answers[key]
+			if (answer === undefined) return { ok: false, status: 404, json: async () => ({}), text: async () => '' }
+			return typeof answer === 'string' ? reply(null, { text: answer }) : reply(answer)
+		})
+		return calls
+	}
+	const EVM = { kind: 'evm', chainId: 56, native: { symbol: 'BNB', decimals: 18 }, rpcs: [] }
+	const TRON = { kind: 'tron', chainId: 728126428, native: { symbol: 'TRX', decimals: 6 }, rpcs: [] }
+
+	test('EVM: su `eth_chainId` es el de la cadena', async () => {
+		node({ eth_chainId: { jsonrpc: '2.0', id: 1, result: '0x38' } })
+		await expect(verifyRpcNetwork(EVM, RPC, 3000)).resolves.toBeUndefined()
+		// Un nodo de Ethereum añadido a BNB Chain: responde, pero los saldos serían de otra red
+		node({ eth_chainId: { jsonrpc: '2.0', id: 1, result: '0x1' } })
+		await expect(verifyRpcNetwork(EVM, RPC, 3000)).rejects.toBeInstanceOf(RpcNetworkMismatchError)
+		// Y uno de la red de pruebas de BNB (97)
+		node({ eth_chainId: { jsonrpc: '2.0', id: 1, result: '0x61' } })
+		await expect(verifyRpcNetwork(EVM, RPC, 3000)).rejects.toBeInstanceOf(RpcNetworkMismatchError)
+	})
+
+	test('TRON: el bloque 0 por su API, o el chainId por la capa eth_*', async () => {
+		const calls = node({ '/wallet/getblockbynum': { blockID: NETWORK_IDENTITY.tronGenesis } })
+		await expect(verifyRpcNetwork(TRON, RPC, 3000)).resolves.toBeUndefined()
+		// La barra final de la URL no dobla la ruta
+		expect(calls[0].url).toBe('https://nodo.example/wallet/getblockbynum')
+		// Nile (la red de pruebas) tiene otro bloque 0
+		node({ '/wallet/getblockbynum': { blockID: '0000000000000000d698d4192c56cb6be724a558448e2684802de4d6cd8690dc' } })
+		await expect(verifyRpcNetwork(TRON, RPC, 3000)).rejects.toBeInstanceOf(RpcNetworkMismatchError)
+		node({ eth_chainId: { result: '0x2b6653dc' } })
+		await expect(verifyRpcNetwork(TRON, { ...RPC, api: 'jsonrpc' }, 3000)).resolves.toBeUndefined()
+	})
+
+	test('Solana, Bitcoin y Stacks: su génesis o su id de red', async () => {
+		node({ getGenesisHash: { result: NETWORK_IDENTITY.solanaGenesis } })
+		await expect(verifyRpcNetwork({ kind: 'solana', rpcs: [] }, RPC, 3000)).resolves.toBeUndefined()
+		// devnet
+		node({ getGenesisHash: { result: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG' } })
+		await expect(verifyRpcNetwork({ kind: 'solana', rpcs: [] }, RPC, 3000)).rejects.toBeInstanceOf(RpcNetworkMismatchError)
+
+		node({ '/block-height/0': `${NETWORK_IDENTITY.btcGenesis}\n` })
+		await expect(verifyRpcNetwork({ kind: 'btc', rpcs: [] }, RPC, 3000)).resolves.toBeUndefined()
+		// testnet3
+		node({ '/block-height/0': '000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943' })
+		await expect(verifyRpcNetwork({ kind: 'btc', rpcs: [] }, RPC, 3000)).rejects.toBeInstanceOf(RpcNetworkMismatchError)
+
+		node({ '/v2/info': { network_id: 1 } })
+		await expect(verifyRpcNetwork({ kind: 'stacks', rpcs: [] }, RPC, 3000)).resolves.toBeUndefined()
+		node({ '/v2/info': { network_id: 2147483648 } })
+		await expect(verifyRpcNetwork({ kind: 'stacks', rpcs: [] }, RPC, 3000)).rejects.toBeInstanceOf(RpcNetworkMismatchError)
+	})
+
+	test('si no se puede preguntar, no es «otra red»: es que no se sabe (y tampoco se guarda)', async () => {
+		node({})
+		const err = await verifyRpcNetwork(EVM, RPC, 3000).catch(e => e)
+		expect(err).toBeInstanceOf(Error)
+		expect(err).not.toBeInstanceOf(RpcNetworkMismatchError)
+		// Responde, pero sin el dato
+		node({ eth_chainId: { jsonrpc: '2.0', id: 1, error: { code: -32601, message: 'method not found' } } })
+		await expect(verifyRpcNetwork(EVM, RPC, 3000)).rejects.not.toBeInstanceOf(RpcNetworkMismatchError)
+		// Una cadena EVM sin chainId en el registro no se puede comprobar
+		node({ eth_chainId: { result: '0x38' } })
+		await expect(verifyRpcNetwork({ ...EVM, chainId: undefined }, RPC, 3000)).rejects.toThrow(/chainId/)
 	})
 })

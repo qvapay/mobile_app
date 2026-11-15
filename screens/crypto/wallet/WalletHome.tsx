@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
@@ -32,6 +32,7 @@ import WalletBalanceCard from './components/WalletBalanceCard'
 import type { WalletAction } from './components/WalletBalanceCard'
 import WalletAssetRow from './components/WalletAssetRow'
 import TronControlWarning from './components/TronControlWarning'
+import CustomNodeNotice, { useCustomNodeChains } from './components/CustomNodeNotice'
 import { isDevBuild, isStakingHubEnabled } from '../../../wallet/staking/capabilities'
 
 // Navigation
@@ -73,7 +74,10 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 
 	const { isReady, hasWallet, isBackedUp } = useWallet()
 	const { isAuthenticated } = useAuth()
-	const { visible, total, isLoading, isHydrating, isError, failedChains, hasBalances, refetch } = useWalletAssets()
+	const { visible, all, total, isLoading, isHydrating, isError, failedChains, hasBalances, refetch } = useWalletAssets()
+	// Redes cuyos saldos dice un nodo que añadió el usuario: se avisa siempre, junto al total
+	const customNodeChains = useCustomNodeChains()
+	const customNodeNames = useMemo(() => customNodeChains.map(key => all.find(asset => asset.chainKey === key)?.chainName ?? key.toUpperCase()), [customNodeChains, all])
 	// Cuenta TRON con dueño ajeno: el saldo se ve pero no es movible — se avisa arriba del todo
 	const tronControllers = useTronForeignControl()
 	const prices = usePriceMap()
@@ -152,6 +156,8 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 			/>
 
 			{!!tronControllers && <TronControlWarning controllers={tronControllers} />}
+
+			<CustomNodeNotice chains={customNodeNames} />
 
 			{/* Ganar: justo bajo la botonera, a la vista sin bajar hasta el final de la lista */}
 			{showEarn && (
