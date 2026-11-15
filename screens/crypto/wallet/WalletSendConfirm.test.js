@@ -365,7 +365,11 @@ describe('depósito de un intercambio', () => {
 		checkDeposit.mockResolvedValue({ allowed: true })
 		await render(BOB, { exchangeUuid: 'ex-1' })
 		await press()
-		expect(checkDeposit).toHaveBeenCalledWith('ex-1')
+		// Con lo que hace falta para comprobar que la orden es de esta wallet (X-06)
+		expect(checkDeposit).toHaveBeenCalledWith('ex-1', { to: BOB, own: expect.any(Function) })
+		const { own } = checkDeposit.mock.calls[0][1]
+		expect(own(USDT_BSC.id)).toEqual({ kind: 'evm', address: ME })
+		expect(own('no:existe')).toBeNull()
 		expect(openAuth).toHaveBeenCalledTimes(1)
 		expect(navigation.popTo).not.toHaveBeenCalled()
 	})
@@ -388,6 +392,15 @@ describe('depósito de un intercambio', () => {
 		expect(navigation.popTo).toHaveBeenCalledWith(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: 'ex-1' })
 	})
 
+
+	test('una orden que paga a otra dirección: no se abre el PIN, se avisa y no se va a ninguna parte', async () => {
+		checkDeposit.mockResolvedValue({ allowed: false, reason: 'foreign' })
+		await render(BOB, { exchangeUuid: 'ex-1' })
+		await act(async () => { await confirmButton().props.onPress() })
+		expect(openAuth).not.toHaveBeenCalled()
+		expect(toast.error).toHaveBeenCalledWith('Este intercambio paga o devuelve a una dirección que no es de tu wallet. No se ha firmado nada.')
+		expect(navigation.popTo).not.toHaveBeenCalled()
+	})
 	test('si no se pudo comprobar no se firma, y la pantalla se queda para reintentar', async () => {
 		checkDeposit.mockResolvedValue({ allowed: false, reason: 'unknown' })
 		await render(BOB, { exchangeUuid: 'ex-1' })

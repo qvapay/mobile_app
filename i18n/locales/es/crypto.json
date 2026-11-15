@@ -477,6 +477,7 @@
 			"sentHint": "Tu envío ya está en la red. En cuanto {{provider}} lo vea, el cambio arranca solo. No envíes otra vez.",
 			"sentTx": "Transacción del envío",
 			"sendNow": "Enviar ahora",
+			"foreignOrder": "Este intercambio paga o devuelve a una dirección que no es de tu wallet. No envíes nada a su dirección de depósito.",
 			"copied": "Copiado",
 			"refundLabel": "Si algo falla, vuelve a",
 			"youSend": "Envías",
@@ -617,6 +618,7 @@
 				"alreadySent": "Ya enviaste el depósito de este intercambio.",
 				"closed": "Este intercambio ya no espera un depósito.",
 				"checkFailed": "No pudimos comprobar el intercambio. Inténtalo de nuevo.",
+				"foreign": "Este intercambio paga o devuelve a una dirección que no es de tu wallet. No se ha firmado nada.",
 				"pendingHash": "Enviado, a la espera de confirmación"
 			}
 		},

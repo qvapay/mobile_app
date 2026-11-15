@@ -477,6 +477,7 @@
 			"sentHint": "Sua transferência já está na rede. Assim que a {{provider}} a vir, a troca começa sozinha. Não envie de novo.",
 			"sentTx": "Transação do envio",
 			"sendNow": "Enviar agora",
+			"foreignOrder": "Esta troca paga ou devolve para um endereço que não é da sua carteira. Não envie nada para o endereço de depósito.",
 			"copied": "Copiado",
 			"refundLabel": "Se algo falhar, volta para",
 			"youSend": "Você envia",
@@ -617,6 +618,7 @@
 				"alreadySent": "Você já enviou o depósito desta troca.",
 				"closed": "Esta troca não espera mais um depósito.",
 				"checkFailed": "Não conseguimos verificar a troca. Tente de novo.",
+				"foreign": "Esta troca paga ou devolve para um endereço que não é da sua carteira. Nada foi assinado.",
 				"pendingHash": "Enviado, aguardando confirmação"
 			}
 		},

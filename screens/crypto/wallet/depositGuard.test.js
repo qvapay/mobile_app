@@ -141,3 +141,58 @@ describe('lo que no se puede comprobar es «no»', () => {
 		expect(await checkDeposit('ex-1')).toEqual({ allowed: false, reason: 'unknown' })
 	})
 })
+
+// X-06: las órdenes cuelgan del ID de wallet. Con ese ID en otras manos, una orden que
+// cobrara un tercero saldría en el seguimiento con su «Enviar ahora» como cualquier otra
+describe('la orden tiene que ser de esta wallet', () => {
+	const EVM = '0x2A6f3C8bD3eE0c4F5a1b7c9D0e1F2a3B4c5D6e7F'
+	const SOL = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+	const DEPOSIT = '0x8f3Ae21cB57D9a0C4e6F1b2D3c4E5f6A7b8CC9d1'
+	const ATTACKER_SOL = 'H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS'
+	const own = (assetId) => (assetId === 'bsc:usdt' ? { kind: 'evm', address: EVM } : assetId === 'solana:native' ? { kind: 'solana', address: SOL } : null)
+	const expected = { to: DEPOSIT, own }
+	const orderOf = (over = {}) => ({
+		success: true,
+		data: { uuid: 'ex-1', status: 'awaiting_deposit', from_asset: 'bsc:usdt', to_asset: 'solana:native', deposit_address: DEPOSIT, payout_address: SOL, refund_address: EVM, ...over },
+	})
+
+	test('paga y devuelve a direcciones propias, y el envío va a su depósito: adelante', async () => {
+		exchangeApi.get.mockResolvedValue(orderOf())
+		expect(await checkDeposit('ex-1', expected)).toEqual({ allowed: true })
+		// EVM no distingue mayúsculas: el checksum no cambia de quién es la dirección
+		exchangeApi.get.mockResolvedValue(orderOf({ refund_address: EVM.toLowerCase(), deposit_address: DEPOSIT.toLowerCase() }))
+		expect(await checkDeposit('ex-1', expected)).toEqual({ allowed: true })
+	})
+
+	test('cobra otra dirección: no se firma', async () => {
+		exchangeApi.get.mockResolvedValue(orderOf({ payout_address: ATTACKER_SOL }))
+		expect(await checkDeposit('ex-1', expected)).toEqual({ allowed: false, reason: 'foreign' })
+	})
+
+	test('la devolución va a otra dirección: tampoco', async () => {
+		exchangeApi.get.mockResolvedValue(orderOf({ refund_address: '0x000000000000000000000000000000000000dEaD' }))
+		expect(await checkDeposit('ex-1', expected)).toEqual({ allowed: false, reason: 'foreign' })
+	})
+
+	test('lo que se va a enviar no va a la dirección de depósito de la orden: tampoco', async () => {
+		exchangeApi.get.mockResolvedValue(orderOf({ deposit_address: '0x000000000000000000000000000000000000dEaD' }))
+		expect(await checkDeposit('ex-1', expected)).toEqual({ allowed: false, reason: 'foreign' })
+		exchangeApi.get.mockResolvedValue(orderOf({ deposit_address: null }))
+		expect(await checkDeposit('ex-1', expected)).toEqual({ allowed: false, reason: 'foreign' })
+	})
+
+	test('una orden que no trae a quién paga cuenta como ajena', async () => {
+		exchangeApi.get.mockResolvedValue(orderOf({ payout_address: undefined }))
+		expect(await checkDeposit('ex-1', expected)).toEqual({ allowed: false, reason: 'foreign' })
+	})
+
+	test('si la wallet no tiene ese activo no se puede saber, y lo que no se sabe es «no»', async () => {
+		exchangeApi.get.mockResolvedValue(orderOf({ to_asset: 'otra:cosa' }))
+		expect(await checkDeposit('ex-1', expected)).toEqual({ allowed: false, reason: 'unknown' })
+	})
+
+	test('el orden de las comprobaciones: una orden cerrada se dice cerrada, sea de quien sea', async () => {
+		exchangeApi.get.mockResolvedValue(orderOf({ status: 'expired', payout_address: ATTACKER_SOL }))
+		expect(await checkDeposit('ex-1', expected)).toEqual({ allowed: false, reason: 'closed', status: 'expired' })
+	})
+})

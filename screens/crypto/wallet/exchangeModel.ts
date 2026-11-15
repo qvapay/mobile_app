@@ -5,7 +5,9 @@
  * Vive fuera de los componentes porque son las cuentas de las que depende que el usuario no
  * pierda dinero, y conviene poder probarlas en `@jest-environment node` sin montar pantalla.
  */
+import { isSameAddress } from '../../../wallet/assets'
 import { formatUnits, parseUnits } from '../../../wallet/chains/units'
+import type { ChainKind } from '../../../wallet/registry/types'
 import type { ExchangeOrder, ExchangeQuote, ExchangeQuotePayload, ExchangeRoute, ExchangeStatus } from '../../../types/domain'
 
 /** `parseUnits` lanza con un decimal a medio teclear; aquí eso vale 0. */
@@ -254,6 +256,27 @@ export const isDeviationNotable = (bps: number | null): boolean => bps !== null 
  *   `none`     la orden ya avanzó; el depósito dejó de ser el tema.
  */
 export type DepositView = 'send' | 'sent' | 'none'
+
+/** La dirección de la propia wallet para un activo, con su familia; null si la wallet no lo tiene. */
+export type OwnAddress = (assetId: string) => { kind: ChainKind, address: string } | null
+
+/**
+ * ¿Lo que la orden paga y lo que devuelve va a direcciones de ESTA wallet? (X-06)
+ *
+ * Las órdenes cuelgan del ID de wallet, no de una firma. Con ese ID en otras manos, una orden
+ * que cobrara un tercero aparecería en el seguimiento con su «Enviar ahora» como cualquier
+ * otra: quien la fondeara pagaría el intercambio de otro. La app solo abre órdenes hacia sus
+ * propias direcciones, así que una que no lo sea no es suya.
+ *
+ * `unknown`: no se puede saber (la wallet no tiene ese activo). Para firmar, eso es «no».
+ */
+export const orderAddressesCheck = (order: Pick<ExchangeOrder, 'from_asset' | 'to_asset' | 'payout_address' | 'refund_address'>, own: OwnAddress): 'own' | 'foreign' | 'unknown' => {
+	const payout = own(order.to_asset)
+	const refund = own(order.from_asset)
+	if (!payout || !refund) return 'unknown'
+	const same = (mine: { kind: ChainKind, address: string }, theirs: unknown) => typeof theirs === 'string' && isSameAddress(mine.kind, mine.address, theirs)
+	return same(payout, order.payout_address) && same(refund, order.refund_address) ? 'own' : 'foreign'
+}
 
 /**
  * @param noted - Hay una nota en disco de que el depósito salió (o pudo salir) hacia la red,

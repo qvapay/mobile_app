@@ -140,7 +140,13 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	})
 	const { phase, prepared, error, feeTier, busy } = tx
 
-	// Antes de pedir el PIN de un depósito: ¿salió ya uno?, ¿la orden sigue esperándolo?
+	// La dirección propia de cada activo: contra ellas se contrasta a quién paga y devuelve una orden
+	const ownAddress = useCallback((id: string) => {
+		const found = all.find(candidate => candidate.id === id)
+		return found && addresses ? { kind: found.kind, address: addressForKind(addresses, found.kind) } : null
+	}, [all, addresses])
+
+	// Antes de pedir el PIN de un depósito: ¿salió ya uno?, ¿la orden sigue esperándolo?, ¿es de esta wallet?
 	const [checkingDeposit, setCheckingDeposit] = useState(false)
 	const { openAuth } = tx
 	const confirm = useCallback(async () => {
@@ -148,14 +154,16 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		if (checkingDeposit) return
 		setCheckingDeposit(true)
 		try {
-			const check = await checkDeposit(exchangeUuid)
+			const check = await checkDeposit(exchangeUuid, { to, own: ownAddress })
 			if (check.allowed) { openAuth(); return }
 			// Si no se pudo comprobar no se firma: reintentar es gratis, un doble depósito no
 			if (check.reason === 'unknown') { toast.error(t('crypto.wallet.exchange.depositGuard.checkFailed')); return }
+			// La orden paga o devuelve a una dirección que no es de esta wallet: no se firma, y no hay nada que reintentar
+			if (check.reason === 'foreign') { toast.error(t('crypto.wallet.exchange.depositGuard.foreign')); return }
 			toast(t(check.reason === 'sent' ? 'crypto.wallet.exchange.depositGuard.alreadySent' : 'crypto.wallet.exchange.depositGuard.closed'))
 			navigation.popTo(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid, ...(check.reason === 'sent' && check.txid ? { sentTxid: check.txid } : {}) })
 		} finally { setCheckingDeposit(false) }
-	}, [exchangeUuid, checkingDeposit, openAuth, navigation, t])
+	}, [exchangeUuid, checkingDeposit, openAuth, navigation, t, to, ownAddress])
 
 	// Cuánto exige la red y si el nativo alcanza para pagarlo
 	const { feeEstimated, feeMax, sentNative, feeRequired, insufficientNative } = sendFeeState({

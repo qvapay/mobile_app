@@ -477,6 +477,7 @@
 			"sentHint": "Your transfer is on the network. As soon as {{provider}} sees it, the exchange starts on its own. Do not send again.",
 			"sentTx": "Deposit transaction",
 			"sendNow": "Send now",
+			"foreignOrder": "This swap pays out or refunds to an address that isn't your wallet's. Don't send anything to its deposit address.",
 			"copied": "Copied",
 			"refundLabel": "If something fails, it returns to",
 			"youSend": "You send",
@@ -617,6 +618,7 @@
 				"alreadySent": "You already sent the deposit for this swap.",
 				"closed": "This swap is no longer waiting for a deposit.",
 				"checkFailed": "We couldn't check the swap. Try again.",
+				"foreign": "This swap pays out or refunds to an address that isn't your wallet's. Nothing was signed.",
 				"pendingHash": "Sent, waiting for confirmation"
 			}
 		},

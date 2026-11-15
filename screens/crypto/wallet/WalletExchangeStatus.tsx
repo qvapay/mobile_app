@@ -11,14 +11,15 @@ import { useTheme } from '../../../theme/ThemeContext'
 import { scaleType, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
-import { explorerTxUrl } from '../../../wallet/assets'
+import { addressForKind, explorerTxUrl } from '../../../wallet/assets'
+import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { AssetView } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { timeAgo } from '../../../helpers'
 import { useExchangeOrderQuery } from './exchangeQueries'
-import { depositAmountLabel, depositViewFor, deviationBps, isDeviationNotable, isLive, phaseOf, stepsFor } from './exchangeModel'
+import { depositAmountLabel, depositViewFor, deviationBps, isDeviationNotable, isLive, orderAddressesCheck, phaseOf, stepsFor } from './exchangeModel'
 import { useFocusEffect } from '@react-navigation/native'
 import { clearDepositSent, readDepositSent } from './exchangeDeposit'
 import { settleDepositNote } from './depositGuard'
@@ -66,6 +67,7 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 	const queryClient = useQueryClient()
 	const registry = useEffectiveRegistry()
 	const { all } = useWalletAssets()
+	const { addresses } = useWallet()
 
 	const query = useExchangeOrderQuery(uuid)
 	const order = query.data ?? null
@@ -130,7 +132,18 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 		if (order && order.status !== 'awaiting_deposit') { clearDepositSent(uuid); setSent(null); setNoted(false) }
 	}, [order, uuid])
 
-	const deposit = order ? depositViewFor({ status: order.status, sentTxid: sent, noted }) : 'none'
+	// X-06: ¿la orden paga y devuelve a direcciones de ESTA wallet? Una que no, no se fondea
+	// desde aquí (la guarda de antes de firmar lo vuelve a mirar con la orden recién pedida)
+	const foreign = useMemo(() => {
+		if (!order || !addresses) { return false }
+		const own = (id: string) => {
+			const found = all.find(candidate => candidate.id === id)
+			return found ? { kind: found.kind, address: addressForKind(addresses, found.kind) } : null
+		}
+		return orderAddressesCheck(order, own) === 'foreign'
+	}, [order, addresses, all])
+
+	const deposit = order && !foreign ? depositViewFor({ status: order.status, sentTxid: sent, noted }) : 'none'
 
 	const exactAmount = order && fromAsset ? depositAmountLabel(order, fromAsset.decimals) : order?.amount_in ?? ''
 	const deviation = order ? (order.deviation_bps ?? deviationBps(order)) : null
@@ -187,6 +200,14 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 			{!!order && <Steps order={order} theme={theme} />}
 
 			{/* Lo que hay que hacer AHORA: el importe exacto y la dirección */}
+			{!!order && foreign && order.status === 'awaiting_deposit' && (
+				<View style={card}>
+					<Text testID="exchange-foreign-order" style={[smallText, { color: theme.colors.danger, fontFamily: theme.typography.fontFamily.medium }]}>
+						{t('crypto.wallet.exchange.foreignOrder')}
+					</Text>
+				</View>
+			)}
+
 			{!!order && deposit === 'send' && !!order.deposit_address && (
 				<View style={card}>
 					<Text style={[textStyles.h4, styles.cardTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.exchange.depositTitle')}</Text>

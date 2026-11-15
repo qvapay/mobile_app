@@ -10,6 +10,7 @@ const {
 	floatSafeUnits,
 	isDeviationNotable,
 	isLive,
+	orderAddressesCheck,
 	phaseOf,
 	stepsFor,
 	unitsOfNumber,
@@ -248,5 +249,29 @@ describe('el importe sobrevive al viaje como número', () => {
 		expect(checkAmount({ input: formatUnits(BALANCE, 18), balance: BALANCE, decimals: 18 }).reason).toBe('insufficient')
 		// Con saldo de sobra, el mismo importe pasa
 		expect(checkAmount({ input: formatUnits(BALANCE, 18), balance: BALANCE + 1_000n, decimals: 18 }).ok).toBe(true)
+	})
+})
+
+describe('a quién paga y devuelve una orden', () => {
+	const EVM = '0x2A6f3C8bD3eE0c4F5a1b7c9D0e1F2a3B4c5D6e7F'
+	const SOL = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+	const own = (assetId) => (assetId === 'bsc:usdt' ? { kind: 'evm', address: EVM } : assetId === 'solana:native' ? { kind: 'solana', address: SOL } : null)
+	const mine = { from_asset: 'bsc:usdt', to_asset: 'solana:native', payout_address: SOL, refund_address: EVM }
+
+	it('las direcciones de la propia wallet: suya', () => {
+		expect(orderAddressesCheck(mine, own)).toBe('own')
+		expect(orderAddressesCheck({ ...mine, refund_address: EVM.toLowerCase() }, own)).toBe('own')
+	})
+
+	it('otra dirección en cualquiera de las dos, o ninguna: ajena', () => {
+		expect(orderAddressesCheck({ ...mine, payout_address: 'H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS' }, own)).toBe('foreign')
+		expect(orderAddressesCheck({ ...mine, refund_address: '0x000000000000000000000000000000000000dEaD' }, own)).toBe('foreign')
+		expect(orderAddressesCheck({ ...mine, payout_address: null }, own)).toBe('foreign')
+		// Solana distingue mayúsculas: no es la misma dirección
+		expect(orderAddressesCheck({ ...mine, payout_address: SOL.toLowerCase() }, own)).toBe('foreign')
+	})
+
+	it('un activo que la wallet no tiene: no se puede saber', () => {
+		expect(orderAddressesCheck({ ...mine, to_asset: 'otra:cosa' }, own)).toBe('unknown')
 	})
 })
