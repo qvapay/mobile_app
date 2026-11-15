@@ -260,6 +260,78 @@ test('sin vigencia (EVM, Bitcoin), "Reintentar" re-difunde la MISMA tx', async (
 	unmount()
 })
 
+// O-06: la ruta de un swap EVM lleva precios del momento en que se cotizó. La tx no caduca
+// en la cadena, pero una ruta vieja no se firma; lo que ya está firmado sí se re-difunde
+describe('una tx que no caduca pero envejece (`staleAt`)', () => {
+	const STALE_MS = 90_000
+	/** Como el swap EVM: sin vigencia en la cadena, con una fecha a partir de la cual no se firma. */
+	const staleChain = () => {
+		const chain = makeChain({ expires: false })
+		const build = chain.build
+		chain.build = async () => { const prepared = await build(); return { ...prepared, summary: { ...prepared.summary, staleAt: Date.now() + STALE_MS } } }
+		return chain
+	}
+
+	test('vieja antes de poner el PIN: no se firma, y «Reintentar» pide otra', async () => {
+		const chain = staleChain()
+		const sign = jest.fn(chain.sign)
+		const submit = jest.fn(async (_prepared, signed) => { chain.execute(signed.txid); return { txid: signed.txid, duplicate: false } })
+		const args = baseArgs(chain, submit, { sign })
+		const { out, unmount } = mount(args)
+		await settle()
+
+		clock += STALE_MS
+		await confirm(out)
+		expect(out.tx).toMatchObject({ phase: 'error', error: 'expired' })
+		expect(sign).not.toHaveBeenCalled()
+
+		await retry(out)
+		expect(out.tx.phase).toBe('ready')
+		expect(chain.built).toBe(2)
+		await confirm(out)
+		expect(chain.executed).toEqual(['tx-2'])
+		expectSentOnce(args.onSent, 'tx-2', false)
+		unmount()
+	})
+
+	test('dentro de plazo se firma con normalidad', async () => {
+		const chain = staleChain()
+		const submit = jest.fn(async (_prepared, signed) => { chain.execute(signed.txid); return { txid: signed.txid, duplicate: false } })
+		const args = baseArgs(chain, submit)
+		const { out, unmount } = mount(args)
+		await settle()
+		clock += STALE_MS - 1
+		await confirm(out)
+		expectSentOnce(args.onSent, 'tx-1', false)
+		unmount()
+	})
+
+	test('ya firmada y con la difusión sin respuesta: aunque envejezca, «Reintentar» re-difunde la MISMA', async () => {
+		// Construir otra aquí pasaría por preguntar a la cadena, y en EVM «no está» nunca prueba
+		// que no vaya a entrar: el usuario se quedaría en «no pudimos confirmar» para siempre
+		const chain = staleChain()
+		let first = true
+		const submit = jest.fn(async (_prepared, signed) => {
+			if (first) { first = false; throw new Error('Network request failed') }
+			chain.execute(signed.txid)
+			return { txid: signed.txid, duplicate: false }
+		})
+		const args = baseArgs(chain, submit)
+		const { out, unmount } = mount(args)
+		await settle()
+
+		await confirm(out)
+		expect(out.tx.phase).toBe('error')
+		clock += 10 * STALE_MS
+		await retry(out)
+
+		expect(chain.built).toBe(1)
+		expect(submit.mock.calls.map(([, signed]) => signed.txid)).toEqual(['tx-1', 'tx-1'])
+		expectSentOnce(args.onSent, 'tx-1', false)
+		unmount()
+	})
+})
+
 // EVM, Bitcoin y Stacks no caducan: lo que deja una firma sin valor es que su nonce o sus
 // inputs ya estén gastados. Y eso pudo hacerlo ella misma en un intento sin respuesta
 describe('la red dice que lo que la tx gasta ya está gastado', () => {

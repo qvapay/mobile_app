@@ -14,6 +14,8 @@ import { EvmUnsupportedRouteError } from './lifi'
 import {
 	encodeApprove,
 	evmReceiptStatus,
+	EVM_ROUTE_TTL_MS,
+	isStaleEvmRoute,
 	nextEvmSwapStep,
 	prepareEvmSwapStep,
 	signEvmSwapStep,
@@ -171,6 +173,23 @@ describe('contra un nodo simulado', () => {
 		const err = await prepareEvmSwapStep(RPC, VECTORS.same, SAME).catch(e => e)
 		expect(err.message).toMatch(/precio de gas fuera de rango/)
 		expect(err.retryable).toBe(true)
+	})
+
+	// O-06: la tx no caduca en la cadena, pero la ruta lleva precios del momento en que se cotizó
+	test('el swap dice desde cuándo su ruta es vieja para firmarla; un permiso no envejece', async () => {
+		const routeAt = 1_800_000_000_000
+		mockRpc({ allowance: 30_000_000n })
+		expect((await prepareEvmSwapStep(RPC, VECTORS.same, SAME, { routeAt })).staleAt).toBe(routeAt + EVM_ROUTE_TTL_MS)
+		mockRpc({ allowance: 0n, gas: 50_000n })
+		expect(await prepareEvmSwapStep(RPC, VECTORS.same, SAME, { routeAt })).toMatchObject({ step: 'approve', staleAt: null })
+		// Sin saber cuándo llegó la ruta, no se inventa una fecha
+		mockRpc({ allowance: 30_000_000n })
+		expect((await prepareEvmSwapStep(RPC, VECTORS.same, SAME)).staleAt).toBeNull()
+
+		expect(EVM_ROUTE_TTL_MS).toBeGreaterThanOrEqual(60_000)
+		expect(EVM_ROUTE_TTL_MS).toBeLessThanOrEqual(120_000)
+		expect(isStaleEvmRoute(routeAt, routeAt + EVM_ROUTE_TTL_MS - 1)).toBe(false)
+		expect(isStaleEvmRoute(routeAt, routeAt + EVM_ROUTE_TTL_MS)).toBe(true)
 	})
 
 	test('firmar con otra clave no pasa', async () => {

@@ -33,6 +33,8 @@ import { withWalletKey } from './walletSendActions'
 export type OnchainSwapSummary = {
 	/** Solana: caducidad del blockhash. EVM: null (el nonce manda). */
 	expiresAt: number | null
+	/** EVM: desde cuándo la ruta es demasiado vieja para firmarla (lo ya firmado se re-difunde igual). */
+	staleAt?: number | null
 	/** EVM: permiso, reinicio del permiso o swap. Solana: siempre swap. */
 	step: EvmSwapStep
 	/** Transacciones que quedan después de esta. */
@@ -55,14 +57,15 @@ export type SignedOnchainSwap =
 	| { family: 'tron', signature: string }
 	| { family: 'btc', signed: SignedBtcTx }
 
-export const prepareOnchainSwap = async (build: ExchangeOnchainBuild, plan: OnchainSwapPlan): Promise<PreparedOnchainSwap> => {
+/** `routeAt`: cuándo llegó la ruta de qpweb (reloj del teléfono), para no firmar una vieja. */
+export const prepareOnchainSwap = async (build: ExchangeOnchainBuild, plan: OnchainSwapPlan, { routeAt }: { routeAt?: number } = {}): Promise<PreparedOnchainSwap> => {
 	const router = getAppRpcRouter()
 	if (plan.family === 'evm' && build.family === 'evm') {
 		const routeBuild: EvmRouteBuild = { chainId: build.chainId, tx: build.tx, approval: build.approval }
-		const inner = await router.call(plan.chainKey, (rpc, signal) => prepareEvmSwapStep(rpc, routeBuild, plan.intent, { signal }))
+		const inner = await router.call(plan.chainKey, (rpc, signal) => prepareEvmSwapStep(rpc, routeBuild, plan.intent, { signal, routeAt }))
 		return {
 			family: 'evm', chainKey: plan.chainKey, inner,
-			summary: { expiresAt: null, step: inner.step, remaining: inner.remaining, feeEstimated: inner.fee.estimatedWei, simulatedOut: null },
+			summary: { expiresAt: null, staleAt: inner.staleAt, step: inner.step, remaining: inner.remaining, feeEstimated: inner.fee.estimatedWei, simulatedOut: null },
 		}
 	}
 	if (plan.family === 'solana' && build.family === 'solana') {
