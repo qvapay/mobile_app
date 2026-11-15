@@ -73,8 +73,11 @@ const EnergyRentModal = ({ visible, targetAddress, volume, duration, estimatedUs
 		return typeof priceUsd === 'number' ? balance - priceUsd : balance
 	}, [user?.balance, priceUsd])
 
-	const volumeLabel = volume.toLocaleString()
-	const durationLabel = t(`crypto.energy.buy.durations.${duration}`)
+	// Con una orden en la mano se enseña lo que dice ELLA: la que aclara un intento en duda
+	// puede ser de un pedido anterior, con otro volumen o duración que el de ahora
+	const shown = state.order ?? { volume, duration, target_address: targetAddress }
+	const volumeLabel = Number(shown.volume).toLocaleString()
+	const durationLabel = t(`crypto.energy.buy.durations.${shown.duration}`)
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={dismiss}>
@@ -101,7 +104,7 @@ const EnergyRentModal = ({ visible, targetAddress, volume, duration, estimatedUs
 						<View style={styles.rows}>
 							<Row theme={theme} label={t('crypto.energy.confirm.volume')} value={volumeLabel} />
 							<Row theme={theme} label={t('crypto.energy.confirm.duration')} value={durationLabel} />
-							<Row theme={theme} label={t('crypto.energy.confirm.target')} value={targetAddress} address />
+							<Row theme={theme} label={t('crypto.energy.confirm.target')} value={shown.target_address} address />
 							<Row theme={theme} label={t('crypto.energy.confirm.price')} value={state.phase === 'quoting' ? '…' : typeof priceUsd === 'number' ? formatUsd(priceUsd) : '—'} />
 							{state.phase !== 'done' && <Row theme={theme} label={t('crypto.energy.confirm.balanceAfter')} value={formatUsd(balanceAfter)} last />}
 						</View>
@@ -116,6 +119,8 @@ const EnergyRentModal = ({ visible, targetAddress, volume, duration, estimatedUs
 					{state.phase === 'failed' && (
 						<View style={[styles.error, { backgroundColor: theme.colors.danger + '12' }]}>
 							<Text style={[textStyles.body, { color: theme.colors.primaryText }]}>{errorCopy(state.errorCode, state.errorMessage, !!user?.kyc, t)}</Text>
+							{/* La compra se quedó sin respuesta: pudo cobrarse. Reintentar es seguro, y hay que decirlo */}
+							{state.doubt && <Text style={[textStyles.caption, styles.doubt, { color: theme.colors.secondaryText }]}>{t('crypto.energy.errors.doubt')}</Text>}
 						</View>
 					)}
 
@@ -213,6 +218,7 @@ const styles = StyleSheet.create({
 	rows: { marginTop: 16 },
 	row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 11 },
 	error: { marginTop: 14, padding: 12, borderRadius: 12 },
+	doubt: { marginTop: 6 },
 	actions: { marginTop: 20, gap: 10 },
 })
 

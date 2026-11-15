@@ -49,6 +49,7 @@ import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 import QPCheckbox from '../../../ui/particles/QPCheckbox'
 import WalletAuthModal from './components/WalletAuthModal'
 import EnergyRentModal from './components/EnergyRentModal'
+import usePendingEnergyOrder from './usePendingEnergyOrder'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -179,6 +180,16 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		bounds: energyPrices.data?.meta,
 	})
 
+	// Un alquiler ya COBRADO para la dirección que firma y aún sin entregar (se compró antes
+	// de cerrar la app): se arma el mismo latch que al comprarlo aquí. Sin esto, al volver
+	// el aviso ofrecía alquilar otra vez
+	const pendingEnergy = usePendingEnergyOrder(isAuthenticated ? user?.uuid : null)
+	const signer = prepared?.kind === 'tron' ? prepared.intent.from : null
+	const { markEnergyPending } = tx
+	useEffect(() => {
+		if (pendingEnergy && signer && pendingEnergy.target_address === signer) { markEnergyPending() }
+	}, [pendingEnergy, signer, markEnergyPending])
+
 	// ¿El destino imita a una dirección de confianza (address poisoning)? Sin veredicto, o con
 	// uno de los que bloquean sin que el usuario diga que lo revisó, no se firma
 	const recipient = useRecipientCheck(asset, to)
@@ -277,6 +288,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				phase={phase}
 				rented={tx.energyRented}
 				slow={tx.energySlow}
+				pending={tx.energyPending}
 				onRent={() => setRentOpen(true)}
 			/>
 
@@ -520,9 +532,9 @@ const useEnergyOffer = ({ prepared, nativeBalanceSun, sentNativeSun, trxPriceUsd
  * Una vez comprada la energía para este envío, el aviso no vuelve a
  * ofrecerla: el nodo puede tardar en verla y reofrecerla sería un doble cobro.
  */
-const EnergyNotice = ({ theme, decision, fee, phase, rented, slow, onRent }: {
+const EnergyNotice = ({ theme, decision, fee, phase, rented, slow, pending, onRent }: {
 	theme: Theme, decision: RentalDecision | null, fee: (value: bigint) => string,
-	phase: SendPhase, rented: boolean, slow: boolean, onRent: () => void
+	phase: SendPhase, rented: boolean, slow: boolean, pending: boolean, onRent: () => void
 }) => {
 
 	const { t } = useTranslation()
@@ -532,6 +544,10 @@ const EnergyNotice = ({ theme, decision, fee, phase, rented, slow, onRent }: {
 	}
 	if (slow) {
 		return <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t('crypto.wallet.send.energy.waitingSlow')} />
+	}
+	// Solo mientras el envío siga quemando TRX: con la energía ya entregada no hay nada que decir
+	if (pending && decision && decision.reason !== 'no') {
+		return <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t('crypto.wallet.send.energy.pendingOrder')} />
 	}
 	if (!decision || rented) { return null }
 

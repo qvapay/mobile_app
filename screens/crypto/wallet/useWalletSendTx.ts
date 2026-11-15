@@ -79,6 +79,8 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 	const [energyRented, setEnergyRented] = useState(false)
 	/** La delegación no se vio a tiempo: la energía está, pero la red va lenta. */
 	const [energySlow, setEnergySlow] = useState(false)
+	/** Hay un alquiler cobrado ANTES de abrir esta pantalla cuya entrega sigue en curso. */
+	const [energyPending, setEnergyPending] = useState(false)
 	const mountedRef = useRef(true)
 	useEffect(() => () => { mountedRef.current = false }, [])
 
@@ -157,9 +159,16 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 	 */
 	const markEnergyRented = useCallback(() => { setEnergyRented(true) }, [])
 
+	/**
+	 * Ya había un alquiler cobrado y sin entregar para la dirección que firma (se compró
+	 * antes de cerrar la app, o desde otra pantalla). Mismo latch: no se ofrece otro.
+	 */
+	const markEnergyPending = useCallback(() => { setEnergyRented(true); setEnergyPending(true) }, [])
+
 	const onEnergyRented = useCallback(async () => {
 		setEnergyRented(true)
 		setEnergySlow(false)
+		setEnergyPending(false)
 		const current = prepared
 		if (!current || current.kind !== 'tron') { refresh(); return }
 		const needed = current.inner.fee.energyNeeded
@@ -183,9 +192,11 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		feeTier,
 		setFeeTier,
 		markEnergyRented,
+		markEnergyPending,
 		onEnergyRented,
 		energyRented,
 		energySlow,
+		energyPending,
 	}
 }
 

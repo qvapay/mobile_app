@@ -296,7 +296,8 @@
 				"bandwidth": "You're {{needed}} short for this transfer's bandwidth. Renting energy doesn't cover that.",
 				"cta": "Rent energy",
 				"waiting": "Confirming the delegation on the network…",
-				"waitingSlow": "The energy is already yours, but the network takes a moment to reflect it. Try again in a minute."
+				"waitingSlow": "The energy is already yours, but the network takes a moment to reflect it. Try again in a minute.",
+				"pendingOrder": "You already paid for an energy rental for this address and it is still being delivered. There's no need to rent again."
 			},
 			"gasless": {
 				"free": "Free · QvaPay pays it",
@@ -725,7 +726,8 @@
 			"REFUNDED": "The energy couldn't be delivered and your balance was refunded",
 			"PROVIDER_UNAVAILABLE": "Energy rental isn't available right now",
 			"RATE_LIMITED": "Too many attempts in a row. Wait a few seconds.",
-			"generic": "We couldn't complete the rental"
+			"generic": "We couldn't complete the rental",
+			"doubt": "It may already have been charged. Retrying checks first before buying again."
 		},
 		"orders": {
 			"title": "Energy purchases",

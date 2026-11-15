@@ -6,9 +6,16 @@
  * acabe invitando a comprar algo que ya se compró.
  */
 import {
+	ATTEMPT_CLOCK_SKEW_MS,
 	credentialsFor,
+	findAttemptOrder,
 	initialRentState,
+	isAmbiguousFailure,
 	isTerminalOrder,
+	paramsFromKey,
+	paramsKeyOf,
+	parsePendingEnergy,
+	PENDING_MAX_AGE_MS,
 	POLL_DEADLINE_MS,
 	pollDelayMs,
 	rentReducer,
@@ -264,5 +271,177 @@ describe('ritmo de la espera', () => {
 		expect(isTerminalOrder(order('refunded'))).toBe(true)
 		expect(isTerminalOrder(order('dispatching'))).toBe(false)
 		expect(isTerminalOrder(null)).toBe(false)
+	})
+})
+
+// N-01: el backend valida precio, cotización y proveedor ANTES de buscar la orden por clave.
+// Una compra sin respuesta pudo cobrarse; si el reintento topaba con uno de esos rechazos,
+// la clave rotaba y el toque siguiente creaba y cobraba OTRA orden
+describe('una compra en duda no cambia de clave', () => {
+
+	const SENT_AT = 1_800_000_000_000
+	/** Compra que sale y se queda sin respuesta (corte de red o timeout del cliente). */
+	const inDoubt = (state = initialRentState(PARAMS)) => run(
+		rentReducer(state, { ...confirmOf(state), at: SENT_AT }),
+		{ type: 'failed', code: null, message: 'timeout' },
+	)
+
+	it('sin respuesta, o con un 5xx de infraestructura, queda en duda', () => {
+		const start = initialRentState(PARAMS)
+		expect(inDoubt(start)).toMatchObject({ phase: 'failed', doubt: true, key: start.key, keySentAt: SENT_AT })
+		const gateway = run(rentReducer(start, { ...confirmOf(start), at: SENT_AT }), { type: 'failed', code: null, message: 'Bad Gateway', http: 502 })
+		expect(gateway.doubt).toBe(true)
+		expect(isAmbiguousFailure({ code: null, http: undefined })).toBe(true)
+		expect(isAmbiguousFailure({ code: null, http: 400 })).toBe(false)
+		expect(isAmbiguousFailure({ code: 'PROVIDER_UNAVAILABLE', http: 503 })).toBe(false)
+	})
+
+	it('un rechazo claro de la compra no deja duda', () => {
+		const start = initialRentState(PARAMS)
+		const after = run(rentReducer(start, { ...confirmOf(start), at: SENT_AT }), { type: 'failed', code: 'PROVIDER_UNAVAILABLE', message: '', http: 503 })
+		expect(after.doubt).toBe(false)
+		expect(after.key).not.toBe(start.key)
+	})
+
+	it('un fallo al COTIZAR no es una compra: no hay nada que dudar', () => {
+		const quoting = rentReducer(initialRentState(PARAMS), { type: 'quoting' })
+		expect(rentReducer(quoting, { type: 'failed', code: null, message: 'sin red' }).doubt).toBe(false)
+	})
+
+	it('el reintento que topa con el proveedor caído o con el precio NO rota la clave', () => {
+		const doubtful = inDoubt()
+		const retried = rentReducer(doubtful, confirmOf(doubtful))
+		expect(retried.key).toBe(doubtful.key)
+		for (const [code, http] of [['PROVIDER_UNAVAILABLE', 503], ['PRICE_ABOVE_MAX', 409], ['QUOTE_MISMATCH', 400], ['ADDRESS_NOT_ACTIVATED', 400], ['RATE_LIMITED', 429], ['KYC_REQUIRED', 403], ['WHATEVER', 400]]) {
+			const after = rentReducer(retried, { type: 'failed', code, message: '', http })
+			expect([code, after.key]).toEqual([code, doubtful.key])
+			expect(after.doubt).toBe(true)
+			expect(after.keySentAt).toBe(SENT_AT)
+		}
+	})
+
+	it('ni dos cotizaciones caducadas seguidas', () => {
+		const doubtful = inDoubt()
+		const twice = run(doubtful, { type: 'failed', code: 'QUOTE_EXPIRED', message: '', http: 409 }, { type: 'failed', code: 'QUOTE_EXPIRED', message: '', http: 409 })
+		expect(twice.key).toBe(doubtful.key)
+		expect(twice.doubt).toBe(true)
+	})
+
+	it('solo la despeja una PRUEBA de que esa clave no dejó nada cobrado', () => {
+		const doubtful = inDoubt()
+		for (const [code, http] of [['INSUFFICIENT_BALANCE', 400], ['LIMIT_EXCEEDED', 403], ['DELIVERY_FAILED', 502]]) {
+			const after = rentReducer(rentReducer(doubtful, confirmOf(doubtful)), { type: 'failed', code, message: '', http })
+			expect([code, after.doubt]).toEqual([code, false])
+			expect(after.key).not.toBe(doubtful.key)
+			expect(after.keySentAt).toBeNull()
+		}
+	})
+
+	it('o la orden misma: el replay de la clave la cierra', () => {
+		const doubtful = inDoubt()
+		const after = run(rentReducer(doubtful, confirmOf(doubtful)), { type: 'rented', order: order('completed'), http: 200, duplicate: true })
+		expect(after).toMatchObject({ phase: 'done', doubt: false, charged: true, keySentAt: null })
+	})
+
+	it('cambiar de pedido en duda no pisa su clave: volver al mismo pedido vuelve a ella', () => {
+		const doubtful = inDoubt()
+		const other = { ...PARAMS, volume: 132_000 }
+		const changed = rentReducer(doubtful, { type: 'setParams', params: other })
+		expect(changed.key).toBe(doubtful.key)
+		expect(changed.doubt).toBe(true)
+		// El pedido distinto sale con otra clave (sería entregar una orden por otra)…
+		expect(credentialsFor(changed).key).not.toBe(doubtful.key)
+		// …y el mismo de antes, con la suya
+		const back = rentReducer(changed, { type: 'setParams', params: PARAMS })
+		expect(credentialsFor(back).key).toBe(doubtful.key)
+	})
+
+	it('comprar OTRO pedido deja atrás la duda del anterior', () => {
+		const changed = rentReducer(inDoubt(), { type: 'setParams', params: { ...PARAMS, volume: 132_000 } })
+		const sent = rentReducer(changed, { ...confirmOf(changed), at: SENT_AT + 60_000 })
+		expect(sent).toMatchObject({ phase: 'renting', doubt: false, keySentAt: SENT_AT + 60_000 })
+		expect(sent.keyParams).toContain('132000')
+	})
+
+	it('empezar de cero no la borra', () => {
+		const doubtful = inDoubt()
+		const reset = rentReducer(doubtful, { type: 'reset' })
+		expect(reset).toMatchObject({ phase: 'idle', doubt: true, key: doubtful.key, keySentAt: SENT_AT })
+	})
+
+	it('un intento leído del disco (la app se cerró con la compra en vuelo) recupera su clave', () => {
+		const start = initialRentState(PARAMS)
+		const restored = rentReducer(start, { type: 'restore', key: 'clave-de-antes', params: PARAMS, at: SENT_AT })
+		expect(restored).toMatchObject({ key: 'clave-de-antes', keyParams: paramsKeyOf(PARAMS), doubt: true, keySentAt: SENT_AT })
+		expect(credentialsFor(restored).key).toBe('clave-de-antes')
+		// Con una compra en vuelo o una duda de esta sesión, lo del disco no pisa nada
+		const flying = confirmed(start)
+		expect(rentReducer(flying, { type: 'restore', key: 'clave-de-antes', params: PARAMS, at: SENT_AT })).toBe(flying)
+		const doubtful = inDoubt()
+		expect(rentReducer(doubtful, { type: 'restore', key: 'clave-de-antes', params: PARAMS, at: SENT_AT })).toBe(doubtful)
+	})
+})
+
+describe('la orden de un intento en duda, buscada en el historial', () => {
+
+	const SINCE = Date.parse('2026-09-20T10:00:00.000Z')
+	const attempt = { params: PARAMS, since: SINCE }
+
+	it('la encuentra por dirección, volumen y duración, creada después de salir la compra', () => {
+		const mine = order('dispatching', { uuid: 'mía', created_at: '2026-09-20T10:00:02.000Z' })
+		const orders = [order('completed', { uuid: 'otra', volume: 132_000, created_at: '2026-09-20T10:00:05.000Z' }), mine]
+		expect(findAttemptOrder(orders, attempt)).toBe(mine)
+	})
+
+	it('una igual pero de antes no es la suya', () => {
+		const old = order('completed', { created_at: new Date(SINCE - ATTEMPT_CLOCK_SKEW_MS - 1).toISOString() })
+		expect(findAttemptOrder([old], attempt)).toBeNull()
+	})
+
+	it('admite el desfase entre el reloj del teléfono y el del servidor', () => {
+		const skewed = order('completed', { created_at: new Date(SINCE - ATTEMPT_CLOCK_SKEW_MS).toISOString() })
+		expect(findAttemptOrder([skewed], attempt)).toBe(skewed)
+	})
+
+	it('ni otra dirección, ni otra duración, ni una fecha ilegible', () => {
+		expect(findAttemptOrder([order('completed', { target_address: 'TOtraDireccion', created_at: '2026-09-20T10:00:02.000Z' })], attempt)).toBeNull()
+		expect(findAttemptOrder([order('completed', { duration: '1d', created_at: '2026-09-20T10:00:02.000Z' })], attempt)).toBeNull()
+		expect(findAttemptOrder([order('completed', { created_at: 'nope' })], attempt)).toBeNull()
+		expect(findAttemptOrder([], attempt)).toBeNull()
+	})
+
+	it('el pedido de una clave se lee de vuelta', () => {
+		expect(paramsFromKey(paramsKeyOf(PARAMS))).toEqual(PARAMS)
+		expect(paramsFromKey('basura')).toBeNull()
+		expect(paramsFromKey('T|x|1h')).toBeNull()
+	})
+})
+
+describe('la nota en disco', () => {
+
+	const NOW = 1_800_000_000_000
+	const KEY = '1800000000000-abcdefgh-ijklmnop'
+
+	it('dos casillas: la orden cobrada sin entregar y la compra que salió', () => {
+		const raw = JSON.stringify({ order: { uuid: 'order-1', at: NOW - 1000 }, attempt: { key: KEY, params: PARAMS, at: NOW - 500 } })
+		expect(parsePendingEnergy(raw, NOW)).toEqual({ order: { uuid: 'order-1', at: NOW - 1000 }, attempt: { key: KEY, params: PARAMS, at: NOW - 500 } })
+	})
+
+	it('acepta la nota de las versiones anteriores, que era solo la orden', () => {
+		expect(parsePendingEnergy(JSON.stringify({ uuid: 'order-1', at: NOW - 1000 }), NOW)).toEqual({ order: { uuid: 'order-1', at: NOW - 1000 }, attempt: null })
+	})
+
+	it('lo que pasó de un día no cuenta, casilla a casilla', () => {
+		const raw = JSON.stringify({ order: { uuid: 'order-1', at: NOW - PENDING_MAX_AGE_MS - 1 }, attempt: { key: KEY, params: PARAMS, at: NOW - 500 } })
+		expect(parsePendingEnergy(raw, NOW)).toEqual({ order: null, attempt: { key: KEY, params: PARAMS, at: NOW - 500 } })
+	})
+
+	it('nada que no tenga la forma exacta', () => {
+		const empty = { order: null, attempt: null }
+		for (const raw of [null, '', 'no es json', '[]', '"texto"', '{}', JSON.stringify({ order: { uuid: 7, at: NOW } }), JSON.stringify({ attempt: { key: 'corta', params: PARAMS, at: NOW } }),
+			JSON.stringify({ attempt: { key: KEY, params: { ...PARAMS, volume: '66000' }, at: NOW } }), JSON.stringify({ attempt: { key: KEY, params: { ...PARAMS, targetAddress: 'a|b' }, at: NOW } }),
+			JSON.stringify({ attempt: { key: KEY, params: PARAMS, at: 'ayer' } })]) {
+			expect([raw, parsePendingEnergy(raw, NOW)]).toEqual([raw, empty])
+		}
 	})
 })

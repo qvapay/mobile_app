@@ -41,6 +41,7 @@ import QPButton from '../../../ui/particles/QPButton'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 import WalletAuthModal from './components/WalletAuthModal'
 import EnergyRentModal from './components/EnergyRentModal'
+import usePendingEnergyOrder from './usePendingEnergyOrder'
 
 // Routes
 import { ROUTES } from '../../../routes'
@@ -78,6 +79,13 @@ const SUBMIT_ATTEMPTS = 3
 /** Espera a ver la energía recién alquilada en el nodo (mismos tiempos que el envío). */
 const ENERGY_WAIT_DEADLINE_MS = 45_000
 const ENERGY_WAIT_INTERVAL_MS = 2_000
+
+/** Qué se dice mientras la energía alquilada no se ve: recién comprada, lenta, o comprada antes de entrar. */
+const ENERGY_WAIT_COPY = {
+	waiting: 'crypto.wallet.send.energy.waiting',
+	slow: 'crypto.wallet.send.energy.waitingSlow',
+	pending: 'crypto.wallet.send.energy.pendingOrder',
+} as const
 
 /**
  * Confirmación y firma de un swap ON-CHAIN (LI.FI en EVM, Jupiter en Solana).
@@ -233,7 +241,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	// Antes el botón llevaba a la pantalla de Energía y, al volver, la tx seguía preparada con
 	// los recursos viejos: la comisión no bajaba y el aviso seguía pidiendo alquilar. Ahora es
 	// el patrón de Enviar: modal en sitio, se espera a ver la delegación y se re-prepara.
-	const { isAuthenticated } = useAuth()
+	const { isAuthenticated, user } = useAuth()
 	const tronInner = prepared?.family === 'tron' ? prepared.inner : null
 	// El alquiler se cobra del saldo QvaPay: sin sesión ni se pide ni se ofrece
 	const energyPrices = useEnergyPricesQuery(isAuthenticated && !!tronInner)
@@ -244,7 +252,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const [rentedForStep, setRentedForStep] = useState<string | null>(null)
 	const tronStep = tronInner?.step ?? null
 	const energyRented = !!tronStep && rentedForStep === tronStep
-	const [energyWait, setEnergyWait] = useState<'waiting' | 'slow' | null>(null)
+	const [energyWait, setEnergyWait] = useState<'waiting' | 'slow' | 'pending' | null>(null)
 	const mountedRef = useRef(true)
 	useEffect(() => {
 		mountedRef.current = true
@@ -260,6 +268,16 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		if (volume === null) return null
 		return { volume, needed: tronInner.fee.energyNeeded, owner: tronInner.intent.owner, priceUsd: estimatePrice(energyPrices.data?.data, volume, '1h') }
 	}, [tronInner, energyPrices.data])
+
+	// Un alquiler ya COBRADO para quien firma y aún sin entregar (se compró antes de abrir
+	// esta pantalla): el mismo latch que al comprarlo aquí, mientras a este paso le falte energía
+	const pendingEnergy = usePendingEnergyOrder(isAuthenticated ? user?.uuid : null)
+	const pendingForOwner = !!pendingEnergy && !!energyOffer && pendingEnergy.target_address === energyOffer.owner
+	useEffect(() => {
+		if (!pendingForOwner || !tronStep) return
+		setRentedForStep(tronStep)
+		setEnergyWait(current => current ?? 'pending')
+	}, [pendingForOwner, tronStep])
 
 	const onEnergyRented = useCallback(async () => {
 		setRentOpen(false)
@@ -338,7 +356,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 			</View>
 
 			{plan?.family === 'btc' && !fatal && <Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t(`${KEY}btcNotice`, { symbol: to.symbol })} />}
-			{!!energyWait && !fatal && <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t(energyWait === 'waiting' ? 'crypto.wallet.send.energy.waiting' : 'crypto.wallet.send.energy.waitingSlow')} />}
+			{!!energyWait && !fatal && (energyWait !== 'pending' || !!energyOffer) && <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t(ENERGY_WAIT_COPY[energyWait])} />}
 			{!!energyOffer && isAuthenticated && !energyRented && prepared?.family === 'tron' && prepared.summary.feeEstimated > 0n && !fatal && (
 				<>
 					<Notice theme={theme} icon="circle-info" color={theme.colors.warning} text={t(`${KEY}tronEnergyNotice`, { amount: nativeFee(prepared.summary.feeEstimated) })} />

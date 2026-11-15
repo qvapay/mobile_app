@@ -296,7 +296,8 @@
 				"bandwidth": "Te faltan {{needed}} para el ancho de banda de esta transferencia. Alquilar energía no lo cubre.",
 				"cta": "Alquilar energía",
 				"waiting": "Confirmando la delegación en la red…",
-				"waitingSlow": "La energía ya es tuya, pero la red tarda un poco en reflejarla. Reintenta en un minuto."
+				"waitingSlow": "La energía ya es tuya, pero la red tarda un poco en reflejarla. Reintenta en un minuto.",
+				"pendingOrder": "Ya pagaste un alquiler de energía para esta dirección y la entrega sigue en curso. No hace falta alquilar otra vez."
 			},
 			"gasless": {
 				"free": "Gratis · la paga QvaPay",
@@ -725,7 +726,8 @@
 			"REFUNDED": "No se pudo entregar la energía y te devolvimos el saldo",
 			"PROVIDER_UNAVAILABLE": "El alquiler de energía no está disponible ahora mismo",
 			"RATE_LIMITED": "Demasiados intentos seguidos. Espera unos segundos.",
-			"generic": "No se pudo completar el alquiler"
+			"generic": "No se pudo completar el alquiler",
+			"doubt": "Puede que ya se haya cobrado. Al reintentar se comprueba antes de volver a comprar."
 		},
 		"orders": {
 			"title": "Compras de energía",
