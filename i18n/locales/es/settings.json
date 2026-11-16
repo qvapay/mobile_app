@@ -926,7 +926,7 @@
 		},
 		"cip": {
 			"section": "Datos de tu cuenta",
-			"intro": "Información requerida por regulación. Las personas de EE. UU. deben indicar su SSN/ITIN y su dirección.",
+			"intro": "Información requerida por regulación: tu dirección y, si eres persona de EE. UU., tu SSN/ITIN.",
 			"complete": "Completado",
 			"usPerson": "Soy persona de EE. UU.",
 			"usPersonHint": "Ciudadanía, residencia o domicilio fiscal en Estados Unidos",
@@ -935,6 +935,11 @@
 			"ssnSaved": "Guardado ···{{last4}}. Déjalo en blanco para no cambiarlo.",
 			"ssnRemovalWarning": "Tienes un SSN/ITIN guardado (···{{last4}}). Al guardar sin marcar la casilla se eliminará de tu ficha.",
 			"addressTitle": "Dirección en EE. UU.",
+			"addressTitleIntl": "Tu dirección",
+			"addressHintIntl": "La pedimos para los retiros de $3,000 o más. Pon la dirección donde vives.",
+			"stateIntl": "Provincia o estado",
+			"postalIntl": "Código postal",
+			"countryIntl": "País",
 			"line1": "Calle y número",
 			"line2": "Apartamento o unidad (opcional)",
 			"city": "Ciudad",
@@ -947,7 +952,8 @@
 				"ssnInvalid": "El SSN/ITIN debe tener 9 dígitos",
 				"addressRequired": "Completa la calle y la ciudad de tu dirección",
 				"stateRequired": "Elige el estado de tu dirección",
-				"zipInvalid": "El ZIP debe ser 12345 o 12345-6789"
+				"zipInvalid": "El ZIP debe ser 12345 o 12345-6789",
+				"countryRequired": "Elige el país de tu dirección"
 			}
 		},
 		"ssn": {

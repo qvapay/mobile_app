@@ -172,7 +172,8 @@ export type UserCip = {
 /**
  * Objeto `cip` de `POST /user/update`. Con `us_person: true` la dirección viaja ENTERA
  * (el backend pone a null lo que no llega) y `ssn` se omite para conservar el guardado.
- * `us_person: false` borra el SSN de la ficha.
+ * `us_person: false` borra el SSN de la ficha; quien no es persona de EE. UU. manda
+ * igual su dirección entera (calle, ciudad y país), o solo la casilla si no escribió ninguna.
  */
 export type CipPayload = {
 	us_person: boolean
