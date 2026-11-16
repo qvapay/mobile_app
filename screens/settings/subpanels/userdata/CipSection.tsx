@@ -10,8 +10,12 @@ import { useContainerStyles, useTextStyles } from '../../../../theme/themeUtils'
 import QPInput from '../../../../ui/particles/QPInput'
 import QPPressable from '../../../../ui/particles/QPPressable'
 import OptionPickerModal from '../../../../ui/OptionPickerModal'
+import CountryPickerModal from '../../../../ui/CountryPickerModal'
 import AddressAutocomplete from '../../../../ui/AddressAutocomplete'
 import type { PlaceAddress } from '../../../../ui/AddressAutocomplete'
+
+// Labels
+import { countries } from '../../../../labels/countries'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -32,12 +36,15 @@ type Props = {
 }
 
 const STATE_OPTIONS = CIP_US_STATES.map(s => ({ value: s.code, label: s.name }))
+const countryName = (code: string) => countries.find(c => c.code === code)?.name
 
 /**
  * Sección «Datos de tu cuenta» de Datos personales: la ficha CIP (BSA §1022.210).
  * Interruptor «Soy persona de EE. UU.» y, con él activo, SSN/ITIN (nunca se devuelve
  * en claro: con uno guardado el campo queda en blanco y dice «guardado ···1234») y la
- * dirección de EE. UU. estructurada con el estado en un selector. Calco de
+ * dirección de EE. UU. estructurada con el estado en un selector. Con el interruptor
+ * apagado, la dirección de quien vive fuera: calle, ciudad y país (provincia y código
+ * postal opcionales); sin ella no pasan los retiros de $3.000 o más. Calco de
  * `components/settings/CipIdentityBlock.js` de qpweb. El guardado lo hace la pantalla
  * (viaja junto al resto del perfil en `POST /user/update`).
  */
@@ -48,9 +55,12 @@ const CipSection = ({ form, onChange, savedLast4, complete, highlight }: Props) 
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 	const [statePickerOpen, setStatePickerOpen] = useState(false)
+	const [countryPickerOpen, setCountryPickerOpen] = useState(false)
+	const [countrySearch, setCountrySearch] = useState('')
 
 	const highlightStyle = (field: CipField) => (highlight === field ? { borderColor: theme.colors.danger, borderWidth: 1 } : null)
 	const stateLabel = STATE_OPTIONS.find(o => o.value === form.addrState)?.label
+	const countryLabel = countryName(form.addrCountry)
 
 	return (
 		<View style={styles.section} testID="cip-section">
@@ -174,6 +184,79 @@ const CipSection = ({ form, onChange, savedLast4, complete, highlight }: Props) 
 				</View>
 			)}
 
+			{/* Quien no es persona de EE. UU.: su dirección, con el país en un selector */}
+			{!form.usPerson && (
+				<View style={styles.fields} testID="cip-intl-fields">
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 12, marginBottom: 2 }]}>{t('settings.userdata.cip.addressTitleIntl')}</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginBottom: 4 }]}>{t('settings.userdata.cip.addressHintIntl')}</Text>
+					<AddressAutocomplete onSelect={(place: PlaceAddress) => onChange({
+						...(place.line1 && { addrLine1: place.line1 }),
+						...(place.city && { addrCity: place.city }),
+						...(place.state && { addrState: place.state }),
+						...(place.postal_code && { addrPostal: place.postal_code }),
+						...(place.country && /^[A-Za-z]{2}$/.test(place.country) && { addrCountry: place.country.toUpperCase() }),
+					})} />
+					<QPInput
+						placeholder={t('settings.userdata.cip.line1')}
+						value={form.addrLine1}
+						onChangeText={(text: string) => onChange({ addrLine1: text })}
+						autoCapitalize="words"
+						prefixIconName="location-dot"
+						style={highlightStyle('addrLine1')}
+						testID="cip-intl-line1"
+					/>
+					<QPInput
+						placeholder={t('settings.userdata.cip.line2')}
+						value={form.addrLine2}
+						onChangeText={(text: string) => onChange({ addrLine2: text })}
+						autoCapitalize="words"
+						prefixIconName="building"
+					/>
+					<QPInput
+						placeholder={t('settings.userdata.cip.city')}
+						value={form.addrCity}
+						onChangeText={(text: string) => onChange({ addrCity: text })}
+						autoCapitalize="words"
+						prefixIconName="city"
+						style={highlightStyle('addrCity')}
+						testID="cip-intl-city"
+					/>
+					<View style={styles.row}>
+						<View style={styles.zip}>
+							<QPInput
+								placeholder={t('settings.userdata.cip.stateIntl')}
+								value={form.addrState}
+								onChangeText={(text: string) => onChange({ addrState: text.slice(0, 120) })}
+								autoCapitalize="words"
+								testID="cip-intl-state"
+							/>
+						</View>
+						<View style={styles.zip}>
+							<QPInput
+								placeholder={t('settings.userdata.cip.postalIntl')}
+								value={form.addrPostal}
+								onChangeText={(text: string) => onChange({ addrPostal: text.slice(0, 20) })}
+								autoCapitalize="characters"
+								maxLength={20}
+								testID="cip-intl-postal"
+							/>
+						</View>
+					</View>
+					<QPPressable
+						onPress={() => setCountryPickerOpen(true)}
+						style={[styles.stateRow, styles.countryRow, { backgroundColor: theme.colors.surface, borderColor: theme.isDark ? 'transparent' : theme.colors.border }, highlightStyle('addrCountry')]}
+						accessibilityRole="button"
+						testID="cip-intl-country"
+					>
+						<FontAwesome6 name="earth-americas" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
+						<Text style={[textStyles.body, { color: countryLabel ? theme.colors.primaryText : theme.colors.tertiaryText, flex: 1 }]} numberOfLines={1}>
+							{countryLabel ?? t('settings.userdata.cip.countryIntl')}
+						</Text>
+						<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+					</QPPressable>
+				</View>
+			)}
+
 			<OptionPickerModal
 				visible={statePickerOpen}
 				title={t('settings.userdata.cip.statePicker')}
@@ -183,6 +266,17 @@ const CipSection = ({ form, onChange, savedLast4, complete, highlight }: Props) 
 				onClose={() => setStatePickerOpen(false)}
 				searchable
 			/>
+			{/* Montado solo al abrirse: trae la lista entera de países */}
+			{countryPickerOpen && <CountryPickerModal
+				visible
+				country={form.addrCountry}
+				countrySearch={countrySearch}
+				onChangeSearch={setCountrySearch}
+				onSelect={(code: string) => { onChange({ addrCountry: code }); setCountryPickerOpen(false); setCountrySearch('') }}
+				onClose={() => setCountryPickerOpen(false)}
+				theme={theme}
+				textStyles={textStyles}
+			/>}
 		</View>
 	)
 }
@@ -200,6 +294,7 @@ const styles = StyleSheet.create({
 	// Misma altura y radio que QPInput para que la fila no cojee
 	stateRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 50, paddingHorizontal: 15, borderRadius: 10, borderWidth: 1, marginVertical: 5 },
 	zip: { flex: 1 },
+	countryRow: { flex: 0 },
 	readonly: { opacity: 0.6 },
 	privacyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, paddingHorizontal: 4 },
 })

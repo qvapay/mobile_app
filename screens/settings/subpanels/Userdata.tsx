@@ -266,8 +266,9 @@ const Userdata = () => {
 					// reinicia) la trae el servidor; el SSN tecleado no se queda en pantalla
 					cipBeforeSaveRef.current = cip
 					setCipTouched(false)
-					setCipForm(prev => ({ ...prev, ssn: '' }))
-					setCipLoaded({ ...cipForm, ssn: '' })
+					setCipForm(prev => ({ ...prev, ssn: '', ...(prev.usPerson && { addrCountry: 'US' }) }))
+					// Con la casilla marcada el país que se guardó es US, se viera o no en el formulario
+					setCipLoaded({ ...cipForm, ssn: '', ...(cipForm.usPerson && { addrCountry: 'US' }) })
 					queryClient.invalidateQueries({ queryKey: USER_CIP_QUERY.queryKey })
 					queryClient.invalidateQueries({ queryKey: DEPOSIT_ELIGIBILITY_KEY })
 				}

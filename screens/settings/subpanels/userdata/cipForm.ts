@@ -8,6 +8,13 @@
  * dirección de EE. UU. completa (calle, ciudad, estado de 2 letras, ZIP `12345` o
  * `12345-6789`, país `US`). El SSN se omite del payload cuando ya hay uno guardado y el
  * campo quedó en blanco (qpweb lo conserva); `us_person: false` lo borra.
+ *
+ * Quien NO es persona de EE. UU. también tiene dirección: calle, ciudad y país (el
+ * `computeCipStatus` de qpweb), con provincia y código postal libres y opcionales. Sin
+ * ella la ficha queda incompleta y el Travel Rule rechaza todo retiro de $3.000 o más.
+ * Hasta la 3.16.3 la app solo enseñaba la dirección con la casilla marcada y mandaba
+ * `{ us_person: false }` a secas, que además BORRA la dirección guardada (el backend
+ * pone a null lo que no llega).
  */
 
 import { US_STATES, US_ZIP_REGEX } from '../enterprise/enterpriseForm'
@@ -23,15 +30,17 @@ export type CipForm = {
 	addrCity: string
 	addrState: string
 	addrPostal: string
+	/** ISO-2. Solo lo elige quien no es persona de EE. UU.; con la casilla marcada viaja `US`. */
+	addrCountry: string
 }
 
 /** Campos que la pantalla puede resaltar (los `block_reason` de dato faltante apuntan aquí). */
-export type CipField = 'usPerson' | 'ssn' | 'addrLine1' | 'addrCity' | 'addrState' | 'addrPostal'
+export type CipField = 'usPerson' | 'ssn' | 'addrLine1' | 'addrCity' | 'addrState' | 'addrPostal' | 'addrCountry'
 
 /** Error de validación: el campo a resaltar y el sufijo de la clave i18n (`settings.userdata.cip.errors.<key>`). */
-export type CipValidationError = { field: CipField, key: 'ssnInvalid' | 'addressRequired' | 'stateRequired' | 'zipInvalid' }
+export type CipValidationError = { field: CipField, key: 'ssnInvalid' | 'addressRequired' | 'stateRequired' | 'zipInvalid' | 'countryRequired' }
 
-export const EMPTY_CIP_FORM: CipForm = { usPerson: false, ssn: '', addrLine1: '', addrLine2: '', addrCity: '', addrState: '', addrPostal: '' }
+export const EMPTY_CIP_FORM: CipForm = { usPerson: false, ssn: '', addrLine1: '', addrLine2: '', addrCity: '', addrState: '', addrPostal: '', addrCountry: '' }
 
 /**
  * Estados del selector de la ficha: los 50 + DC del registro de empresa MÁS Puerto Rico,
@@ -56,6 +65,7 @@ export function cipFormFromProfile(cip: UserCip | null | undefined): CipForm {
 		addrCity: cip.addr_city ?? '',
 		addrState: cip.addr_state ?? '',
 		addrPostal: cip.addr_postal ?? '',
+		addrCountry: (cip.addr_country ?? '').toUpperCase(),
 	}
 }
 
@@ -70,6 +80,10 @@ export function formatSsnInput(text: string): string {
 	return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
 }
 
+/** ¿Escribió algo de la dirección quien no es persona de EE. UU.? (el país solo no cuenta: se preselecciona). */
+export const hasIntlAddress = (form: CipForm): boolean =>
+	[form.addrLine1, form.addrLine2, form.addrCity, form.addrState, form.addrPostal].some(v => String(v ?? '').trim() !== '')
+
 /**
  * Primer error del formulario, o null si se puede guardar.
  *
@@ -77,7 +91,14 @@ export function formatSsnInput(text: string): string {
  * @param opts.hasSavedSsn - Ya hay un SSN en la ficha: en blanco significa "no tocar".
  */
 export function validateCip(form: CipForm, { hasSavedSsn }: { hasSavedSsn: boolean }): CipValidationError | null {
-	if (!form.usPerson) { return null }
+	if (!form.usPerson) {
+		// Sin nada escrito solo viaja la declaración; con algo, lo que qpweb pide para dar la ficha por completa
+		if (!hasIntlAddress(form)) { return null }
+		if (!form.addrLine1.trim()) { return { field: 'addrLine1', key: 'addressRequired' } }
+		if (!form.addrCity.trim()) { return { field: 'addrCity', key: 'addressRequired' } }
+		if (!/^[A-Z]{2}$/.test(form.addrCountry)) { return { field: 'addrCountry', key: 'countryRequired' } }
+		return null
+	}
 	const typed = form.ssn.trim().length > 0
 	if ((typed || !hasSavedSsn) && ssnDigits(form.ssn).length !== 9) { return { field: 'ssn', key: 'ssnInvalid' } }
 	if (!form.addrLine1.trim()) { return { field: 'addrLine1', key: 'addressRequired' } }
@@ -89,10 +110,22 @@ export function validateCip(form: CipForm, { hasSavedSsn }: { hasSavedSsn: boole
 
 /**
  * Objeto `cip` para `POST /user/update`. La dirección viaja ENTERA (el backend pone a
- * null lo que no llega); `ssn` solo si se tecleó; `addr_country` siempre `US`.
+ * null lo que no llega); `ssn` solo si se tecleó; `addr_country` es `US` con la casilla
+ * marcada y el país elegido sin ella.
  */
 export function buildCipPayload(form: CipForm): CipPayload {
-	if (!form.usPerson) { return { us_person: false } }
+	if (!form.usPerson) {
+		if (!hasIntlAddress(form)) { return { us_person: false } }
+		return {
+			us_person: false,
+			addr_line1: form.addrLine1.trim(),
+			addr_line2: form.addrLine2.trim(),
+			addr_city: form.addrCity.trim(),
+			addr_state: form.addrState.trim(),
+			addr_postal: form.addrPostal.trim(),
+			addr_country: form.addrCountry,
+		}
+	}
 	const digits = ssnDigits(form.ssn)
 	return {
 		us_person: true,
@@ -112,6 +145,8 @@ export function buildCipPayload(form: CipForm): CipPayload {
  */
 export function isCipDirty(form: CipForm, loaded: CipForm): boolean {
 	if (form.ssn.trim()) { return true }
-	return (['usPerson', 'addrLine1', 'addrLine2', 'addrCity', 'addrState', 'addrPostal'] as const)
-		.some(key => String(form[key]).trim() !== String(loaded[key]).trim())
+	if ((['usPerson', 'addrLine1', 'addrLine2', 'addrCity', 'addrState', 'addrPostal'] as const)
+		.some(key => String(form[key]).trim() !== String(loaded[key]).trim())) { return true }
+	// El país solo lo elige quien no es persona de EE. UU., y solo cuenta junto a una dirección
+	return !form.usPerson && hasIntlAddress(form) && form.addrCountry !== loaded.addrCountry
 }

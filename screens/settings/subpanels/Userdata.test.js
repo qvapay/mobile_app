@@ -180,11 +180,34 @@ describe('verificar con la ficha sin guardar', () => {
 	})
 })
 
+describe('dirección de quien no es persona de EE. UU.', () => {
+	const EMPTY = { ...cipWith(ssn({ can_start: false, block_reason: 'NOT_US_PERSON' })), us_person: false, ssn_itin_last4: null, addr_line1: '', addr_line2: '', addr_city: '', addr_state: '', addr_postal: '', addr_country: '', cip_status: 'incomplete' }
+
+	test('con la casilla apagada salen los campos y el guardado manda la dirección con su país', async () => {
+		serveCip(EMPTY)
+		const tree = await open()
+		expect(byTestId(tree, 'cip-intl-fields').length).toBeGreaterThan(0)
+		await editCip(tree, { addrLine1: 'Calle Mayor 1', addrCity: 'Madrid', addrPostal: '28001', addrCountry: 'ES' })
+		await act(async () => { saveButton(tree).props.onPress() })
+		await settle()
+		expect(userApi.updateUser).toHaveBeenCalledWith(expect.objectContaining({ cip: { us_person: false, addr_line1: 'Calle Mayor 1', addr_line2: '', addr_city: 'Madrid', addr_state: '', addr_postal: '28001', addr_country: 'ES' } }))
+	})
+
+	test('sin país no se manda nada', async () => {
+		serveCip(EMPTY)
+		const tree = await open()
+		await editCip(tree, { addrLine1: 'Calle Mayor 1', addrCity: 'Madrid' })
+		await act(async () => { saveButton(tree).props.onPress() })
+		await settle()
+		expect(userApi.updateUser).not.toHaveBeenCalled()
+	})
+})
+
 describe('tras guardar la ficha', () => {
 	const FIRST_FORM = { usPerson: true, ssn: '123-45-6789', addrLine1: '1 Main St', addrLine2: '', addrCity: 'Dover', addrState: 'DE', addrPostal: '19901' }
 	const NOT_DECLARED = { ...cipWith(ssn({ can_start: false, block_reason: 'NOT_US_PERSON' })), us_person: false, ssn_itin_last4: null, addr_line1: '', addr_city: '', addr_state: '', addr_postal: '', addr_country: '', cip_status: 'incomplete' }
 	const form = (tree) => tree.root.findByType(CipSection).props.form
-	const SAVED_FORM = { ...FIRST_FORM, ssn: '' }
+	const SAVED_FORM = { ...FIRST_FORM, ssn: '', addrCountry: 'US' }
 
 	const saveFirstTime = async () => {
 		serveCip(NOT_DECLARED)
@@ -225,7 +248,7 @@ describe('tras guardar la ficha', () => {
 		serveCip(cipWith(ssn()))
 		expect(verifyButton(tree)).toBeUndefined()
 		await press(tree)
-		expect(form(tree)).toEqual({ usPerson: true, ssn: '', addrLine1: '818 Leahy Cir', addrLine2: '', addrCity: 'Dover', addrState: 'DE', addrPostal: '19901' })
+		expect(form(tree)).toEqual({ usPerson: true, ssn: '', addrLine1: '818 Leahy Cir', addrLine2: '', addrCity: 'Dover', addrState: 'DE', addrPostal: '19901', addrCountry: 'US' })
 		expect(verifyButton(tree).props.disabled).toBe(false)
 	})
 

@@ -926,7 +926,7 @@
 		},
 		"cip": {
 			"section": "Your account details",
-			"intro": "Information required by regulation. US persons must provide their SSN/ITIN and address.",
+			"intro": "Information required by regulation: your address and, if you are a US person, your SSN/ITIN.",
 			"complete": "Complete",
 			"usPerson": "I'm a US person",
 			"usPersonHint": "US citizenship, residency or tax residence",
@@ -935,6 +935,11 @@
 			"ssnSaved": "Saved ···{{last4}}. Leave blank to keep it.",
 			"ssnRemovalWarning": "You have a saved SSN/ITIN (···{{last4}}). Saving with the box unchecked removes it from your profile.",
 			"addressTitle": "US address",
+			"addressTitleIntl": "Your address",
+			"addressHintIntl": "We ask for it on withdrawals of $3,000 or more. Enter the address where you live.",
+			"stateIntl": "State or province",
+			"postalIntl": "Postal code",
+			"countryIntl": "Country",
 			"line1": "Street address",
 			"line2": "Apartment or unit (optional)",
 			"city": "City",
@@ -947,7 +952,8 @@
 				"ssnInvalid": "The SSN/ITIN must have 9 digits",
 				"addressRequired": "Fill in the street and city of your address",
 				"stateRequired": "Choose the state of your address",
-				"zipInvalid": "The ZIP must be 12345 or 12345-6789"
+				"zipInvalid": "The ZIP must be 12345 or 12345-6789",
+				"countryRequired": "Choose the country of your address"
 			}
 		},
 		"ssn": {
