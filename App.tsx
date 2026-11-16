@@ -75,7 +75,7 @@ import RecoverPasswordScreen from './auth/screens/RecoverPassword'
 import Onboard from './screens/onboard/Onboard'
 import WhatsNew from './screens/whatsnew/WhatsNew'
 import MainStack from './screens/MainStack'
-import { supportsLiquidGlass } from './helpers/liquidGlass'
+import { glassOverlayHeader, supportsLiquidGlass } from './helpers/liquidGlass'
 import Send from './screens/transaction/Send'
 import SendConfirm from './screens/transaction/SendConfirm'
 import SendSuccess from './screens/transaction/SendSuccess'
@@ -214,7 +214,7 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	{ name: ROUTES.P2P_CREATE_SCREEN, component: P2PCreate, options: getHeaderOptions('', { animation: 'slide_from_bottom' }) },
 
 	// P2P User Profile Screen — no header so cover extends to the status bar (Scan/Profile look)
-	{ name: ROUTES.P2P_USER_SCREEN, component: P2PUser, options: { headerShown: false } },
+	{ name: ROUTES.P2P_USER_SCREEN, component: P2PUser, options: glassOverlayHeader(true) },
 
 	// Puesto promocionado del mercado P2P (comprar o pujar por la tarjeta dorada de un par)
 	{ name: ROUTES.P2P_PROMOTE, component: P2PPromote, options: getHeaderOptions(t('navigation.headers.p2pPromote')) },
@@ -324,7 +324,7 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	{ name: ROUTES.WALLET_STAKE_SUCCESS, component: WalletStakeSuccess, options: { ...getHeaderOptions(''), headerShown: false, gestureEnabled: false } },
 
 	// QR Scan Screen
-	{ name: ROUTES.SCAN_SCREEN, component: Scan, options: { animation: 'slide_from_bottom', headerShown: false } },
+	{ name: ROUTES.SCAN_SCREEN, component: Scan, options: { animation: 'slide_from_bottom', ...glassOverlayHeader(false) } },
 
 	// Nearby Pay Screen — AirDrop-style proximity payments radar
 	{ name: ROUTES.NEARBY_PAY, component: NearbyPay, options: { animation: 'slide_from_bottom', headerShown: false } },
@@ -359,7 +359,7 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	// Marketplace (tiendas de comercios aprobados) Screens
 	{ name: ROUTES.MARKET_STORES, component: MarketStores, options: getHeaderOptions(t('navigation.headers.stores'), { headerRight: () => <CartHeaderButton /> }) },
 	// MarketStore — no header so the store cover extends to the status bar (P2PUser/Profile look)
-	{ name: ROUTES.MARKET_STORE, component: MarketStore, options: { headerShown: false } },
+	{ name: ROUTES.MARKET_STORE, component: MarketStore, options: glassOverlayHeader(true) },
 	{ name: ROUTES.MARKET_PRODUCT, component: MarketProduct, options: getHeaderOptions('', { headerRight: () => <CartHeaderButton /> }) },
 	{ name: ROUTES.MARKET_CART, component: MarketCart, options: getHeaderOptions(t('navigation.headers.myCart')) },
 	{ name: ROUTES.MARKET_ORDERS, component: MarketOrders, options: getHeaderOptions(t('navigation.headers.marketOrders')) },

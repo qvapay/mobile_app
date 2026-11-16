@@ -35,6 +35,8 @@ import { filterSettings } from './settingsSearch'
 // Push prompt
 import useContentPadding from '../../hooks/useContentPadding'
 import usePushPrompt from '../../hooks/usePushPrompt'
+import useGlassHeaderButtons from '../../hooks/useGlassHeaderButtons'
+import { supportsLiquidGlass } from '../../helpers/liquidGlass'
 
 // In-app review
 import { requestReview } from '../../helpers/inAppReview'
@@ -100,6 +102,13 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 
 	// Push prompt
 	const { shouldShowRedDot } = usePushPrompt()
+
+	// iOS 26+: cerrar y «Mi QR» son los botones nativos de la barra (liquid glass);
+	// en el resto, los flotantes del final del render
+	useGlassHeaderButtons(navigation, {
+		left: [{ label: t('common.actions.close'), sfSymbol: 'xmark', onPress: () => navigation.goBack() }],
+		right: [{ label: t('misc.scan.modeSwitch.myQr'), sfSymbol: 'qrcode', onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' }) }],
+	})
 
 	// Buscador del menú: filtra título RESUELTO (los title del catálogo son
 	// claves de i18n) + keywords bilingües sin acentos (settingsSearch.js).
@@ -340,13 +349,15 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 
 			<ContributorsSheet visible={contributorsOpen} onClose={() => setContributorsOpen(false)} />
 
-			{/* Floating header buttons */}
-			<Pressable onPress={() => navigation.goBack()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, left: 16, width: 40, height: 40, borderRadius: 12, borderCurve: 'continuous', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
+			{/* Floating header buttons (en iOS 26+ van en la barra nativa: useGlassHeaderButtons) */}
+			{supportsLiquidGlass ? null : <>
+			<Pressable onPress={() => navigation.goBack()} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('common.actions.close')} style={{ position: 'absolute', top: insets.top + 8, left: 16, width: 40, height: 40, borderRadius: 12, borderCurve: 'continuous', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
 				<FontAwesome6 name="xmark" size={18} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
-			<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, right: 16, width: 40, height: 40, borderRadius: 12, borderCurve: 'continuous', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
+			<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('misc.scan.modeSwitch.myQr')} style={{ position: 'absolute', top: insets.top + 8, right: 16, width: 40, height: 40, borderRadius: 12, borderCurve: 'continuous', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
 				<FontAwesome6 name="qrcode" size={18} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
+			</>}
 
 		</View>
 	)

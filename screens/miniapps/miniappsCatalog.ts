@@ -52,6 +52,46 @@ export const coverOf = (app: Pick<MiniApp, 'cover'>): string | null => {
 /** Cuántas caben en la fila del Home. */
 export const HOME_MINIAPPS_LIMIT = 6
 
+/** Alto de ventana desde el que el Home pinta DOS filas de mini-apps (fuera quedan los teléfonos pequeños, tipo iPhone SE). */
+export const HOME_MINIAPPS_TWO_ROWS_MIN_HEIGHT = 740
+
+export type HomeMiniAppsGrid = {
+	/** Filas que la pantalla admite; con pocas apps se pinta una sola (`splitHomeMiniApps`). */
+	rows: 1 | 2
+	/** Iconos enteros que caben a lo ancho. */
+	perRow: number
+	/** Tope para `pickHomeMiniApps`: la fila de siempre, o dos filas llenas. */
+	limit: number
+	/** Hueco entre iconos en dos filas: reparte `perRow` iconos por todo el ancho. */
+	gap: number
+}
+
+/**
+ * Rejilla de mini-apps del Home según la pantalla. En una pantalla razonable
+ * son dos filas que llenan el ancho (como la pantalla de inicio del teléfono);
+ * en una pequeña, la fila con scroll de siempre.
+ *
+ * @param width - Ancho útil de la sección (sin los márgenes del Home).
+ * @param height - Alto de la ventana.
+ */
+export const homeMiniAppsGrid = ({ width, height, itemWidth, minGap, rowGap }: { width: number, height: number, itemWidth: number, minGap: number, rowGap: number }): HomeMiniAppsGrid => {
+	const perRow = Math.max(1, Math.floor((width + minGap) / (itemWidth + minGap)))
+	if (height < HOME_MINIAPPS_TWO_ROWS_MIN_HEIGHT || perRow < 2) return { rows: 1, perRow, limit: HOME_MINIAPPS_LIMIT, gap: rowGap }
+	return { rows: 2, perRow, limit: Math.max(HOME_MINIAPPS_LIMIT, perRow * 2), gap: (width - perRow * itemWidth) / (perRow - 1) }
+}
+
+/**
+ * Reparte las apps en filas, en orden de lectura (favoritas arriba a la
+ * izquierda). Si caben en una fila, una sola. En dos, la de arriba se llena
+ * primero; con más de dos filas llenas (favoritas sin tope) se reparten a
+ * medias y la sección hace scroll.
+ */
+export const splitHomeMiniApps = <T>(apps: T[], { rows, perRow }: Pick<HomeMiniAppsGrid, 'rows' | 'perRow'>): T[][] => {
+	if (rows === 1 || apps.length <= perRow) return [apps]
+	const top = Math.max(perRow, Math.ceil(apps.length / 2))
+	return [apps.slice(0, top), apps.slice(top)]
+}
+
 /**
  * Fila de mini-apps del Home, sin borradores (`preview`, solo los ve su autor):
  * primero TODAS las favoritas del usuario en su orden (sin tope: las marcó él),

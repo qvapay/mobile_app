@@ -25,6 +25,8 @@ import { marketApi } from '../../../api/marketApi'
 import { useMarketShopQuery } from './marketQueries'
 import { mediaUrl } from '../../../helpers/mediaUrl'
 import { ROUTES } from '../../../routes'
+import useGlassHeaderButtons from '../../../hooks/useGlassHeaderButtons'
+import { supportsLiquidGlass } from '../../../helpers/liquidGlass'
 import useMarketCart from './useMarketCart'
 import { MARKET_CATEGORIES, MARKET_SOCIAL_ICONS, socialHref } from './marketConstants'
 
@@ -66,7 +68,7 @@ type FloatingTopBarProps = {
 	theme: Theme
 }
 
-const FloatingTopBar = ({ insets, onBack, onCart, cartCount, theme }: FloatingTopBarProps) => (
+const FloatingTopBar = ({ insets, onBack, onCart, cartCount, theme }: FloatingTopBarProps) => supportsLiquidGlass ? null : (
 	<View style={[styles.floatingTopBar, { top: insets.top + 6 }]} pointerEvents="box-none">
 		<Pressable onPress={onBack} style={styles.floatingBtn} hitSlop={10}>
 			<FontAwesome6 name="arrow-left" size={18} color="white" iconStyle="solid" />
@@ -176,6 +178,17 @@ const MarketStore = ({ navigation, route }: NativeStackScreenProps<RootStackPara
 
 	const goBack = useCallback(() => { navigation.goBack() }, [navigation])
 	const goCart = useCallback(() => { navigation.navigate(ROUTES.MARKET_CART) }, [navigation])
+
+	// iOS 26+: atrás es el nativo y el carrito un botón de la barra (liquid glass) con su contador
+	useGlassHeaderButtons(navigation, {
+		right: [{
+			label: t('navigation.headerItems.cart'),
+			sfSymbol: 'cart',
+			onPress: goCart,
+			badge: cartCount > 0 ? (cartCount > 99 ? '99+' : String(cartCount)) : null,
+			badgeColor: theme.colors.primary,
+		}],
+	})
 
 	// Compartir la URL pública (la app la captura como deep link).
 	// TODO(viralidad): añadir ?ref={username} a la URL cuando qpweb atribuya

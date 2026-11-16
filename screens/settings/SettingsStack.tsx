@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // Tipos
+import { glassOverlayHeader } from '../../helpers/liquidGlass'
 import type { RootStackParamList, SettingsStackParamList } from '../../types/navigation'
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>()
@@ -68,7 +69,7 @@ const SettingsStack = ({ navigation: _navigation }: NativeStackScreenProps<RootS
 			<Stack.Screen
 				name={ROUTES.SETTINGS_MENU}
 				component={SettingsMenu}
-				options={{ headerShown: false }}
+				options={glassOverlayHeader(false)}
 			/>
 
 			<Stack.Screen name={ROUTES.GOLD_CHECK} component={GoldCheck} />
