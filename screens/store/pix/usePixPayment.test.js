@@ -14,7 +14,7 @@ jest.mock('@react-navigation/native', () => ({
 }))
 jest.mock('sonner-native', () => ({ toast: { error: jest.fn() } }))
 jest.mock('../../../api/pixApi', () => ({ pixApi: { getEligibility: jest.fn(), createCheckout: jest.fn(), getCheckout: jest.fn() } }))
-jest.mock('../market/marketCartStore', () => ({ remove: jest.fn(), hydrate: jest.fn(async () => {}) }))
+jest.mock('../market/marketCartStore', () => ({ remove: jest.fn(), hydrate: jest.fn(async () => {}), getItems: jest.fn(() => []) }))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'

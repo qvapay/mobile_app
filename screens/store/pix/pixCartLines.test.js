@@ -23,7 +23,7 @@ const STORAGE_KEY = '@qppixcart:v1'
 const T0 = Date.parse('2026-11-16T12:00:00Z')
 const HOUR = 60 * 60 * 1000
 const CART_KEY = '@qpmarketcart:v1'
-const item = (uuid) => ({ product_uuid: uuid, qty: 1, title: uuid, price: 10, kind: 'digital', shop_slug: 's', shop_name: 'S', added_at: 1 })
+const item = (uuid, addedAt = 1) => ({ product_uuid: uuid, qty: 1, title: uuid, price: 10, kind: 'digital', shop_slug: 's', shop_name: 'S', added_at: addedAt })
 const cartOnDisk = () => JSON.parse(mockDisk.get(CART_KEY) ?? '[]').map(line => line.product_uuid)
 
 describe('pixCartLines', () => {
@@ -153,9 +153,13 @@ describe('pixCartLines', () => {
 		boot()
 		await cartLines.settleCartLines('c0', 'verifying')
 		const at = Date.now()
-		mockDisk.set(STORAGE_KEY, JSON.stringify({ c0: 'A:', c1: [1], c2: ['C:'], c3: { keys: ['D:'] }, c4: { keys: 'E:', at }, c5: { keys: ['F:'], at: String(at) }, c6: { keys: ['G:'], at } }))
+		mockDisk.set(STORAGE_KEY, JSON.stringify({
+			c0: 'A:', c1: [1], c2: ['C:'],
+			c3: { lines: [{ key: 'D:' }] }, c4: { lines: 'E:', at }, c5: { lines: [{ key: 'F:' }], at: String(at) },
+			c6: { lines: [{ key: 'G:' }], at }, c7: { lines: [{ key: 7 }], at }, c8: { lines: [{ key: 'H:', addedAt: 'x' }], at },
+		}))
 		boot()
-		for (const uuid of ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6']) { await cartLines.settleCartLines(uuid, 'verifying') }
+		for (const uuid of ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8']) { await cartLines.settleCartLines(uuid, 'verifying') }
 		expect(removed()).toEqual(['C:', 'G:'])
 		mockDisk.set(STORAGE_KEY, JSON.stringify(['c0']))
 		boot()
@@ -170,6 +174,41 @@ describe('pixCartLines', () => {
 		boot()
 		await cartLines.settleCartLines('c0', 'verifying')
 		expect(cartOnDisk()).toEqual(['pB'])
+	})
+
+	test('un pago tardío no saca la línea que se añadió otra vez después', async () => {
+		// QR X con A; caduca, otro QR cobra A y A sale; luego se vuelve a añadir A
+		mockDisk.set(CART_KEY, JSON.stringify([item('pA', 1000), item('pB', 1000)]))
+		boot()
+		await cartLines.rememberCartLines('x', ['pA:', 'pB:'])
+		await cartLines.settleCartLines('x', 'expired')
+		mockDisk.set(CART_KEY, JSON.stringify([item('pA', 5000), item('pB', 1000)]))
+		boot()
+		await cartLines.settleCartLines('x', 'delivered')
+		// B es la misma línea que llevaba X; A es otra
+		expect(cartOnDisk()).toEqual(['pA'])
+	})
+
+	test('subir la cantidad no cambia la línea: sale igual al pagarse', async () => {
+		mockDisk.set(CART_KEY, JSON.stringify([item('pA', 1000)]))
+		boot()
+		await cartLines.rememberCartLines('x', ['pA:'])
+		mockDisk.set(CART_KEY, JSON.stringify([{ ...item('pA', 1000), qty: 3 }]))
+		boot()
+		await cartLines.settleCartLines('x', 'delivered')
+		expect(cartOnDisk()).toEqual([])
+	})
+
+	test('lo de la versión anterior se pasa al disco una vez, y el plazo no vuelve a empezar al reabrir', async () => {
+		const clock = clockAt(T0)
+		mockDisk.set(STORAGE_KEY, JSON.stringify({ c0: ['A:'] }))
+		boot()
+		await cartLines.settleCartLines('c0', 'expired')
+		clock.mockReturnValue(T0 + 7 * 24 * HOUR)
+		boot()
+		await cartLines.settleCartLines('c0', 'expired')
+		await cartLines.settleCartLines('c0', 'delivered')
+		expect(removeCartLine).not.toHaveBeenCalled()
 	})
 
 	test('se quedan los 20 cobros más recientes', async () => {
