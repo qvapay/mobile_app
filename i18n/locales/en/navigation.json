@@ -54,6 +54,7 @@
 	"headerItems": {
 		"scan": "Scan",
 		"cart": "Cart",
-		"exchangeHistory": "History"
+		"exchangeHistory": "History",
+		"flashlight": "Flashlight"
 	}
 }

@@ -54,6 +54,7 @@
 	"headerItems": {
 		"scan": "Escanear",
 		"cart": "Carrinho",
-		"exchangeHistory": "Histórico"
+		"exchangeHistory": "Histórico",
+		"flashlight": "Lanterna"
 	}
 }

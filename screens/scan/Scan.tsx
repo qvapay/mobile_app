@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, StyleSheet, useWindowDimensions, Animated, Linking, Pressable } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import Svg, { Path } from 'react-native-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -27,6 +28,8 @@ import ProfileContainer from '../../ui/ProfileContainer'
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
 import useMaxBrightness from '../../hooks/useMaxBrightness'
+import useGlassHeaderButtons from '../../hooks/useGlassHeaderButtons'
+import { supportsLiquidGlass } from '../../helpers/liquidGlass'
 
 // Helpers
 import { parseAddressQR, parseQRData } from '../../helpers'
@@ -106,6 +109,18 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 
 	// Brillo al máximo solo mientras se enseña el QR propio (no al escanear)
 	useMaxBrightness(viewMode === 'show')
+
+	// iOS 26+: cerrar y la linterna son botones nativos de la barra (liquid glass); el
+	// selector Escanear / Mi QR sigue siendo nuestro, centrado entre los dos
+	const insets = useSafeAreaInsets()
+	useGlassHeaderButtons(navigation, {
+		left: [{ label: t('common.actions.close'), sfSymbol: 'xmark', onPress: () => navigation.goBack() }],
+		right: [viewMode === 'scan' && {
+			label: t('navigation.headerItems.flashlight'),
+			sfSymbol: isTorchEnabled ? 'flashlight.on.fill' : 'flashlight.off.fill',
+			onPress: () => setIsTorchEnabled(prev => !prev),
+		}],
+	})
 
 	// Ref to avoid stale closure in onCodeScanned callback
 	const isScanningRef = useRef(initialMode === 'scan')
@@ -317,7 +332,22 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 			)}
 
 			{/* === TOP BAR — always same position === */}
-			<View style={styles.topControls}>
+			{supportsLiquidGlass ? (
+				// La barra nativa mide 44 pt bajo el área segura, igual que el selector; a
+				// cada lado, el hueco de un botón: margen 20 + botón 44 + separación 12
+				<View style={[styles.topControls, { top: insets.top, left: 76, right: 76 }]}>
+					<View style={styles.glassSwitchWrapper}>
+						<QPSwitch
+							value={viewMode === 'scan' ? 'left' : 'right'}
+							onChange={handleViewModeChange}
+							leftText={t('misc.scan.modeSwitch.scan')}
+							rightText={t('misc.scan.modeSwitch.myQr')}
+							leftColor={theme.colors.primary}
+							rightColor={theme.colors.primary}
+						/>
+					</View>
+				</View>
+			) : <View style={styles.topControls}>
 				<Pressable
 					onPress={() => navigation.goBack()}
 					style={[styles.topButton, viewMode === 'show' && { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
@@ -340,7 +370,7 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 						<FontAwesome6 name="lightbulb" size={20} color={'white'} iconStyle="solid" />
 					</Pressable>
 				) : (<View style={{ width: 40 }} />)}
-			</View>
+			</View>}
 
 		</View>
 	)
@@ -370,6 +400,9 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		borderWidth: 1,
 		borderColor: 'rgba(255,255,255,0.2)',
+	},
+	glassSwitchWrapper: {
+		flex: 1,
 	},
 	topSwitchWrapper: {
 		flex: 1,

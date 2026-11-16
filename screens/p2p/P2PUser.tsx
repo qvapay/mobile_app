@@ -27,6 +27,8 @@ import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 // Routes
 import { ROUTES } from "../../routes"
+import useGlassHeaderButtons from "../../hooks/useGlassHeaderButtons"
+import { supportsLiquidGlass } from "../../helpers/liquidGlass"
 
 // Helpers
 import { displayName } from "../../helpers/displayName"
@@ -147,6 +149,15 @@ const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamLis
 			})
 		} catch (_) { /* cancelled */ }
 	}, [uuid, user?.username, t])
+
+	// iOS 26+: atrás es el nativo y compartir / ⋯ son botones de la barra (liquid glass)
+	const canModerate = !!user && !isSelf
+	useGlassHeaderButtons(navigation, {
+		right: [
+			!!user && { label: t('common.actions.share'), sfSymbol: 'square.and.arrow.up', onPress: handleShare },
+			canModerate && { label: t('p2p.moderation.more'), sfSymbol: 'ellipsis', onPress: () => moderation.open("menu") },
+		],
+	})
 
 	// Antes que el loader: sin uuid el perfil no se pide y se quedaría cargando para siempre.
 	// Un @usuario que no existe no se reintenta (la respuesta fue «nadie»)
@@ -304,7 +315,7 @@ const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamLis
 				theme={theme}
 				onBack={() => navigation.goBack()}
 				onShare={user ? handleShare : undefined}
-				onMore={user && !isSelf ? () => moderation.open("menu") : undefined}
+				onMore={canModerate ? () => moderation.open("menu") : undefined}
 				moreLabel={t('p2p.moderation.more')}
 			/>
 
@@ -487,7 +498,7 @@ const PeerStatCards = ({ theme, textStyles, stats, viewerGold, onPressUnlock }: 
 
 
 // Floating back + share + ⋯ (reportar · bloquear) buttons overlaid on the cover (Scan-style top controls)
-const FloatingTopBar = ({ insets, theme: _theme, onBack, onShare, onMore, moreLabel }: { insets: EdgeInsets, theme: Theme, onBack: () => void, onShare?: () => void, onMore?: () => void, moreLabel?: string }) => (
+const FloatingTopBar = ({ insets, theme: _theme, onBack, onShare, onMore, moreLabel }: { insets: EdgeInsets, theme: Theme, onBack: () => void, onShare?: () => void, onMore?: () => void, moreLabel?: string }) => supportsLiquidGlass ? null : (
 	<View style={[styles.floatingTopBar, { top: insets.top + 6 }]} pointerEvents="box-none">
 		<Pressable onPress={onBack} style={styles.floatingBtn} hitSlop={10}>
 			<FontAwesome6 name="arrow-left" size={18} color="white" iconStyle="solid" />
