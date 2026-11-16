@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { categoryOf, coverOf, presentCategories, normalizeSearch, matchesQuery, buildCatalogView, pickHomeMiniApps, MINIAPP_CATEGORIES, CATEGORY_META, HOME_MINIAPPS_LIMIT } from './miniappsCatalog'
+import { categoryOf, coverOf, presentCategories, normalizeSearch, matchesQuery, buildCatalogView, pickHomeMiniApps, homeMiniAppsGrid, splitHomeMiniApps, MINIAPP_CATEGORIES, CATEGORY_META, HOME_MINIAPPS_LIMIT } from './miniappsCatalog'
 
 const app = (slug, extra = {}) => ({
 	slug,
@@ -70,6 +70,33 @@ describe('miniappsCatalog', () => {
 
 	test('un query de solo espacios no cuenta como filtro', () => {
 		expect(buildCatalogView([app('f', { featured: true })], { query: '  ' }).filtering).toBe(false)
+	})
+
+	describe('homeMiniAppsGrid / splitHomeMiniApps (rejilla del Home)', () => {
+		const grid = (width, height) => homeMiniAppsGrid({ width, height, itemWidth: 64, minGap: 8, rowGap: 14 })
+
+		test('teléfono pequeño: una fila de seis con el hueco de siempre', () => {
+			expect(grid(343, 667)).toEqual({ rows: 1, perRow: 4, limit: 6, gap: 14 })
+		})
+
+		test('pantalla razonable: dos filas llenas, con los iconos repartidos por el ancho', () => {
+			const g = grid(361, 852)
+			expect(g).toMatchObject({ rows: 2, perRow: 5, limit: 10 })
+			expect(5 * 64 + 4 * g.gap).toBeCloseTo(361)
+			expect(grid(328, 780)).toMatchObject({ rows: 2, perRow: 4, limit: 8, gap: 24 })
+		})
+
+		test('el tope nunca baja de las seis de siempre', () => {
+			expect(grid(150, 900)).toMatchObject({ rows: 2, perRow: 2, limit: 6 })
+		})
+
+		test('reparto: una fila si caben, la de arriba llena primero, a medias si desbordan', () => {
+			const two = { rows: 2, perRow: 4 }
+			expect(splitHomeMiniApps([1, 2, 3, 4], two)).toEqual([[1, 2, 3, 4]])
+			expect(splitHomeMiniApps([1, 2, 3, 4, 5, 6], two)).toEqual([[1, 2, 3, 4], [5, 6]])
+			expect(splitHomeMiniApps([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], two)).toEqual([[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11]])
+			expect(splitHomeMiniApps([1, 2, 3, 4, 5, 6], { rows: 1, perRow: 4 })).toEqual([[1, 2, 3, 4, 5, 6]])
+		})
 	})
 
 	describe('pickHomeMiniApps (fila del Home)', () => {

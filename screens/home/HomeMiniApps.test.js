@@ -16,9 +16,11 @@ jest.mock('../miniapps/miniappsQueries', () => ({ useMiniAppsList: jest.fn() }))
 jest.mock('../miniapps/MiniAppActionsSheet', () => 'MiniAppActionsSheet')
 jest.mock('../miniapps/useMiniAppFavorites', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('../../helpers/miniAppShortcuts', () => ({ setMiniAppQuickActions: jest.fn() }))
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('react-native-haptic-feedback', () => ({ __esModule: true, default: { trigger: jest.fn() } }))
 
 import React from 'react'
+import useWindowDimensions from 'react-native/Libraries/Utilities/useWindowDimensions'
 import { act, create } from 'react-test-renderer'
 import HomeMiniApps from './HomeMiniApps'
 import { useMiniAppsList } from '../miniapps/miniappsQueries'
@@ -28,8 +30,12 @@ import { ROUTES } from '../../routes'
 
 const app = (slug, extra = {}) => ({ slug, name: slug, icon: null, featured: false, ...extra })
 
+// Teléfono pequeño por defecto (una fila); `screen()` lo cambia en los tests de dos filas
+const screen = (width, height) => useWindowDimensions.mockReturnValue({ width, height, scale: 2, fontScale: 1 })
+
 beforeEach(() => {
 	jest.clearAllMocks()
+	screen(375, 667)
 	useMiniAppFavorites.mockReturnValue({ favorites: [], ready: true, isFavorite: () => false, toggle: jest.fn() })
 })
 
@@ -51,6 +57,28 @@ test('destacadas primero, seis como mucho, con icono y nombre', () => {
 	expect(icons[0].props.size).toBe(56)
 	expect(tree.root.findByType('QPSectionHeader').props.title).toBe('Mini-apps')
 	expect(JSON.stringify(tree.toJSON())).toContain('"f"')
+})
+
+const rowSlugs = tree => tree.root.findAll(node => typeof node.type === 'string' && /^home-miniapps-row-/.test(node.props.testID ?? ''))
+	.map(row => row.findAllByType('MiniAppIcon').map(icon => icon.props.app.slug))
+
+test('en una pantalla razonable son dos filas que llenan el ancho', () => {
+	// 393 − 2·16 de margen = 361 → caben 5 iconos de 64 por fila
+	screen(393, 852)
+	const apps = 'abcdefghijkl'.split('').map(slug => app(slug))
+	const { tree } = render(apps)
+	expect(rowSlugs(tree)).toEqual([['a', 'b', 'c', 'd', 'e'], ['f', 'g', 'h', 'i', 'j']])
+})
+
+test('en una pantalla razonable, si caben en una fila no se parte', () => {
+	screen(393, 852)
+	const { tree } = render([app('a'), app('b'), app('c')])
+	expect(rowSlugs(tree)).toEqual([['a', 'b', 'c']])
+})
+
+test('en un teléfono pequeño sigue siendo una fila', () => {
+	const { tree } = render('abcdefgh'.split('').map(slug => app(slug)))
+	expect(rowSlugs(tree)).toEqual([['a', 'b', 'c', 'd', 'e', 'f']])
 })
 
 test('tocar una abre el host con slug, nombre e icono', () => {
