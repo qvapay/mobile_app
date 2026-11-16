@@ -232,6 +232,17 @@ describe('usePixPayment', () => {
 			expect(removed()).toEqual(['z:'])
 		})
 
+		test('un pago que entra tarde sobre un QR caducado sale del carrito al volver a él', async () => {
+			// El QR se vio caducar; el servidor entrega igual el pago que llega después
+			await rememberCartLines('m4b', ['y:'])
+			await settleCartLines('m4b', 'expired')
+			pixApi.getEligibility.mockResolvedValue({ success: true, data: MARKET })
+			pixApi.getCheckout.mockImplementation(async uuid => (uuid === 'm4b' ? { success: true, data: { ...CHARGE, uuid, surface: 'market', stage: 'delivered' } } : { success: false, error: 'Network Error' }))
+			await render({ surface: 'market', cartKeys: [] })
+			await settle()
+			expect(removed()).toEqual(['y:'])
+		})
+
 		test('fuera del carrito no se pregunta por los cobros del carrito', async () => {
 			await rememberCartLines('m5', ['y:'])
 			await render({ surface: 'voucher' })

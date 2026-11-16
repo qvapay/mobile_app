@@ -17,6 +17,10 @@ import type { PixStage } from '../../../types/domain'
  * En disco porque el pago se hace en la app del banco y el sistema puede cerrar esta mientras
  * tanto. Fuera de `@qpcache:`, como el carrito: el cobro de otra cuenta responde 404 y se olvida.
  *
+ * Un cobro sin pagar no se olvida al caducar, cancelarse o fallar: un pago que entra tarde se
+ * entrega igual en el servidor, y sus líneas tienen que salir entonces. Se olvida al devolverse, o
+ * pasado `LATE_PAYMENT_MS` desde que se creó.
+ *
  * Solo se apunta lo que llega con el cobro creado. Si `POST /pix/checkout` se queda sin respuesta,
  * el QR que devuelva el 409 del reintento pudo crearlo ese intento o estar ya abierto desde la web,
  * y nada en el cobro lo distingue: no se le cuelga nada, porque dejar en el carrito algo pagado se
@@ -26,22 +30,38 @@ import type { PixStage } from '../../../types/domain'
 const STORAGE_KEY = '@qppixcart:v1'
 /** Un cobro que nunca se resuelve no hace crecer esto sin fin: se quedan los últimos. */
 const MAX_CHARGES = 20
+/** Lo que se espera un pago tardío. Mientras, el carrito lo consulta cada vez que se enfoca. */
+const LATE_PAYMENT_MS = 24 * 60 * 60 * 1000
 
-type LinesByCharge = Record<string, string[]>
+/** `at`: cuándo se creó el cobro. */
+type Charge = { keys: string[], at: number }
+type LinesByCharge = Record<string, Charge>
 
 const PAID: ReadonlySet<PixStage> = new Set(['verifying', 'delivered'])
-/** Etapas en las que ya no se va a cobrar: se olvida el cobro sin tocar el carrito. */
-const CLOSED: ReadonlySet<PixStage> = new Set(['refunded', 'expired', 'cancelled', 'failed'])
 
 let lines: LinesByCharge = {}
 let loading: Promise<void> | null = null
 let settling: Promise<void> | null = null
 
+const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
+const isKeys = (value: unknown): value is string[] => Array.isArray(value) && value.every(key => typeof key === 'string')
+
+// Antes se guardaban solo las líneas: esos cobros cuentan como recién creados, para no perder un pago tardío
+const parseCharge = (value: unknown): Charge | null => {
+	if (isKeys(value)) { return { keys: value, at: Date.now() } }
+	return isRecord(value) && isKeys(value.keys) && typeof value.at === 'number' ? { keys: value.keys, at: value.at } : null
+}
+
 const parse = (raw: string | null): LinesByCharge => {
 	try {
 		const value: unknown = raw ? JSON.parse(raw) : null
-		if (!value || typeof value !== 'object' || Array.isArray(value)) { return {} }
-		return Object.fromEntries(Object.entries(value).filter(([, keys]) => Array.isArray(keys) && keys.every(key => typeof key === 'string')))
+		if (!isRecord(value)) { return {} }
+		const charges: LinesByCharge = {}
+		for (const [uuid, entry] of Object.entries(value)) {
+			const charge = parseCharge(entry)
+			if (charge) { charges[uuid] = charge }
+		}
+		return charges
 	} catch { return {} }
 }
 
@@ -71,30 +91,30 @@ const forget = (uuid: string) => {
  */
 export async function rememberCartLines(uuid: string, keys: string[]): Promise<void> {
 	await load()
-	if (keys.length > 0) { save({ ...lines, [uuid]: keys }) }
+	if (keys.length > 0) { save({ ...lines, [uuid]: { keys, at: Date.now() } }) }
 }
 
 /**
- * Lo que una etapa del cobro le hace al carrito: pagado saca sus líneas, y cerrado sin cobrar lo
- * olvida dejándolas (las de un cobro devuelto se quedan). Abierto, o en una etapa que esta
- * versión no conozca, se sigue esperando.
+ * Lo que una etapa del cobro le hace al carrito: pagado saca sus líneas. Devuelto lo olvida
+ * dejándolas, porque el dinero volvió y no se entrega nada. Cualquier otra etapa, también
+ * caducado, cancelado o fallido, sigue a la espera de un pago tardío hasta `LATE_PAYMENT_MS`.
  *
  * @param uuid - Cobro.
  * @param stage - Su etapa actual.
  */
 export async function settleCartLines(uuid: string, stage: PixStage): Promise<void> {
 	await load()
-	const keys = lines[uuid]
-	if (!keys) { return }
+	const charge = lines[uuid]
+	if (!charge) { return }
 	if (PAID.has(stage)) {
 		// Sin leer antes el carrito del disco, quitar una línea guardaría el carrito vacío de memoria
 		// encima del de verdad: pasa si el QR se reabre desde otra compra recién abierta la app
 		await hydrateCart()
-		keys.forEach(removeCartLine)
-	} else if (!CLOSED.has(stage)) {
-		return
+		charge.keys.forEach(removeCartLine)
+		forget(uuid)
+	} else if (stage === 'refunded' || Date.now() - charge.at > LATE_PAYMENT_MS) {
+		forget(uuid)
 	}
-	forget(uuid)
 }
 
 const settlePending = async () => {
@@ -108,8 +128,8 @@ const settlePending = async () => {
 }
 
 /**
- * Resuelve los cobros apuntados que se pagaron, o se cerraron, sin su QR delante: se salió de la
- * pantalla antes de pagar en el banco, o el sistema cerró la app mientras tanto.
+ * Resuelve los cobros apuntados que se pagaron sin su QR delante: se salió de la pantalla antes de
+ * pagar en el banco, el sistema cerró la app mientras tanto, o el pago entró tarde.
  *
  * @returns Resuelve al terminar; dos llamadas a la vez comparten la misma ronda.
  */
