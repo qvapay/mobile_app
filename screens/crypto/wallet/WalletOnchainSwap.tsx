@@ -18,7 +18,7 @@ import { useAuth } from '../../../auth/AuthContext'
 import { addressForKind } from '../../../wallet/assets'
 import { AllRpcsFailedError } from '../../../wallet/registry/rpcRouter'
 import { EvmRouteExpiredError, EvmUnsupportedRouteError } from '../../../wallet/evm/lifi'
-import { EvmVerifyError, isGasPriceOutOfRange } from '../../../wallet/evm/tx'
+import { EvmVerifyError, isGasPriceOutOfRange, isInsufficientFunds } from '../../../wallet/evm/tx'
 import { SolanaExpiredError } from '../../../wallet/solana/tx'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
 import { useWalletAssets } from './walletQueries'
@@ -185,6 +185,8 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const describeError = useCallback((err: unknown): string => {
 		// Ningún nodo dio un precio de gas razonable: no es que no haya nodos
 		if (isGasPriceOutOfRange(err)) return t('crypto.wallet.send.errors.feeTooHigh')
+		// El saldo no alcanza para el importe más la comisión: tampoco es que no haya nodos
+		if (isInsufficientFunds(err)) return t(`${KEY}errors.insufficientFunds`)
 		if (err instanceof AllRpcsFailedError) return t(`${KEY}errors.noNodes`)
 		if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
 		if (err instanceof TxExpiredError) return t('crypto.wallet.send.errors.expired')

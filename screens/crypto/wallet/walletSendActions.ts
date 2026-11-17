@@ -226,14 +226,36 @@ export const maxSendableUnits = ({ balance, isNative, kind, reserve, exact = fal
 }
 
 /**
+ * Gas que MÁX deja atrás cuando lo que sale puede ser un SWAP ejecutado desde la wallet, no
+ * un envío. Con los 21.000 de un envío, MÁX de BNB por LI.FI se quedaba sin comisión: la red
+ * lo rechazaba y la app decía «no hay nodos». Medido el 2026-11-17 en BNB Smart Chain: 288.000
+ * de gas estimado con un importe pequeño y 522.000 con 3 BNB (la ruta se reparte en más
+ * tramos), a lo que el swap añade un 30 % de margen. Un millón cubre hasta ~920.000 estimados;
+ * una ruta más pesada avisa de que hay que bajar el importe (`EvmInsufficientFundsError`).
+ * En las redes baratas son céntimos; en Ethereum, lo que de todos modos cuesta un swap.
+ */
+export const SWAP_RESERVE_GAS = 1_000_000n
+
+/** Bytes de una cuenta de token SPL: su renta se pregunta al nodo. */
+const SOLANA_TOKEN_ACCOUNT_SPACE = 165
+/** Cuentas de token cuya renta puede pedir un swap desde SOL: el wSOL temporal, la del activo que llega y dos intermedias. */
+const SOLANA_SWAP_TOKEN_ACCOUNTS = 4n
+/** Comisión con prioridad de un swap de Solana, con holgura. */
+const SOLANA_SWAP_FEE_LAMPORTS = 100_000n
+
+/**
  * Reserva de gas para el botón MAX de un NATIVO: lo que costaría la propia
  * transferencia con la fee actual, con margen. TRON no lo necesita aquí
  * (reserva fija en WalletSend); EVM lee la fee del nodo; Bitcoin, en un envío
  * normal, no reserva nada: MAX = todo el saldo y la fee se descuenta del envío
  * ("enviar todo"). Con `address` (el MÁX de un intercambio, donde lo depositado
  * tiene que ser el importe exacto) sí: la comisión de gastar todos sus UTXOs.
+ *
+ * `purpose: 'swap'` (el formulario de swap): lo que sale puede ser un swap firmado desde la
+ * wallet, que cuesta mucho más que un envío. En EVM reserva `SWAP_RESERVE_GAS`; en Solana,
+ * además del mínimo de la cuenta, la renta de las cuentas de token que el swap abre.
  */
-export const estimateNativeReserve = async (chain: RegistryChain, chainKey: string, address?: string | null): Promise<bigint> => {
+export const estimateNativeReserve = async (chain: RegistryChain, chainKey: string, address?: string | null, purpose: 'send' | 'swap' = 'send'): Promise<bigint> => {
 	if (chain.kind === 'btc') {
 		if (!address) return 0n
 		return getAppRpcRouter().call(chainKey, (rpc, signal) => estimateBtcSendReserve(rpc, address, { signal }), { idempotent: true })
@@ -244,13 +266,21 @@ export const estimateNativeReserve = async (chain: RegistryChain, chainKey: stri
 	// un "Transaction simulation failed" que no explica nada. Reservar solo la comisión
 	// (lo que se hacía antes) dejaba la cuenta con calderilla y rompía el "enviar todo".
 	if (chain.kind === 'solana') {
+		if (purpose === 'swap') {
+			// Un swap desde SOL necesita además la renta de las cuentas de token que abre
+			const [minimum, tokenRent] = await getAppRpcRouter().call(chainKey, (rpc, signal) => Promise.all([
+				getSolanaRentExemptMinimum(rpc, { signal }),
+				getSolanaRentExemptMinimum(rpc, { signal, space: SOLANA_TOKEN_ACCOUNT_SPACE }),
+			]), { idempotent: true })
+			return minimum + SOLANA_SWAP_TOKEN_ACCOUNTS * tokenRent + SOLANA_SWAP_FEE_LAMPORTS
+		}
 		const minimum = await getAppRpcRouter().call(chainKey, (rpc, signal) => getSolanaRentExemptMinimum(rpc, { signal }), { idempotent: true })
 		return minimum + 20_000n
 	}
 	if (chain.kind !== 'evm') return 0n
 	const fee = await getAppRpcRouter().call(chainKey, (rpc, signal) => getEvmFeeData(rpc, { signal }), { idempotent: true })
 	const perGas = fee.eip1559 ? fee.baseFee * 2n + fee.priorityFee : fee.gasPrice
-	return NATIVE_TRANSFER_GAS * perGas * 12n / 10n
+	return (purpose === 'swap' ? SWAP_RESERVE_GAS : NATIVE_TRANSFER_GAS) * perGas * 12n / 10n
 }
 
 /**

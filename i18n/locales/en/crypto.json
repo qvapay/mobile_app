@@ -217,7 +217,8 @@
 			"warning": "Only send {{asset}} on the {{network}} network. Funds sent on another network may be lost.",
 			"evmNote": "This address is the same on Ethereum, BNB Chain, Base and Polygon, but each network has its own balance.",
 			"fromQvaPay": "From your QvaPay balance",
-			"fromQvaPayHint": "Withdraw {{symbol}} from your QvaPay account straight to this address."
+			"fromQvaPayHint": "Withdraw {{symbol}} from your QvaPay account straight to this address.",
+			"received": "You received {{amount}} {{symbol}}"
 		},
 		"manage": {
 			"subtitle": "Choose which assets you see in your wallet. Assets that receive funds show up automatically.",
@@ -616,6 +617,7 @@
 					"unsupportedRoute": "The wallet can't verify this route yet, so nothing was signed. Try another route, or try again later.",
 					"simulation": "This route would fail right now (the simulation doesn't pass). Nothing was signed; try again or pick another route.",
 					"approvalFailed": "The approval didn't confirm. Check your balance for the network fee and try again.",
+					"insufficientFunds": "You don't have enough for the amount plus the network fee. Lower the amount a little and try again.",
 					"noNodes": "No nodes are available right now. Try again in a moment.",
 					"generic": "Couldn't complete: {{message}}",
 					"unknown": "Couldn't complete the swap."

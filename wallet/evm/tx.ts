@@ -81,6 +81,37 @@ export const isGasPriceOutOfRange = (err: unknown): boolean => {
 	return list.some(item => item instanceof Error && OUT_OF_RANGE.test(item.message))
 }
 
+const INSUFFICIENT_FUNDS = /insufficient funds|exceeds balance|insufficient balance/i
+
+/**
+ * La wallet no tiene nativo para lo que la tx mueve MÁS su comisión máxima, que es lo que la
+ * red comprueba al recibirla. Se lanza ANTES de pedir el PIN: firmar algo que la red va a
+ * rechazar solo sirve para enseñar el motivo tarde y mal.
+ */
+export class EvmInsufficientFundsError extends Error {
+	readonly balance: bigint
+	readonly needed: bigint
+	constructor(balance: bigint, needed: bigint) {
+		super(`evm: insufficient funds for value + fee (saldo ${balance} wei, hacen falta ${needed})`)
+		this.name = 'EvmInsufficientFundsError'
+		this.balance = balance
+		this.needed = needed
+	}
+}
+
+/**
+ * ¿Falló porque el saldo no alcanza para el importe más la comisión? Vale para el error
+ * suelto y para el del router (`AllRpcsFailedError.errors`): un nodo lo contesta con el código
+ * genérico -32000, que `jsonRpc` toma por «prueba con otro nodo», así que los tres dicen lo
+ * mismo y a la pantalla llegaba «no hay nodos disponibles». Visto el 2026-11-17 con MÁX de BNB
+ * en un swap: el fallo era del importe, no de los nodos.
+ */
+export const isInsufficientFunds = (err: unknown): boolean => {
+	const inner = (err as { errors?: unknown } | null)?.errors
+	const list = Array.isArray(inner) && inner.length > 0 ? inner : [err]
+	return list.some(item => item instanceof EvmInsufficientFundsError || (item instanceof Error && INSUFFICIENT_FUNDS.test(item.message)))
+}
+
 /** Margen sobre `eth_estimateGas` en tokens: los saldos que cruzan de 0 y los tokens con hooks (USDT) cuestan más al ejecutar que al estimar. */
 const TOKEN_GAS_MARGIN_PERCENT = 25n
 
@@ -216,9 +247,9 @@ export const getEvmFeeData = async (rpc: RegistryRpc, deps: Deps = {}): Promise<
  * genérico -32000, que `jsonRpc` trata como «prueba con otro nodo»; aquí se marca como
  * definitivo para que no se recorran todos y el motivo llegue a la pantalla.
  */
-const rejectedEstimate = (err: unknown): never => {
+export const rejectedEstimate = (err: unknown): never => {
 	const message = (err as Error)?.message ?? ''
-	if (/revert|insufficient funds|exceeds balance|insufficient balance/i.test(message)) {
+	if (/revert/i.test(message) || INSUFFICIENT_FUNDS.test(message)) {
 		throw new ChainHttpError(message, { retryable: false, data: (err as ChainHttpError)?.data })
 	}
 	throw err

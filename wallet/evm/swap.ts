@@ -29,7 +29,7 @@ import { ChainHttpError, hexToBigInt, jsonRpc } from '../chains/http'
 import type { RegistryRpc } from '../registry/types'
 import { verifyLifiCalldata } from './lifi'
 import type { LifiDestination } from './lifi'
-import { assertSaneGasPrice, EvmVerifyError, getEvmFeeData } from './tx'
+import { assertSaneGasPrice, EvmInsufficientFundsError, EvmVerifyError, getEvmFeeData, rejectedEstimate } from './tx'
 import type { EvmFeeEstimate, SignedEvmTx } from './tx'
 
 /** Diamond de LI.FI: el mismo en Ethereum, BNB Chain, Polygon y Base (verificado 10 oct 2026). */
@@ -176,11 +176,13 @@ export const prepareEvmSwapStep = async (rpc: RegistryRpc, build: EvmRouteBuild,
 		? route
 		: { to: intent.token!, data: encodeApprove(spender, step === 'reset' ? 0n : intent.amountIn), value: 0n }
 
-	const [nonceHex, feeData, gasHex] = await Promise.all([
+	const [nonceHex, feeData, gasHex, balanceHex] = await Promise.all([
 		jsonRpc<string>(rpc.url, 'eth_getTransactionCount', [intent.owner, 'pending'], rpcOpts(rpc, deps)),
 		getEvmFeeData(rpc, deps),
-		// La simulación: desde la propia wallet, con el valor real
-		jsonRpc<string>(rpc.url, 'eth_estimateGas', [{ from: intent.owner, to: call.to, data: call.data, value: `0x${call.value.toString(16)}` }], rpcOpts(rpc, deps)),
+		// La simulación: desde la propia wallet, con el valor real. Que revierta o que no haya
+		// saldo es cosa de la tx, igual en cualquier nodo: no se prueba con otro
+		jsonRpc<string>(rpc.url, 'eth_estimateGas', [{ from: intent.owner, to: call.to, data: call.data, value: `0x${call.value.toString(16)}` }], rpcOpts(rpc, deps)).catch(rejectedEstimate),
+		jsonRpc<string>(rpc.url, 'eth_getBalance', [intent.owner, 'latest'], rpcOpts(rpc, deps)),
 	])
 
 	const margin = step === 'swap' ? GAS_MARGIN_PERCENT : APPROVE_GAS_MARGIN_PERCENT
@@ -200,6 +202,12 @@ export const prepareEvmSwapStep = async (rpc: RegistryRpc, build: EvmRouteBuild,
 		tx = { ...base, type: 'legacy', gasPrice: feeData.gasPrice }
 		fee = { gasLimit, estimatedWei: gasLimit * feeData.gasPrice, maxWei: gasLimit * feeData.gasPrice, eip1559: false }
 	}
+	// El nativo tiene que alcanzar para lo que la tx mueve MÁS su comisión máxima: es lo que la
+	// red comprueba al recibirla, y la simulación no (estima con precio de gas 0). Sin esto se
+	// firmaba igual y el rechazo llegaba después del PIN, como si fallaran los nodos
+	const balance = hexToBigInt(balanceHex)
+	if (balance < call.value + fee.maxWei) throw new EvmInsufficientFundsError(balance, call.value + fee.maxWei)
+
 	// Solo el swap lleva la ruta: un permiso es igual de bueno un minuto después
 	const staleAt = step === 'swap' && deps.routeAt !== undefined ? deps.routeAt + EVM_ROUTE_TTL_MS : null
 	return { step, remaining, intent, tx, fee, expected: { to: call.to, value: call.value, data: call.data }, expiresAt: null, staleAt }

@@ -217,7 +217,8 @@
 			"warning": "Envía solo {{asset}} por la red {{network}}. Si usas otra red, los fondos se pueden perder.",
 			"evmNote": "Esta dirección es la misma en Ethereum, BNB Chain, Base y Polygon, pero cada red tiene su propio saldo.",
 			"fromQvaPay": "Desde tu saldo QvaPay",
-			"fromQvaPayHint": "Retira {{symbol}} de tu cuenta QvaPay directo a esta dirección."
+			"fromQvaPayHint": "Retira {{symbol}} de tu cuenta QvaPay directo a esta dirección.",
+			"received": "Recibiste {{amount}} {{symbol}}"
 		},
 		"manage": {
 			"subtitle": "Elige qué activos ves en tu wallet. Los que reciban fondos aparecen solos.",
@@ -616,6 +617,7 @@
 					"unsupportedRoute": "La wallet todavía no sabe verificar esta ruta, así que no se ha firmado nada. Prueba con otra ruta o inténtalo más tarde.",
 					"simulation": "Esta ruta fallaría ahora mismo (la simulación no pasa). No se ha firmado nada; prueba de nuevo o con otra ruta.",
 					"approvalFailed": "El permiso no se confirmó. Revisa tu saldo para la comisión de red e inténtalo de nuevo.",
+					"insufficientFunds": "No te alcanza para el importe más la comisión de la red. Baja un poco el importe e inténtalo de nuevo.",
 					"noNodes": "No hay nodos disponibles ahora mismo. Inténtalo en un momento.",
 					"generic": "No se pudo completar: {{message}}",
 					"unknown": "No se pudo completar el intercambio."
