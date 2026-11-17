@@ -7,6 +7,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useQueryClient } from '@tanstack/react-query'
 
 import QPSheet from '../../ui/QPSheet'
+import QPSheetScroll from '../../ui/QPSheetScroll'
 import QPButton from '../../ui/particles/QPButton'
 import QPFitText from '../../ui/particles/QPFitText'
 import PinConfirmStep from '../transaction/PinConfirmStep'
@@ -150,7 +151,8 @@ const MiniAppPaySheet = ({ app, invoiceUuid, onPaid, onCancel }: Props) => {
 					)}
 				</View>
 			) : (
-				<View>
+				// Con el teclado abierto la hoja sube y se encoge: el scroll baja solo hasta el PIN
+				<QPSheetScroll>
 					<View style={styles.merchant}>
 						<MiniAppIcon app={app} size={40} />
 						<View style={{ marginLeft: 12, flex: 1 }}>
@@ -207,7 +209,7 @@ const MiniAppPaySheet = ({ app, invoiceUuid, onPaid, onCancel }: Props) => {
 						) : null}
 						<QPButton title={t('common.actions.cancel')} onPress={cancel} disabled={paying} style={{ backgroundColor: 'transparent' }} textStyle={{ color: theme.colors.secondaryText }} />
 					</View>
-				</View>
+				</QPSheetScroll>
 			)}
 		</QPSheet>
 	)

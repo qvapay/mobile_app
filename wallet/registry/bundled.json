@@ -29,7 +29,7 @@
      "url": "https://eth.qvapay.com",
      "priority": 0,
      "owner": "qvapay",
-     "enabled": false
+     "enabled": true
     },
     {
      "url": "https://ethereum-rpc.publicnode.com",
@@ -194,7 +194,7 @@
      "url": "https://bsc.qvapay.com",
      "priority": 0,
      "owner": "qvapay",
-     "enabled": false
+     "enabled": true
     },
     {
      "url": "https://bsc-dataseed.bnbchain.org",
@@ -391,10 +391,10 @@
    ],
    "rpcs": [
     {
-     "url": "https://polygon.qvapay.com",
+     "url": "https://pol.qvapay.com",
      "priority": 0,
      "owner": "qvapay",
-     "enabled": false
+     "enabled": true
     },
     {
      "url": "https://polygon-bor-rpc.publicnode.com",
@@ -514,7 +514,7 @@
      "url": "https://base.qvapay.com",
      "priority": 0,
      "owner": "qvapay",
-     "enabled": false
+     "enabled": true
     },
     {
      "url": "https://mainnet.base.org",

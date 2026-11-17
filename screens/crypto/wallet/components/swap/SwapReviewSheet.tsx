@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
@@ -11,6 +11,7 @@ import QPFitText from '../../../../../ui/particles/QPFitText'
 import SwapDetails from './SwapDetails'
 import type { SwapDetailRow } from './SwapDetails'
 import SwapSheet from './SwapSheet'
+import QPSheetScroll from '../../../../../ui/QPSheetScroll'
 import QPAssetBadge from '../../../../../ui/particles/QPAssetBadge'
 import type { QPAssetIconKind } from '../../../../../ui/particles/QPAssetBadge'
 
@@ -54,8 +55,10 @@ const SwapReviewSheet = ({ visible, title, from, to, rate, badge, rows, notice, 
 	)
 
 	return (
-		<SwapSheet visible={visible} title={title} onClose={onClose} dismissable={!busy}>
-			<ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+		// `avoidKeyboard` + `QPSheetScroll`: el paso del PIN (saldo → wallet) es lo último de la
+		// hoja y abre el teclado solo. Sin subir la hoja, el PIN se tecleaba debajo del teclado
+		<SwapSheet visible={visible} title={title} onClose={onClose} dismissable={!busy} avoidKeyboard>
+			<QPSheetScroll contentContainerStyle={styles.content}>
 				{side(from)}
 				<View style={[styles.arrow, { backgroundColor: theme.colors.surface }]}>
 					<FontAwesome6 name="arrow-down" size={13} color={theme.colors.secondaryText} iconStyle="solid" />
@@ -75,7 +78,7 @@ const SwapReviewSheet = ({ visible, title, from, to, rate, badge, rows, notice, 
 				<View style={styles.actions}>
 					<QPButton title={confirmLabel} onPress={onConfirm} disabled={confirmDisabled || busy} loading={busy} />
 				</View>
-			</ScrollView>
+			</QPSheetScroll>
 		</SwapSheet>
 	)
 }

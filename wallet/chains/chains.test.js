@@ -10,7 +10,7 @@ import { getTronNativeBalance, getTronTokenBalance, tronCallFailure, tronJsonRpc
 import { esploraBalance, getBtcBalance } from './btc'
 import { ftBalanceOf, stxBalanceOf, stxLockedOf } from './stacks'
 import { ChainHttpError, hexToBigInt, jsonRpc } from './http'
-import { fetchAllBalances, fetchChainBalances } from './index'
+import { fetchAllBalances, fetchChainBalances, mergeBalances, stakedForeignId, stakedOwnId } from './index'
 import { isRetryableRpcError } from '../registry/rpcRouter'
 import { TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from '../solana/codec'
 
@@ -241,6 +241,62 @@ describe('fetchChainBalances / fetchAllBalances', () => {
 		mockFetch(() => jsonResponse({}, 503))
 		await expect(fetchAllBalances(router, registry, ADDRESSES, null)).rejects.toThrow()
 	})
+
+	test('avisa de cada red en cuanto contesta, sin esperar a la más lenta', async () => {
+		let releaseBtc
+		const btcGate = new Promise(resolve => { releaseBtc = resolve })
+		mockFetch(async (url) => {
+			if (url.startsWith('https://btc')) { await btcGate; return jsonResponse({ chain_stats: { funded_txo_sum: 5, spent_txo_sum: 0 }, mempool_stats: { funded_txo_sum: 0, spent_txo_sum: 0 } }) }
+			return jsonResponse({ result: '0x1' })
+		})
+		const seen = []
+		const pass = fetchAllBalances(router, registry, ADDRESSES, null, () => 1, (chainKey, balances) => { seen.push([chainKey, balances]) })
+		await new Promise(resolve => setTimeout(resolve, 20))
+		// Bitcoin sigue sin contestar y BNB Smart Chain ya se puede pintar
+		expect(seen).toEqual([['bsc', { 'bsc:native': '1', 'bsc:0x55d398326f99059fF775485246999027B3197955': '1' }]])
+		releaseBtc()
+		const result = await pass
+		expect(seen.map(([chainKey]) => chainKey)).toEqual(['bsc', 'bitcoin'])
+		expect(result.failedChains).toEqual([])
+	})
+
+	test('una red caída no avisa, y lo que lance quien pinta no tumba la pasada', async () => {
+		mockFetch((url) => (url.startsWith('https://btc') ? jsonResponse({}, 503) : jsonResponse({ result: '0x1' })))
+		const seen = []
+		const previous = { balances: { 'bitcoin:native': '777' }, failedChains: [], updatedAt: 0 }
+		const result = await fetchAllBalances(router, registry, ADDRESSES, previous, () => 1, (chainKey) => { seen.push(chainKey); throw new Error('pintar falló') })
+		expect(seen).toEqual(['bsc'])
+		expect(result.failedChains).toEqual(['bitcoin'])
+		expect(result.balances['bsc:native']).toBe('1')
+		expect(result.balances['bitcoin:native']).toBe('777')
+	})
+})
+
+describe('mergeBalances', () => {
+	test('lo nuevo pisa lo viejo y lo que no viene se conserva', () => {
+		expect(mergeBalances({ a: '1', b: '2' }, { b: '3', c: '4' })).toEqual({ a: '1', b: '3', c: '4' })
+	})
+
+	test('un saldo comprometido que llega por partes: el total es la suma de las últimas de las dos', () => {
+		const own = stakedOwnId('solana:native')
+		const foreign = stakedForeignId('solana:native')
+		// La pasada trae `own`; la parte lenta ya se conocía
+		expect(mergeBalances({ [foreign]: '900', 'solana:native#staked': '900' }, { [own]: '100' })['solana:native#staked']).toBe('1000')
+		// Llega la parte lenta; `own` es el de la última pasada
+		expect(mergeBalances({ [own]: '100', 'solana:native#staked': '100' }, { [foreign]: '50' })['solana:native#staked']).toBe('150')
+		// Sin parte lenta todavía se enseña lo que se sabe
+		expect(mergeBalances({}, { [own]: '100' })['solana:native#staked']).toBe('100')
+	})
+
+	test('un total que NO llega por partes (STX bloqueado, TRX congelado) no se toca', () => {
+		expect(mergeBalances({ 'stacks:native#staked': '5' }, { 'stacks:native': '9' })).toEqual({ 'stacks:native#staked': '5', 'stacks:native': '9' })
+		// La parte lenta sola, sin pasada todavía, tampoco inventa un total
+		expect(mergeBalances({}, { [stakedForeignId('solana:native')]: '50' })).toEqual({ [stakedForeignId('solana:native')]: '50' })
+	})
+
+	test('un valor ilegible cuenta como 0 en vez de romper la suma', () => {
+		expect(mergeBalances({ [stakedForeignId('solana:native')]: 'x' }, { [stakedOwnId('solana:native')]: '7' })['solana:native#staked']).toBe('7')
+	})
 })
 
 describe('Solana: los Token-2022 (xStocks) van aparte', () => {
@@ -266,25 +322,46 @@ describe('Solana: los Token-2022 (xStocks) van aparte', () => {
 	const accounts = (mint, amount) => ({ value: [{ account: { data: { parsed: { info: { mint, tokenAmount: { amount } } } } } }] })
 	const solanaNode = ({ token2022Down = false } = {}) => (url, body) => {
 		if (body.method === 'getBalance') return jsonResponse({ result: { value: 5000 } })
-		if (body.method === 'getProgramAccounts') return jsonResponse({ result: [] })
+		if (body.method === 'getMultipleAccounts') return jsonResponse({ result: { value: body.params[0].map(() => null) } })
 		if (body.method === 'getTokenAccountsByOwner') {
 			if (body.params[1].programId === TOKEN_2022_PROGRAM) return token2022Down ? jsonResponse({}, 503) : jsonResponse({ result: accounts(TSLAX, '700') })
 			return jsonResponse({ result: accounts(USDC, '42') })
 		}
 		throw new Error(`método inesperado ${body.method}`)
 	}
-	const SOL_ADDRESSES = { ...ADDRESSES, sol: 'So1anaOwner1111111111111111111111111111111' }
+	const SOL_ADDRESSES = { ...ADDRESSES, sol: '9C6hybhQ6Aycep9jaUnP6uL9ZYvDjUp1aSkFWPUFJtpj' }
 
 	test('cada programa en su llamada; las acciones salen de la de Token-2022', async () => {
 		mockFetch(solanaNode())
 		await expect(fetchChainBalances(router, registry, 'solana', SOL_ADDRESSES)).resolves.toEqual({
 			'solana:native': '5000',
-			'solana:native#staked': '0',
+			'solana:native#staked:own': '0',
 			[`solana:${USDC}`]: '42',
 			[`solana:${TSLAX}`]: '700',
 		})
 		const programs = calls.filter(c => c.body.method === 'getTokenAccountsByOwner').map(c => c.body.params[1].programId)
 		expect(programs.sort()).toEqual([TOKEN_2022_PROGRAM, TOKEN_PROGRAM].sort())
+	})
+
+	// `getProgramAccounts` tardaba 6,5 s en nuestro nodo y la pasada espera a todas las redes:
+	// ningún saldo se movía hasta entonces. La pasada lee solo las cuentas de semilla
+	test('la pasada no busca stake accounts con getProgramAccounts: lee las de semilla en una llamada', async () => {
+		mockFetch(solanaNode())
+		await fetchChainBalances(router, registry, 'solana', SOL_ADDRESSES)
+		const methods = calls.map(c => c.body.method)
+		expect(methods).not.toContain('getProgramAccounts')
+		expect(methods.filter(m => m === 'getMultipleAccounts')).toHaveLength(1)
+		expect(calls.find(c => c.body.method === 'getMultipleAccounts').body.params[0]).toHaveLength(16)
+	})
+
+	test('el total comprometido suma lo de la pasada y la parte lenta que ya se conocía', async () => {
+		mockFetch(solanaNode())
+		const previous = { balances: { [stakedForeignId('solana:native')]: '900', 'solana:native#staked': '1234' }, failedChains: [], updatedAt: 0 }
+		const result = await fetchAllBalances(router, registry, SOL_ADDRESSES, previous)
+		expect(result.balances[stakedOwnId('solana:native')]).toBe('0')
+		// La parte lenta no viene en la pasada: se conserva, y el total sale de las dos
+		expect(result.balances[stakedForeignId('solana:native')]).toBe('900')
+		expect(result.balances['solana:native#staked']).toBe('900')
 	})
 
 	test('si Token-2022 falla, SOL y USDC siguen frescos y las acciones conservan la pasada anterior', async () => {

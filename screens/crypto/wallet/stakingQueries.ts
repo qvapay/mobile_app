@@ -22,7 +22,7 @@ import type { StakingSnapshot } from '../../../wallet/staking/types'
 import type { RegistryStaking } from '../../../wallet/registry/types'
 import type { TargetSamples } from '../../../wallet/solana/stake'
 import { MAX_STAKE_SEEDS, stakeAccountFor } from '../../../wallet/solana/stake'
-import { WALLET_BALANCES_KEY } from './walletQueries'
+import { WALLET_BALANCES_KEY, WALLET_SLOW_BALANCES_KEY } from './walletQueries'
 import { saveWalletQuery, useWalletQueriesPrimed } from './walletDiskCache'
 
 export const WALLET_STAKING_KEY = ['wallet', 'staking']
@@ -99,6 +99,8 @@ export const useInvalidateStaking = () => {
 	return useCallback(() => {
 		queryClient.invalidateQueries({ queryKey: WALLET_STAKING_KEY })
 		queryClient.invalidateQueries({ queryKey: WALLET_BALANCES_KEY })
+		// Una stake account creada con otra wallet también se puede desactivar o retirar desde aquí
+		queryClient.invalidateQueries({ queryKey: WALLET_SLOW_BALANCES_KEY })
 	}, [queryClient])
 }
 
