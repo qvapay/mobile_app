@@ -226,6 +226,21 @@ export const readSolanaStakeAccounts = async (rpc: Rpc, owner: string, { signal 
 	}
 }
 
+/**
+ * Solo las stake accounts de semilla QvaPay: UNA llamada rápida (`getMultipleAccounts`), sin
+ * `getProgramAccounts`. Es lo que lee la pasada de saldos, que no puede esperar a la otra.
+ */
+export const readSolanaSeedStakeAccounts = (rpc: Rpc, owner: string, { signal }: { signal?: AbortSignal } = {}): Promise<StakeAccountRead[]> =>
+	bySeeds(rpc, owner, signal)
+
+/**
+ * Todas, también las creadas con otra wallet, SIN respaldo: si el nodo no deja usar
+ * `getProgramAccounts` lanza, y el router prueba con otro. Quien necesita saber que la lista
+ * está completa no puede recibir en silencio solo las de semilla.
+ */
+export const readSolanaAllStakeAccounts = (rpc: Rpc, owner: string, { signal }: { signal?: AbortSignal } = {}): Promise<StakeAccountRead[]> =>
+	byWithdrawer(rpc, owner, signal)
+
 /** Posiciones para pintar. PURO. `names`: vote account → nombre del registry. */
 export const solanaPositionsFrom = (accounts: StakeAccountRead[], info: EpochInfo, now: number, names: Record<string, string> = {}, slotMs: number = SLOT_MS): StakePosition[] =>
 	accounts.map(({ address, lamports, parsed }) => {

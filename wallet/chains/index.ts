@@ -7,6 +7,9 @@
  * lecturas de nodos con alturas de bloque distintas. Única excepción: los
  * Token-2022 de Solana (xStocks) van en una llamada propia, para que un nodo
  * que no la sirva no tumbe SOL/USDC/USDT, que nunca dependieron de ella.
+ *
+ * La pasada tiene que ser RÁPIDA: es lo que deja ver un envío recién hecho. Lo que tarda
+ * segundos en leerse no va en ella sino en `fetchSlowBalances` (ver ahí).
  */
 import type { WalletAddresses } from '../derive'
 import type { RpcRouter } from '../registry/rpcRouter'
@@ -18,9 +21,45 @@ import { getEvmNativeBalance, getEvmTokenBalance } from './evm'
 import { getTronAccountState, getTronNativeBalance, getTronTokenBalance, tronCommittedSun } from './tron'
 import { ftBalanceOf, getStacksBalances, stxBalanceOf, stxLockedOf } from './stacks'
 import { getSolanaBalances, getSolanaToken2022Balances } from './solana'
-import { readSolanaStakeAccounts } from '../solana/stake'
+import { MAX_STAKE_SEEDS, readSolanaAllStakeAccounts, readSolanaSeedStakeAccounts, stakeAccountFor } from '../solana/stake'
 
 type RouterLike = Pick<RpcRouter, 'call'>
+
+/**
+ * Las dos partes de un saldo comprometido que se leen por separado (hoy, el SOL en stake
+ * accounts). No son activos: son claves auxiliares del mapa de saldos, y `mergeBalances` las
+ * suma en la de siempre (`stakedAssetId`), que es la única que lee la UI.
+ *   · `own`: lo de las stake accounts que crea QvaPay. Va en la pasada (una llamada rápida).
+ *   · `foreign`: lo de las creadas con otra wallet. Solo lo ve `fetchSlowBalances`.
+ */
+export const stakedOwnId = (assetId: string): string => `${stakedAssetId(assetId)}:own`
+export const stakedForeignId = (assetId: string): string => `${stakedAssetId(assetId)}:foreign`
+
+const STAKED_OWN_SUFFIX = stakedOwnId('')
+
+/** Un valor del mapa como bigint; lo que no se sepa leer cuenta como 0 en vez de romper la suma. */
+const rawAmount = (value: string | undefined): bigint => {
+	try { return BigInt(value ?? '0') } catch { return 0n }
+}
+
+const sumLamports = (accounts: Array<{ lamports: bigint }>): bigint => accounts.reduce((sum, account) => sum + account.lamports, 0n)
+
+/**
+ * `patch` sobre `base`, con el total de cada saldo comprometido que viene por partes
+ * recalculado. Todo lo que escribe saldos pasa por aquí: la pasada, la lectura de una sola
+ * red y la lectura lenta escriben partes distintas, y el total tiene que cuadrar con las
+ * últimas de todas. Sin la parte `foreign` (aún no leída, o su lectura falló) esa parte vale
+ * 0: se enseña lo que se sabe en vez de nada.
+ */
+export const mergeBalances = (base: RawBalances, patch: RawBalances): RawBalances => {
+	const merged: RawBalances = { ...base, ...patch }
+	for (const key of Object.keys(merged)) {
+		if (!key.endsWith(STAKED_OWN_SUFFIX)) continue
+		const assetId = key.slice(0, -STAKED_OWN_SUFFIX.length)
+		merged[stakedAssetId(assetId)] = (rawAmount(merged[key]) + rawAmount(merged[stakedForeignId(assetId)])).toString()
+	}
+	return merged
+}
 
 export const fetchChainBalances = async (
 	router: RouterLike,
@@ -56,8 +95,11 @@ export const fetchChainBalances = async (
 			// Una llamada de saldo nativo + una de todas las cuentas SPL clásicas
 			const all = getSolanaBalances(rpc, owner, { signal })
 			entries.push(all.then(b => [nativeId, b.lamports]))
-			// SOL en stake accounts: no es gastable pero es del usuario (va aparte, como el STX bloqueado)
-			entries.push(readSolanaStakeAccounts(rpc, owner, { signal }).then(accounts => [stakedAssetId(nativeId), accounts.reduce((sum, a) => sum + a.lamports, 0n)]))
+			// SOL en stake accounts: no es gastable pero es del usuario (va aparte, como el STX
+			// bloqueado). Aquí solo las que crea QvaPay: una llamada rápida al MISMO nodo y en el
+			// mismo momento que el gastable, así hacer staking no hace bailar el total. Buscar
+			// las creadas con otra wallet tarda segundos y va en `fetchSlowBalances`
+			entries.push(readSolanaSeedStakeAccounts(rpc, owner, { signal }).then(accounts => [stakedOwnId(nativeId), sumLamports(accounts)]))
 			tokens.forEach(token => entries.push(all.then(b => [tokenAssetId(chainKey, token.address), b.tokens[token.address] ?? 0n])))
 		} else if (chain.kind === 'tron') {
 			if (rpc.api === 'jsonrpc') {
@@ -96,6 +138,28 @@ export const fetchChainBalances = async (
 	return balances
 }
 
+/**
+ * Lo que NO va en la pasada porque tarda segundos: el SOL en stake accounts creadas con otra
+ * wallet. Encontrarlas es un `getProgramAccounts` que en nuestro nodo tardaba 6,5 s (medido
+ * el 2026-11-16) y, como la pasada espera a todas las redes, retrasaba 6,5 s CUALQUIER saldo,
+ * también al tirar para refrescar. Se pide aparte y de tarde en tarde; el resultado es la
+ * parte `foreign`, que `mergeBalances` suma al total.
+ *
+ * Sin respaldo a las cuentas de semilla: una lista incompleta daría `foreign: 0` y borraría
+ * lo que ya se sabía. Si ningún nodo deja usar `getProgramAccounts`, lanza, y quien llama
+ * conserva lo último conocido.
+ */
+export const fetchSlowBalances = async (router: RouterLike, registry: RpcRegistry, addresses: WalletAddresses): Promise<RawBalances> => {
+	const solanaKeys = Object.keys(registry.chains).filter(chainKey => registry.chains[chainKey].kind === 'solana')
+	const parts = await Promise.all(solanaKeys.map(async (chainKey): Promise<[string, string]> => {
+		const owner = addressForKind(addresses, registry.chains[chainKey].kind)
+		const seeded = new Set(Array.from({ length: MAX_STAKE_SEEDS }, (_, index) => stakeAccountFor(owner, index)))
+		const accounts = await router.call(chainKey, (rpc, signal) => readSolanaAllStakeAccounts(rpc, owner, { signal }), { idempotent: true })
+		return [stakedForeignId(nativeAssetId(chainKey)), sumLamports(accounts.filter(account => !seeded.has(account.address))).toString()]
+	}))
+	return Object.fromEntries(parts)
+}
+
 export type WalletBalancesResult = {
 	balances: RawBalances
 	/** Cadenas que fallaron en esta pasada (sus saldos vienen de la anterior, si la hubo). */
@@ -108,6 +172,9 @@ export type WalletBalancesResult = {
  * saldos se conservan de la pasada anterior (`previous`) y queda en
  * `failedChains` para que la UI avise sin vaciar filas. Solo si fallan TODAS
  * y no hay nada previo se lanza (React Query lo trata como error).
+ *
+ * `onChain` recibe cada red en cuanto contesta, sin esperar a las demás: quien pinta puede
+ * enseñar ya ese saldo en vez de esperar a la red más lenta. Lo que lance no afecta a la pasada.
  */
 export const fetchAllBalances = async (
 	router: RouterLike,
@@ -115,14 +182,19 @@ export const fetchAllBalances = async (
 	addresses: WalletAddresses,
 	previous?: WalletBalancesResult | null,
 	now: () => number = Date.now,
+	onChain?: (chainKey: string, balances: RawBalances) => void,
 ): Promise<WalletBalancesResult> => {
 	const chainKeys = Object.keys(registry.chains)
-	const results = await Promise.allSettled(chainKeys.map(key => fetchChainBalances(router, registry, key, addresses)))
+	const results = await Promise.allSettled(chainKeys.map(async key => {
+		const chainBalances = await fetchChainBalances(router, registry, key, addresses)
+		try { onChain?.(key, chainBalances) } catch { /* pintar es cosa de quien llama */ }
+		return chainBalances
+	}))
 
-	const balances: RawBalances = {}
+	const fresh: RawBalances = {}
 	const failedChains: string[] = []
 	results.forEach((result, index) => {
-		if (result.status === 'fulfilled') Object.assign(balances, result.value)
+		if (result.status === 'fulfilled') Object.assign(fresh, result.value)
 		else failedChains.push(chainKeys[index])
 	})
 
@@ -130,12 +202,9 @@ export const fetchAllBalances = async (
 	//   · una cadena caída entera (queda en `failedChains` para que la UI avise);
 	//   · el `#staked` de un nodo que no ve el staking (TRON jsonrpc), hasta que el router
 	//     vuelva a otro nodo;
-	//   · los Token-2022 de Solana (xStocks) cuando su lectura aparte falla en todos los nodos.
-	if (previous) {
-		for (const [id, value] of Object.entries(previous.balances)) {
-			if (!(id in balances)) balances[id] = value
-		}
-	}
+	//   · los Token-2022 de Solana (xStocks) cuando su lectura aparte falla en todos los nodos;
+	//   · la parte lenta de un saldo comprometido (`fetchSlowBalances`), que nunca viene aquí.
+	const balances = mergeBalances(previous?.balances ?? {}, fresh)
 
 	if (failedChains.length === chainKeys.length && !previous) {
 		throw new Error('wallet: no se pudo leer ninguna cadena')

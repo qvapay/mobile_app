@@ -35,6 +35,8 @@ import {
 	findFreeStakeSeed,
 	parseStakeAccount,
 	prepareSolanaStake,
+	readSolanaAllStakeAccounts,
+	readSolanaSeedStakeAccounts,
 	readSolanaStakeAccounts,
 	signSolanaStake,
 	solanaPositionsFrom,
@@ -231,6 +233,26 @@ describe('lectura de posiciones', () => {
 		const accounts = await readSolanaStakeAccounts(RPC, USER)
 		// La de otro withdrawer no es del usuario aunque la semilla coincida
 		expect(accounts.map(a => a.address)).toEqual([stakeAccountFor(USER, 2)])
+	})
+
+	// La pasada de saldos: `getProgramAccounts` tardaba 6,5 s en nuestro nodo y retrasaba TODOS
+	// los saldos, así que lee solo las de semilla, que son una llamada rápida
+	test('solo las de semilla: una llamada, sin getProgramAccounts', async () => {
+		mockRpc({ getMultipleAccounts: ([addresses]) => ({ value: addresses.map((a, i) => (i === 2 ? raw(stakeData(), 7_000n) : null)) }) })
+		const accounts = await readSolanaSeedStakeAccounts(RPC, USER)
+		expect(accounts.map(a => [a.address, a.lamports])).toEqual([[stakeAccountFor(USER, 2), 7_000n]])
+		expect(calls.map(c => c.method)).toEqual(['getMultipleAccounts'])
+		expect(calls[0].params[0]).toHaveLength(MAX_STAKE_SEEDS)
+	})
+
+	// La lectura lenta necesita la lista COMPLETA: con el respaldo, un nodo que bloquea la
+	// búsqueda devolvería solo las de semilla y lo de otras wallets pasaría por 0
+	test('todas, sin respaldo: si el nodo bloquea getProgramAccounts lanza en vez de dar solo las de semilla', async () => {
+		mockRpc({ getProgramAccounts: () => ({ __error: { code: -32010, message: 'excluded from account secondary indexes' } }) })
+		await expect(readSolanaAllStakeAccounts(RPC, USER)).rejects.toThrow('excluded from account secondary indexes')
+		expect(calls.map(c => c.method)).toEqual(['getProgramAccounts'])
+		mockRpc({ getProgramAccounts: () => [{ pubkey: STAKE7, account: raw(stakeData()) }] })
+		await expect(readSolanaAllStakeAccounts(RPC, USER)).resolves.toHaveLength(1)
 	})
 
 	test('posiciones con nombre del validador y cuenta atrás a fin de epoch', () => {
