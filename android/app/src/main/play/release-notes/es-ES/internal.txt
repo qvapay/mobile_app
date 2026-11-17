@@ -1,8 +1,6 @@
-Novedades de QvaPay 3.16.4:
-• Los saldos de la wallet se actualizan mucho más rápido, también tras un envío.
-• El teclado ya no tapa el PIN al confirmar un swap o un pago en una mini-app.
-• Más nodos propios en la wallet: más velocidad y estabilidad.
-• Dos filas de mini-apps en el inicio.
-• Las tiendas con más de 12 productos los enseñan todos.
-• Formulario de dirección para cuentas de fuera de EE. UU.
+Novedades de QvaPay 3.16.5:
+• MÁX en un swap desde BNB, ETH, POL o SOL deja lo justo para la comisión.
+• Si no te alcanza para la comisión, la wallet lo dice antes de pedirte el PIN.
+• En Recibir y en cada activo, un cobro aparece a los pocos segundos.
+• Aviso al recibir: «Recibiste…».
 • Arreglos y estabilidad.
