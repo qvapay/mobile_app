@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { AppState } from 'react-native'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { QueryClient } from '@tanstack/react-query'
+import type { QueryClient, QueryKey } from '@tanstack/react-query'
 import { useIsFocused } from '@react-navigation/native'
 
 // API
@@ -22,8 +22,11 @@ import type { ApiError } from '../../../api/unwrap'
 import { useWallet } from '../../../wallet/WalletContext'
 import { getAppRpcRouter, useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { useAssetCatalog } from './useAssetCatalog'
-import { fetchAllBalances } from '../../../wallet/chains'
+import { fetchAllBalances, fetchChainBalances, fetchSlowBalances, mergeBalances } from '../../../wallet/chains'
 import type { WalletBalancesResult } from '../../../wallet/chains'
+import type { WalletAddresses } from '../../../wallet/derive'
+import { applyBalances, chaseBalance } from './balanceUpdates'
+import type { BalanceStore } from './balanceUpdates'
 import { addressForKind, isAssetVisible, sortAssets, toAssetView, tokenAssetId, totalUsd } from '../../../wallet/assets'
 import type { AssetOrder, AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
 import { getTronChainParams, getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
@@ -49,9 +52,14 @@ export const WALLET_HISTORY_KEY = ['wallet', 'history']
 export const WALLET_TRON_RESOURCES_KEY = ['wallet', 'tron', 'resources']
 export const WALLET_TRON_PARAMS_KEY = ['wallet', 'tron', 'params']
 export const WALLET_TRON_CONTROL_KEY = ['wallet', 'tron', 'control']
+/** Lo que tarda segundos en leerse y por eso no va en la pasada de saldos (`fetchSlowBalances`). */
+export const WALLET_SLOW_BALANCES_KEY = ['wallet', 'slow-balances']
 
 /** Frescura de saldos: un depósito entrante debe verse en < 60s con la pantalla abierta. */
 const BALANCES_STALE_MS = 30_000
+
+/** Lo lento cambia de tarde en tarde (stake accounts creadas con otra wallet): diez minutos sobran. */
+const SLOW_BALANCES_STALE_MS = 10 * 60_000
 
 /**
  * Frescura del historial. Larga a propósito: el historial NO se repide por
@@ -96,10 +104,25 @@ export const refreshHistoryAfterSend = (queryClient: QueryClient, assetId: strin
 	setTimeout(() => { queryClient.invalidateQueries({ queryKey: [...WALLET_HISTORY_KEY, assetId] }) }, INDEXING_DELAY_MS)
 }
 
+const balancesKeyOf = (addresses: WalletAddresses | null | undefined): QueryKey =>
+	[...WALLET_BALANCES_KEY, addresses?.evm ?? '', addresses?.tron ?? '', addresses?.btc ?? '']
+
+/** La caché de saldos de una wallet, como la ven las reglas puras de `balanceUpdates`. */
+const balanceStore = (queryClient: QueryClient, queryKey: QueryKey): BalanceStore => ({
+	id: JSON.stringify(queryKey),
+	get: () => queryClient.getQueryData<WalletBalancesResult>(queryKey),
+	set: next => { queryClient.setQueryData<WalletBalancesResult>(queryKey, next) },
+})
+
 /**
  * Saldos crudos de todas las cadenas. Refresca cada 30s SOLO con la pantalla
  * enfocada y al volver la app a foreground; una cadena caída conserva sus
  * saldos previos (ver `fetchAllBalances`).
+ *
+ * Cada red se pinta en cuanto contesta, sin esperar a las demás, y lo que tarda segundos en
+ * leerse va en una consulta aparte (`fetchSlowBalances`). Antes la pasada entera esperaba
+ * 6,5 s a una búsqueda de Solana y hasta entonces no se movía ningún saldo, tampoco al tirar
+ * para refrescar.
  */
 export const useWalletBalancesQuery = () => {
 
@@ -111,28 +134,54 @@ export const useWalletBalancesQuery = () => {
 	// sirve de `previous` a fetchAllBalances (una cadena caída conserva lo último)
 	const primed = useWalletQueriesPrimed(queryClient, addresses?.evm)
 
-	const queryKey = useMemo(
-		() => [...WALLET_BALANCES_KEY, addresses?.evm ?? '', addresses?.tron ?? '', addresses?.btc ?? ''],
-		[addresses],
-	)
+	const queryKey = useMemo(() => balancesKeyOf(addresses), [addresses])
+	const slowKey = useMemo(() => [...WALLET_SLOW_BALANCES_KEY, addresses?.sol ?? ''], [addresses])
 
 	const query = useQuery({
 		queryKey,
 		queryFn: async () => {
+			const store = balanceStore(queryClient, queryKey)
+			const startedAt = Date.now()
 			const result = await fetchAllBalances(
 				getAppRpcRouter(),
 				registry,
 				addresses!,
-				queryClient.getQueryData<WalletBalancesResult>(queryKey),
+				store.get(),
+				undefined,
+				(chainKey, chainBalances) => { applyBalances(store, chainBalances, { chainKey, startedAt }) },
 			)
+			// Con foto previa manda lo pintado por el camino: ya trae cada red de esta pasada,
+			// salvo la que una lectura más nueva (la de un envío propio) dejó atrás. Sin foto
+			// vale el resultado entero. La parte lenta entra aunque llegara antes que la foto
+			const painted = store.get()
+			const final: WalletBalancesResult = {
+				balances: mergeBalances(painted?.balances ?? result.balances, queryClient.getQueryData<RawBalances>(slowKey) ?? {}),
+				failedChains: result.failedChains,
+				updatedAt: result.updatedAt,
+			}
 			// A disco sin `failedChains`: al arrancar no hay pasada que haya fallado aún
-			saveWalletQuery(addresses?.evm, queryKey, { ...result, failedChains: [] })
-			return result
+			saveWalletQuery(addresses?.evm, queryKey, { ...final, failedChains: [] })
+			return final
 		},
 		enabled: !!addresses && primed,
 		staleTime: BALANCES_STALE_MS,
 		refetchInterval: isFocused ? BALANCES_STALE_MS : false,
 		placeholderData: previous => previous,
+		meta: { noPersist: true },
+	})
+
+	// Lo lento, aparte y de tarde en tarde: su resultado se funde en los saldos al llegar
+	useQuery({
+		queryKey: slowKey,
+		queryFn: async () => {
+			const slow = await fetchSlowBalances(getAppRpcRouter(), registry, addresses!)
+			applyBalances(balanceStore(queryClient, queryKey), slow)
+			return slow
+		},
+		enabled: !!addresses && primed,
+		staleTime: SLOW_BALANCES_STALE_MS,
+		refetchInterval: isFocused ? SLOW_BALANCES_STALE_MS : false,
+		retry: 1,
 		meta: { noPersist: true },
 	})
 
@@ -159,6 +208,31 @@ export const useWalletBalancesQuery = () => {
 	}, [balances, queryClient])
 
 	return query
+}
+
+/**
+ * Tras un envío propio: relee SOLO su red, a los pocos segundos y hasta ver moverse el saldo
+ * del activo enviado (`CHASE_DELAYS_MS`). Antes se invalidaban todos los saldos en el segundo
+ * 0: ocho redes para leer el saldo de antes, porque ninguna había confirmado aún, y el nuevo
+ * no aparecía hasta el sondeo siguiente.
+ */
+export const useBalanceChase = () => {
+	const { addresses } = useWallet()
+	const registry = useEffectiveRegistry()
+	const queryClient = useQueryClient()
+	return useCallback((chainKey: string, assetId: string): void => {
+		if (!addresses || !registry.chains[chainKey]) return
+		const store = balanceStore(queryClient, balancesKeyOf(addresses))
+		chaseBalance(`${store.id}|${chainKey}`, {
+			baseline: store.get()?.balances[assetId],
+			read: async () => {
+				const startedAt = Date.now()
+				const chainBalances = await fetchChainBalances(getAppRpcRouter(), registry, chainKey, addresses)
+				applyBalances(store, chainBalances, { chainKey, startedAt })
+				return chainBalances[assetId]
+			},
+		})
+	}, [addresses, registry, queryClient])
 }
 
 /**

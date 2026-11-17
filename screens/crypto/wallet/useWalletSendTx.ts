@@ -17,7 +17,7 @@ import { getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
 import type { AssetView } from '../../../wallet/assets'
 import type { WalletAddresses } from '../../../wallet/derive'
 import type { RegistryChain } from '../../../wallet/registry/types'
-import { refreshHistoryAfterSend, WALLET_BALANCES_KEY } from './walletQueries'
+import { refreshHistoryAfterSend, useBalanceChase } from './walletQueries'
 import { broadcastSigned, lookupSend, prepareSend, sentRefOf, signedTxid, signPrepared } from './walletSendActions'
 import type { FeeTier, PreparedSend, SignedSend } from './walletSendActions'
 import type { SentRef } from './sentRef'
@@ -110,13 +110,17 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		return broadcastSigned(current, signed)
 	}, [sponsor])
 
+	const chaseBalance = useBalanceChase()
+
 	const handleSent = useCallback((txid: string, _prepared: PreparedSend, duplicate: boolean) => {
 		if (duplicate) toast(t('crypto.wallet.send.alreadySent'))
-		queryClient.invalidateQueries({ queryKey: WALLET_BALANCES_KEY })
+		// El saldo no se mueve hasta que la red confirma: releerlo ya devolvería el de antes.
+		// Se relee solo la red del envío, a los pocos segundos y hasta verlo cambiar
+		if (asset) chaseBalance(asset.chainKey, assetId)
 		// Solo el historial del activo enviado, diferido y saltando la caché del proxy
 		refreshHistoryAfterSend(queryClient, assetId)
 		onSent(txid)
-	}, [queryClient, assetId, onSent, t])
+	}, [queryClient, asset, assetId, chaseBalance, onSent, t])
 
 	const handleAttempt = useCallback((current: PreparedSend, signed: SignedSend) => onAttempt?.(signedTxid(current, signed), sentRefOf(current, signed)), [onAttempt])
 
