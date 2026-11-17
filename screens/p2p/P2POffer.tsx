@@ -41,6 +41,7 @@ import P2PHeaderTitle from "./P2PHeaderTitle"
 import P2PPeerRow from "./P2PPeerRow"
 import P2PEditModal from "./P2PEditModal"
 import P2PApplyModal from "./P2PApplyModal"
+import P2PFlexibleTakeForm from "./P2PFlexibleTakeForm"
 import P2PTradeProgress from "./P2PTradeProgress"
 import P2PTradeAttachments, { P2PProofPickers, P2PProofRows } from "./P2PTradeAttachments"
 import P2PActionBar from "./P2PActionBar"
@@ -288,8 +289,19 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 									<LottieView source={require("../../assets/lotties/searching.json")} autoPlay loop style={{ width: 250, height: 250 }} />
 								</View>
 							) : canApply ? (
-								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
-									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>{t('p2p.flexible.applyQuestion')}</Text>
+								/* El monto a tomar vive aquí, a la vista (como en la web): el modal
+								   de confirmación lo repite por si hay que ajustarlo antes de tomar */
+								<View style={[containerStyles.card, { marginVertical: 4, paddingVertical: 12, paddingHorizontal: 12 }]}>
+									<Text style={[textStyles.h6, { color: theme.colors.primaryText, marginBottom: 4 }]}>{t('p2p.flexible.applyQuestion')}</Text>
+									<P2PFlexibleTakeForm
+										offer={rawP2p}
+										amount={applyAmount}
+										setAmount={setApplyAmount}
+										balance={Number(user?.balance ?? 0)}
+										hint
+										theme={theme}
+										textStyles={textStyles}
+									/>
 								</View>
 							) : null}
 						</>
