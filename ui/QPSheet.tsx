@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated from 'react-native-reanimated'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -9,6 +9,7 @@ import { useTheme } from '../theme/ThemeContext'
 import { useTextStyles } from '../theme/themeUtils'
 import { SHEET_ENTERING, SHEET_MAX_RATIO } from './sheetConfig'
 import { SurfaceHost } from './SurfaceContext'
+import QPKeyboardAvoidingView from './QPKeyboardAvoidingView'
 
 /**
  * LA hoja inferior de la app: overlay que cierra al tocar fuera, tirador, cabecera con
@@ -25,7 +26,11 @@ const QPSheet = ({ visible, title, onClose, children, dismissable = true, avoidK
 	children: React.ReactNode
 	/** Mientras se firma o se envía no se deja cerrar tocando fuera. */
 	dismissable?: boolean
-	/** La hoja sube con el teclado (entradas de PIN, búsquedas). */
+	/**
+	 * La hoja sube con el teclado (entradas de PIN, búsquedas). Si el campo va al final de un
+	 * contenido largo, ese contenido va dentro de `QPSheetScroll`: la hoja se encoge al subir
+	 * y sin él el campo quedaría fuera de la vista.
+	 */
 	avoidKeyboard?: boolean
 	headerRight?: React.ReactNode
 }) => {
@@ -38,7 +43,7 @@ const QPSheet = ({ visible, title, onClose, children, dismissable = true, avoidK
 
 
 	const body = (
-		<Pressable style={styles.overlay} onPress={close}>
+		<Pressable style={[styles.overlay, !avoidKeyboard && styles.veil]} onPress={close}>
 			{/* El responder absorbe los toques: sin él, tocar el tirador o cualquier hueco de la
 			    hoja caía al overlay y la cerraba. Animated.View y no Pressable: animar un
 			    Pressable revienta en Fabric */}
@@ -66,8 +71,12 @@ const QPSheet = ({ visible, title, onClose, children, dismissable = true, avoidK
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
+			{/* El evitador de la casa y no el `KeyboardAvoidingView` de RN: en Android la ventana
+			    no se encoge con el teclado (edge-to-edge) y el de RN, sin `behavior`, no hacía
+			    nada, así que el PIN de una hoja quedaba debajo del teclado. El velo va en el
+			    envoltorio para que el hueco que se le deja al teclado también quede oscuro */}
 			{avoidKeyboard
-				? <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>{body}</KeyboardAvoidingView>
+				? <QPKeyboardAvoidingView style={[styles.flex, styles.veil]}>{body}</QPKeyboardAvoidingView>
 				: body}
 		</Modal>
 	)
@@ -75,7 +84,8 @@ const QPSheet = ({ visible, title, onClose, children, dismissable = true, avoidK
 
 const styles = StyleSheet.create({
 	flex: { flex: 1 },
-	overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+	overlay: { flex: 1, justifyContent: 'flex-end' },
+	veil: { backgroundColor: 'rgba(0,0,0,0.55)' },
 	sheet: {
 		borderTopLeftRadius: 22, borderTopRightRadius: 22, borderCurve: 'continuous',
 		maxHeight: `${SHEET_MAX_RATIO * 100}%`, paddingHorizontal: 20, overflow: 'hidden',
