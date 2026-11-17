@@ -18,7 +18,8 @@ import useMaxBrightness from '../../../hooks/useMaxBrightness'
 import { ROUTES } from '../../../routes'
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { WalletAsset } from '../../../wallet/assets'
-import { useAssetCatalog, useTronForeignControl } from './walletQueries'
+import { useAssetBalanceWatch, useAssetCatalog, useIncomingBalance, useTronForeignControl } from './walletQueries'
+import { formatUnits } from '../../../wallet/chains/units'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -62,6 +63,13 @@ const WalletReceive = ({ navigation, route }: Props) => {
 	)
 
 	const address = asset && addresses ? addressForKind(addresses, asset.kind) : null
+
+	// Quien está aquí espera un cobro: su red se relee cada pocos segundos y, como en esta
+	// pantalla no hay saldo a la vista, en cuanto sube se dice
+	useAssetBalanceWatch(asset)
+	useIncomingBalance(asset, units => {
+		if (asset) toast.success(t('crypto.wallet.receive.received', { amount: formatUnits(units, asset.decimals), symbol: asset.symbol }))
+	})
 
 	// Cuenta TRON con dueño ajeno: lo que llegue aquí se lo queda otro. La dirección no se
 	// enseña sin pasar por el aviso, y el puente desde el saldo QvaPay no se ofrece

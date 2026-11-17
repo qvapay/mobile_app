@@ -51,6 +51,10 @@ export const getSolanaBalances = async (rpc: RegistryRpc, owner: string, options
 	return { lamports, tokens: sumTokenAccounts(accounts) }
 }
 
+/** Saldos SPL clásicos por mint, sin el nativo: una sola llamada (la que relee un token mientras se le mira). */
+export const getSolanaTokenBalances = async (rpc: RegistryRpc, owner: string, options: Options = {}): Promise<Record<string, bigint>> =>
+	sumTokenAccounts(await tokenAccounts(rpc, owner, TOKEN_PROGRAM, options))
+
 /** Saldos de los mints Token-2022 (xStocks) por mint. Un mint pertenece a un solo programa: no se solapa con el clásico. */
 export const getSolanaToken2022Balances = async (rpc: RegistryRpc, owner: string, options: Options = {}): Promise<Record<string, bigint>> =>
 	sumTokenAccounts(await tokenAccounts(rpc, owner, TOKEN_2022_PROGRAM, options))

@@ -3,7 +3,7 @@
  * repinta y cuándo se vuelve a mirar la red de un envío propio.
  * @jest-environment node
  */
-import { applyBalances, chaseBalance, CHASE_DELAYS_MS, startBalanceChase } from './balanceUpdates'
+import { applyBalances, balanceIncrease, chaseBalance, CHASE_DELAYS_MS, startBalanceChase } from './balanceUpdates'
 import { stakedForeignId, stakedOwnId } from '../../../wallet/chains'
 
 let seq = 0
@@ -17,13 +17,13 @@ const storeOf = (balances) => {
 describe('applyBalances', () => {
 	test('sin foto todavía no pinta nada: la primera pasada sale entera, no red a red', () => {
 		const store = storeOf(undefined)
-		expect(applyBalances(store, { 'stacks:native': '5' }, { chainKey: 'stacks', startedAt: 10 })).toBe(false)
+		expect(applyBalances(store, { 'stacks:native': '5' }, { startedAt: 10 })).toBe(false)
 		expect(store.set).not.toHaveBeenCalled()
 	})
 
 	test('lleva lo leído a la caché y conserva lo demás', () => {
 		const store = storeOf({ 'stacks:native': '5', 'bsc:native': '9' })
-		expect(applyBalances(store, { 'stacks:native': '3', 'stacks:qusd': '25' }, { chainKey: 'stacks', startedAt: 10 })).toBe(true)
+		expect(applyBalances(store, { 'stacks:native': '3', 'stacks:qusd': '25' }, { startedAt: 10 })).toBe(true)
 		expect(store.get()).toEqual({
 			balances: { 'stacks:native': '3', 'stacks:qusd': '25', 'bsc:native': '9' },
 			failedChains: ['bitcoin'],
@@ -33,29 +33,39 @@ describe('applyBalances', () => {
 
 	test('si nada cambia no escribe: nadie se repinta por una lectura igual', () => {
 		const store = storeOf({ 'stacks:native': '5', 'bsc:native': '9' })
-		expect(applyBalances(store, { 'stacks:native': '5' }, { chainKey: 'stacks', startedAt: 10 })).toBe(false)
+		expect(applyBalances(store, { 'stacks:native': '5' }, { startedAt: 10 })).toBe(false)
 		expect(store.set).not.toHaveBeenCalled()
 	})
 
-	test('una lectura pedida ANTES que la última aplicada de esa red se descarta', () => {
+	test('el saldo de un activo que ya se ve por una lectura pedida DESPUÉS se descarta', () => {
 		const store = storeOf({ 'stacks:qusd': '50' })
 		// La de un envío propio, pedida en el segundo 200, ya ve el saldo nuevo
-		expect(applyBalances(store, { 'stacks:qusd': '25' }, { chainKey: 'stacks', startedAt: 200 })).toBe(true)
+		expect(applyBalances(store, { 'stacks:qusd': '25' }, { startedAt: 200 })).toBe(true)
 		// La de la pasada se pidió en el 100 y llega después con el saldo viejo
-		expect(applyBalances(store, { 'stacks:qusd': '50' }, { chainKey: 'stacks', startedAt: 100 })).toBe(false)
+		expect(applyBalances(store, { 'stacks:qusd': '50' }, { startedAt: 100 })).toBe(false)
 		expect(store.get().balances['stacks:qusd']).toBe('25')
 		// Otra red de esa misma pasada sí entra
-		expect(applyBalances(store, { 'bsc:native': '7' }, { chainKey: 'bsc', startedAt: 100 })).toBe(true)
+		expect(applyBalances(store, { 'bsc:native': '7' }, { startedAt: 100 })).toBe(true)
 		// Y una lectura posterior de la primera vuelve a mandar
-		expect(applyBalances(store, { 'stacks:qusd': '20' }, { chainKey: 'stacks', startedAt: 300 })).toBe(true)
+		expect(applyBalances(store, { 'stacks:qusd': '20' }, { startedAt: 300 })).toBe(true)
 		expect(store.get().balances).toEqual({ 'stacks:qusd': '20', 'bsc:native': '7' })
+	})
+
+	// La pantalla de un activo relee SOLO el suyo cada 5 s; la pasada lee la red entera
+	test('va por activo: lo demás de una lectura que llega tarde sí entra', () => {
+		const store = storeOf({ 'bsc:usdt': '100', 'bsc:native': '9' })
+		// El sondeo del USDT, pedido en el 200
+		expect(applyBalances(store, { 'bsc:usdt': '125' }, { startedAt: 200 })).toBe(true)
+		// La pasada se pidió en el 100: su USDT es viejo, pero su BNB es lo más nuevo que hay
+		expect(applyBalances(store, { 'bsc:usdt': '100', 'bsc:native': '8' }, { startedAt: 100 })).toBe(true)
+		expect(store.get().balances).toEqual({ 'bsc:usdt': '125', 'bsc:native': '8' })
 	})
 
 	test('el orden es por wallet: la lectura de una no descarta la de otra', () => {
 		const one = storeOf({ 'stacks:qusd': '50' })
 		const other = storeOf({ 'stacks:qusd': '50' })
-		applyBalances(one, { 'stacks:qusd': '25' }, { chainKey: 'stacks', startedAt: 200 })
-		expect(applyBalances(other, { 'stacks:qusd': '10' }, { chainKey: 'stacks', startedAt: 100 })).toBe(true)
+		applyBalances(one, { 'stacks:qusd': '25' }, { startedAt: 200 })
+		expect(applyBalances(other, { 'stacks:qusd': '10' }, { startedAt: 100 })).toBe(true)
 	})
 
 	test('la parte lenta entra sin orden de red y el total sale de las dos partes', () => {
@@ -65,8 +75,27 @@ describe('applyBalances', () => {
 		expect(applyBalances(store, { [foreign]: '50' })).toBe(true)
 		expect(store.get().balances['solana:native#staked']).toBe('150')
 		// La pasada siguiente trae otra vez su parte: el total sigue contando la lenta
-		expect(applyBalances(store, { 'solana:native': '4', [own]: '105' }, { chainKey: 'solana', startedAt: 500 })).toBe(true)
+		expect(applyBalances(store, { 'solana:native': '4', [own]: '105' }, { startedAt: 500 })).toBe(true)
 		expect(store.get().balances['solana:native#staked']).toBe('155')
+	})
+})
+
+describe('balanceIncrease', () => {
+	const sample = (raw, id = 'stacks:qusd') => ({ id, raw })
+
+	test('dice cuánto subió', () => {
+		expect(balanceIncrease(sample('50000000'), sample('75000000'))).toBe(25_000_000n)
+	})
+
+	test('la primera lectura y un cambio de activo solo fijan el punto de partida', () => {
+		expect(balanceIncrease(null, sample('75000000'))).toBe(0n)
+		expect(balanceIncrease(sample('1', 'bsc:native'), sample('75000000'))).toBe(0n)
+	})
+
+	test('que baje o se quede igual no es un cobro, ni un valor ilegible', () => {
+		expect(balanceIncrease(sample('75000000'), sample('50000000'))).toBe(0n)
+		expect(balanceIncrease(sample('75000000'), sample('75000000'))).toBe(0n)
+		expect(balanceIncrease(sample('x'), sample('75000000'))).toBe(0n)
 	})
 })
 

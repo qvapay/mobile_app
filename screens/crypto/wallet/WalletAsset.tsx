@@ -17,7 +17,7 @@ import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, explorerAddressUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { isZeroTransfer, splitDust } from '../../../wallet/dust'
-import { markHistoryFresh, usePriceMap, useTronForeignControl, useWalletAssets, useWalletHistory } from './walletQueries'
+import { markHistoryFresh, useAssetBalanceWatch, usePriceMap, useTronForeignControl, useWalletAssets, useWalletHistory } from './walletQueries'
 import { useXStockShares } from '../stocks/xstocksPrices'
 import { formatUsd } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
@@ -161,6 +161,8 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const { all, isLoading: balancesLoading, refetch: refetchBalances } = useWalletAssets()
 	const prices = usePriceMap()
 	const asset = useMemo(() => all.find(a => a.id === assetId), [all, assetId])
+	// Con este activo delante su saldo se relee cada pocos segundos: un cobro se ve casi al llegar
+	useAssetBalanceWatch(asset)
 	// El saldo de este activo lo dice un nodo que añadió el usuario: se avisa siempre
 	const customNodeChains = useCustomNodeChains()
 	const customNode = !!asset && customNodeChains.includes(asset.chainKey)

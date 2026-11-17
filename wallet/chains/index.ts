@@ -20,7 +20,7 @@ import { getBtcBalance } from './btc'
 import { getEvmNativeBalance, getEvmTokenBalance } from './evm'
 import { getTronAccountState, getTronNativeBalance, getTronTokenBalance, tronCommittedSun } from './tron'
 import { ftBalanceOf, getStacksBalances, stxBalanceOf, stxLockedOf } from './stacks'
-import { getSolanaBalances, getSolanaToken2022Balances } from './solana'
+import { getSolanaBalances, getSolanaLamports, getSolanaToken2022Balances, getSolanaTokenBalances } from './solana'
 import { MAX_STAKE_SEEDS, readSolanaAllStakeAccounts, readSolanaSeedStakeAccounts, stakeAccountFor } from '../solana/stake'
 
 type RouterLike = Pick<RpcRouter, 'call'>
@@ -136,6 +136,52 @@ export const fetchChainBalances = async (
 		extendedTokens.forEach(token => { balances[tokenAssetId(chainKey, token.address)] = (extendedBalances[token.address] ?? 0n).toString() })
 	}
 	return balances
+}
+
+/**
+ * El saldo de UN activo con las menos llamadas posibles: lo que se relee cada pocos segundos
+ * mientras el usuario mira ese activo o espera un cobro en Recibir. La pasada entera son unas
+ * veinte llamadas entre las ocho redes; esto, una, y solo a la red de ese activo. Devuelve lo
+ * que esa llamada trae (en Stacks, Bitcoin y el TRX nativo la misma respuesta lleva más).
+ *
+ * `contract`: el del activo, o null si es el nativo de la red.
+ */
+export const fetchAssetBalance = async (
+	router: RouterLike,
+	registry: RpcRegistry,
+	chainKey: string,
+	contract: string | null,
+	addresses: WalletAddresses,
+): Promise<RawBalances> => {
+	const chain = registry.chains[chainKey]
+	if (!chain) throw new Error(`wallet: cadena desconocida ${chainKey}`)
+	// Una sola llamada ya lo trae todo
+	if (chain.kind === 'stacks' || chain.kind === 'btc') return fetchChainBalances(router, registry, chainKey, addresses)
+
+	const token = contract === null ? null : (chain.tokens ?? []).find(candidate => candidate.address === contract)
+	if (token === undefined) throw new Error(`wallet: activo desconocido ${chainKey}:${contract}`)
+	const owner = addressForKind(addresses, chain.kind)
+	const nativeId = nativeAssetId(chainKey)
+
+	return router.call(chainKey, async (rpc, signal): Promise<RawBalances> => {
+		if (chain.kind === 'solana') {
+			if (!token) return { [nativeId]: (await getSolanaLamports(rpc, owner, { signal })).toString() }
+			// Las cuentas del programa de ese token; sin cuenta todavía, el saldo es 0
+			const held = token.program === 'token2022'
+				? await getSolanaToken2022Balances(rpc, owner, { signal })
+				: await getSolanaTokenBalances(rpc, owner, { signal })
+			return { [tokenAssetId(chainKey, token.address)]: (held[token.address] ?? 0n).toString() }
+		}
+		if (chain.kind === 'tron') {
+			if (token) return { [tokenAssetId(chainKey, token.address)]: (await getTronTokenBalance(rpc, token.address, owner, { signal })).toString() }
+			if (rpc.api === 'jsonrpc') return { [nativeId]: (await getTronNativeBalance(rpc, owner, { signal })).toString() }
+			const state = await getTronAccountState(rpc, owner, { signal })
+			return { [nativeId]: state.balance.toString(), [stakedAssetId(nativeId)]: tronCommittedSun(state).toString() }
+		}
+		const options = { signal, headers: rpc.headers }
+		if (token) return { [tokenAssetId(chainKey, token.address)]: (await getEvmTokenBalance(rpc.url, token.address, owner, options)).toString() }
+		return { [nativeId]: (await getEvmNativeBalance(rpc.url, owner, options)).toString() }
+	}, { idempotent: true })
 }
 
 /**

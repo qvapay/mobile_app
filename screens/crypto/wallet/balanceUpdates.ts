@@ -18,10 +18,10 @@ export type BalanceStore = {
 	set: (next: WalletBalancesResult) => void
 }
 
-/** La lectura de una red: cuál y cuándo se PIDIÓ (no cuándo llegó). */
-export type ChainRead = { chainKey: string, startedAt: number }
+/** Cuándo se PIDIÓ una lectura (no cuándo llegó). */
+export type BalanceRead = { startedAt: number }
 
-// Cuándo se pidió la última lectura aplicada de cada red, por wallet
+// Cuándo se pidió la última lectura aplicada de cada activo, por wallet
 const applied = new Map<string, number>()
 
 /**
@@ -29,24 +29,47 @@ const applied = new Map<string, number>()
  *
  * - Sin caché todavía no hace nada: la primera pasada se pinta entera, no red a red (las que
  *   aún no han contestado saldrían a cero).
- * - Con `read`, una lectura pedida ANTES que la última aplicada de esa red se descarta: llegó
- *   tarde y traería un saldo más viejo que el que ya se ve.
+ * - Con `read`, el saldo de un activo que ya se ve por una lectura pedida DESPUÉS se descarta:
+ *   llegó tarde y sería más viejo. Va por activo y no por red, porque la pasada lee redes
+ *   enteras mientras la pantalla de un activo relee solo el suyo cada pocos segundos: lo demás
+ *   de esa lectura sí entra.
  * - Si ningún valor cambia no escribe, y nadie se repinta.
  */
-export const applyBalances = (store: BalanceStore, values: RawBalances, read?: ChainRead): boolean => {
+export const applyBalances = (store: BalanceStore, values: RawBalances, read?: BalanceRead): boolean => {
 	const current = store.get()
 	if (!current) return false
+	let accepted = values
 	if (read) {
-		const key = `${store.id}|${read.chainKey}`
-		if (read.startedAt < (applied.get(key) ?? 0)) return false
-		applied.set(key, read.startedAt)
+		accepted = {}
+		for (const [id, value] of Object.entries(values)) {
+			const key = `${store.id}|${id}`
+			if (read.startedAt < (applied.get(key) ?? 0)) continue
+			applied.set(key, read.startedAt)
+			accepted[id] = value
+		}
 	}
-	const balances = mergeBalances(current.balances, values)
+	const balances = mergeBalances(current.balances, accepted)
 	const ids = Object.keys(balances)
 	const unchanged = ids.length === Object.keys(current.balances).length && ids.every(id => balances[id] === current.balances[id])
 	if (unchanged) return false
 	store.set({ ...current, balances })
 	return true
+}
+
+/** El saldo crudo de un activo en un momento dado. */
+export type BalanceSample = { id: string, raw: string }
+
+/**
+ * Cuánto ha SUBIDO el saldo de un activo entre dos lecturas de la caché: lo que dispara el
+ * aviso de cobro en Recibir. 0n si no subió, si es la primera lectura o si se cambió de
+ * activo: eso solo fija el punto de partida, no es dinero que haya llegado.
+ */
+export const balanceIncrease = (previous: BalanceSample | null, next: BalanceSample): bigint => {
+	if (!previous || previous.id !== next.id) return 0n
+	try {
+		const increase = BigInt(next.raw) - BigInt(previous.raw)
+		return increase > 0n ? increase : 0n
+	} catch { return 0n }
 }
 
 /**
