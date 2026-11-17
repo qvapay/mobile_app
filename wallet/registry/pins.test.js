@@ -207,7 +207,11 @@ describe('resolveRegistry', () => {
 		expect(resolved.updated_at).toBe('2027-01-01')
 		expect(resolved.chains.tron.rpcs).toEqual([NODE])
 		expect(resolved.chains.tron.tokens).toEqual(bundled.chains.tron.tokens)
-		// El resto de redes, intactas
-		expect(resolved.chains.bsc).toEqual(bundled.chains.bsc)
+		// El resto de redes, intactas. Un nodo saneado solo lleva `enabled` cuando está apagado
+		// (`enabled: true` es lo mismo que no decirlo), así que se compara sin ese `true`
+		const asPinned = chain => ({ ...chain, rpcs: chain.rpcs.map(({ enabled, ...rpc }) => (enabled === false ? { ...rpc, enabled } : rpc)) })
+		expect(resolved.chains.bsc).toEqual(asPinned(bundled.chains.bsc))
+		// Y el nodo propio encendido en el empaquetado sigue utilizable tras sanearlo
+		expect(resolved.chains.bsc.rpcs.find(rpc => rpc.owner === 'qvapay').enabled).not.toBe(false)
 	})
 })

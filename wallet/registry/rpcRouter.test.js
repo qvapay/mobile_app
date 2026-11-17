@@ -290,8 +290,16 @@ describe('isRetryableRpcError', () => {
  * - solana: sol.qvapay.com
  * - tron: tron.qvapay.com → GetBlock FULLNODE-REST (2026-10-01: bloques, cuenta, recompensas,
  *   SR y brokerage REAL —5 % P2P.org, a diferencia de TronGrid— y rutas vetadas con 403)
+ * - ethereum: eth.qvapay.com, bsc: bsc.qvapay.com, polygon: pol.qvapay.com (el nombre corto:
+ *   `polygon.qvapay.com` nunca tuvo DNS) y base: base.qvapay.com. Verificados el 2026-11-16
+ *   con las llamadas de la wallet (identidad de red 0x1, 0x38, 0x89 y 0x2105, altura, saldo
+ *   nativo, `balanceOf`, precio del gas y nonce) y con la altura a un bloque como mucho de la
+ *   de un nodo público. En el registro remoto, eth y bsc llevaban encendidos desde el 13-14
+ *   de noviembre; pol y base, desde ese día (v13)
+ *
+ * Siguen apagados los que no existen: stx.qvapay.com y btc.qvapay.com (sin DNS ni proxy).
  */
-const LIVE_QVAPAY_PROXIES = ['solana', 'tron']
+const LIVE_QVAPAY_PROXIES = ['solana', 'tron', 'ethereum', 'bsc', 'polygon', 'base']
 
 describe('bundled.json', () => {
 	test('cubre las 8 cadenas v7 con la forma del contrato', () => {
