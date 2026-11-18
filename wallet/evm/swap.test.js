@@ -11,6 +11,8 @@ import { privateKeyToAccount } from 'viem/accounts'
 
 import LIFI_VECTORS from './lifiVectors.json'
 import { EvmUnsupportedRouteError } from './lifi'
+import { EvmInsufficientFundsError, isInsufficientFunds } from './tx'
+import { isRetryableRpcError } from '../registry/rpcRouter'
 import {
 	encodeApprove,
 	evmReceiptStatus,
@@ -115,17 +117,20 @@ describe('pasos: permiso exacto y luego swap', () => {
 
 describe('contra un nodo simulado', () => {
 
-	const mockRpc = ({ allowance = 0n, gas = 300_000n, revert = false, receipt, baseFee = 1_000_000_000n } = {}) => {
+	const mockRpc = ({ allowance = 0n, gas = 300_000n, revert = false, insufficient = false, receipt, baseFee = 1_000_000_000n, balance = 10n ** 20n } = {}) => {
 		const calls = []
 		global.fetch = jest.fn(async (_url, init) => {
 			const { method, params, id } = JSON.parse(init.body)
 			calls.push({ method, params })
 			const reply = (result) => ({ ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id, result }), text: async () => JSON.stringify({ jsonrpc: '2.0', id, result }) })
-			const error = (message) => ({ ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id, error: { code: 3, message } }), text: async () => '' })
+			const error = (message, code = 3) => ({ ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id, error: { code, message } }), text: async () => '' })
 			if (method === 'eth_call') return reply('0x' + allowance.toString(16).padStart(64, '0'))
 			if (method === 'eth_getTransactionCount') return reply('0x7')
 			if (method === 'eth_getBlockByNumber') return reply({ baseFeePerGas: '0x' + baseFee.toString(16) })
 			if (method === 'eth_maxPriorityFeePerGas') return reply('0x3b9aca00')
+			if (method === 'eth_getBalance') return reply('0x' + balance.toString(16))
+			// Así lo devuelven los nodos de BNB Smart Chain: con el código genérico
+			if (method === 'eth_estimateGas' && insufficient) return error('failed with 16777216 gas: insufficient funds for gas * price + value: address 0x1 have 1 want 2', -32000)
 			if (method === 'eth_estimateGas') return revert ? error('execution reverted') : reply('0x' + gas.toString(16))
 			if (method === 'eth_getTransactionReceipt') return reply(receipt ?? null)
 			throw new Error('método inesperado ' + method)
@@ -159,6 +164,34 @@ describe('contra un nodo simulado', () => {
 	test('si la simulación revierte, no hay nada que firmar', async () => {
 		mockRpc({ allowance: 30_000_000n, revert: true })
 		await expect(prepareEvmSwapStep(RPC, VECTORS.same, SAME)).rejects.toThrow(/reverted/)
+	})
+
+	// MÁX de BNB por LI.FI (2026-11-17): MÁX reservaba el gas de un envío, la red rechazaba la tx
+	// ya firmada por falta de saldo para la comisión y la pantalla decía «no hay nodos»
+	test('si el nativo no alcanza para lo que la tx mueve más su comisión máxima, no hay nada que firmar', async () => {
+		// 300.000 de gas +30 % = 390.000, a 2·1 + 1 = 3 gwei: 1,17e15 wei de comisión máxima
+		const calls = mockRpc({ allowance: 30_000_000n, balance: 1_169_999_999_999_999n })
+		const err = await prepareEvmSwapStep(RPC, VECTORS.same, SAME).catch(e => e)
+		expect(err).toBeInstanceOf(EvmInsufficientFundsError)
+		expect(err.needed).toBe(1_170_000_000_000_000n)
+		expect(err.balance).toBe(1_169_999_999_999_999n)
+		expect(isInsufficientFunds(err)).toBe(true)
+		// No es cosa del nodo: el router no prueba con otro
+		expect(isRetryableRpcError(err)).toBe(false)
+		expect(calls.find(c => c.method === 'eth_getBalance').params).toEqual([OWNER, 'latest'])
+		// Con un wei más, pasa
+		mockRpc({ allowance: 30_000_000n, balance: 1_170_000_000_000_000n })
+		await expect(prepareEvmSwapStep(RPC, VECTORS.same, SAME)).resolves.toMatchObject({ step: 'swap' })
+	})
+
+	test('que la simulación rechace por falta de saldo es de la tx, no del nodo', async () => {
+		mockRpc({ allowance: 30_000_000n, insufficient: true })
+		const err = await prepareEvmSwapStep(RPC, VECTORS.same, SAME).catch(e => e)
+		expect(err.message).toMatch(/insufficient funds/)
+		// El -32000 solo haría probar otros dos nodos, que dirían lo mismo
+		expect(err.retryable).toBe(false)
+		expect(isRetryableRpcError(err)).toBe(false)
+		expect(isInsufficientFunds(err)).toBe(true)
 	})
 
 	test('un gas desorbitado no se firma', async () => {

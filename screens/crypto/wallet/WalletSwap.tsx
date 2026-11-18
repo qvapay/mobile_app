@@ -574,8 +574,9 @@ const useNativeReserve = (asset: AssetView | null, skip: boolean, btcAddress: st
 		const chain = registry.chains[asset.chainKey]
 		if (!chain) { return }
 		// Bitcoin: la comisión de gastar sus UTXOs. Aquí lo que se cotiza se deposita por el
-		// importe exacto, así que MÁX tiene que dejarla fuera
-		estimateNativeReserve(chain, asset.chainKey, asset.kind === 'btc' ? btcAddress : null)
+		// importe exacto, así que MÁX tiene que dejarla fuera. `swap`: lo que sale puede ser un
+		// swap firmado desde la wallet, que gasta mucho más gas que un envío
+		estimateNativeReserve(chain, asset.chainKey, asset.kind === 'btc' ? btcAddress : null, 'swap')
 			.then(value => { if (!cancelled) { setReserve(value) } })
 			// Sin reserva conocida, MÁX ofrece el saldo entero y el envío avisará: es lo
 			// mismo que hace la pantalla de enviar, y mejor que quedarse sin botón

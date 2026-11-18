@@ -7,7 +7,7 @@
  * disco por su cuenta — saldos/staking en `walletDiskCache.ts`, historial en
  * `historyCache.ts`. El registry (`['wallet','registry']`) sí persiste.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { AppState } from 'react-native'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { QueryClient, QueryKey } from '@tanstack/react-query'
@@ -22,11 +22,11 @@ import type { ApiError } from '../../../api/unwrap'
 import { useWallet } from '../../../wallet/WalletContext'
 import { getAppRpcRouter, useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { useAssetCatalog } from './useAssetCatalog'
-import { fetchAllBalances, fetchChainBalances, fetchSlowBalances, mergeBalances } from '../../../wallet/chains'
+import { fetchAllBalances, fetchAssetBalance, fetchChainBalances, fetchSlowBalances, mergeBalances } from '../../../wallet/chains'
 import type { WalletBalancesResult } from '../../../wallet/chains'
 import type { WalletAddresses } from '../../../wallet/derive'
-import { applyBalances, chaseBalance } from './balanceUpdates'
-import type { BalanceStore } from './balanceUpdates'
+import { applyBalances, balanceIncrease, chaseBalance } from './balanceUpdates'
+import type { BalanceSample, BalanceStore } from './balanceUpdates'
 import { addressForKind, isAssetVisible, sortAssets, toAssetView, tokenAssetId, totalUsd } from '../../../wallet/assets'
 import type { AssetOrder, AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
 import { getTronChainParams, getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
@@ -148,7 +148,7 @@ export const useWalletBalancesQuery = () => {
 				addresses!,
 				store.get(),
 				undefined,
-				(chainKey, chainBalances) => { applyBalances(store, chainBalances, { chainKey, startedAt }) },
+				(_chainKey, chainBalances) => { applyBalances(store, chainBalances, { startedAt }) },
 			)
 			// Con foto previa manda lo pintado por el camino: ya trae cada red de esta pasada,
 			// salvo la que una lectura más nueva (la de un envío propio) dejó atrás. Sin foto
@@ -228,11 +228,83 @@ export const useBalanceChase = () => {
 			read: async () => {
 				const startedAt = Date.now()
 				const chainBalances = await fetchChainBalances(getAppRpcRouter(), registry, chainKey, addresses)
-				applyBalances(store, chainBalances, { chainKey, startedAt })
+				applyBalances(store, chainBalances, { startedAt })
 				return chainBalances[assetId]
 			},
 		})
 	}, [addresses, registry, queryClient])
+}
+
+/** Cada cuánto se relee el activo que el usuario está mirando, o por el que espera un cobro. */
+const ASSET_WATCH_MS = 5_000
+
+/**
+ * Sondeo rápido de UN activo mientras su pantalla está delante (Recibir y el detalle del
+ * activo). Quien espera un cobro lo ve a los pocos segundos del bloque en vez de cuando toque
+ * la pasada de 30 s. Es una llamada por lectura y solo a la red de ese activo
+ * (`fetchAssetBalance`); se para al salir de la pantalla y con la app en segundo plano.
+ */
+export const useAssetBalanceWatch = (asset: Pick<WalletAsset, 'chainKey' | 'contract'> | undefined): void => {
+	const { addresses } = useWallet()
+	const registry = useEffectiveRegistry()
+	const queryClient = useQueryClient()
+	const isFocused = useIsFocused()
+	const chainKey = asset?.chainKey
+	const contract = asset ? asset.contract : undefined
+
+	useEffect(() => {
+		if (!chainKey || contract === undefined || !addresses || !isFocused || !registry.chains[chainKey]) return
+		const store = balanceStore(queryClient, balancesKeyOf(addresses))
+		let reading = false
+		let foreground = AppState.currentState === 'active'
+		const read = async () => {
+			// Sin solaparse: un nodo lento no acumula lecturas
+			if (reading || !foreground) return
+			reading = true
+			const startedAt = Date.now()
+			try {
+				applyBalances(store, await fetchAssetBalance(getAppRpcRouter(), registry, chainKey, contract, addresses), { startedAt })
+			} catch { /* la siguiente lo vuelve a intentar */ } finally { reading = false }
+		}
+		const timer = setInterval(read, ASSET_WATCH_MS)
+		const sub = AppState.addEventListener('change', state => { foreground = state === 'active' })
+		return () => { clearInterval(timer); sub.remove() }
+	}, [chainKey, contract, addresses, registry, queryClient, isFocused])
+}
+
+/** El saldo crudo de un activo según la caché, sin activar ni refrescar la consulta de saldos. */
+const useCachedRawBalance = (assetId: string | undefined): string | undefined => {
+	const { addresses } = useWallet()
+	const cache = useQueryClient().getQueryCache()
+	const queryKey = useMemo(() => balancesKeyOf(addresses), [addresses])
+	const subscribe = useCallback((onChange: () => void) => cache.subscribe(event => {
+		const [root, kind] = event.query.queryKey
+		if (root === WALLET_BALANCES_KEY[0] && kind === WALLET_BALANCES_KEY[1]) onChange()
+	}), [cache])
+	const read = useCallback(
+		() => (assetId ? (cache.find({ queryKey })?.state.data as WalletBalancesResult | undefined)?.balances[assetId] : undefined),
+		[cache, queryKey, assetId],
+	)
+	return useSyncExternalStore(subscribe, read)
+}
+
+/**
+ * Avisa cuando el saldo de un activo SUBE con la pantalla montada. Es para Recibir, donde no
+ * hay saldo a la vista: sin esto el cobro llegaba y no se enteraba nadie. La primera lectura
+ * solo fija el punto de partida, y cambiar de activo también.
+ */
+export const useIncomingBalance = (asset: Pick<WalletAsset, 'id'> | undefined, onIncrease: (units: bigint) => void): void => {
+	const assetId = asset?.id
+	const raw = useCachedRawBalance(assetId)
+	const last = useRef<BalanceSample | null>(null)
+	const notify = useEffectEvent(onIncrease)
+	useEffect(() => {
+		if (!assetId || raw === undefined) return
+		const sample = { id: assetId, raw }
+		const increase = balanceIncrease(last.current, sample)
+		last.current = sample
+		if (increase > 0n) notify(increase)
+	}, [assetId, raw])
 }
 
 /**

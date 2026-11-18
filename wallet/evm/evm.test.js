@@ -12,8 +12,10 @@ import {
 	checksumAddress,
 	DEFAULT_MAX_GAS_PRICE_WEI,
 	encodeErc20Transfer,
+	EvmInsufficientFundsError,
 	EvmVerifyError,
 	isGasPriceOutOfRange,
+	isInsufficientFunds,
 	isValidEvmAddress,
 	MAX_GAS_PRICE_WEI,
 	MAX_NATIVE_GAS,
@@ -181,6 +183,19 @@ describe('prepareEvmSend', () => {
 			expect(isGasPriceOutOfRange(new AllRpcsFailedError('bsc', [new Error('timeout')]))).toBe(false)
 			expect(isGasPriceOutOfRange(new Error('insufficient funds'))).toBe(false)
 			expect(isGasPriceOutOfRange(null)).toBe(false)
+		})
+
+		// Un nodo rechaza por saldo con el código genérico -32000, que el router toma por nodo
+		// caído: prueba tres, los tres dicen lo mismo y lo que hay que decir no es «sin nodos»
+		test('el saldo insuficiente se reconoce suelto y dentro del error del router', () => {
+			const rejected = new Error('https://bsc: eth_sendRawTransaction → insufficient funds for gas * price + value')
+			expect(isInsufficientFunds(rejected)).toBe(true)
+			expect(isInsufficientFunds(new AllRpcsFailedError('bsc', [rejected, rejected, rejected]))).toBe(true)
+			expect(isInsufficientFunds(new AllRpcsFailedError('bsc', [new Error('timeout'), rejected]))).toBe(true)
+			expect(isInsufficientFunds(new AllRpcsFailedError('bsc', [new Error('timeout')]))).toBe(false)
+			expect(isInsufficientFunds(new EvmInsufficientFundsError(1n, 2n))).toBe(true)
+			expect(isInsufficientFunds(new Error('execution reverted'))).toBe(false)
+			expect(isInsufficientFunds(null)).toBe(false)
 		})
 
 		test('una patrocinada (gasPrice 0) no pasa por aquí', async () => {

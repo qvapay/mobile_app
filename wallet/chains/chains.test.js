@@ -10,7 +10,7 @@ import { getTronNativeBalance, getTronTokenBalance, tronCallFailure, tronJsonRpc
 import { esploraBalance, getBtcBalance } from './btc'
 import { ftBalanceOf, stxBalanceOf, stxLockedOf } from './stacks'
 import { ChainHttpError, hexToBigInt, jsonRpc } from './http'
-import { fetchAllBalances, fetchChainBalances, mergeBalances, stakedForeignId, stakedOwnId } from './index'
+import { fetchAllBalances, fetchAssetBalance, fetchChainBalances, mergeBalances, stakedForeignId, stakedOwnId } from './index'
 import { isRetryableRpcError } from '../registry/rpcRouter'
 import { TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from '../solana/codec'
 
@@ -269,6 +269,75 @@ describe('fetchChainBalances / fetchAllBalances', () => {
 		expect(result.failedChains).toEqual(['bitcoin'])
 		expect(result.balances['bsc:native']).toBe('1')
 		expect(result.balances['bitcoin:native']).toBe('777')
+	})
+})
+
+// Lo que se relee cada 5 s con un activo delante (Recibir y su detalle): si fuera la red
+// entera serían 3 llamadas por lectura en BNB Smart Chain y 4 en Solana, a nuestro nodo
+describe('fetchAssetBalance: un activo, una llamada', () => {
+	const USDT_BSC = '0x55d398326f99059fF775485246999027B3197955'
+	const USDC_SOL = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+	const TSLAX = 'XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB'
+	const SOL_OWNER = '9C6hybhQ6Aycep9jaUnP6uL9ZYvDjUp1aSkFWPUFJtpj'
+	const registry = {
+		version: 1,
+		updated_at: '',
+		chains: {
+			bsc: { kind: 'evm', native: { symbol: 'BNB', decimals: 18 }, explorer: '', tokens: [{ symbol: 'USDT', address: USDT_BSC, decimals: 18 }], rpcs: [{ url: 'https://bsc', priority: 10, owner: 'x' }] },
+			solana: {
+				kind: 'solana', native: { symbol: 'SOL', decimals: 9 }, explorer: '',
+				tokens: [{ symbol: 'USDC', address: USDC_SOL, decimals: 6 }, { symbol: 'TSLAx', address: TSLAX, decimals: 8, program: 'token2022' }],
+				rpcs: [{ url: 'https://sol', priority: 10, owner: 'x' }],
+			},
+			stacks: { kind: 'stacks', native: { symbol: 'STX', decimals: 6 }, explorer: '', tokens: [{ symbol: 'QUSD', address: 'SP1.qusd::qusd', decimals: 6 }], rpcs: [{ url: 'https://stx', priority: 10, owner: 'x', api: 'hiro' }] },
+		},
+	}
+	const router = { call: (key, fn) => fn(registry.chains[key].rpcs[0], new AbortController().signal) }
+	const addresses = { ...ADDRESSES, sol: SOL_OWNER, stx: 'SP3OWNER' }
+	const solAccounts = (mint, amount) => ({ value: [{ account: { data: { parsed: { info: { mint, tokenAmount: { amount } } } } } }] })
+
+	test('un token EVM: solo su balanceOf, sin el nativo ni los demás tokens', async () => {
+		mockFetch(() => jsonResponse({ result: '0x7b' }))
+		await expect(fetchAssetBalance(router, registry, 'bsc', USDT_BSC, addresses)).resolves.toEqual({ [`bsc:${USDT_BSC}`]: '123' })
+		expect(calls.map(c => c.body.method)).toEqual(['eth_call'])
+		expect(calls[0].body.params[0].to).toBe(USDT_BSC)
+	})
+
+	test('el nativo EVM: solo eth_getBalance', async () => {
+		mockFetch(() => jsonResponse({ result: '0x5' }))
+		await expect(fetchAssetBalance(router, registry, 'bsc', null, addresses)).resolves.toEqual({ 'bsc:native': '5' })
+		expect(calls.map(c => c.body.method)).toEqual(['eth_getBalance'])
+	})
+
+	test('SOL: solo getBalance, sin cuentas de token ni de stake', async () => {
+		mockFetch(() => jsonResponse({ result: { value: 5000 } }))
+		await expect(fetchAssetBalance(router, registry, 'solana', null, addresses)).resolves.toEqual({ 'solana:native': '5000' })
+		expect(calls.map(c => c.body.method)).toEqual(['getBalance'])
+	})
+
+	test('un token de Solana: las cuentas de SU programa, y 0 si aún no tiene cuenta', async () => {
+		mockFetch(() => jsonResponse({ result: solAccounts(USDC_SOL, '42') }))
+		await expect(fetchAssetBalance(router, registry, 'solana', USDC_SOL, addresses)).resolves.toEqual({ [`solana:${USDC_SOL}`]: '42' })
+		expect(calls.map(c => [c.body.method, c.body.params[1].programId])).toEqual([['getTokenAccountsByOwner', TOKEN_PROGRAM]])
+
+		mockFetch(() => jsonResponse({ result: { value: [] } }))
+		await expect(fetchAssetBalance(router, registry, 'solana', TSLAX, addresses)).resolves.toEqual({ [`solana:${TSLAX}`]: '0' })
+		expect(calls.map(c => [c.body.method, c.body.params[1].programId])).toEqual([['getTokenAccountsByOwner', TOKEN_2022_PROGRAM]])
+	})
+
+	test('Stacks: su única llamada ya trae STX y los tokens', async () => {
+		mockFetch(() => jsonResponse({ stx: { balance: '9', locked: '0' }, fungible_tokens: { 'SP1.qusd::qusd': { balance: '25000000' } } }))
+		await expect(fetchAssetBalance(router, registry, 'stacks', 'SP1.qusd::qusd', addresses)).resolves.toEqual({
+			'stacks:native': '9', 'stacks:native#staked': '0', 'stacks:SP1.qusd::qusd': '25000000',
+		})
+		expect(calls).toHaveLength(1)
+	})
+
+	test('un activo que no está en el registro no se pide', async () => {
+		mockFetch(() => jsonResponse({ result: '0x1' }))
+		await expect(fetchAssetBalance(router, registry, 'bsc', '0x000000000000000000000000000000000000dEaD', addresses)).rejects.toThrow(/activo desconocido/)
+		await expect(fetchAssetBalance(router, registry, 'nada', null, addresses)).rejects.toThrow(/cadena desconocida/)
+		expect(calls).toHaveLength(0)
 	})
 })
 

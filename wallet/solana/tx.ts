@@ -131,8 +131,8 @@ type AccountInfo = { value: { owner: string, lamports: number } | null }
  * runtime rechaza la transacción con `InsufficientFundsForRent`, y como pasa en la
  * simulación el usuario solo ve "Transaction simulation failed".
  */
-export const getSolanaRentExemptMinimum = async (rpc: RegistryRpc, { signal }: { signal?: AbortSignal } = {}): Promise<bigint> =>
-	BigInt(await rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [0], signal))
+export const getSolanaRentExemptMinimum = async (rpc: RegistryRpc, { signal, space = 0 }: { signal?: AbortSignal, space?: number } = {}): Promise<bigint> =>
+	BigInt(await rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [space], signal))
 
 /** Mediana de las tarifas de prioridad recientes (las no nulas), con tope. PURO. */
 export const priorityFeeFrom = (fees: Array<{ prioritizationFee?: number }> | undefined): bigint => {
