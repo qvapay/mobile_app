@@ -286,7 +286,9 @@
 				"feeNotCovered": "Tu saldo no cubre el importe más la comisión de red. Prueba con un poco menos.",
 				"generic": "No se pudo enviar: {{message}}",
 				"unknown": "No se pudo enviar. Inténtalo de nuevo.",
-				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad.",
+				"noGasForFee": "Necesitas {{needed}} {{symbol}} en la red {{network}} para la comisión y tienes {{have}}. Deposita {{symbol}} por la red {{network}}.",
+				"noGasElsewhere": "Tu {{symbol}} de {{other}} no sirve aquí: cada red cobra la comisión con su propio saldo.",
+				"amountPlusFee": "El importe más la comisión suman {{needed}} {{symbol}} y tienes {{have}}. Vuelve atrás y toca MAX, o envía un poco menos.",
 				"expired": "La transacción caducó antes de enviarse. Pulsa Reintentar para prepararla de nuevo.",
 				"unconfirmed": "No pudimos confirmar si el envío anterior salió. No lo repitas todavía: puede llegar en cualquier momento. Pulsa Reintentar en unos segundos para comprobarlo.",
 				"solanaRent": "Te quedaría demasiado poco SOL: una cuenta de Solana necesita un mínimo para seguir existiendo. Envía un poco menos."
@@ -618,6 +620,7 @@
 					"simulation": "Esta ruta fallaría ahora mismo (la simulación no pasa). No se ha firmado nada; prueba de nuevo o con otra ruta.",
 					"approvalFailed": "El permiso no se confirmó. Revisa tu saldo para la comisión de red e inténtalo de nuevo.",
 					"insufficientFunds": "No te alcanza para el importe más la comisión de la red. Baja un poco el importe e inténtalo de nuevo.",
+					"noGasForSwap": "Te falta {{symbol}} en la red {{network}} para pagar la comisión. Deposita {{symbol}} por la red {{network}} e inténtalo de nuevo.",
 					"noNodes": "No hay nodos disponibles ahora mismo. Inténtalo en un momento.",
 					"generic": "No se pudo completar: {{message}}",
 					"unknown": "No se pudo completar el intercambio."
