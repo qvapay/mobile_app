@@ -286,7 +286,9 @@
 				"feeNotCovered": "Your balance doesn't cover the amount plus the network fee. Try a slightly smaller amount.",
 				"generic": "Couldn’t send: {{message}}",
 				"unknown": "Couldn’t send. Please try again.",
-				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount.",
+				"noGasForFee": "You need {{needed}} {{symbol}} on the {{network}} network for the fee and have {{have}}. Deposit {{symbol}} over the {{network}} network.",
+				"noGasElsewhere": "Your {{symbol}} on {{other}} can't be used here: each network charges its fee from its own balance.",
+				"amountPlusFee": "The amount plus the fee add up to {{needed}} {{symbol}} and you have {{have}}. Go back and tap MAX, or send a little less.",
 				"expired": "The transaction expired before it was sent. Tap Retry to prepare it again.",
 				"unconfirmed": "We couldn't confirm whether your previous send went through. Don't send it again yet: it may still arrive. Tap Retry in a few seconds to check.",
 				"solanaRent": "You'd be left with too little SOL: a Solana account needs a minimum to keep existing. Send a bit less."
@@ -618,6 +620,7 @@
 					"simulation": "This route would fail right now (the simulation doesn't pass). Nothing was signed; try again or pick another route.",
 					"approvalFailed": "The approval didn't confirm. Check your balance for the network fee and try again.",
 					"insufficientFunds": "You don't have enough for the amount plus the network fee. Lower the amount a little and try again.",
+					"noGasForSwap": "You're short of {{symbol}} on the {{network}} network to pay the fee. Deposit {{symbol}} over the {{network}} network and try again.",
 					"noNodes": "No nodes are available right now. Try again in a moment.",
 					"generic": "Couldn't complete: {{message}}",
 					"unknown": "Couldn't complete the swap."

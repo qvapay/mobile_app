@@ -231,6 +231,11 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	// Lo que se muestra sale de la tx CONSTRUIDA, no del formulario
 	const verifiedAmount = prepared ? formatUnits(prepared.summary.amount, asset.decimals) : amount
 	const fee = (value: bigint) => t('crypto.wallet.send.feeNative', { amount: displayAmount(formatUnits(value, nativeDecimals)), symbol: nativeSymbol })
+	// Sin nativo para la comisión, el aviso dice en QUÉ RED hace falta: ETH lo es de Ethereum y
+	// de Base, y a quien lo tiene en la otra «te falta ETH» le parece un fallo de la app
+	const nativeElsewhere = insufficientNative && asset.contract !== null
+		? all.find(other => other.contract === null && other.symbol === nativeSymbol && other.chainKey !== asset.chainKey && parseUnitsSafe(other.amount, other.decimals) > 0n)?.chainName ?? null
+		: null
 	const authSubtitle = t('crypto.wallet.auth.sendSubtitle', { amount: displayAmount(verifiedAmount), symbol: asset.symbol, address: shortAddress(to) })
 	const total = asset.contract === null
 		? fee(sentNative + feeEstimated)
@@ -284,6 +289,9 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				needed={displayAmount(formatUnits(feeRequired + sentNative, nativeDecimals))}
 				have={displayAmount(native?.amount ?? '0')}
 				nativeSymbol={nativeSymbol}
+				network={asset.chainName}
+				sendsNative={asset.contract === null}
+				nativeElsewhere={nativeElsewhere}
 				error={phase === 'error' ? error : null}
 			/>
 
@@ -421,12 +429,25 @@ const SendFeeTiers = ({ prepared, feeTier, onPick, busy, fee, theme }: { prepare
  * Lo que conviene saber antes de firmar: peculiaridades de la red (barrido de BTC, alta de
  * cuenta), falta de nativo para la comisión y el error del último intento.
  */
-const SendNotices = ({ theme, prepared, symbol, fee, feeEstimated, insufficientNative, needed, have, nativeSymbol, error }: {
+const SendNotices = ({ theme, prepared, symbol, fee, feeEstimated, insufficientNative, needed, have, nativeSymbol, network, sendsNative, nativeElsewhere, error }: {
 	theme: Theme, prepared: PreparedSend | null, symbol: string, fee: (value: bigint) => string, feeEstimated: bigint,
-	insufficientNative: boolean, needed: string, have: string, nativeSymbol: string, error: string | null
+	insufficientNative: boolean, needed: string, have: string, nativeSymbol: string,
+	/** Red del activo que se envía: la comisión se paga en SU nativo. */
+	network: string,
+	/** Se envía el propio nativo: lo que no alcanza es importe + comisión, no «la comisión». */
+	sendsNative: boolean,
+	/** Otra red donde el usuario SÍ tiene ese mismo nativo (ETH en Base, p. ej.), o null. */
+	nativeElsewhere: string | null,
+	error: string | null
 }) => {
 
 	const { t } = useTranslation()
+	const shortfall = sendsNative
+		? t('crypto.wallet.send.errors.amountPlusFee', { needed, have, symbol: nativeSymbol })
+		: [
+			t('crypto.wallet.send.errors.noGasForFee', { needed, have, symbol: nativeSymbol, network }),
+			nativeElsewhere ? t('crypto.wallet.send.errors.noGasElsewhere', { symbol: nativeSymbol, network, other: nativeElsewhere }) : '',
+		].filter(Boolean).join(' ')
 
 	return (
 		<>
@@ -440,7 +461,7 @@ const SendNotices = ({ theme, prepared, symbol, fee, feeEstimated, insufficientN
 				<Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t('crypto.wallet.send.createsTokenAccount', { symbol, fee: fee(prepared.summary.accountCreationFee) })} />
 			)}
 			{insufficientNative && (
-				<Notice theme={theme} icon="triangle-exclamation" color={theme.colors.danger} text={t('crypto.wallet.send.errors.noGasForFee', { needed, have, symbol: nativeSymbol })} />
+				<Notice theme={theme} icon="triangle-exclamation" color={theme.colors.danger} text={shortfall} />
 			)}
 			{!!error && (
 				<Notice theme={theme} icon="triangle-exclamation" color={theme.colors.danger} text={error} />

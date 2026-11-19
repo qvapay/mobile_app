@@ -186,7 +186,12 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		// Ningún nodo dio un precio de gas razonable: no es que no haya nodos
 		if (isGasPriceOutOfRange(err)) return t('crypto.wallet.send.errors.feeTooHigh')
 		// El saldo no alcanza para el importe más la comisión: tampoco es que no haya nodos
-		if (isInsufficientFunds(err)) return t(`${KEY}errors.insufficientFunds`)
+		// Pagando con un token, bajar el importe no arregla nada: lo que falta es el nativo de ESA red
+		if (isInsufficientFunds(err)) {
+			return from?.contract && chain
+				? t(`${KEY}errors.noGasForSwap`, { symbol: chain.native.symbol, network: from.chainName })
+				: t(`${KEY}errors.insufficientFunds`)
+		}
 		if (err instanceof AllRpcsFailedError) return t(`${KEY}errors.noNodes`)
 		if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
 		if (err instanceof TxExpiredError) return t('crypto.wallet.send.errors.expired')
@@ -199,7 +204,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		if (/simulación del swap falló|reverted|revert/i.test(message)) return t(`${KEY}errors.simulation`)
 		if (/insufficient funds|insuficiente/i.test(message)) return t('crypto.wallet.send.errors.nodeInsufficient')
 		return message ? t(`${KEY}errors.generic`, { message }) : t(`${KEY}errors.unknown`)
-	}, [t])
+	}, [t, from, chain])
 
 	const prepare = useCallback(async () => {
 		// Una ruta EVM vieja no se vuelve a preparar (O-06): se pide otra, que pasa las mismas
