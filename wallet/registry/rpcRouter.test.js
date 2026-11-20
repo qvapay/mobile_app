@@ -296,10 +296,28 @@ describe('isRetryableRpcError', () => {
  *   nativo, `balanceOf`, precio del gas y nonce) y con la altura a un bloque como mucho de la
  *   de un nodo público. En el registro remoto, eth y bsc llevaban encendidos desde el 13-14
  *   de noviembre; pol y base, desde ese día (v13)
+ * - bitcoin: btc.qvapay.com/api (el proxy de qpweb traduce Esplora ⇄ Blockbook). Comprobado el
+ *   2026-11-18 contra mempool.space ruta por ruta y con las funciones de Bitcoin de la wallet
+ *   (saldo, UTXOs, comisiones, preparar un envío, qué fue de una tx y el texto de los rechazos).
+ *   Va de RESPALDO, no el primero: ver `BACKUP_QVAPAY_PROXIES`
  *
- * Siguen apagados los que no existen: stx.qvapay.com y btc.qvapay.com (sin DNS ni proxy).
+ * Sigue apagado el que no existe: stx.qvapay.com (sin DNS ni proxy).
  */
-const LIVE_QVAPAY_PROXIES = ['solana', 'tron', 'ethereum', 'bsc', 'polygon', 'base']
+const LIVE_QVAPAY_PROXIES = ['solana', 'tron', 'ethereum', 'bsc', 'polygon', 'base', 'bitcoin']
+
+/**
+ * Nodos propios que no van los primeros, con su prioridad. Espejo de `OWN_BACKUP` de
+ * `scripts/check.mjs` del registro remoto.
+ *
+ * - bitcoin: el índice por dirección del nodo sigue el mempool por tandas, así que un pago
+ *   recién difundido tarda en torno a 1 min en salir en el saldo y en los UTXOs (mempool.space
+ *   y blockstream.info, segundos), y los pagos de comisión muy baja no los ve hasta que se
+ *   minan (2026-11-20: no conocía 6 de 7 tx pendientes de menos de 1 sat/vB). De primero, quien
+ *   recibe lo vería tarde. Entra detrás de mempool.space (10) y de blockstream.info (20) y
+ *   delante del resto: la wallet lo usa cuando esos dos fallan o la limitan. Vuelve a 0 cuando
+ *   vaya al día.
+ */
+const BACKUP_QVAPAY_PROXIES = { bitcoin: 25 }
 
 describe('bundled.json', () => {
 	test('cubre las 8 cadenas v7 con la forma del contrato', () => {
@@ -317,11 +335,14 @@ describe('bundled.json', () => {
 			// hasta que el proxy existe de verdad: encenderlo antes hace que cada
 			// llamada se coma un probe fallido para nada.
 			const qvapay = chain.rpcs.filter(r => r.owner === 'qvapay')
+			const publics = chain.rpcs.filter(r => r.owner !== 'qvapay' && r.enabled !== false)
 			expect(qvapay).toHaveLength(1)
-			expect(qvapay[0].priority).toBe(0)
+			expect(qvapay[0].priority).toBe(BACKUP_QVAPAY_PROXIES[key] ?? 0)
 			expect(qvapay[0].enabled).toBe(LIVE_QVAPAY_PROXIES.includes(key))
+			// Uno de respaldo lo es de verdad: va detrás de al menos un público encendido
+			if (key in BACKUP_QVAPAY_PROXIES) expect(Math.min(...publics.map(r => r.priority))).toBeLessThan(qvapay[0].priority)
 			// Y siempre hay al menos un público habilitado para arrancar
-			expect(chain.rpcs.filter(r => r.owner !== 'qvapay' && r.enabled !== false).length).toBeGreaterThanOrEqual(2)
+			expect(publics.length).toBeGreaterThanOrEqual(2)
 			expect(key).toBeTruthy()
 		}
 	})
