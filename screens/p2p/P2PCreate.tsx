@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useReducer } from "react"
+import { useState, useEffect, useMemo, useReducer, useRef } from "react"
+import type { ScrollViewInstance } from "react-native"
 import { useTranslation } from "react-i18next"
 
 // Theme
@@ -106,6 +107,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 	const containerStyles = createContainerStyles(theme)
 
 	// Offer form
+	const scrollRef = useRef<ScrollViewInstance>(null)
 	const [form, dispatchForm] = useReducer(setFieldReducer<P2PCreateFormState>, { type: "buy", amount: "", receive: "", message: "", advancedOpen: false, onlyVIP: false, privateOffer: false, flexible: false, orderMin: "", orderMax: "", requirements: EMPTY_REQUIREMENTS } as P2PCreateFormState)
 	const { type, amount, receive, message, onlyVIP, privateOffer, flexible, orderMin, orderMax, requirements } = form
 	// Crear por rango exige KYC (403 FLEXIBLE_NOT_ENABLED si no; antes era solo VIP). En
@@ -301,6 +303,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 	return (
 		<>
 			<QPKeyboardView
+				scrollViewRef={scrollRef}
 				actions={
 					<QPButton
 						title={buttonText}
@@ -324,6 +327,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 					onOpenCoinPicker={() => setShowCoinPicker(true)}
 					onLaunchSavedMethods={lauchSavedPaymentMethods}
 					canCreateFlexible={canCreateFlexible}
+					onRevealAdvanced={(y) => scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true })}
 					user={user!}
 					theme={theme}
 					textStyles={textStyles}
