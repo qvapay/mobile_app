@@ -40,9 +40,9 @@ type HomeMiniAppsProps = {
 /**
  * Mini-apps del Home, debajo de las últimas transacciones: las favoritas del
  * usuario y luego las destacadas (`pickHomeMiniApps`), que abren la mini-app en
- * el acto, como la fila de pago rápido. En un teléfono pequeño es una fila de
- * hasta seis con scroll; en una pantalla razonable, dos filas que llenan el
- * ancho (`homeMiniAppsGrid`, la misma idea que las filas de tiendas). Mantener
+ * el acto, como la fila de pago rápido. Son dos filas que llenan el ancho en
+ * todos los teléfonos (`homeMiniAppsGrid`, la misma idea que las filas de
+ * tiendas); con pocas apps, una sola. Mantener
  * pulsada una abre su menú (favorita, acceso directo, compartir). Comparte la
  * query del catálogo (`['miniapps','list']`), así que no cuesta una petición
  * extra. Sin apps (cargando sin caché, error o solo borradores) no ocupa nada.
@@ -60,10 +60,10 @@ const HomeMiniApps = ({ navigation, onSeeAll, style }: HomeMiniAppsProps) => {
 	const { data } = useMiniAppsList()
 	const { favorites, ready } = useMiniAppFavorites()
 	// Ancho útil = ventana menos los márgenes del Home (`containerStyles.subContainer`)
-	const { width, height } = useWindowDimensions()
+	const { width } = useWindowDimensions()
 	const grid = useMemo(
-		() => homeMiniAppsGrid({ width: width - 2 * theme.spacing.md, height, itemWidth: ITEM_WIDTH, minGap: MIN_GAP, rowGap: ROW_GAP }),
-		[width, height, theme.spacing.md],
+		() => homeMiniAppsGrid({ width: width - 2 * theme.spacing.md, itemWidth: ITEM_WIDTH, minGap: MIN_GAP, rowGap: ROW_GAP }),
+		[width, theme.spacing.md],
 	)
 	const apps = useMemo(() => pickHomeMiniApps(data, { favorites, limit: grid.limit }), [data, favorites, grid.limit])
 	const rows = useMemo(() => splitHomeMiniApps(apps, grid), [apps, grid])

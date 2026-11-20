@@ -73,21 +73,25 @@ describe('miniappsCatalog', () => {
 	})
 
 	describe('homeMiniAppsGrid / splitHomeMiniApps (rejilla del Home)', () => {
-		const grid = (width, height) => homeMiniAppsGrid({ width, height, itemWidth: 64, minGap: 8, rowGap: 14 })
+		const grid = width => homeMiniAppsGrid({ width, itemWidth: 64, minGap: 8, rowGap: 14 })
 
-		test('teléfono pequeño: una fila de seis con el hueco de siempre', () => {
-			expect(grid(343, 667)).toEqual({ rows: 1, perRow: 4, limit: 6, gap: 14 })
+		test('teléfono pequeño: también dos filas', () => {
+			expect(grid(343)).toMatchObject({ rows: 2, perRow: 4, limit: 8 })
+		})
+
+		test('sin sitio para dos iconos: la fila con scroll', () => {
+			expect(grid(100)).toEqual({ rows: 1, perRow: 1, limit: 6, gap: 14 })
 		})
 
 		test('pantalla razonable: dos filas llenas, con los iconos repartidos por el ancho', () => {
-			const g = grid(361, 852)
+			const g = grid(361)
 			expect(g).toMatchObject({ rows: 2, perRow: 5, limit: 10 })
 			expect(5 * 64 + 4 * g.gap).toBeCloseTo(361)
-			expect(grid(328, 780)).toMatchObject({ rows: 2, perRow: 4, limit: 8, gap: 24 })
+			expect(grid(328)).toMatchObject({ rows: 2, perRow: 4, limit: 8, gap: 24 })
 		})
 
 		test('el tope nunca baja de las seis de siempre', () => {
-			expect(grid(150, 900)).toMatchObject({ rows: 2, perRow: 2, limit: 6 })
+			expect(grid(150)).toMatchObject({ rows: 2, perRow: 2, limit: 6 })
 		})
 
 		test('reparto: una fila si caben, la de arriba llena primero, a medias si desbordan', () => {
