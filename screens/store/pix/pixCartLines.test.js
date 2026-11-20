@@ -20,8 +20,10 @@ jest.mock('../market/marketCartStore', () => {
 jest.mock('../../../api/pixApi', () => ({ pixApi: { getCheckout: jest.fn() } }))
 
 const STORAGE_KEY = '@qppixcart:v1'
+const T0 = Date.parse('2026-11-16T12:00:00Z')
+const HOUR = 60 * 60 * 1000
 const CART_KEY = '@qpmarketcart:v1'
-const item = (uuid) => ({ product_uuid: uuid, qty: 1, title: uuid, price: 10, kind: 'digital', shop_slug: 's', shop_name: 'S', added_at: 1 })
+const item = (uuid, addedAt = 1) => ({ product_uuid: uuid, qty: 1, title: uuid, price: 10, kind: 'digital', shop_slug: 's', shop_name: 'S', added_at: addedAt })
 const cartOnDisk = () => JSON.parse(mockDisk.get(CART_KEY) ?? '[]').map(line => line.product_uuid)
 
 describe('pixCartLines', () => {
@@ -38,11 +40,14 @@ describe('pixCartLines', () => {
 		})
 	}
 	const removed = () => removeCartLine.mock.calls.map(call => call[0])
+	const clockAt = (ms) => jest.spyOn(Date, 'now').mockReturnValue(ms)
 
 	beforeEach(() => {
 		mockDisk.clear()
 		boot()
 	})
+
+	afterEach(() => { jest.restoreAllMocks() })
 
 	test('pagado saca solo las líneas con las que se creó ese cobro', async () => {
 		// El QR se creó con A; luego se añadió B y volver a pagar reabrió el mismo QR
@@ -58,11 +63,57 @@ describe('pixCartLines', () => {
 		expect(removed()).toEqual(['A:', 'B:v1'])
 	})
 
-	test.each(['refunded', 'expired', 'cancelled', 'failed'])('%s olvida el cobro sin tocar el carrito', async (stage) => {
+	test('devuelto olvida el cobro sin tocar el carrito: el dinero volvió y no se entrega nada', async () => {
 		await cartLines.rememberCartLines('c1', ['A:'])
-		await cartLines.settleCartLines('c1', stage)
+		await cartLines.settleCartLines('c1', 'refunded')
 		await cartLines.settleCartLines('c1', 'verifying')
 		expect(removeCartLine).not.toHaveBeenCalled()
+	})
+
+	test.each(['expired', 'cancelled', 'failed'])('%s no toca el carrito, pero un pago que entra tarde saca sus líneas', async (stage) => {
+		await cartLines.rememberCartLines('c1', ['A:'])
+		await cartLines.settleCartLines('c1', stage)
+		expect(removeCartLine).not.toHaveBeenCalled()
+		await cartLines.settleCartLines('c1', 'delivered')
+		expect(removed()).toEqual(['A:'])
+	})
+
+	test('a las 24 h justas aún espera; pasadas, un cobro sin pagar se olvida', async () => {
+		const clock = clockAt(T0)
+		await cartLines.rememberCartLines('onTime', ['A:'])
+		await cartLines.rememberCartLines('closed', ['B:'])
+		await cartLines.rememberCartLines('open', ['C:'])
+		clock.mockReturnValue(T0 + 24 * HOUR)
+		await cartLines.settleCartLines('onTime', 'expired')
+		await cartLines.settleCartLines('onTime', 'delivered')
+		expect(removed()).toEqual(['A:'])
+
+		clock.mockReturnValue(T0 + 24 * HOUR + 1)
+		await cartLines.settleCartLines('closed', 'expired')
+		await cartLines.settleCartLines('open', 'awaiting_payment')
+		await cartLines.settleCartLines('closed', 'delivered')
+		await cartLines.settleCartLines('open', 'delivered')
+		expect(removed()).toEqual(['A:'])
+	})
+
+	test('el plazo cuenta desde que se creó, también tras cerrar la app', async () => {
+		const clock = clockAt(T0)
+		await cartLines.rememberCartLines('c1', ['A:'])
+		boot()
+		clock.mockReturnValue(T0 + 25 * HOUR)
+		await cartLines.settleCartLines('c1', 'expired')
+		await cartLines.settleCartLines('c1', 'delivered')
+		expect(removeCartLine).not.toHaveBeenCalled()
+	})
+
+	test('lo que guardaba la versión anterior (solo las líneas) sigue valiendo, como recién creado', async () => {
+		const clock = clockAt(T0)
+		mockDisk.set(STORAGE_KEY, JSON.stringify({ c0: ['A:'] }))
+		boot()
+		await cartLines.settleCartLines('c0', 'expired')
+		clock.mockReturnValue(T0 + 23 * HOUR)
+		await cartLines.settleCartLines('c0', 'delivered')
+		expect(removed()).toEqual(['A:'])
 	})
 
 	test('abierto, o en una etapa desconocida, se sigue esperando', async () => {
@@ -101,12 +152,15 @@ describe('pixCartLines', () => {
 		mockDisk.set(STORAGE_KEY, '{roto')
 		boot()
 		await cartLines.settleCartLines('c0', 'verifying')
-		mockDisk.set(STORAGE_KEY, JSON.stringify({ c0: 'A:', c1: [1], c2: ['C:'] }))
+		const at = Date.now()
+		mockDisk.set(STORAGE_KEY, JSON.stringify({
+			c0: 'A:', c1: [1], c2: ['C:'],
+			c3: { lines: [{ key: 'D:' }] }, c4: { lines: 'E:', at }, c5: { lines: [{ key: 'F:' }], at: String(at) },
+			c6: { lines: [{ key: 'G:' }], at }, c7: { lines: [{ key: 7 }], at }, c8: { lines: [{ key: 'H:', addedAt: 'x' }], at },
+		}))
 		boot()
-		await cartLines.settleCartLines('c0', 'verifying')
-		await cartLines.settleCartLines('c1', 'verifying')
-		await cartLines.settleCartLines('c2', 'verifying')
-		expect(removed()).toEqual(['C:'])
+		for (const uuid of ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8']) { await cartLines.settleCartLines(uuid, 'verifying') }
+		expect(removed()).toEqual(['C:', 'G:'])
 		mockDisk.set(STORAGE_KEY, JSON.stringify(['c0']))
 		boot()
 		await cartLines.settleCartLines('c0', 'verifying')
@@ -122,6 +176,41 @@ describe('pixCartLines', () => {
 		expect(cartOnDisk()).toEqual(['pB'])
 	})
 
+	test('un pago tardío no saca la línea que se añadió otra vez después', async () => {
+		// QR X con A; caduca, otro QR cobra A y A sale; luego se vuelve a añadir A
+		mockDisk.set(CART_KEY, JSON.stringify([item('pA', 1000), item('pB', 1000)]))
+		boot()
+		await cartLines.rememberCartLines('x', ['pA:', 'pB:'])
+		await cartLines.settleCartLines('x', 'expired')
+		mockDisk.set(CART_KEY, JSON.stringify([item('pA', 5000), item('pB', 1000)]))
+		boot()
+		await cartLines.settleCartLines('x', 'delivered')
+		// B es la misma línea que llevaba X; A es otra
+		expect(cartOnDisk()).toEqual(['pA'])
+	})
+
+	test('subir la cantidad no cambia la línea: sale igual al pagarse', async () => {
+		mockDisk.set(CART_KEY, JSON.stringify([item('pA', 1000)]))
+		boot()
+		await cartLines.rememberCartLines('x', ['pA:'])
+		mockDisk.set(CART_KEY, JSON.stringify([{ ...item('pA', 1000), qty: 3 }]))
+		boot()
+		await cartLines.settleCartLines('x', 'delivered')
+		expect(cartOnDisk()).toEqual([])
+	})
+
+	test('lo de la versión anterior se pasa al disco una vez, y el plazo no vuelve a empezar al reabrir', async () => {
+		const clock = clockAt(T0)
+		mockDisk.set(STORAGE_KEY, JSON.stringify({ c0: ['A:'] }))
+		boot()
+		await cartLines.settleCartLines('c0', 'expired')
+		clock.mockReturnValue(T0 + 7 * 24 * HOUR)
+		boot()
+		await cartLines.settleCartLines('c0', 'expired')
+		await cartLines.settleCartLines('c0', 'delivered')
+		expect(removeCartLine).not.toHaveBeenCalled()
+	})
+
 	test('se quedan los 20 cobros más recientes', async () => {
 		for (let i = 0; i < 21; i++) { await cartLines.rememberCartLines(`c${i}`, [`P${i}:`]) }
 		await cartLines.settleCartLines('c0', 'verifying')
@@ -131,18 +220,30 @@ describe('pixCartLines', () => {
 	})
 
 	describe('settlePendingCartLines', () => {
-		test('saca lo pagado sin el QR delante, olvida lo cerrado y espera lo abierto', async () => {
+		test('saca lo pagado sin el QR delante, olvida lo devuelto y espera lo abierto y lo caducado', async () => {
 			await cartLines.rememberCartLines('paid', ['A:'])
 			await cartLines.rememberCartLines('open', ['B:'])
-			await cartLines.rememberCartLines('gone', ['C:'])
-			pixApi.getCheckout.mockImplementation(async uuid => ({ success: true, data: { uuid, stage: { paid: 'delivered', open: 'awaiting_payment', gone: 'expired' }[uuid] } }))
+			await cartLines.rememberCartLines('refunded', ['C:'])
+			await cartLines.rememberCartLines('late', ['D:'])
+			pixApi.getCheckout.mockImplementation(async uuid => ({ success: true, data: { uuid, stage: { paid: 'delivered', open: 'awaiting_payment', refunded: 'refunded', late: 'expired' }[uuid] } }))
 			await cartLines.settlePendingCartLines()
 			expect(removed()).toEqual(['A:'])
 
-			// Solo queda pendiente el abierto
+			// Quedan pendientes el abierto y el caducado
 			pixApi.getCheckout.mockClear()
 			await cartLines.settlePendingCartLines()
-			expect(pixApi.getCheckout.mock.calls.map(call => call[0])).toEqual(['open'])
+			expect(pixApi.getCheckout.mock.calls.map(call => call[0])).toEqual(['open', 'late'])
+		})
+
+		test('un pago que entra tarde sobre un QR caducado sale del carrito al volver a él', async () => {
+			await cartLines.rememberCartLines('late', ['D:'])
+			pixApi.getCheckout.mockResolvedValue({ success: true, data: { uuid: 'late', stage: 'expired' } })
+			await cartLines.settlePendingCartLines()
+			expect(removeCartLine).not.toHaveBeenCalled()
+
+			pixApi.getCheckout.mockResolvedValue({ success: true, data: { uuid: 'late', stage: 'delivered' } })
+			await cartLines.settlePendingCartLines()
+			expect(removed()).toEqual(['D:'])
 		})
 
 		test('un 404 (otra cuenta, o ya no existe) se olvida; sin red se queda para la próxima', async () => {
