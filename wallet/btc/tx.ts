@@ -11,6 +11,11 @@
  *
  * "Enviar todo": si la cantidad pedida es el total de UTXOs, la fee se
  * descuenta de la cantidad y no hay cambio (como el MAX de Trust/SafePal).
+ *
+ * Los UTXOs con los que se arma un envío no son la lista del nodo tal cual: se
+ * corrige con lo que esta wallet acaba de gastar y ese nodo puede no haber visto
+ * aún (`getSpendableBtcUtxos`, `pendingSpends.ts`). Cada tx que un nodo acepta
+ * deja su nota al difundirse.
  */
 import { secp256k1 } from '@noble/curves/secp256k1.js'
 import { hexToBytes } from '@noble/hashes/utils.js'
@@ -19,6 +24,8 @@ import { Address, OutScript, p2wpkh, Transaction } from '@scure/btc-signer'
 import { ChainHttpError, getJson } from '../chains/http'
 import type { TxLookup } from '../chains/txLookup'
 import type { RegistryRpc } from '../registry/types'
+import { pendingBtcSpends } from './pendingSpends'
+import type { PendingBtcSpends } from './pendingSpends'
 
 /** Salida por debajo de esto no se crea (polvo): el cambio se deja en la fee. */
 export const DUST_SATS = 546n
@@ -151,13 +158,23 @@ export const selectUtxos = (utxos: Utxo[], amount: bigint, feeRate: number, extr
 // Esplora
 // ---------------------------------------------------------------------------
 
-type Deps = { signal?: AbortSignal }
+/** `pending`: otra libreta de gastos pendientes que la de la sesión (los tests). */
+type Deps = { signal?: AbortSignal, pending?: PendingBtcSpends }
 const base = (rpc: RegistryRpc) => rpc.url.replace(/\/+$/, '')
 
+/** Lo que lista el nodo, tal cual. Para armar un envío, `getSpendableBtcUtxos`. */
 export const getBtcUtxos = async (rpc: RegistryRpc, address: string, deps: Deps = {}): Promise<Utxo[]> => {
 	const rows = await getJson<Array<{ txid: string, vout: number, value: number, status?: { confirmed?: boolean } }>>(`${base(rpc)}/address/${address}/utxo`, { signal: deps.signal, headers: rpc.headers })
 	return (rows ?? []).map(row => ({ txid: row.txid, vout: row.vout, value: BigInt(row.value), confirmed: !!row.status?.confirmed }))
 }
+
+/**
+ * Los UTXOs con los que se arma un envío: la lista del nodo sin lo que esta wallet acaba de
+ * gastar y, si ese nodo va por detrás, con el cambio que aún no lista (`pendingSpends.ts`).
+ * Sin esto, dos envíos seguidos por un nodo atrasado gastaban las mismas monedas.
+ */
+export const getSpendableBtcUtxos = async (rpc: RegistryRpc, address: string, deps: Deps = {}): Promise<Utxo[]> =>
+	(deps.pending ?? pendingBtcSpends).apply(address, await getBtcUtxos(rpc, address, deps))
 
 /** sat/vB por nivel a partir de `/fee-estimates` (mapa bloques → sat/vB). PURO. */
 export const feeRatesFromEstimates = (estimates: Record<string, number> | null | undefined): Record<FeeTier, number> => {
@@ -191,7 +208,7 @@ export const getBtcFeeRate = async (rpc: RegistryRpc, deps: Deps = {}): Promise<
 export const prepareBtcSend = async (rpc: RegistryRpc, intent: BtcSendIntent, deps: Deps & { tier?: FeeTier, exact?: boolean } = {}): Promise<PreparedBtcSend> => {
 	if (!isValidBtcAddress(intent.to)) throw new ChainHttpError('btc: destino inválido', { retryable: false })
 	const tier = deps.tier ?? 'normal'
-	const [utxos, feeRates] = await Promise.all([getBtcUtxos(rpc, intent.from, deps), getBtcFeeRates(rpc, deps)])
+	const [utxos, feeRates] = await Promise.all([getSpendableBtcUtxos(rpc, intent.from, deps), getBtcFeeRates(rpc, deps)])
 	const selection = selectUtxos(utxos, intent.amount, feeRates[tier], 0, { exact: deps.exact })
 	if (selection.fee > MAX_FEE_SATS) throw new ChainHttpError(`btc: comisión anómala (${selection.fee} sats)`, { retryable: false })
 	return { intent, selection, tier, feeRates }
@@ -204,7 +221,7 @@ export const prepareBtcSend = async (rpc: RegistryRpc, intent: BtcSendIntent, de
  * de Bitcoin cuando lo que se va a hacer es un depósito; en un envío normal MÁX es todo.
  */
 export const estimateBtcSendReserve = async (rpc: RegistryRpc, address: string, deps: Deps = {}): Promise<bigint> => {
-	const [utxos, feeRates] = await Promise.all([getBtcUtxos(rpc, address, deps), getBtcFeeRates(rpc, deps)])
+	const [utxos, feeRates] = await Promise.all([getSpendableBtcUtxos(rpc, address, deps), getBtcFeeRates(rpc, deps)])
 	if (utxos.length === 0) return 0n
 	return feeFor(estimateVsize(Math.min(utxos.length, MAX_INPUTS), 2), feeRates.fast) * 3n / 2n
 }
@@ -213,7 +230,8 @@ export const estimateBtcSendReserve = async (rpc: RegistryRpc, address: string, 
 // Firma, verificación y broadcast
 // ---------------------------------------------------------------------------
 
-export type SignedBtcTx = { hex: string, txid: string }
+/** `from`: la dirección que firmó. Con ella la difusión anota qué gastó la tx (`pendingSpends.ts`). */
+export type SignedBtcTx = { hex: string, txid: string, from: string }
 
 /**
  * Construye y firma (P2WPKH, RBF). Tras firmar re-parsea la tx y verifica
@@ -234,7 +252,7 @@ export const signBtcTransaction = (prepared: PreparedBtcSend, privateKey: Uint8A
 	tx.sign(privateKey)
 	tx.finalize()
 
-	const signed = { hex: tx.hex, txid: tx.id }
+	const signed = { hex: tx.hex, txid: tx.id, from: intent.from }
 	verifySignedBtcTransaction(signed, prepared)
 	return signed
 }
@@ -268,9 +286,24 @@ const scriptMatchesAddress = (script: Uint8Array, address: string): boolean => {
 export type BtcBroadcastResult = { txid: string, duplicate: boolean }
 
 /**
+ * Un nodo acaba de decir que conoce la tx: queda anotado lo que gasta, para que el envío
+ * siguiente no cuente con esas monedas aunque otro nodo las siga listando. Sin nota (bytes
+ * que no se dejan leer) manda la lista del nodo, como antes: anotar nunca convierte en
+ * fallo una difusión que salió bien.
+ */
+const notePendingSpend = (signed: SignedBtcTx, deps: Deps): void => {
+	if (!signed.from) return
+	try { (deps.pending ?? pendingBtcSpends).record(signed.hex, signed.from) } catch { /* sin nota */ }
+}
+
+/**
  * `POST /tx` de Esplora con el hex; responde el txid en texto plano. Una tx
  * ya conocida cuenta como éxito (reintento tras timeout). Rechazos de
  * política (fee baja, polvo) no rotan: serían iguales en cualquier nodo.
+ *
+ * Solo una tx ACEPTADA deja nota de lo que gasta: el nodo devuelve su id, o dice que ya la
+ * conoce. Una difusión sin respuesta no, ni un 200 con otra cosa en el cuerpo: no consta que
+ * la tx haya salido, y sus monedas quedarían apartadas sin motivo.
  */
 export const broadcastBtcTransaction = async (rpc: RegistryRpc, signed: SignedBtcTx, deps: Deps = {}): Promise<BtcBroadcastResult> => {
 	const res = await fetch(`${base(rpc)}/tx`, { method: 'POST', body: signed.hex, signal: deps.signal, headers: { 'Content-Type': 'text/plain', ...rpc.headers } })
@@ -279,10 +312,14 @@ export const broadcastBtcTransaction = async (rpc: RegistryRpc, signed: SignedBt
 	// error a propósito, para distinguir "ya la conozco" de un rechazo real.
 	if (res.ok) {
 		const txid = (await res.text()).trim()
+		if (txid.toLowerCase() === signed.txid.toLowerCase()) notePendingSpend(signed, deps)
 		return { txid: /^[0-9a-f]{64}$/i.test(txid) ? txid.toLowerCase() : signed.txid, duplicate: false }
 	} else {
 		const text = (await res.text()).trim()
-		if (/already in block chain|already known|txn-already-in-mempool|txn-already-known|already have/i.test(text)) return { txid: signed.txid, duplicate: true }
+		if (/already in block chain|already known|txn-already-in-mempool|txn-already-known|already have/i.test(text)) {
+			notePendingSpend(signed, deps)
+			return { txid: signed.txid, duplicate: true }
+		}
 		throw new ChainHttpError(`btc: broadcast rechazado (${res.status}): ${text.slice(0, 200)}`, { status: res.status, retryable: res.status >= 500 })
 	}
 }

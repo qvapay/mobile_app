@@ -724,13 +724,6 @@
    "tokens": [],
    "rpcs": [
     {
-     "url": "https://btc.qvapay.com/api",
-     "priority": 0,
-     "owner": "qvapay",
-     "enabled": false,
-     "api": "esplora"
-    },
-    {
      "url": "https://mempool.space/api",
      "priority": 10,
      "owner": "mempool",
@@ -740,6 +733,13 @@
      "url": "https://blockstream.info/api",
      "priority": 20,
      "owner": "blockstream",
+     "api": "esplora"
+    },
+    {
+     "url": "https://btc.qvapay.com/api",
+     "priority": 25,
+     "owner": "qvapay",
+     "enabled": true,
      "api": "esplora"
     },
     {

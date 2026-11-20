@@ -10,6 +10,8 @@ import { Script, Transaction } from '@scure/btc-signer'
 
 import { deriveAddresses, derivePrivateKey } from '../derive'
 import { mnemonicToSeed } from '../seed'
+import { createPendingBtcSpends } from './pendingSpends'
+import { selectUtxos, signBtcTransaction } from './tx'
 import {
 	fetchBtcVault,
 	memoAssetMatches,
@@ -114,6 +116,18 @@ describe('bóveda y transacción', () => {
 		expect(op).toBe('RETURN')
 		expect(String.fromCharCode(...data)).toBe(MEMO_ETH)
 		expect(tx.getOutput(2).amount).toBe(0n)
+	})
+
+	test('tras un envío aceptado, el swap no cuenta con la moneda ya gastada aunque el nodo la siga listando', async () => {
+		mock()
+		const pending = createPendingBtcSpends()
+		// Un envío normal que acaba de gastar la única moneda que el nodo lista, y dejó cambio
+		const sent = signBtcTransaction({ intent: { from: FROM, to: VAULT, amount: 200_000n }, selection: selectUtxos([{ txid: 'ab'.repeat(32), vout: 0, value: 1_000_000n, confirmed: true }], 200_000n, 3) }, PRIV)
+		pending.record(sent.hex, FROM)
+		const prepared = await prepareThorchainBtcSwap(RPC, intent(), { endpoints, pending })
+		expect(prepared.selection.inputs.map(u => `${u.txid}:${u.vout}`)).toEqual([`${sent.txid}:1`])
+		// La tx del swap lleva la dirección que firma: con ella su difusión deja nota a su vez
+		expect(signThorchainBtcSwap(prepared, PRIV).from).toBe(FROM)
 	})
 
 	test('gastar todo el saldo no se permite: a la bóveda llegaría menos de lo cotizado', async () => {

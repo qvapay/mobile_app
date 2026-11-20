@@ -6,6 +6,7 @@
  */
 import { Transaction } from '@scure/btc-signer'
 
+import { createPendingBtcSpends, pendingBtcSpends } from './pendingSpends'
 import {
 	broadcastBtcTransaction,
 	BtcVerifyError,
@@ -184,6 +185,123 @@ describe('Esplora', () => {
 		global.fetch = jest.fn(async () => ({ ok: false, status: 503, text: async () => 'busy' }))
 		const busy = await broadcastBtcTransaction(RPC, signed).catch(e => e)
 		expect(isRetryableRpcError(busy)).toBe(true)
+	})
+})
+
+// Un nodo cuyo índice por dirección va por detrás del mempool (medido: hasta un minuto) sigue
+// listando monedas que la wallet acaba de gastar. El segundo envío las volvía a gastar: la red
+// lo rechaza o, con más comisión, reemplaza al primero, que ya no llega
+describe('gastos pendientes: un segundo envío no vuelve a gastar lo mismo', () => {
+	const U1 = 'a1'.repeat(32)
+	// Un nodo que acepta la tx contesta con su id, como Esplora
+	const accept = async (url, init) => ({ ok: true, status: 200, text: async () => Transaction.fromRaw(hexToBytes(init.body), { allowUnknownOutputs: true }).id })
+	// El nodo atrasado: pase lo que pase, sigue listando la moneda de antes
+	const staleNode = (broadcast = accept) => jest.fn(async (url, init) => {
+		if (init?.method === 'POST') return broadcast(url, init)
+		if (url.endsWith('/utxo')) return { ok: true, status: 200, json: async () => [{ txid: U1, vout: 0, value: 100_000, status: { confirmed: true } }] }
+		if (url.endsWith('/fee-estimates')) return { ok: true, status: 200, json: async () => ({ '1': 3, '3': 2, '6': 1 }) }
+		return { ok: false, status: 404, json: async () => ({}), text: async () => '' }
+	})
+	const sendOnce = async (pending, amount) => {
+		const prepared = await prepareBtcSend(RPC, { from: FROM, to: TO, amount }, { pending })
+		const signed = signBtcTransaction(prepared, PRIV)
+		await broadcastBtcTransaction(RPC, signed, { pending })
+		return { prepared, signed }
+	}
+	afterEach(() => { delete global.fetch; pendingBtcSpends.clear() })
+
+	test('el segundo envío gasta el cambio del primero, no la moneda que el nodo aún lista', async () => {
+		global.fetch = staleNode()
+		const pending = createPendingBtcSpends()
+		const first = await sendOnce(pending, 30_000n)
+		expect(first.prepared.selection.inputs.map(u => u.txid)).toEqual([U1])
+
+		const second = await sendOnce(pending, 20_000n)
+		expect(second.prepared.selection.inputs).toEqual([{ txid: first.signed.txid, vout: 1, value: first.prepared.selection.change, confirmed: false }])
+		// Y es lo que de verdad firma: el input de la segunda tx es el cambio de la primera
+		const parsed = Transaction.fromRaw(hexToBytes(second.signed.hex))
+		expect(Array.from(parsed.getInput(0).txid, byte => byte.toString(16).padStart(2, '0')).join('')).toBe(first.signed.txid)
+		expect(parsed.getInput(0).index).toBe(1)
+
+		// Un tercero encadena igual: el nodo nunca listó el cambio del primero
+		const third = await sendOnce(pending, 10_000n)
+		expect(third.prepared.selection.inputs).toEqual([{ txid: second.signed.txid, vout: 1, value: second.prepared.selection.change, confirmed: false }])
+	})
+
+	test('sin la libreta era el fallo: la misma moneda dos veces', async () => {
+		global.fetch = staleNode()
+		const first = await sendOnce(createPendingBtcSpends(), 30_000n)
+		const again = await prepareBtcSend(RPC, { from: FROM, to: TO, amount: 20_000n }, { pending: createPendingBtcSpends() })
+		expect(again.selection.inputs.map(u => u.txid)).toEqual(first.prepared.selection.inputs.map(u => u.txid))
+	})
+
+	test('lo que ya no hay no se ofrece: pedir más que el cambio es «sin fondos», no un envío con lo gastado', async () => {
+		global.fetch = staleNode()
+		const pending = createPendingBtcSpends()
+		const first = await sendOnce(pending, 30_000n)
+		await expect(prepareBtcSend(RPC, { from: FROM, to: TO, amount: 80_000n }, { pending })).rejects.toThrow(/sin fondos/)
+		// «Enviar todo» es ahora el cambio entero
+		const all = await prepareBtcSend(RPC, { from: FROM, to: TO, amount: first.prepared.selection.change }, { pending })
+		expect(all.selection.sendAll).toBe(true)
+	})
+
+	test('tras «enviar todo» no queda nada: ni envío ni reserva', async () => {
+		global.fetch = staleNode()
+		const pending = createPendingBtcSpends()
+		await sendOnce(pending, 100_000n)
+		await expect(prepareBtcSend(RPC, { from: FROM, to: TO, amount: 10_000n }, { pending })).rejects.toThrow(/sin fondos/)
+		await expect(estimateBtcSendReserve(RPC, FROM, { pending })).resolves.toBe(0n)
+	})
+
+	test('solo una tx ACEPTADA deja nota: «ya la conozco» sí; un rechazo, un 5xx o una difusión sin respuesta, no', async () => {
+		const pending = createPendingBtcSpends()
+		global.fetch = staleNode()
+		const prepared = await prepareBtcSend(RPC, { from: FROM, to: TO, amount: 30_000n }, { pending })
+		const signed = signBtcTransaction(prepared, PRIV)
+
+		global.fetch = staleNode(async () => ({ ok: false, status: 400, text: async () => 'min relay fee not met' }))
+		await expect(broadcastBtcTransaction(RPC, signed, { pending })).rejects.toThrow(/min relay fee/)
+		global.fetch = staleNode(async () => ({ ok: false, status: 503, text: async () => 'busy' }))
+		await expect(broadcastBtcTransaction(RPC, signed, { pending })).rejects.toThrow(/503/)
+		global.fetch = staleNode(async () => { throw new TypeError('Network request failed') })
+		await expect(broadcastBtcTransaction(RPC, signed, { pending })).rejects.toThrow(/Network/)
+		// Un 200 que no devuelve el id de ESTA tx se sigue dando por enviado, pero no prueba nada
+		for (const body of ['', '<html>ok</html>', 'cd'.repeat(32)]) {
+			global.fetch = staleNode(async () => ({ ok: true, status: 200, text: async () => body }))
+			await expect(broadcastBtcTransaction(RPC, signed, { pending })).resolves.toMatchObject({ duplicate: false })
+		}
+		expect(pending.list()).toEqual([])
+		// Sin nota manda la lista del nodo: la moneda sigue disponible para reintentar
+		global.fetch = staleNode()
+		expect((await prepareBtcSend(RPC, { from: FROM, to: TO, amount: 30_000n }, { pending })).selection.inputs.map(u => u.txid)).toEqual([U1])
+
+		global.fetch = staleNode(async () => ({ ok: false, status: 400, text: async () => 'sendrawtransaction RPC error: {"code":-27,"message":"Transaction already in block chain"}' }))
+		await expect(broadcastBtcTransaction(RPC, signed, { pending })).resolves.toEqual({ txid: signed.txid, duplicate: true })
+		expect(pending.list().map(note => note.txid)).toEqual([signed.txid])
+	})
+
+	test('anotar nunca convierte en fallo una difusión que salió bien', async () => {
+		const pending = createPendingBtcSpends()
+		// Bytes que la libreta no sabe leer, y el nodo los da por buenos: la difusión contesta
+		// igual, y no queda nota
+		global.fetch = staleNode(async () => ({ ok: true, status: 200, text: async () => 'cd'.repeat(32) }))
+		await expect(broadcastBtcTransaction(RPC, { hex: '0200', txid: 'cd'.repeat(32), from: FROM }, { pending })).resolves.toEqual({ txid: 'cd'.repeat(32), duplicate: false })
+		expect(pending.list()).toEqual([])
+		// Lo mismo cuando la libreta falla por lo que sea
+		const broken = { ...pending, record: () => { throw new Error('boom') } }
+		global.fetch = staleNode()
+		const signed = signBtcTransaction(await prepareBtcSend(RPC, { from: FROM, to: TO, amount: 30_000n }, { pending }), PRIV)
+		await expect(broadcastBtcTransaction(RPC, signed, { pending: broken })).resolves.toEqual({ txid: signed.txid, duplicate: false })
+	})
+
+	test('sin pasar nada se usa la libreta de la sesión', async () => {
+		global.fetch = staleNode()
+		const prepared = await prepareBtcSend(RPC, { from: FROM, to: TO, amount: 30_000n })
+		const signed = signBtcTransaction(prepared, PRIV)
+		await broadcastBtcTransaction(RPC, signed)
+		expect(pendingBtcSpends.list().map(note => note.txid)).toEqual([signed.txid])
+		const second = await prepareBtcSend(RPC, { from: FROM, to: TO, amount: 20_000n })
+		expect(second.selection.inputs.map(u => u.txid)).toEqual([signed.txid])
 	})
 })
 
