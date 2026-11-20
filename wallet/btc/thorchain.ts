@@ -22,7 +22,8 @@ import { Address, OutScript, p2wpkh, Script, Transaction } from '@scure/btc-sign
 
 import { ChainHttpError } from '../chains/http'
 import type { RegistryRpc } from '../registry/types'
-import { BtcVerifyError, DUST_SATS, getBtcFeeRates, getBtcUtxos, isValidBtcAddress, MAX_FEE_SATS, selectUtxos } from './tx'
+import type { PendingBtcSpends } from './pendingSpends'
+import { BtcVerifyError, DUST_SATS, getBtcFeeRates, getSpendableBtcUtxos, isValidBtcAddress, MAX_FEE_SATS, selectUtxos } from './tx'
 import type { BtcSelection, SignedBtcTx } from './tx'
 
 /** Nodos de THORChain para leer la bóveda. Dos operadores distintos: tienen que coincidir. */
@@ -201,11 +202,12 @@ export type PreparedThorchainBtc = {
 /** Bytes de la salida OP_RETURN: valor (8) + longitud del script (1) + OP_RETURN + pushdata + memo. */
 export const opReturnVbytes = (memo: string): number => 8 + 1 + 1 + (memo.length > 75 ? 2 : 1) + memo.length
 
-export const prepareThorchainBtcSwap = async (rpc: RegistryRpc, intent: ThorchainBtcIntent, deps: { signal?: AbortSignal, endpoints?: string[] } = {}): Promise<PreparedThorchainBtc> => {
+export const prepareThorchainBtcSwap = async (rpc: RegistryRpc, intent: ThorchainBtcIntent, deps: { signal?: AbortSignal, endpoints?: string[], pending?: PendingBtcSpends } = {}): Promise<PreparedThorchainBtc> => {
 	const memo = verifyThorchainMemo(intent)
 	const [vault, utxos, feeRates] = await Promise.all([
 		fetchBtcVault(deps),
-		getBtcUtxos(rpc, intent.from, deps),
+		// Sin lo que esta wallet acaba de gastar, lo liste aún el nodo o no (`pendingSpends.ts`)
+		getSpendableBtcUtxos(rpc, intent.from, deps),
 		getBtcFeeRates(rpc, deps),
 	])
 	if (intent.amountSats < vault.dustThreshold || intent.amountSats < DUST_SATS) throw new ChainHttpError('thorchain: importe por debajo del mínimo', { retryable: false })
@@ -234,7 +236,7 @@ export const signThorchainBtcSwap = (prepared: PreparedThorchainBtc, privateKey:
 	tx.sign(privateKey)
 	tx.finalize()
 
-	const signed = { hex: tx.hex, txid: tx.id }
+	const signed = { hex: tx.hex, txid: tx.id, from: intent.from }
 	verifyThorchainBtcTx(signed, prepared)
 	return signed
 }
