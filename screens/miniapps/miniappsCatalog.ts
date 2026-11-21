@@ -49,11 +49,8 @@ export const coverOf = (app: Pick<MiniApp, 'cover'>): string | null => {
 	return uri && !/\.svg($|\?)/i.test(uri) ? uri : null
 }
 
-/** Cuántas caben en la fila del Home. */
+/** Tope mínimo de mini-apps del Home (dos filas llenas pueden subirlo). */
 export const HOME_MINIAPPS_LIMIT = 6
-
-/** Alto de ventana desde el que el Home pinta DOS filas de mini-apps (fuera quedan los teléfonos pequeños, tipo iPhone SE). */
-export const HOME_MINIAPPS_TWO_ROWS_MIN_HEIGHT = 740
 
 export type HomeMiniAppsGrid = {
 	/** Filas que la pantalla admite; con pocas apps se pinta una sola (`splitHomeMiniApps`). */
@@ -67,16 +64,15 @@ export type HomeMiniAppsGrid = {
 }
 
 /**
- * Rejilla de mini-apps del Home según la pantalla. En una pantalla razonable
- * son dos filas que llenan el ancho (como la pantalla de inicio del teléfono);
- * en una pequeña, la fila con scroll de siempre.
+ * Rejilla de mini-apps del Home: dos filas que llenan el ancho (como la pantalla
+ * de inicio del teléfono) en TODOS los teléfonos, también los pequeños. La fila
+ * única con scroll solo queda para un ancho donde no caben ni dos iconos.
  *
  * @param width - Ancho útil de la sección (sin los márgenes del Home).
- * @param height - Alto de la ventana.
  */
-export const homeMiniAppsGrid = ({ width, height, itemWidth, minGap, rowGap }: { width: number, height: number, itemWidth: number, minGap: number, rowGap: number }): HomeMiniAppsGrid => {
+export const homeMiniAppsGrid = ({ width, itemWidth, minGap, rowGap }: { width: number, itemWidth: number, minGap: number, rowGap: number }): HomeMiniAppsGrid => {
 	const perRow = Math.max(1, Math.floor((width + minGap) / (itemWidth + minGap)))
-	if (height < HOME_MINIAPPS_TWO_ROWS_MIN_HEIGHT || perRow < 2) return { rows: 1, perRow, limit: HOME_MINIAPPS_LIMIT, gap: rowGap }
+	if (perRow < 2) return { rows: 1, perRow, limit: HOME_MINIAPPS_LIMIT, gap: rowGap }
 	return { rows: 2, perRow, limit: Math.max(HOME_MINIAPPS_LIMIT, perRow * 2), gap: (width - perRow * itemWidth) / (perRow - 1) }
 }
 

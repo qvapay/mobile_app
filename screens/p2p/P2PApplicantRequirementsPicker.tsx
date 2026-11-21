@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -49,7 +49,10 @@ const P2PApplicantRequirementsPicker = ({ value, onChange, theme, textStyles }: 
 				return (
 					<View key={key}>
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginBottom: 6 }]}>{t(`p2p.create.requirements.labels.${key}`)}</Text>
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} keyboardShouldPersistTaps="handled">
+						{/* Los chips SALTAN de línea, sin carrusel: un scroll horizontal dentro del
+						    formulario se quedaba con los arrastres en diagonal (cuatro filas seguidas
+						    cortaban el scroll de la pantalla) y escondía opciones fuera del borde */}
+						<View style={styles.chips}>
 							{options.map((option) => {
 								const selected = current === option
 								return (
@@ -65,7 +68,7 @@ const P2PApplicantRequirementsPicker = ({ value, onChange, theme, textStyles }: 
 									</QPPressable>
 								)
 							})}
-						</ScrollView>
+						</View>
 					</View>
 				)
 			})}
@@ -87,6 +90,7 @@ const P2PApplicantRequirementsPicker = ({ value, onChange, theme, textStyles }: 
 }
 
 const styles = StyleSheet.create({
+	chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 	chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 },
 	warningRow: { flexDirection: 'row', gap: 6 },
 })

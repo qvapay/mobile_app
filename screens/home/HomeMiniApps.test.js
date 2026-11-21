@@ -30,7 +30,7 @@ import { ROUTES } from '../../routes'
 
 const app = (slug, extra = {}) => ({ slug, name: slug, icon: null, featured: false, ...extra })
 
-// Teléfono pequeño por defecto (una fila); `screen()` lo cambia en los tests de dos filas
+// Teléfono pequeño por defecto (4 por fila); `screen()` lo cambia en los tests de pantalla ancha
 const screen = (width, height) => useWindowDimensions.mockReturnValue({ width, height, scale: 2, fontScale: 1 })
 
 beforeEach(() => {
@@ -49,11 +49,11 @@ const render = (data, favorites = [], { ready = true } = {}) => {
 	return { tree, navigation, onSeeAll }
 }
 
-test('destacadas primero, seis como mucho, con icono y nombre', () => {
-	const apps = [app('a'), app('b'), app('c'), app('d'), app('e'), app('f', { featured: true }), app('g', { featured: true })]
+test('destacadas primero, dos filas llenas como mucho, con icono y nombre', () => {
+	const apps = [app('a'), app('b'), app('c'), app('d'), app('e'), app('x'), app('y'), app('f', { featured: true }), app('g', { featured: true })]
 	const { tree } = render(apps)
 	const icons = tree.root.findAllByType('MiniAppIcon')
-	expect(icons.map(icon => icon.props.app.slug)).toEqual(['f', 'g', 'a', 'b', 'c', 'd'])
+	expect(icons.map(icon => icon.props.app.slug)).toEqual(['f', 'g', 'a', 'b', 'c', 'd', 'e', 'x'])
 	expect(icons[0].props.size).toBe(56)
 	expect(tree.root.findByType('QPSectionHeader').props.title).toBe('Mini-apps')
 	expect(JSON.stringify(tree.toJSON())).toContain('"f"')
@@ -76,9 +76,10 @@ test('en una pantalla razonable, si caben en una fila no se parte', () => {
 	expect(rowSlugs(tree)).toEqual([['a', 'b', 'c']])
 })
 
-test('en un teléfono pequeño sigue siendo una fila', () => {
-	const { tree } = render('abcdefgh'.split('').map(slug => app(slug)))
-	expect(rowSlugs(tree)).toEqual([['a', 'b', 'c', 'd', 'e', 'f']])
+test('en un teléfono pequeño también son dos filas', () => {
+	// 375 − 2·16 de margen = 343 → caben 4 iconos de 64 por fila
+	const { tree } = render('abcdefghij'.split('').map(slug => app(slug)))
+	expect(rowSlugs(tree)).toEqual([['a', 'b', 'c', 'd'], ['e', 'f', 'g', 'h']])
 })
 
 test('tocar una abre el host con slug, nombre e icono', () => {

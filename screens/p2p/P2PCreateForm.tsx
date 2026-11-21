@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { View, Text, Pressable, Switch, StyleSheet } from 'react-native'
 import { SurfaceHost } from '../../ui/SurfaceContext'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -29,6 +30,8 @@ type P2PCreateFormProps = {
 	onLaunchSavedMethods: () => void
 	/** Puede publicar por rango (KYC aprobado, mismo gate que `canCreateFlexibleOffers` de qpweb). */
 	canCreateFlexible: boolean
+	/** Al abrir las opciones avanzadas: `y` de su tarjeta dentro del scroll, ya con el alto nuevo. */
+	onRevealAdvanced?: (y: number) => void
 	user: User
 	theme: Theme
 	textStyles: TextStyles
@@ -42,12 +45,17 @@ import { percentAmount, sanitizeAmountInput } from '../../helpers/amountInput'
 // account fields, advanced options and the optional GOLD custom message.
 const PERCENT_CHIPS = [25, 50, 100] as const
 
-const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, canCreateFlexible, user, theme, textStyles, containerStyles }: P2PCreateFormProps) => {
+const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, canCreateFlexible, onRevealAdvanced, user, theme, textStyles, containerStyles }: P2PCreateFormProps) => {
 
 	const { t } = useTranslation()
 	const { type, amount, receive, message, advancedOpen, onlyVIP, privateOffer, flexible, orderMin, orderMax, requirements } = form
 	const isGold = !!user?.golden_check
 	const advancedCount = [onlyVIP, privateOffer, isGold && !!message.trim()].filter(Boolean).length + activeRequirementsCount(requirements)
+
+	// Abrir el acordeón lo sube a la vista: su contenido nace debajo del botón de publicar y,
+	// sin esto, tocar la cabecera parecía no hacer nada. Se avisa desde `onLayout` (ya con
+	// el alto nuevo) y no al tocar, cuando el scroll aún no tiene sitio al que ir
+	const revealPending = useRef(false)
 
 	const balance = Number(user?.balance) || 0
 
@@ -178,9 +186,22 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 
 			{/* Opciones avanzadas: UN acordeón (audiencia, privacidad, mensaje y requisitos),
 			    como el wizard web; el contador dice cuántas hay activas con el acordeón cerrado */}
-			<View style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
+			<View
+				style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch' }]}
+				onLayout={(e) => {
+					if (!revealPending.current || !advancedOpen) return
+					revealPending.current = false
+					onRevealAdvanced?.(e.nativeEvent.layout.y)
+				}}
+			>
 				<SurfaceHost tone="surface">
-					<Pressable onPress={() => onField('advancedOpen', !advancedOpen)} style={containerStyles.rowBetween}>
+					<Pressable
+						onPress={() => { revealPending.current = !advancedOpen; onField('advancedOpen', !advancedOpen) }}
+						style={containerStyles.rowBetween}
+						hitSlop={10}
+						accessibilityRole="button"
+						accessibilityState={{ expanded: advancedOpen }}
+					>
 						<View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
 							<FontAwesome6 name="sliders" size={16} color={theme.colors.primaryText} iconStyle="solid" />
 							<Text style={[textStyles.h5, { marginLeft: 8 }]}>{t('p2p.create.form.advanced')}</Text>
@@ -221,6 +242,9 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 											</View>
 										)}
 								</View>
+								{/* Bloqueado no recibe toques: un campo nativo, aunque no sea editable, se
+								    queda con el inicio del arrastre y el scroll arrancaba a tirones */}
+								<View pointerEvents={isGold ? 'auto' : 'none'}>
 								<QPInput
 									value={message}
 									onChangeText={(v) => onField('message', v.slice(0, P2P_MESSAGE_MAX))}
@@ -230,6 +254,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 									editable={isGold}
 									style={isGold ? undefined : { opacity: 0.5 }}
 								/>
+								</View>
 							</View>
 
 							<View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
