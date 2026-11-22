@@ -7,6 +7,7 @@ import { pixApi } from '../../../api/pixApi'
 import { cartItemKey } from '../market/cartCore'
 import { getItems as getCartItems, hydrate as hydrateCart, remove as removeCartLine } from '../market/marketCartStore'
 
+import type { CartItem } from '../market/cartCore'
 import type { PixStage } from '../../../types/domain'
 
 /**
@@ -14,8 +15,9 @@ import type { PixStage } from '../../../types/domain'
  * dice qué artículos lleva, y el carrito puede cambiar con su QR abierto: la cuenta solo admite
  * uno, así que volver a pagar después de tocar el carrito reabre el viejo. Por eso al pagarse
  * solo salen del carrito las líneas que se mandaron al crearlo, y no las que haya ahora. Cada una
- * se reconoce también por su `added_at`: si sale y se vuelve a añadir el mismo producto, es otra
- * línea, y un pago tardío del cobro viejo no la toca.
+ * se reconoce por su clave y su `added_at`: si sale y se vuelve a añadir el mismo producto, es otra
+ * línea, y el cobro viejo no la toca. Lo que guardaba la versión anterior eran solo las claves:
+ * sin el `added_at` no se sabe si la línea de ahora es la que cobró, así que no se usa.
  *
  * En disco porque el pago se hace en la app del banco y el sistema puede cerrar esta mientras
  * tanto. Fuera de `@qpcache:`, como el carrito: el cobro de otra cuenta responde 404 y se olvida.
@@ -36,8 +38,8 @@ const MAX_CHARGES = 20
 /** Lo que se espera un pago tardío. Mientras, el carrito lo consulta cada vez que se enfoca. */
 const LATE_PAYMENT_MS = 24 * 60 * 60 * 1000
 
-/** Una línea del carrito tal como estaba al crear el cobro. Sin `addedAt` (lo guardado antes, o una línea sin él), basta la clave. */
-type Line = { key: string, addedAt?: number }
+/** Una línea del carrito tal como estaba al crear el cobro. `addedAt` null = la línea no lo tenía. */
+type Line = { key: string, addedAt: number | null }
 /** `at`: cuándo se creó el cobro. */
 type Charge = { lines: Line[], at: number }
 type Charges = Record<string, Charge>
@@ -49,46 +51,35 @@ let loading: Promise<void> | null = null
 let settling: Promise<void> | null = null
 
 const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
-const isKeys = (value: unknown): value is string[] => Array.isArray(value) && value.every(key => typeof key === 'string')
+const isLine = (value: unknown): value is Line => isRecord(value) && typeof value.key === 'string' && (value.addedAt === null || typeof value.addedAt === 'number')
 
-const isLine = (value: unknown): value is Line => isRecord(value) && typeof value.key === 'string' && (value.addedAt === undefined || typeof value.addedAt === 'number')
+/** Lo que distingue a una línea de otra del mismo producto añadida en otro momento. */
+const lineIdentity = (item: CartItem | undefined): number | null => (typeof item?.added_at === 'number' ? item.added_at : null)
 
-/** Un cobro leído del disco; `migrated` si venía de la versión anterior, que solo guardaba las claves. */
-const parseCharge = (value: unknown): { charge: Charge, migrated: boolean } | null => {
-	// Cuentan como recién creados, para no perder un pago tardío
-	if (isKeys(value)) { return { charge: { lines: value.map(key => ({ key })), at: Date.now() }, migrated: true } }
-	if (isRecord(value) && Array.isArray(value.lines) && value.lines.every(isLine) && typeof value.at === 'number') {
-		return { charge: { lines: value.lines, at: value.at }, migrated: false }
-	}
-	return null
-}
+// Lo que no tenga esta forma se descarta, también lo de la versión anterior (solo las claves)
+const parseCharge = (value: unknown): Charge | null => (
+	isRecord(value) && Array.isArray(value.lines) && value.lines.every(isLine) && typeof value.at === 'number'
+		? { lines: value.lines, at: value.at }
+		: null
+)
 
-const parse = (raw: string | null): { charges: Charges, migrated: boolean } => {
-	const parsed: Charges = {}
-	let migrated = false
+const parse = (raw: string | null): Charges => {
 	try {
 		const value: unknown = raw ? JSON.parse(raw) : null
-		if (!isRecord(value)) { return { charges: parsed, migrated } }
+		if (!isRecord(value)) { return {} }
+		const parsed: Charges = {}
 		for (const [uuid, entry] of Object.entries(value)) {
-			const result = parseCharge(entry)
-			if (result) {
-				parsed[uuid] = result.charge
-				if (result.migrated) { migrated = true }
-			}
+			const charge = parseCharge(entry)
+			if (charge) { parsed[uuid] = charge }
 		}
-	} catch { return { charges: {}, migrated: false } }
-	return { charges: parsed, migrated }
+		return parsed
+	} catch { return {} }
 }
 
 // Todo espera a la lectura del disco, así nada de lo que se apunte antes se pierde al leerlo
 const load = (): Promise<void> => {
 	if (!loading) {
-		loading = AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-			const read = parse(raw)
-			charges = read.charges
-			// La hora que se les acaba de dar se guarda ya: si no, cada arranque volvería a empezar su plazo
-			if (read.migrated) { save(charges) }
-		}, () => {})
+		loading = AsyncStorage.getItem(STORAGE_KEY).then((raw) => { charges = parse(raw) }, () => {})
 	}
 	return loading
 }
@@ -114,10 +105,7 @@ export async function rememberCartLines(uuid: string, keys: string[]): Promise<v
 	if (keys.length === 0) { return }
 	await hydrateCart()
 	const items = getCartItems()
-	const lines = keys.map((key): Line => {
-		const addedAt = items.find(item => cartItemKey(item) === key)?.added_at
-		return typeof addedAt === 'number' ? { key, addedAt } : { key }
-	})
+	const lines = keys.map((key): Line => ({ key, addedAt: lineIdentity(items.find(item => cartItemKey(item) === key)) }))
 	save({ ...charges, [uuid]: { lines, at: Date.now() } })
 }
 
@@ -140,9 +128,9 @@ export async function settleCartLines(uuid: string, stage: PixStage): Promise<vo
 		const items = getCartItems()
 		for (const line of charge.lines) {
 			const current = items.find(item => cartItemKey(item) === line.key)
-			// El mismo producto, añadido otra vez después de crear el cobro: esa línea no la pagó este
-			const newer = line.addedAt !== undefined && current !== undefined && current.added_at !== line.addedAt
-			if (!newer) { removeCartLine(line.key) }
+			// El mismo producto, quitado y vuelto a añadir después de crear el cobro: esa línea no la pagó este
+			const another = current !== undefined && lineIdentity(current) !== line.addedAt
+			if (!another) { removeCartLine(line.key) }
 		}
 		forget(uuid)
 	} else if (stage === 'refunded' || Date.now() - charge.at > LATE_PAYMENT_MS) {
