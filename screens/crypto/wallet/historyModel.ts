@@ -135,3 +135,11 @@ export const mergeHistory = ({ orders, swaps, moreOrders = false, moreSwaps = fa
 	const boundary = Math.max(...floors)
 	return entries.filter(entry => time(entry.createdAt) >= boundary)
 }
+
+/**
+ * ¿Queda algo en curso en lo que se ve? Una fila así puede haber cambiado mientras la lista no
+ * estaba delante (el swap lo cierra el servidor, la orden el proveedor), y quien vuelve a ella
+ * tiene que releerla: si no, un swap ya completado seguía «en curso» hasta tirar para refrescar.
+ */
+export const hasLiveEntries = (entries: HistoryEntry[]): boolean =>
+	entries.some(entry => entry.phase === 'deposit' || entry.phase === 'working')

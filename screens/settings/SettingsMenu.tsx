@@ -27,6 +27,8 @@ import { userApi } from '../../api/userApi'
 // Image Picker
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker'
 import type { CameraOptions, ImageLibraryOptions, ImagePickerResponse } from 'react-native-image-picker'
+import { pick, types, errorCodes, isErrorWithCode } from '@react-native-documents/picker'
+import { avatarFileIssue, normalizeAvatarType } from './avatarFile'
 
 // Import settings
 import settings from './settings'
@@ -152,21 +154,12 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 	const avatarPickerOptions: PickerOptions = { mediaType: 'photo', maxWidth: 512, maxHeight: 512, quality: 0.8, includeBase64: false }
 	const coverPickerOptions: PickerOptions = { mediaType: 'photo', maxWidth: 1088, maxHeight: 256, quality: 0.9, includeBase64: false }
 
-	// Generic image upload handler
-	const processImageUpload = async (response: ImagePickerResponse, uploadType: UploadType) => {
-
-		if (response.didCancel || response.errorCode) return
-		const asset = response.assets?.[0]
-		if (!asset) return
+	// Sube la imagen elegida, venga de la cámara, de la galería o de los archivos
+	const uploadImage = async (file: { uri: string, type: string, name: string }, uploadType: UploadType) => {
 
 		const isCover = uploadType === 'cover'
 		const toastId = toast.info(t(isCover ? 'settings.menu.avatar.uploadingCover' : 'settings.menu.avatar.uploadingPhoto'), { duration: Infinity })
-		const result = await userApi.uploadAvatar({
-			// `asset.uri` es opcional en el tipo del picker pero siempre viene en un
-			// asset seleccionado; el cast evita ensuciar el guard de arriba.
-			file: { uri: asset.uri as string, type: asset.type || 'image/jpeg', name: asset.fileName || `${uploadType}.jpg` },
-			uploadType
-		})
+		const result = await userApi.uploadAvatar({ file, uploadType })
 		toast.dismiss(toastId)
 
 		if (result.success) {
@@ -178,6 +171,39 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 			updateUser(updateField)
 			toast.success(t(isCover ? 'settings.menu.avatar.coverUpdated' : 'settings.menu.avatar.photoUpdated'))
 		} else { toast.error(t('settings.menu.avatar.errorTitle'), { description: result.error || t(isCover ? 'settings.menu.avatar.uploadFailedCover' : 'settings.menu.avatar.uploadFailedPhoto') }) }
+	}
+
+	// Explorador de archivos del sistema (Android): la galería depende de los servicios de Google
+	// Play en teléfonos antiguos y este no. Entrega el fichero tal cual, sin reducir, así que se
+	// comprueba aquí lo que el servidor exige (ver `avatarFile.ts`)
+	const pickImageFile = async (uploadType: UploadType) => {
+		try {
+			const [doc] = await pick({ type: [types.images] })
+			if (!doc) return
+			const issue = avatarFileIssue({ type: doc.type, size: doc.size })
+			if (issue) { toast.error(t(issue === 'size' ? 'settings.menu.avatar.fileTooLarge' : 'settings.menu.avatar.fileTypeInvalid')); return }
+			await uploadImage({ uri: doc.uri, type: normalizeAvatarType(doc.type), name: doc.name || `${uploadType}.jpg` }, uploadType)
+		} catch (e) {
+			if (isErrorWithCode(e) && e.code === errorCodes.OPERATION_CANCELED) return
+			toast.error(t(uploadType === 'cover' ? 'settings.menu.avatar.uploadFailedCover' : 'settings.menu.avatar.uploadFailedPhoto'))
+		}
+	}
+
+	// Cámara y galería
+	const processImageUpload = async (response: ImagePickerResponse, uploadType: UploadType) => {
+
+		if (response.didCancel) return
+		if (response.errorCode) {
+			// Si la galería no abre en Android, el explorador de archivos
+			if (Platform.OS === 'android') await pickImageFile(uploadType)
+			return
+		}
+		const asset = response.assets?.[0]
+		if (!asset) return
+
+		// `asset.uri` es opcional en el tipo del picker pero siempre viene en un
+		// asset seleccionado; el cast evita ensuciar el guard de arriba.
+		await uploadImage({ uri: asset.uri as string, type: asset.type || 'image/jpeg', name: asset.fileName || `${uploadType}.jpg` }, uploadType)
 	}
 
 	// Show action sheet for image selection
@@ -196,12 +222,14 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 				}
 			)
 		} else {
+			// Un diálogo de Android admite tres botones: «Archivos» ocupa el de cancelar y se
+			// cierra tocando fuera o con atrás (`cancelable`).
 			// Alert.alert declara `message?: string`; el runtime acepta null (mensaje vacío).
 			Alert.alert(title, null as unknown as undefined, [
 				{ text: t('settings.menu.avatar.takePhoto'), onPress: () => launchCamera(pickerOptions, handler) },
 				{ text: t('settings.menu.avatar.chooseFromGallery'), onPress: () => launchImageLibrary(pickerOptions, handler) },
-				{ text: t('common.actions.cancel'), style: 'cancel' },
-			])
+				{ text: t('settings.menu.avatar.chooseFromFiles'), onPress: () => { pickImageFile(uploadType) } },
+			], { cancelable: true })
 		}
 	}
 

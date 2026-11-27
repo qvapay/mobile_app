@@ -15,6 +15,7 @@ import { isHouseToken } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { formatUsd } from './walletFormat'
 import { swapMovedBalance, swapTimeline } from './swapModel'
+import { SWAP_LIST_KEY } from './swapQueries'
 import useProfileRefresh from '../../../hooks/useProfileRefresh'
 import { HOME_QUERY_KEY } from '../../home/homeQueries'
 
@@ -84,6 +85,8 @@ const WalletSwapStatus = ({ navigation, route }: Props) => {
 		settledRef.current = swap.uuid
 		queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY })
 		queryClient.invalidateQueries({ queryKey: WALLET_BALANCES_KEY })
+		// La lista de intercambios de debajo sigue montada con el estado de cuando se abrió
+		queryClient.invalidateQueries({ queryKey: SWAP_LIST_KEY })
 		if (qusd) refreshHistoryAfterSend(queryClient, qusd.id)
 		// IN completado / OUT reembolsado: el saldo cambió en el servidor sin pasar por la app.
 		// Se RELEE el perfil: sumar el importe aquí lo añadía otra vez cada vez que se abría
@@ -99,6 +102,7 @@ const WalletSwapStatus = ({ navigation, route }: Props) => {
 			if (result.success && result.data?.data) {
 				toast.success(t('crypto.wallet.swap.status.cancelled'))
 				queryClient.setQueryData(swapQueryKey(uuid), result.data.data)
+				queryClient.invalidateQueries({ queryKey: SWAP_LIST_KEY })
 				if (typeof result.data.balance === 'number') { settledRef.current = swap.uuid; updateUser({ balance: result.data.balance }); queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY }) }
 			} else toast.error((result.success ? null : result.error) || t('api.swap.cancelFailed'))
 		} finally { setCancelling(false) }

@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-const { entryFromOrder, entryFromSwap, mergeHistory } = require('./historyModel')
+const { entryFromOrder, entryFromSwap, hasLiveEntries, mergeHistory } = require('./historyModel')
 
 const order = (uuid, created_at, extra = {}) => ({
 	uuid, created_at,
@@ -130,5 +130,25 @@ describe('fundir las dos listas', () => {
 			swaps: [swap('s1', '2026-09-25T12:00:00Z')],
 		})
 		expect(merged.map(e => e.uuid)).toEqual(['s1', 'o1'])
+	})
+})
+
+describe('algo en curso en la lista', () => {
+	const entries = (orders, swaps) => mergeHistory({ orders, swaps })
+
+	test('un swap sin cerrar o una orden viva piden releer al volver', () => {
+		for (const status of ['pending', 'dispatching', 'sent']) {
+			expect(hasLiveEntries(entries([], [swap('s1', '2026-09-25T12:00:00Z', { status })]))).toBe(true)
+		}
+		for (const status of ['awaiting_deposit', 'confirming', 'exchanging', 'sending']) {
+			expect(hasLiveEntries(entries([order('o1', '2026-09-25T12:00:00Z', { status })], []))).toBe(true)
+		}
+	})
+
+	test('con todo cerrado, o sin nada, no se relee', () => {
+		const closedSwaps = ['completed', 'refunded', 'failed', 'needs_review'].map((status, i) => swap(`s${i}`, '2026-09-25T12:00:00Z', { status }))
+		const closedOrders = ['completed', 'refunded', 'failed', 'expired'].map((status, i) => order(`o${i}`, '2026-09-25T11:00:00Z', { status }))
+		expect(hasLiveEntries(entries(closedOrders, closedSwaps))).toBe(false)
+		expect(hasLiveEntries([])).toBe(false)
 	})
 })

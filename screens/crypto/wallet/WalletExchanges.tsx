@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
+import { useFocusEffect } from '@react-navigation/native'
 import { FlashList } from '@shopify/flash-list'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -12,7 +13,7 @@ import { useTextStyles, useContainerStyles } from '../../../theme/themeUtils'
 // Datos
 import { EXCHANGE_ORDERS_KEY, flattenExchangeOrders, trimToFirstPage, useExchangeOrdersQuery } from './exchangeQueries'
 import { SWAP_LIST_KEY, flattenSwaps, useSwapListQuery } from './swapQueries'
-import { mergeHistory } from './historyModel'
+import { hasLiveEntries, mergeHistory } from './historyModel'
 import { useWalletAssets } from './walletQueries'
 
 // UI
@@ -67,6 +68,20 @@ const WalletExchanges = ({ navigation }: Props) => {
 		ordersQuery.refetch()
 		swapsQuery.refetch()
 	}, [queryClient, ordersQuery, swapsQuery])
+
+	// Al volver a la lista con algo en curso se relee: la pantalla sigue montada debajo del
+	// detalle y nadie más le avisa de que la operación terminó. Por refs: el efecto corre al
+	// enfocar, no cada vez que llegan datos
+	const liveRef = useRef(false)
+	liveRef.current = hasLiveEntries(entries)
+	const refreshRef = useRef(onRefresh)
+	refreshRef.current = onRefresh
+	const focusedOnceRef = useRef(false)
+	useFocusEffect(useCallback(() => {
+		// El primer enfoque es el montaje, y ahí las queries ya piden solas
+		if (!focusedOnceRef.current) { focusedOnceRef.current = true; return }
+		if (liveRef.current) { refreshRef.current() }
+	}, []))
 
 	// Se pide página a los DOS: la lista está fundida, y traer solo de uno dejaría el corte
 	// de `mergeHistory` donde estaba
