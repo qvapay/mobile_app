@@ -1,6 +1,7 @@
-import { Animated, type ScrollViewInstance } from "react-native"
+import { Animated, Platform, type ScrollViewInstance } from "react-native"
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native"
 import { launchImageLibrary } from "react-native-image-picker"
+import { errorCodes, isErrorWithCode, pick, types } from "@react-native-documents/picker"
 import type { Asset } from "react-native-image-picker"
 import { useReducer, useEffect, useRef, useCallback } from "react"
 
@@ -195,6 +196,34 @@ export default function useP2PChat({ p2p_uuid, order = null, enabled = true }: {
 		} catch (e) { toast.error(i18n.t('p2p.common.errorTitle'), { description: (e as Error).message }) }
 	}
 
+	// Lo que el chat acepta de una imagen, venga de la galería o de los archivos
+	const selectImage = useCallback((asset: { uri?: string, type?: string, fileName?: string, fileSize?: number }) => {
+		// Validate file size against MAX_IMAGE_SIZE_MB
+		if (asset.fileSize && asset.fileSize > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+			toast.error(i18n.t('p2p.chat.toasts.imageTooLargeTitle'), { description: i18n.t('p2p.chat.toasts.imageTooLargeBody', { max: MAX_IMAGE_SIZE_MB }) })
+			return
+		}
+		// Validate file type
+		const validTypes = ["image/jpeg", "image/png", "image/gif", "image/jpg"]
+		if (asset.type && !validTypes.includes(asset.type.toLowerCase())) {
+			toast.error(i18n.t('p2p.chat.toasts.formatTitle'), { description: i18n.t('p2p.chat.toasts.formatBody') })
+			return
+		}
+		set("selectedImage", asset)
+	}, [set])
+
+	// Explorador de archivos del sistema: no depende de los servicios de Google Play
+	const pickImageFile = useCallback(async () => {
+		try {
+			const [doc] = await pick({ type: [types.images] })
+			if (!doc) return
+			selectImage({ uri: doc.uri, type: doc.type ?? undefined, fileName: doc.name ?? undefined, fileSize: doc.size ?? undefined })
+		} catch (e) {
+			if (isErrorWithCode(e) && e.code === errorCodes.OPERATION_CANCELED) return
+			toast.error(i18n.t('p2p.common.errorTitle'), { description: (e as Error).message })
+		}
+	}, [selectImage])
+
 	// Open image picker
 	const handlePickImage = useCallback(() => {
 		launchImageLibrary({
@@ -203,23 +232,18 @@ export default function useP2PChat({ p2p_uuid, order = null, enabled = true }: {
 			maxHeight: 1200,
 			quality: 0.8,
 		}, (response) => {
-			if (response.didCancel || response.errorCode) return
+			if (response.didCancel) return
+			if (response.errorCode) {
+				// En Android la galería es el selector de fotos del sistema, que en teléfonos antiguos
+				// llega por los servicios de Google Play: si no abre, se ofrece el explorador de archivos
+				if (Platform.OS === 'android') pickImageFile()
+				return
+			}
 			const asset = response.assets?.[0]
 			if (!asset) return
-			// Validate file size against MAX_IMAGE_SIZE_MB
-			if (asset.fileSize && asset.fileSize > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-				toast.error(i18n.t('p2p.chat.toasts.imageTooLargeTitle'), { description: i18n.t('p2p.chat.toasts.imageTooLargeBody', { max: MAX_IMAGE_SIZE_MB }) })
-				return
-			}
-			// Validate file type
-			const validTypes = ["image/jpeg", "image/png", "image/gif", "image/jpg"]
-			if (asset.type && !validTypes.includes(asset.type.toLowerCase())) {
-				toast.error(i18n.t('p2p.chat.toasts.formatTitle'), { description: i18n.t('p2p.chat.toasts.formatBody') })
-				return
-			}
-			set("selectedImage", asset)
+			selectImage(asset)
 		})
-	}, [set])
+	}, [selectImage, pickImageFile])
 
 	// Send image message
 	const handleSendImage = async () => {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Platform } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { launchImageLibrary } from 'react-native-image-picker'
 import { errorCodes, isErrorWithCode, pick, types } from '@react-native-documents/picker'
@@ -86,26 +87,35 @@ export default function useP2PAttachments({ p2p_uuid, order, enabled, messageCou
 		}
 	}, [p2p_uuid, order, maxBytes, refetch, t])
 
-	const pickImage = useCallback(() => {
-		// Con maxWidth el selector recodifica a JPEG, también las fotos HEIC del iPhone
-		launchImageLibrary({ mediaType: 'photo', maxWidth: 2000, maxHeight: 2000, quality: 0.9 }, (response) => {
-			if (response.didCancel || response.errorCode) return
-			const asset = response.assets?.[0]
-			if (!asset?.uri) return
-			upload({ uri: asset.uri, name: asset.fileName || 'comprobante.jpg', type: asset.type || 'image/jpeg', size: asset.fileSize })
-		})
-	}, [upload])
-
-	const pickPdf = useCallback(async () => {
+	// Explorador de archivos del sistema, para el PDF y, si la galería no abre, para la imagen
+	const pickFile = useCallback(async (type: string[], fallbackName: string, fallbackType: string) => {
 		try {
-			const [doc] = await pick({ type: [types.pdf] })
+			const [doc] = await pick({ type })
 			if (!doc) return
-			await upload({ uri: doc.uri, name: doc.name || 'comprobante.pdf', type: doc.type || 'application/pdf', size: doc.size })
+			await upload({ uri: doc.uri, name: doc.name || fallbackName, type: doc.type || fallbackType, size: doc.size })
 		} catch (e) {
 			if (isErrorWithCode(e) && e.code === errorCodes.OPERATION_CANCELED) return
 			toast.error(t('p2p.attachments.toasts.uploadFailed'))
 		}
 	}, [upload, t])
+
+	const pickImage = useCallback(() => {
+		// Con maxWidth el selector recodifica a JPEG, también las fotos HEIC del iPhone
+		launchImageLibrary({ mediaType: 'photo', maxWidth: 2000, maxHeight: 2000, quality: 0.9 }, (response) => {
+			if (response.didCancel) return
+			if (response.errorCode) {
+				// En Android la galería es el selector de fotos del sistema, que en teléfonos antiguos
+				// llega por los servicios de Google Play: si no abre, se ofrece el explorador de archivos
+				if (Platform.OS === 'android') pickFile([types.images], 'comprobante.jpg', 'image/jpeg')
+				return
+			}
+			const asset = response.assets?.[0]
+			if (!asset?.uri) return
+			upload({ uri: asset.uri, name: asset.fileName || 'comprobante.jpg', type: asset.type || 'image/jpeg', size: asset.fileSize })
+		})
+	}, [upload, pickFile])
+
+	const pickPdf = useCallback(() => pickFile([types.pdf], 'comprobante.pdf', 'application/pdf'), [pickFile])
 
 	const open = useCallback(async (attachment: P2PAttachment) => {
 		if (openingUuid) return

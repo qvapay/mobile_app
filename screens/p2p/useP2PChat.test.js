@@ -13,10 +13,18 @@ jest.mock('react-native', () => ({
 		},
 		timing: jest.fn(() => ({ start: jest.fn() })),
 	},
+	Platform: { OS: 'android' },
 }))
 
 jest.mock('react-native-image-picker', () => ({
 	launchImageLibrary: jest.fn(),
+}))
+
+jest.mock('@react-native-documents/picker', () => ({
+	pick: jest.fn(),
+	types: { images: 'image/*' },
+	errorCodes: { OPERATION_CANCELED: 'OPERATION_CANCELED' },
+	isErrorWithCode: error => !!error?.code,
 }))
 
 jest.mock('../../api/p2pApi', () => ({
@@ -36,6 +44,7 @@ jest.mock('sonner-native', () => ({
 import React from 'react'
 import { act, create } from 'react-test-renderer'
 import { launchImageLibrary } from 'react-native-image-picker'
+import { pick } from '@react-native-documents/picker'
 import { toast } from 'sonner-native'
 import { p2pApi } from '../../api/p2pApi'
 import useP2PChat, { isSticker, getStickerName } from './useP2PChat'
@@ -229,6 +238,34 @@ describe('handlePickImage', () => {
 		const { result } = await renderHook()
 		await act(async () => { result.current.handlePickImage() })
 		expect(result.current.selectedImage).toBeNull()
+		expect(pick).not.toHaveBeenCalled()
+	})
+
+	test('si la galería no abre en Android, la imagen se elige del explorador de archivos', async () => {
+		pickWith({ errorCode: 'others', errorMessage: 'No Activity found' })
+		pick.mockResolvedValue([{ uri: 'content://docs/7', type: 'image/png', name: 'pago.png', size: 2048 }])
+		const { result } = await renderHook()
+		await act(async () => { result.current.handlePickImage() })
+		expect(pick).toHaveBeenCalledWith({ type: ['image/*'] })
+		expect(result.current.selectedImage).toEqual({ uri: 'content://docs/7', type: 'image/png', fileName: 'pago.png', fileSize: 2048 })
+	})
+
+	test('lo elegido del explorador pasa las mismas comprobaciones', async () => {
+		pickWith({ errorCode: 'others' })
+		pick.mockResolvedValue([{ uri: 'content://docs/8', type: 'image/webp', name: 'x.webp', size: 1024 }])
+		const { result } = await renderHook()
+		await act(async () => { result.current.handlePickImage() })
+		expect(toast.error).toHaveBeenCalledWith('Formato no soportado', { description: 'Solo JPG, PNG y GIF' })
+		expect(result.current.selectedImage).toBeNull()
+	})
+
+	test('cerrar el explorador sin elegir no avisa de nada', async () => {
+		pickWith({ errorCode: 'others' })
+		pick.mockRejectedValue({ code: 'OPERATION_CANCELED' })
+		const { result } = await renderHook()
+		await act(async () => { result.current.handlePickImage() })
+		expect(result.current.selectedImage).toBeNull()
+		expect(toast.error).not.toHaveBeenCalled()
 	})
 })
 
