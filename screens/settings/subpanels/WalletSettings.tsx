@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { AppState, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
-import Clipboard from '@react-native-clipboard/clipboard'
+import { copyTextToClipboard } from '../../../helpers'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useNavigation, useNavigationState } from '@react-navigation/native'
 
@@ -180,7 +180,7 @@ const WalletSettings = () => {
 		setConfirmDelete(true)
 	}, [t])
 
-	const copy = (value: string) => { Clipboard.setString(value); toast.success(t('crypto.wallet.card.copied')) }
+	const copy = (value: string) => copyTextToClipboard(value, { message: t('crypto.wallet.card.copied') })
 
 	// Fila de Nodos: ajuste de RED, no de la wallet — se pinta con y sin wallet
 	// creada, porque elegir a qué nodo se pregunta el saldo no exige tener seed.

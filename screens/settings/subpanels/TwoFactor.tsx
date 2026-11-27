@@ -198,8 +198,7 @@ const TwoFactor = () => {
 
 	// Copy secret to clipboard
 	const handleCopySecret = () => {
-		copyTextToClipboard(secret)
-		toast.success(t('settings.twoFactor.toasts.copiedTitle'), { description: t('settings.twoFactor.toasts.copiedDescription') })
+		copyTextToClipboard(secret, { message: t('settings.twoFactor.toasts.copiedTitle'), description: t('settings.twoFactor.toasts.copiedDescription') })
 	}
 
 	// Loading state

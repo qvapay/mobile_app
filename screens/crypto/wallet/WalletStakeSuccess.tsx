@@ -1,8 +1,7 @@
 import { useMemo } from 'react'
 import { Linking, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner-native'
-import Clipboard from '@react-native-clipboard/clipboard'
+import { copyTextToClipboard } from '../../../helpers'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
@@ -57,7 +56,7 @@ const WalletStakeSuccess = ({ navigation, route }: Props) => {
 			: EXIT_ACTIONS.has(action) ? t(`crypto.staking.success.exit.${kind}`)
 				: null
 
-	const copy = () => { Clipboard.setString(txid); toast.success(t('crypto.wallet.send.hashCopied')) }
+	const copy = () => copyTextToClipboard(txid, { message: t('crypto.wallet.send.hashCopied') })
 
 	return (
 		<View style={[containerStyles.subContainer, styles.container]}>

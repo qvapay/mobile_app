@@ -13,7 +13,7 @@ jest.mock('../../../theme/ThemeContext', () => {
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('sonner-native', () => ({ toast: { error: jest.fn(), success: jest.fn() } }))
-jest.mock('@react-native-clipboard/clipboard', () => ({ __esModule: true, default: { setString: jest.fn() } }))
+jest.mock('../../../helpers', () => ({ copyTextToClipboard: jest.fn() }))
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('@react-navigation/native', () => ({ useNavigation: jest.fn(), useNavigationState: selector => selector({ index: 1 }) }))
 jest.mock('@tanstack/react-query', () => ({ useQueryClient: jest.fn() }))

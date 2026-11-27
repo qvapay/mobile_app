@@ -2,7 +2,6 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import useContentPadding from '../../../hooks/useContentPadding'
-import Clipboard from '@react-native-clipboard/clipboard'
 import FastImage from '@d11/react-native-fast-image'
 
 // Theme Context
@@ -16,11 +15,10 @@ import OperatorAvatar from '../../../ui/store/OperatorAvatar'
 import { ROUTES } from '../../../routes'
 
 // Helpers
-import { getShortDateTime } from '../../../helpers'
+import { getShortDateTime, copyTextToClipboard } from '../../../helpers'
 import { mediaUrl } from '../../../helpers/mediaUrl'
 import { MARKET_ORDER_STATUS, KIND_LABELS } from './marketConstants'
 
-import { toast } from 'sonner-native'
 
 import type { Theme } from '../../../theme/ThemeContext'
 import type { TextStyles } from '../../../theme/themeUtils'
@@ -64,8 +62,7 @@ const MarketOrderDetail = ({ navigation, route }: NativeStackScreenProps<RootSta
 		: null
 
 	const copyTracking = () => {
-		Clipboard.setString(order.tracking_code as string)
-		toast.success(t('market.orderDetail.toasts.trackingCopied'))
+		copyTextToClipboard(order.tracking_code as string, { message: t('market.orderDetail.toasts.trackingCopied') })
 	}
 
 	return (

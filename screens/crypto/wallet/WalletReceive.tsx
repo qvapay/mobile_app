@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
-import Clipboard from '@react-native-clipboard/clipboard'
+import { copyTextToClipboard } from '../../../helpers'
 import QRCodeStyled from 'react-native-qrcode-styled'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -89,8 +89,7 @@ const WalletReceive = ({ navigation, route }: Props) => {
 
 	const copy = useCallback(() => {
 		if (!address) return
-		Clipboard.setString(address)
-		toast.success(t('crypto.wallet.card.copied'))
+		copyTextToClipboard(address, { message: t('crypto.wallet.card.copied') })
 	}, [address, t])
 
 	const share = useCallback(async () => {

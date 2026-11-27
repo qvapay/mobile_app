@@ -101,7 +101,7 @@ describe('activar', () => {
 		const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' })
 		await activate()
 		await press('Copiar')
-		expect(copyTextToClipboard).toHaveBeenCalledWith('ABCD-2345\nEFGH-6789')
+		expect(copyTextToClipboard).toHaveBeenCalledWith('ABCD-2345\nEFGH-6789', expect.objectContaining({ message: expect.any(String) }))
 		await press('Guardar')
 		expect(share).toHaveBeenCalledWith({ message: 'ABCD-2345\nEFGH-6789' })
 		share.mockRestore()
