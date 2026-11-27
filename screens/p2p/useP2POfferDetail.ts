@@ -26,6 +26,7 @@ import {
 } from "./p2pRating"
 import type { MyRating, RatingForm } from "./p2pRating"
 import { activePause } from "./p2pPause"
+import { notifyCipRequired } from "../../helpers/cipRejection"
 import { offerPollDelay, readPollAfterMs, isRefusalStatus } from "./p2pPolling"
 
 // Toast
@@ -680,6 +681,12 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		} finally { setConfirmModal(null) }
 	}
 
+	// Tomar una oferta de compra es vender saldo, y eso exige la ficha CIP completa (403
+	// CIP_REQUIRED): el aviso lleva a Datos personales y el modal se cierra, que en Android lo taparía
+	const cipRejected = (details: unknown) => notifyCipRequired(details, "p2p_sell", () => {
+		navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.USERDATA, initial: false })
+	})
+
 	// Apply - core logic. Devuelve si el modal debe cerrarse.
 	const doApply = async (): Promise<boolean> => {
 		try {
@@ -696,6 +703,7 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 					await refetchP2P()
 					return true
 				}
+				if (cipRejected(res.details)) return true
 				const code = (res.details as { code?: string } | undefined)?.code
 				if (code === "ORDER_ALREADY_ACTIVE") {
 					// Ya tiene una parte viva: llevarlo a ella en vez de ofrecer otra
@@ -720,7 +728,7 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 			if (res.success) {
 				toast.success(t('p2p.offer.toasts.applied'))
 				refetchP2P()
-			} else {
+			} else if (!cipRejected(res.details)) {
 				// 409 = la tomaron o la pausaron entre el último poll y el toque
 				if (res.status === 409) refetchP2P()
 				toast.error(t('p2p.offer.toasts.applyFailed'), { description: String(res.error || "") })

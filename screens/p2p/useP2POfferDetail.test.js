@@ -470,6 +470,22 @@ describe('apply flow (in-app confirmation modal)', () => {
 		expect(result.current.showApplyConfirm).toBe(false)
 		expect(toast.success).toHaveBeenCalledWith('Aplicado')
 	})
+
+	test('tomar una oferta de compra con la ficha CIP incompleta avisa de lo que falta y lleva a Datos personales', async () => {
+		p2pApi.apply.mockResolvedValue({ success: false, status: 403, error: 'Para vender saldo en el P2P tienes que completar los datos de tu cuenta', details: { code: 'CIP_REQUIRED', missing: ['address'] } })
+		const { result, navigation } = await renderDetail({ offer: makeOffer(), viewer: { uuid: 'stranger' } })
+		act(() => { result.current.handleApply() })
+		await act(async () => { await result.current.handleApplyConfirm() })
+		// El modal se cierra: en Android taparía el aviso
+		expect(result.current.showApplyConfirm).toBe(false)
+		expect(toast.error).toHaveBeenCalledTimes(1)
+		const [title, options] = toast.error.mock.calls[0]
+		expect(title).toBe('Completa tus datos para vender saldo')
+		expect(options.description).toBe('Falta tu dirección. Se completa en Ajustes → Datos personales.')
+		expect(options.action.label).toBe('Completar ahora')
+		options.action.onClick()
+		expect(navigation.navigate).toHaveBeenCalledWith('SettingsStack', { screen: 'Userdata', initial: false })
+	})
 })
 
 describe('edit modal', () => {

@@ -27,9 +27,11 @@ type Args = {
 	onCreated: (swap: Swap) => void
 	/** Una pausa de seguridad corta el retiro: la hoja no sirve de nada y taparía el aviso en Android. */
 	onHeld: () => void
+	/** Lee el rechazo por si es el de la ficha CIP (`403 CIP_REQUIRED`): lo avisa y devuelve true. */
+	onCipRejected?: (details: unknown) => boolean
 }
 
-export default function useSwapOut({ pairId, amount, toAddress, onCreated, onHeld }: Args) {
+export default function useSwapOut({ pairId, amount, toAddress, onCreated, onHeld, onCipRejected }: Args) {
 
 	const { t } = useTranslation()
 	const { user, updateUser } = useAuth()
@@ -72,7 +74,10 @@ export default function useSwapOut({ pairId, amount, toAddress, onCreated, onHel
 				onCreated(result.data.data)
 			} else {
 				const failure = result.success ? null : result
-				if (isNetworkFailure(result)) {
+				if (onCipRejected?.(failure?.details)) {
+					// Faltan datos de la cuenta: no se arregla con otro código; la revisión se cierra
+					setShowPinStep(false); setPin(''); onHeld()
+				} else if (isNetworkFailure(result)) {
 					toast.error(t('withdraw.index.toasts.networkErrorTitle'), { description: `${failure?.error || t('errors.network')}. ${safeRetryHint()}` })
 				} else {
 					toast.error(failure?.error || t('crypto.wallet.swap.errors.createFailed'))

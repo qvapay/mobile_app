@@ -13,6 +13,8 @@ import QPCoinPicker from "../../ui/QPCoinPicker"
 import P2PCreateForm from "./P2PCreateForm"
 import SavedMethodsModal from "../../ui/SavedMethodsModal"
 import P2PRequirementsGate from "./P2PRequirementsGate"
+import useCipGate from "../../hooks/useCipGate"
+import CipRequiredNotice from "../../ui/CipRequiredNotice"
 import { missingP2PRequirements } from "./p2pRequirements"
 import { checkCreateRange } from "./p2pFlexible"
 import { EMPTY_REQUIREMENTS, P2P_MESSAGE_MAX, requirementsPayload } from "./p2pApplicantRequirements"
@@ -143,6 +145,9 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 	// doble débito de las ofertas sell)
 	const idempotencyKeyRef = useIdempotencyKey()
 
+	// Vender saldo exige la ficha CIP completa (403 CIP_REQUIRED); comprar no
+	const cipGate = useCipGate("p2p_sell", { enabled: type === "sell" })
+
 	// Button label derived from type + amount
 	// `amount` es el string del input y se compara con 0 por coerción (JS lo hace
 	// numérico): los casts preservan esa comparación tal cual, sin envolver en Number()
@@ -255,6 +260,8 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: (res.data as unknown as { p2p: P2POffer }).p2p.uuid })
 			} else if (isNetworkFailure(res)) {
 				toast.error(t('p2p.create.toasts.networkError'), { description: `${res.error || t('errors.network')}. ${safeRetryHint()}` })
+			} else if (cipGate.handleRejection(res.details)) {
+				// Faltan datos de la cuenta: el aviso lleva a Datos personales
 			} else if ((res.details as { code?: string } | undefined)?.code === "FLEXIBLE_NOT_ENABLED") {
 				toast.error(t('p2p.flexible.kycOnlyTitle'), { description: t('p2p.flexible.kycOnlyBody') })
 			} else if ((res.details as { code?: string } | undefined)?.code === "FLEXIBLE_OFFER_EXISTS") {
@@ -308,7 +315,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 					<QPButton
 						title={buttonText}
 						onPress={handlePublish}
-						disabled={selectedCoin === null || amount === "" || receive === "" || isSending}
+						disabled={selectedCoin === null || amount === "" || receive === "" || isSending || cipGate.blocking}
 						loading={isSending}
 						style={{ backgroundColor: type === "buy" ? theme.colors.successFill : theme.colors.danger }}
 						textStyle={{ color: type === "buy" ? theme.colors.successFillText : theme.colors.almostWhite }}
@@ -317,6 +324,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 					/>
 				}
 			>
+				<CipRequiredNotice requirement={cipGate.requirement} action="p2p_sell" onPress={cipGate.openCip} />
 				<P2PCreateForm
 					form={form}
 					onField={setFormField}

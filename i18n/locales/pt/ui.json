@@ -1,4 +1,24 @@
 {
+	"cipNotice": {
+		"title": "Complete os dados da sua conta",
+		"blocked": {
+			"withdraw": "Complete seus dados para sacar",
+			"swap_out": "Complete seus dados para passar saldo para sua wallet",
+			"p2p_sell": "Complete seus dados para vender saldo"
+		},
+		"soon": {
+			"withdraw": "A partir de {{date}} será necessário para sacar.",
+			"swap_out": "A partir de {{date}} será necessário para passar saldo para sua wallet.",
+			"p2p_sell": "A partir de {{date}} será necessário para vender saldo no P2P."
+		},
+		"missing": {
+			"address": "Falta o seu endereço.",
+			"ssn": "Falta o seu SSN ou ITIN.",
+			"both": "Faltam o seu endereço e o seu SSN ou ITIN."
+		},
+		"where": "Complete em Ajustes → Dados pessoais.",
+		"cta": "Completar agora"
+	},
 	"actionButtons": {
 		"account": {
 			"deposit": "Depositar",

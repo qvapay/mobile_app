@@ -1,4 +1,24 @@
 {
+	"cipNotice": {
+		"title": "Complete your account details",
+		"blocked": {
+			"withdraw": "Complete your details to withdraw",
+			"swap_out": "Complete your details to move balance to your wallet",
+			"p2p_sell": "Complete your details to sell balance"
+		},
+		"soon": {
+			"withdraw": "From {{date}} you will need this to withdraw.",
+			"swap_out": "From {{date}} you will need this to move balance to your wallet.",
+			"p2p_sell": "From {{date}} you will need this to sell balance on P2P."
+		},
+		"missing": {
+			"address": "Your address is missing.",
+			"ssn": "Your SSN or ITIN is missing.",
+			"both": "Your address and your SSN or ITIN are missing."
+		},
+		"where": "Add it in Settings → Personal details.",
+		"cta": "Complete now"
+	},
 	"actionButtons": {
 		"account": {
 			"deposit": "Deposit",

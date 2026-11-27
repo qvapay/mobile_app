@@ -46,6 +46,10 @@ import { buildUsRailPayload, emptyUsRailValue, invoiceRequiredFor, isUsRailCompl
 import type { InvoiceFile, UsRailValue } from './usRail'
 import { keyFromFieldName } from './withdrawFees'
 
+// Ficha CIP completa antes de retirar (403 CIP_REQUIRED)
+import useCipGate from '../../hooks/useCipGate'
+import CipRequiredNotice from '../../ui/CipRequiredNotice'
+
 // Routes
 import { ROUTES } from '../../routes'
 
@@ -95,6 +99,9 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 	// Gate OFAC — tras el de KYC; la atestación vale para ESTE intento (ref, ligada al tick)
 	const { requireAttestation, modalProps: ofacModalProps } = useOfacGate()
 	const attestationRef = useRef<WithdrawAttestation | null>(null)
+
+	// Ficha CIP: con la dirección sin completar el servidor rechaza el retiro (también el de sats)
+	const cipGate = useCipGate('withdraw')
 
 	// Requisitos de los métodos de EE. UU. para una cuenta de Cuba (los textos los sirve el servidor)
 	const queryClient = useQueryClient()
@@ -188,6 +195,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		isFormValid: isFormValid && usRailReady && invoiceReady,
 		usPayment: usRailOn ? usPayment : null,
 		invoice: invoiceRequired ? invoice : null,
+		onCipRejected: cipGate.handleRejection,
 		onUsRailError: (kind, details) => {
 			// El servidor manda: se releen los requisitos y se marca lo que faltó
 			refetchUsRail()
@@ -247,7 +255,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 								)) return
 								openPinStep()
 							}}
-							disabled={!isFormValid || !usRailReady || !invoiceReady}
+							disabled={!isFormValid || !usRailReady || !invoiceReady || cipGate.blocking}
 							icon="arrow-right"
 							iconStyle="solid"
 							iconColor={theme.colors.almostWhite}
@@ -257,6 +265,9 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 				}
 			>
 				<View style={{ flex: 1 }}>
+
+					{/* Faltan datos de la cuenta: aviso (días de gracia) o retiro frenado */}
+					<CipRequiredNotice requirement={cipGate.requirement} action="withdraw" onPress={cipGate.openCip} />
 
 					{/* Origen de fondos: balance USD o redención de sats. Con cualquier moneda si hay sats redimibles; elegir sats fija BTCLN */}
 					{canRedeemSats && (

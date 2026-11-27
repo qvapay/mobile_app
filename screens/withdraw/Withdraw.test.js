@@ -50,6 +50,11 @@ jest.mock('../../hooks/useKycGate', () => ({
 	KYC_WITHDRAW_THRESHOLD: 1000,
 }))
 jest.mock('../../ui/KycGateModal', () => 'KycGateModal')
+// Puerta de la ficha CIP: por defecto sin requisito; cada test la arma. Sus reglas, en helpers/cipRequirement.test.js
+const mockIdleCipGate = () => ({ requirement: null, blocking: false, openCip: jest.fn(), handleRejection: jest.fn(() => false) })
+let mockCipGate = mockIdleCipGate()
+jest.mock('../../hooks/useCipGate', () => ({ __esModule: true, default: () => mockCipGate }))
+jest.mock('../../ui/CipRequiredNotice', () => 'CipRequiredNotice')
 // Modal OFAC como host: el gate real corre y el test firma vía onConfirm
 jest.mock('../../ui/OfacAttestationModal', () => 'OfacAttestationModal')
 
@@ -184,6 +189,7 @@ const goToPinStep = async (tree) => {
 beforeEach(() => {
 	jest.clearAllMocks()
 	jest.useFakeTimers()
+	mockCipGate = mockIdleCipGate()
 	useAuth.mockReturnValue({ user: { balance: 150, satoshis: 5000, two_factor_secret: null }, updateUser: jest.fn() })
 	apiClient.get.mockResolvedValue({ data: [] })
 	mockCoinCatalog = [CUP, USDCASH, THRESHOLD, BTCLN, USDT]
@@ -478,6 +484,39 @@ describe('withdraw submission', () => {
 		const pinStep = await goToPinStep(tree)
 		await act(async () => { pinStep.props.onChangePin('1234') })
 		expect(toast.error).toHaveBeenCalledWith('Error al procesar la extracción')
+	})
+})
+
+describe('ficha CIP incompleta (403 CIP_REQUIRED)', () => {
+	test('con el retiro frenado el aviso sale y Continuar se apaga aunque el formulario esté completo', async () => {
+		const requirement = { required: true, blocking: true, missing: ['address'] }
+		mockCipGate = { ...mockIdleCipGate(), requirement, blocking: true }
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CUP)
+		await typeQUSD(tree, '100')
+		await fillField(tree, 'card_number', '9224061799991234')
+		await fillField(tree, 'full_name', 'John Doe')
+		expect(tree.root.findByType('CipRequiredNotice').props).toMatchObject({ requirement, action: 'withdraw' })
+		expect(footerButton(tree).props.disabled).toBe(true)
+	})
+
+	test('en los días de aviso el retiro sigue abierto', async () => {
+		mockCipGate = { ...mockIdleCipGate(), requirement: { required: true, blocking: false, missing: ['address'] } }
+		const tree = await renderWithdraw()
+		await goToPinStep(tree)
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(1)
+	})
+
+	test('el 403 del servidor cierra el paso de PIN y no enseña el error genérico', async () => {
+		const details = { code: 'CIP_REQUIRED', missing: ['address'] }
+		mockCipGate = { ...mockIdleCipGate(), handleRejection: jest.fn(d => d?.code === 'CIP_REQUIRED') }
+		withdrawApi.withdraw.mockResolvedValue({ success: false, error: 'Para retirar tienes que completar los datos de tu cuenta', status: 403, details })
+		const tree = await renderWithdraw()
+		const pinStep = await goToPinStep(tree)
+		await act(async () => { pinStep.props.onChangePin('1234') })
+		expect(mockCipGate.handleRejection).toHaveBeenCalledWith(details)
+		expect(toast.error).not.toHaveBeenCalled()
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(0)
 	})
 })
 

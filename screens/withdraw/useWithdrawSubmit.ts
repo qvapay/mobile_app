@@ -88,6 +88,11 @@ type WithdrawSubmitArgs = {
 	 * `INVOICE_*`, `CU_OWN_ACCOUNT_SUSPENDED`): la pantalla vuelve a ese formulario.
 	 */
 	onUsRailError?: (kind: Exclude<UsRailErrorKind, null>, details: unknown) => void
+	/**
+	 * Lee el rechazo por si es el de la ficha CIP (`403 CIP_REQUIRED`): si lo es lo avisa y
+	 * devuelve true, y el paso de PIN se cierra (no se arregla con otro código).
+	 */
+	onCipRejected?: (details: unknown) => boolean
 	/** Limpieza del formulario + navegación tras un retiro confirmado. */
 	onSuccess: () => void
 }
@@ -98,7 +103,7 @@ type WithdrawSubmitArgs = {
  * @param args - Datos del formulario ya validado y callback de éxito.
  * @returns Estado del paso de PIN y sus handlers.
  */
-export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, isFormValid, scrollViewRef, attestationRef, usPayment = null, invoice = null, onUsRailError, onSuccess }: WithdrawSubmitArgs) {
+export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, isFormValid, scrollViewRef, attestationRef, usPayment = null, invoice = null, onUsRailError, onCipRejected, onSuccess }: WithdrawSubmitArgs) {
 
 	const { t } = useTranslation()
 	const { user, updateUser } = useAuth()
@@ -199,6 +204,10 @@ export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, 
 				setShowPinStep(false)
 				setPin('')
 				onSuccess()
+			} else if (onCipRejected?.(result.details)) {
+				// Faltan datos de la cuenta: el aviso lleva a Datos personales
+				setShowPinStep(false)
+				setPin('')
 			} else if (isAttestationRequiredError((result.details as { code?: unknown } | undefined)?.code)) {
 				// El backend exige la atestación y no la aceptó: vuelta a Continuar ⇒ modal
 				attestationRef.current = null
