@@ -1,6 +1,4 @@
-Novedades de QvaPay 3.16.8:
-• Disponible en más dispositivos: tablets, plegables y equipos sin Wi-Fi ya pueden instalarla.
-• P2P: las opciones avanzadas al crear una oferta se desplazan con suavidad.
-• Dos filas de mini-apps en el Inicio en todos los teléfonos.
-• Bitcoin: dos envíos seguidos ya no cuentan con las mismas monedas.
+Novedades de QvaPay 3.16.9:
+• Datos de tu cuenta: si falta tu dirección para retirar, pasar saldo a tu wallet o vender saldo en el P2P, la app te avisa y te lleva a completarla.
+• Un solo aviso, con vibración, al copiar una dirección o un código.
 • Arreglos y estabilidad.
