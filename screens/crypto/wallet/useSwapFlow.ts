@@ -34,16 +34,18 @@ type Args = {
 	inUnsupported: boolean
 	/** El swap quedó creado: la pantalla navega al estado. */
 	onCreated: (swap: Swap) => void
+	/** Rechazo de la ficha CIP en el sentido OUT (lo avisa quien lo pasa; true = era ese). */
+	onCipRejected?: (details: unknown) => boolean
 }
 
-export const useSwapFlow = ({ direction, form, pair, asset, registered, inUnsupported, onCreated }: Args) => {
+export const useSwapFlow = ({ direction, form, pair, asset, registered, inUnsupported, onCreated, onCipRejected }: Args) => {
 
 	const [review, setReview] = useState(false)
 
 	const created = (swap: Swap) => { setReview(false); onCreated(swap) }
 	const amountUnits = form.canReview && form.amount && asset ? parseUnits(form.amount, asset.decimals) : null
 
-	const out = useSwapOut({ pairId: pair?.id ?? null, amount: form.amount ?? '', toAddress: registered, onCreated: created, onHeld: () => setReview(false) })
+	const out = useSwapOut({ pairId: pair?.id ?? null, amount: form.amount ?? '', toAddress: registered, onCreated: created, onHeld: () => setReview(false), onCipRejected })
 	const inn = useSwapIn({ pair, asset, amountUnits, amount: form.amount ?? '', onCreated: created })
 
 	// Cambiar sentido, importe o par invalida la tx preparada y el paso de PIN

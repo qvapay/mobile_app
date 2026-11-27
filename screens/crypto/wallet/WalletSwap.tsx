@@ -48,6 +48,8 @@ import SwapReviewSheet from './components/swap/SwapReviewSheet'
 import SwapRouteRow from './components/swap/SwapRouteRow'
 import SwapRoutesSheet from './components/swap/SwapRoutesSheet'
 import TronControlWarning from './components/TronControlWarning'
+import useCipGate from '../../../hooks/useCipGate'
+import CipRequiredNotice from '../../../ui/CipRequiredNotice'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -182,7 +184,10 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	}, [navigation])
 
 	const inUnsupported = isInUnsupported(direction, pair)
-	const swapFlow = useSwapFlow({ direction, form, pair, asset, registered, inUnsupported, onCreated: onSwapCreated })
+	// Saldo → wallet es una salida de valor de la cuenta: exige la ficha CIP completa (403 CIP_REQUIRED).
+	// Solo ese sentido y solo con sesión: nada de la cuenta decide en el resto de la wallet
+	const cipGate = useCipGate('swap_out', { enabled: isAuthenticated && routed.mode === 'qusd-out' })
+	const swapFlow = useSwapFlow({ direction, form, pair, asset, registered, inUnsupported, onCreated: onSwapCreated, onCipRejected: cipGate.handleRejection })
 
 	// ── Agregador (activo ↔ activo) ─────────────────────────────────────────
 	const balances = useMemo(
@@ -363,7 +368,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const view = withPickers(isQusd ? swapView : isExchange ? exchangeView : selectionView)
 	const engineView = isExchange ? exchangeView : swapView
 	const busy = isExchange ? exchangeFlow.busy : swapFlow.busy
-	const ctaEnabled = !tronBlocked && (isRail ? !!railCoin : !blocked && engineView.ctaEnabled)
+	const ctaEnabled = !tronBlocked && !cipGate.blocking && (isRail ? !!railCoin : !blocked && engineView.ctaEnabled)
 	const ctaLabel = tronBlocked ? t('crypto.wallet.tronControl.blocked')
 		: blocked ? t(routed.reasonKey!)
 		: isRail ? t(routed.mode === 'withdraw' ? 'crypto.wallet.exchange.ctaWithdraw' : 'crypto.wallet.exchange.ctaDeposit')
@@ -486,6 +491,8 @@ const WalletSwap = ({ navigation, route }: Props) => {
 				<SwapNotices notices={view.notices} />
 
 				{tronBlocked && <TronControlWarning controllers={tronControllers} />}
+
+				<CipRequiredNotice requirement={cipGate.requirement} action="swap_out" onPress={cipGate.openCip} style={styles.cipNotice} />
 
 			</ScrollView>
 
@@ -682,6 +689,8 @@ const styles = StyleSheet.create({
 	scroll: { flex: 1 },
 	content: { paddingTop: 8, paddingBottom: 16, gap: 10 },
 	footer: { paddingTop: 8, paddingBottom: 24 },
+	// `content` ya separa con gap
+	cipNotice: { marginBottom: 0 },
 	// Botón de invertir a caballo entre las dos tarjetas (deja 6 px de junta entre ellas)
 	flipWrap: { alignItems: 'center', marginVertical: -(FLIP_BUTTON_SIZE / 2) + 3, zIndex: 2, elevation: 2 },
 })

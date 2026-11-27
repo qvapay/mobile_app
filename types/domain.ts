@@ -167,6 +167,28 @@ export type UserCip = {
 	ssn_verification: SsnVerification
 	/** Opcional: un qpweb sin PIX aún no la manda. */
 	cpf_verification?: CpfVerification
+	/** Ficha completa antes de sacar valor (`helpers/cipRequirement.ts`). null o ausente = sin regla. */
+	withdraw_requirement?: CipWithdrawRequirement | null
+}
+
+/**
+ * `withdraw_requirement` de `GET /user/cip`: si la ficha incompleta frena (o va a frenar)
+ * los retiros, el paso de saldo a la wallet y la venta de saldo en el P2P.
+ */
+export type CipWithdrawRequirement = {
+	/** Hay algo que enseñar (aviso o bloqueo). */
+	required: boolean
+	/** El servidor ya responde 403 `CIP_REQUIRED`. */
+	blocking: boolean
+	phase?: 'off' | 'scheduled' | 'grace' | 'enforced'
+	reason?: 'incomplete' | 'us_document' | null
+	/** `address` (dirección + declaración) y/o `ssn`. */
+	missing?: string[]
+	starts_at?: string | null
+	/** Desde cuándo frena a todos (ISO, medianoche UTC). */
+	enforce_from?: string | null
+	/** Prosa del servidor en español; la app redacta la suya. */
+	message?: string | null
 }
 
 /**

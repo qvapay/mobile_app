@@ -29,6 +29,9 @@ jest.mock('../../ui/QPKeyboardView', () => {
 jest.mock('./P2PCreateForm', () => 'P2PCreateForm')
 jest.mock('../../ui/SavedMethodsModal', () => 'SavedMethodsModal')
 jest.mock('./P2PRequirementsGate', () => 'P2PRequirementsGate')
+// Puerta de la ficha CIP en passthrough: sus reglas se prueban en helpers/cipRequirement.test.js
+jest.mock('../../hooks/useCipGate', () => ({ __esModule: true, default: () => ({ requirement: null, blocking: false, openCip: jest.fn(), handleRejection: () => false }) }))
+jest.mock('../../ui/CipRequiredNotice', () => 'CipRequiredNotice')
 jest.mock('sonner-native', () => ({ toast: { error: jest.fn(), success: jest.fn() } }))
 
 import React from 'react'
