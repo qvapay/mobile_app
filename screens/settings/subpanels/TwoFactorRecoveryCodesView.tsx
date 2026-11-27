@@ -1,6 +1,5 @@
 import { Share, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -33,8 +32,7 @@ const TwoFactorRecoveryCodesView = ({ codes, onDone }: Props) => {
 	const text = codes.join('\n')
 
 	const handleCopy = () => {
-		copyTextToClipboard(text)
-		toast.success(t('settings.twoFactor.toasts.copiedTitle'), { description: t('settings.twoFactor.recovery.copied') })
+		copyTextToClipboard(text, { message: t('settings.twoFactor.toasts.copiedTitle'), description: t('settings.twoFactor.recovery.copied') })
 	}
 
 	return (

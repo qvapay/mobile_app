@@ -400,11 +400,14 @@ const shuffleArray = <T>(array: T[]): T[] => {
 
 /**
  * Copies text to the clipboard with a success haptic and a localized toast.
+ * Es la ÚNICA puerta para copiar: nadie llama a `Clipboard.setString` por su cuenta,
+ * así toda copia vibra y avisa igual. `message`/`description` cambian el texto del
+ * aviso («Hash copiado») sin montar un segundo toast.
  */
-const copyTextToClipboard = (text: string): void => {
+const copyTextToClipboard = (text: string, options: { message?: string, description?: string } = {}): void => {
 	Clipboard.setString(text)
 	ReactNativeHapticFeedback.trigger('notificationSuccess', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
-	toast.success(i18n.t('common.toasts.copied'), { duration: 1500 })
+	toast.success(options.message ?? i18n.t('common.toasts.copied'), options.description ? { duration: 1500, description: options.description } : { duration: 1500 })
 }
 
 /**

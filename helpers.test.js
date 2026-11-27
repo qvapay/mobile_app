@@ -398,6 +398,16 @@ describe('copyTextToClipboard', () => {
 		)
 		expect(toast.success).toHaveBeenCalledWith('Copiado al portapapeles', { duration: 1500 })
 	})
+
+	test('a custom message replaces the generic toast instead of adding a second one', () => {
+		toast.success.mockClear()
+		ReactNativeHapticFeedback.trigger.mockClear()
+		copyTextToClipboard('0xabc', { message: 'Hash copiado', description: 'detalle' })
+		expect(Clipboard.setString).toHaveBeenCalledWith('0xabc')
+		expect(ReactNativeHapticFeedback.trigger).toHaveBeenCalledTimes(1)
+		expect(toast.success).toHaveBeenCalledTimes(1)
+		expect(toast.success).toHaveBeenCalledWith('Hash copiado', { duration: 1500, description: 'detalle' })
+	})
 })
 
 describe('formatCryptoAmount', () => {

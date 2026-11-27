@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native'
-import Clipboard from '@react-native-clipboard/clipboard'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
@@ -17,7 +15,7 @@ import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { AssetView } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
-import { timeAgo } from '../../../helpers'
+import { timeAgo, copyTextToClipboard } from '../../../helpers'
 import { useExchangeOrderQuery } from './exchangeQueries'
 import { depositAmountLabel, depositViewFor, deviationBps, isDeviationNotable, isLive, orderAddressesCheck, phaseOf, stepsFor } from './exchangeModel'
 import { useFocusEffect } from '@react-navigation/native'
@@ -86,8 +84,7 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 	}, [order, toAsset, queryClient])
 
 	const copy = useCallback((value: string) => {
-		Clipboard.setString(value)
-		toast.success(t('crypto.wallet.exchange.copied'))
+		copyTextToClipboard(value, { message: t('crypto.wallet.exchange.copied') })
 	}, [t])
 
 	const phase = order ? phaseOf(order.status) : 'working'
