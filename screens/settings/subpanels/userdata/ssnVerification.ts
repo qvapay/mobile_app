@@ -55,7 +55,9 @@ export function blockActionFor(reason: SsnBlockReason | null | undefined): SsnBl
 		case 'NOT_US_PERSON': return { kind: 'field', field: 'usPerson' }
 		case 'SSN_MISSING': return { kind: 'field', field: 'ssn' }
 		case 'ADDRESS_REQUIRED': return { kind: 'field', field: 'address' }
-		case 'ATTEMPTS_EXHAUSTED': return { kind: 'support' }
+		case 'ATTEMPTS_EXHAUSTED':
+		// Si el SSN es suyo, lo libera el equipo revocando la verificación de la otra cuenta
+		case 'SSN_IN_USE': return { kind: 'support' }
 		default: return { kind: 'none' }
 	}
 }
@@ -70,7 +72,7 @@ export type SsnVerifyFailure = {
 
 const BLOCK_REASONS: ReadonlySet<string> = new Set<SsnBlockReason>([
 	'GOLD_REQUIRED', 'KYC_REQUIRED', 'NOT_US_PERSON', 'SSN_MISSING', 'DOCUMENT_REQUIRED',
-	'ADDRESS_REQUIRED', 'ATTEMPTS_EXHAUSTED', 'SDN_BLOCKED', 'STAFF_ACCOUNT', 'UNAVAILABLE',
+	'ADDRESS_REQUIRED', 'ATTEMPTS_EXHAUSTED', 'SDN_BLOCKED', 'STAFF_ACCOUNT', 'UNAVAILABLE', 'SSN_IN_USE',
 ])
 
 /**

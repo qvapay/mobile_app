@@ -1004,6 +1004,7 @@
 				"DOCUMENT_REQUIRED": "Precisamos do nome e da data de nascimento do seu documento verificado. Verifique sua identidade de novo.",
 				"ADDRESS_REQUIRED": "Complete seu endereço nos EUA no cadastro.",
 				"ATTEMPTS_EXHAUSTED": "Você esgotou as tentativas de verificação dos últimos 30 dias. Acompanhe seu caso em support.qvapay.com.",
+				"SSN_IN_USE": "Este SSN já está verificado em outra conta QvaPay. Se for seu, abra um caso em support.qvapay.com.",
 				"SDN_BLOCKED": "Não disponível para esta conta.",
 				"STAFF_ACCOUNT": "Não disponível para esta conta.",
 				"UNAVAILABLE": "A verificação do SSN não está disponível no momento."
