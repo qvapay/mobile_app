@@ -1,4 +1,5 @@
-Novedades de QvaPay 3.16.9:
-• Datos de tu cuenta: si falta tu dirección para retirar, pasar saldo a tu wallet o vender saldo en el P2P, la app te avisa y te lleva a completarla.
-• Un solo aviso, con vibración, al copiar una dirección o un código.
+Novedades de QvaPay 3.16.10:
+• Foto de perfil y portada desde los archivos del teléfono, para Android sin los servicios de Google al día.
+• El historial de intercambios se actualiza solo cuando termina un swap.
+• PIX en el carrito: un pago que entra tarde también saca lo pagado del carrito.
 • Arreglos y estabilidad.
