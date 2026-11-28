@@ -9,6 +9,7 @@ jest.mock('./client', () => ({
 
 import { apiClient } from './client'
 import { storeApi } from './storeApi'
+import { resetIdempotencyKeys } from '../helpers/idempotency'
 
 const ok = (data, status = 200) => ({ data, status })
 const apiError = (data, status = 422) => ({ response: { data, status } })
@@ -18,7 +19,9 @@ const networkError = (message = 'Network Error') => {
 	return err
 }
 
-beforeEach(() => jest.clearAllMocks())
+const KEY = expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/)
+
+beforeEach(() => { jest.clearAllMocks(); resetIdempotencyKeys() })
 
 describe('getVoucherCatalog', () => {
 
@@ -111,7 +114,7 @@ describe('purchaseVoucher', () => {
 	test('posts the purchase payload and returns the purchase data', async () => {
 		apiClient.post.mockResolvedValueOnce(ok({ id: 9, code: 'ABC' }, 201))
 		const result = await storeApi.purchaseVoucher(body)
-		expect(apiClient.post).toHaveBeenCalledWith('/store/voucher/purchase', body)
+		expect(apiClient.post).toHaveBeenCalledWith('/store/voucher/purchase', { ...body, idempotency_key: KEY })
 		expect(result).toEqual({ success: true, data: { id: 9, code: 'ABC' }, status: 201 })
 	})
 
@@ -187,7 +190,7 @@ describe('purchaseTopup', () => {
 	test('posts the top-up payload', async () => {
 		apiClient.post.mockResolvedValueOnce(ok({ id: 1 }))
 		const result = await storeApi.purchaseTopup(body)
-		expect(apiClient.post).toHaveBeenCalledWith('/store/topup', body)
+		expect(apiClient.post).toHaveBeenCalledWith('/store/topup', { ...body, idempotency_key: KEY })
 		expect(result).toEqual({ success: true, data: { id: 1 }, status: 200 })
 	})
 
@@ -220,7 +223,7 @@ describe('purchasePhonePackage', () => {
 	test('posts the Cubacel package payload', async () => {
 		apiClient.post.mockResolvedValueOnce(ok({ id: 2 }))
 		const result = await storeApi.purchasePhonePackage(body)
-		expect(apiClient.post).toHaveBeenCalledWith('/store/phone_package', body)
+		expect(apiClient.post).toHaveBeenCalledWith('/store/phone_package', { ...body, idempotency_key: KEY })
 		expect(result).toEqual({ success: true, data: { id: 2 }, status: 200 })
 	})
 
@@ -274,5 +277,60 @@ describe('getPurchaseDetail', () => {
 			details: { error: 'No encontrada' },
 			status: 404,
 		})
+	})
+})
+
+describe('idempotencia de las compras', () => {
+
+	const voucher = { offer_id: 'off-1', country: 'US', brand: 'amazon', amount: 25 }
+	const sentKey = (n) => apiClient.post.mock.calls[n][1].idempotency_key
+
+	test('repetir la misma compra tras un corte manda la MISMA clave y recibe la original', async () => {
+		apiClient.post
+			.mockRejectedValueOnce(networkError('timeout of 20000ms exceeded'))
+			.mockResolvedValueOnce(ok({ transaction_uuid: 't-1', duplicate: true }))
+
+		const failed = await storeApi.purchaseVoucher(voucher)
+		const replay = await storeApi.purchaseVoucher({ ...voucher })
+
+		expect(failed.success).toBe(false)
+		expect(sentKey(1)).toBe(sentKey(0))
+		expect(replay).toEqual({ success: true, data: { transaction_uuid: 't-1', duplicate: true }, status: 200 })
+	})
+
+	test('comprada, la misma tarjeta otra vez es una compra nueva', async () => {
+		apiClient.post.mockResolvedValue(ok({ transaction_uuid: 't-1' }))
+
+		await storeApi.purchaseVoucher(voucher)
+		await storeApi.purchaseVoucher(voucher)
+
+		expect(sentKey(1)).not.toBe(sentKey(0))
+	})
+
+	test('cambiar un dato (aplicar los sats) es otra compra y otra clave', async () => {
+		apiClient.post.mockRejectedValue(networkError())
+
+		await storeApi.purchaseVoucher(voucher)
+		await storeApi.purchaseVoucher({ ...voucher, use_satoshis: true })
+
+		expect(sentKey(1)).not.toBe(sentKey(0))
+	})
+
+	test('una recarga a Cuba y una internacional no comparten clave ni con los mismos campos', async () => {
+		apiClient.post.mockRejectedValue(networkError())
+
+		await storeApi.purchasePhonePackage({ phone_package_id: 7, phone_number: '+5355555555' })
+		await storeApi.purchasePhonePackage({ phone_package_id: 7, phone_number: '+5355555555' })
+		await storeApi.purchaseTopup({ offer_id: 'off-2', phone_number: '+5355555555', country: 'CU' })
+
+		expect(sentKey(1)).toBe(sentKey(0))
+		expect(sentKey(2)).not.toBe(sentKey(0))
+	})
+
+	test('el cuerpo que recibe quien llama no se toca', async () => {
+		apiClient.post.mockResolvedValueOnce(ok({}))
+		const body = { ...voucher }
+		await storeApi.purchaseVoucher(body)
+		expect(body).toEqual(voucher)
 	})
 })

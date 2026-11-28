@@ -1,5 +1,6 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
+import { runIdempotent } from '../helpers/idempotency'
 import type { ApiClientError, ApiResult } from '../types/api'
 
 /** Params de modo de los catálogos (`countries`/`featured`/`favorites`/`categories`/`country`/`brand`...), anexados tal cual al query string. */
@@ -31,6 +32,13 @@ export type PhonePackagePurchaseInput = {
 	/** Nombre y apellidos del destinatario — obligatorio para US persons (CCO). */
 	recipient_name?: string
 }
+
+/**
+ * Espera antes de repetir una compra que topó con el 409 «en proceso» o con el
+ * 429 del límite: las tres rutas de compra admiten 1 cada 10 s por usuario, y
+ * ese límite se comprueba antes que la clave de idempotencia.
+ */
+const PURCHASE_RETRY_MS = 10200
 
 /**
  * Wraps a request into the standard `{ success, data, error?, details?, status? }`
@@ -104,12 +112,16 @@ export const storeApi = {
 	 * (`POST /store/voucher/purchase`). Validates required fields client-side
 	 * and short-circuits with a local `status: 400` when any is missing.
 	 *
+	 * Lleva `idempotency_key` atada a los datos de la compra (`runIdempotent`):
+	 * repetirla tras un corte devuelve la compra original con `duplicate: true`
+	 * en vez de comprar otra tarjeta, que ya emitida no se puede devolver.
+	 *
 	 * @param body - Purchase payload (`amount` only for variable-value offers; `use_satoshis` applies the sats cashback as discount).
 	 * @returns `{ success, data?, error?, details?, status? }` — `data` is the purchase with redemption info
 	 */
 	purchaseVoucher: async (body: VoucherPurchaseInput): Promise<ApiResult<unknown>> => {
 		if (!body?.offer_id || !body?.country || !body?.brand) { return { success: false, error: i18n.t('api.common.purchaseMissingData'), status: 400 } }
-		return wrap(() => apiClient.post('/store/voucher/purchase', body), i18n.t('api.store.voucherPurchaseFailed'))
+		return runIdempotent('store:voucher', body, key => wrap(() => apiClient.post('/store/voucher/purchase', { ...body, idempotency_key: key }), i18n.t('api.store.voucherPurchaseFailed')), { delayMs: PURCHASE_RETRY_MS })
 	},
 
 	// ---------------------- TOPUPS (LATAM + CUBA) ----------------------
@@ -134,25 +146,27 @@ export const storeApi = {
 	 * Purchases a LATAM (Zendit) phone top-up (`POST /store/topup`).
 	 * Validates required fields client-side (local `status: 400` when missing).
 	 * For Cuban numbers use `purchasePhonePackage` instead.
+	 * Lleva `idempotency_key` atada a los datos de la compra, como `purchaseVoucher`.
 	 *
 	 * @param body - Top-up payload (`use_satoshis` applies the sats cashback as discount).
 	 * @returns `{ success, data?, error?, details?, status? }`
 	 */
 	purchaseTopup: async (body: TopupPurchaseInput): Promise<ApiResult<unknown>> => {
 		if (!body?.offer_id || !body?.phone_number || !body?.country) { return { success: false, error: i18n.t('api.store.topupMissingData'), status: 400 } }
-		return wrap(() => apiClient.post('/store/topup', body), i18n.t('api.store.topupPurchaseFailed'))
+		return runIdempotent('store:topup', body, key => wrap(() => apiClient.post('/store/topup', { ...body, idempotency_key: key }), i18n.t('api.store.topupPurchaseFailed')), { delayMs: PURCHASE_RETRY_MS })
 	},
 
 	/**
 	 * Purchases a Cubacel phone package for Cuba (`POST /store/phone_package`).
 	 * Validates required fields client-side (local `status: 400` when missing).
+	 * Lleva `idempotency_key` atada a los datos de la compra, como `purchaseVoucher`.
 	 *
 	 * @param body - Package payload (`use_satoshis` applies the sats cashback as discount).
 	 * @returns `{ success, data?, error?, details?, status? }`
 	 */
 	purchasePhonePackage: async (body: PhonePackagePurchaseInput): Promise<ApiResult<unknown>> => {
 		if (!body?.phone_package_id || !body?.phone_number) { return { success: false, error: i18n.t('api.store.topupMissingData'), status: 400 } }
-		return wrap(() => apiClient.post('/store/phone_package', body), i18n.t('api.store.topupPurchaseFailed'))
+		return runIdempotent('store:phone_package', body, key => wrap(() => apiClient.post('/store/phone_package', { ...body, idempotency_key: key }), i18n.t('api.store.topupPurchaseFailed')), { delayMs: PURCHASE_RETRY_MS })
 	},
 
 	// ---------------------- PURCHASES ----------------------
