@@ -106,6 +106,8 @@ export type SsnVerificationStatus = 'none' | 'verified' | 'partial' | 'no_match'
 export type SsnBlockReason =
 	| 'GOLD_REQUIRED' | 'KYC_REQUIRED' | 'NOT_US_PERSON' | 'SSN_MISSING' | 'DOCUMENT_REQUIRED'
 	| 'ADDRESS_REQUIRED' | 'ATTEMPTS_EXHAUSTED' | 'SDN_BLOCKED' | 'STAFF_ACCOUNT' | 'UNAVAILABLE'
+	// Un SSN, una cuenta (qpweb, 27 nov 2026): ese SSN ya está verificado en otra cuenta
+	| 'SSN_IN_USE'
 
 /**
  * Estado de la verificación del SSN contra registros de crédito. `can_start` decide

@@ -33,6 +33,7 @@ describe('blockActionFor', () => {
 		expect(blockActionFor('SSN_MISSING')).toEqual({ kind: 'field', field: 'ssn' })
 		expect(blockActionFor('ADDRESS_REQUIRED')).toEqual({ kind: 'field', field: 'address' })
 		expect(blockActionFor('ATTEMPTS_EXHAUSTED')).toEqual({ kind: 'support' })
+		expect(blockActionFor('SSN_IN_USE')).toEqual({ kind: 'support' })
 		expect(blockActionFor('SDN_BLOCKED')).toEqual({ kind: 'none' })
 		expect(blockActionFor('STAFF_ACCOUNT')).toEqual({ kind: 'none' })
 		expect(blockActionFor('UNAVAILABLE')).toEqual({ kind: 'none' })
@@ -47,6 +48,7 @@ describe('classifySsnVerifyError', () => {
 		expect(classifySsnVerifyError(429, { code: 'RATE_LIMITED' })).toEqual({ kind: 'rate_limited', attemptsLeft: null, blockReason: null })
 		expect(classifySsnVerifyError(503, { code: 'SSN_VERIFY_UNAVAILABLE', attempts_left: 3 })).toEqual({ kind: 'unavailable', attemptsLeft: 3, blockReason: null })
 		expect(classifySsnVerifyError(403, { code: 'ATTEMPTS_EXHAUSTED', attempts_left: 0 })).toEqual({ kind: 'blocked', attemptsLeft: 0, blockReason: 'ATTEMPTS_EXHAUSTED' })
+		expect(classifySsnVerifyError(403, { code: 'SSN_IN_USE', attempts_left: 2 })).toEqual({ kind: 'blocked', attemptsLeft: 2, blockReason: 'SSN_IN_USE' })
 	})
 
 	test('sin código, por HTTP; sin nada, unknown', () => {
