@@ -287,8 +287,23 @@ describe('userApi gold', () => {
 
 		const result = await userApi.purchaseGold({ uuid: 'u-1', duration: '1m' })
 
-		expect(apiClient.post).toHaveBeenCalledWith('/user/gold', { uuid: 'u-1', duration: '1m' })
+		expect(apiClient.post).toHaveBeenCalledWith('/user/gold', { uuid: 'u-1', duration: '1m', idempotency_key: expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/) })
 		expect(result).toEqual({ success: true, data: { message: 'Gold activado' }, status: 200 })
+	})
+
+	test('purchaseGold repite con la MISMA clave tras un corte y con otra tras comprar', async () => {
+		const sentKey = (n) => apiClient.post.mock.calls[n][1].idempotency_key
+		apiClient.post
+			.mockRejectedValueOnce({ message: 'No se ha podido conectar' })
+			.mockResolvedValueOnce(ok({ success: true, duplicate: true }))
+			.mockResolvedValueOnce(ok({ success: true }))
+
+		await userApi.purchaseGold({ uuid: 'u-9', duration: 12 })
+		await userApi.purchaseGold({ uuid: 'u-9', duration: 12 })
+		await userApi.purchaseGold({ uuid: 'u-9', duration: 12 })
+
+		expect(sentKey(1)).toBe(sentKey(0))
+		expect(sentKey(2)).not.toBe(sentKey(0))
 	})
 
 	test('purchaseGold surfaces the server text and keeps the body on failure', async () => {

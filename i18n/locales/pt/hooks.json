@@ -14,7 +14,9 @@
 		"requestPin": "Solicitar PIN"
 	},
 	"idempotency": {
-		"safeRetryHint": "Você pode tentar de novo sem risco de duplicar a operação."
+		"safeRetryHint": "Você pode tentar de novo sem risco de duplicar a operação.",
+		"tryAgain": "Não foi possível concluir a operação. Tente novamente.",
+		"alreadyProcessed": "Esta operação já tinha sido processada. Não foi repetida nem cobrada de novo."
 	},
 	"iap": {
 		"unknownError": "Erro desconhecido",

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useReducer } from 'react'
+import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useReducer, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import useContentPadding from '../../hooks/useContentPadding'
@@ -22,6 +22,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
+import { duplicateNotice, isDuplicateReplay, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
+import useProfileRefresh from '../../hooks/useProfileRefresh'
 import { useVoucherBrandDetailQuery } from './storeQueries'
 import { tinyfiNumber } from '../../helpers'
 import { sanitizeAmountInput } from '../../helpers/amountInput'
@@ -271,21 +273,36 @@ const GiftCardBrand = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 		onChoose: turnSatsOff,
 	})
 
+	// Un solo envío a la vez. La clave de idempotencia la pone `storeApi` atada a estos datos:
+	// repetir la MISMA compra tras un corte devuelve la original, no compra otra tarjeta
+	const submittingRef = useRef(false)
+	const refreshProfile = useProfileRefresh()
 	const handleConfirm = useCallback(async () => {
-		if (!selectedOffer) return
+		if (!selectedOffer || submittingRef.current) return
 		if (!hasBalance) { toast.error(i18n.t('store.toasts.insufficientBalance')); return }
+		submittingRef.current = true
 		setSubmitting(true)
 		const res = await storeApi.purchaseVoucher({ ...purchaseFields(), ...(satsDiscount.enabled ? { use_satoshis: true } : {}) })
+		submittingRef.current = false
 		setSubmitting(false)
-		if (res.success) {
+		if (res.success && isDuplicateReplay(res)) {
+			// Ya estaba comprada (su respuesta se perdió): no se cobró otra vez. El saldo local
+			// puede llevar o no ese cobro, así que se relee en vez de restarlo
+			refreshProfile()
+			toast.success(i18n.t('store.giftCardBrand.toasts.purchased'), { description: duplicateNotice() })
+			navigation.goBack()
+		} else if (res.success) {
 			// Reflejar el gasto real (cash_paid) y los sats restantes sin refetch
 			satsDiscount.applyPurchaseResult(res.data as StorePurchaseResult, offerPrice)
 			toast.success(i18n.t('store.giftCardBrand.toasts.purchased'), { description: i18n.t('store.giftCardBrand.toasts.purchasedDescription') })
 			navigation.goBack()
+		} else if (isNetworkFailure(res)) {
+			// Sin respuesta la compra pudo hacerse igual: reintentar va con la misma clave
+			toast.error(i18n.t('store.toasts.error'), { description: `${res.error || i18n.t('errors.network')}. ${safeRetryHint()}` })
 		} else {
 			toast.error(i18n.t('store.toasts.error'), { description: res.error })
 		}
-	}, [selectedOffer, hasBalance, purchaseFields, satsDiscount, offerPrice, navigation])
+	}, [selectedOffer, hasBalance, purchaseFields, satsDiscount, offerPrice, navigation, refreshProfile])
 
 	if (loading) {
 		return (

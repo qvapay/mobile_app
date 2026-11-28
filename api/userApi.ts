@@ -1,5 +1,6 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
+import { runIdempotent } from '../helpers/idempotency'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
 import type { CipPayload, DepositEligibility, EmailChangePending, EmailChangeProof, EmailChangeProofType, EmailChangeState, LightningAddressAction, LightningAddressState, User, UserCip } from '../types/domain'
 
@@ -589,20 +590,24 @@ export const userApi = {
 	 * Can gift it to another user via `uuid`. For App Store / Play purchases
 	 * see `validateGoldReceipt` instead.
 	 *
+	 * Lleva `idempotency_key` atada a destinatario y duración (`runIdempotent`): un
+	 * reintento tras un corte devuelve la compra original con `duplicate: true` en
+	 * vez de cobrar y sumar otro periodo.
+	 *
 	 * @param purchaseData - The purchase data
 	 * @param purchaseData.uuid - The target user's UUID
 	 * @param purchaseData.duration - The subscription duration
 	 * @returns `{ success, data?, error?, status? }`
 	 */
-	purchaseGold: async (purchaseData: GoldPurchaseInput): Promise<ApiResult<unknown>> => {
+	purchaseGold: async (purchaseData: GoldPurchaseInput): Promise<ApiResult<unknown>> => runIdempotent('gold:balance', purchaseData, async (key): Promise<ApiResult<unknown>> => {
 		try {
-			const response = await apiClient.post(`/user/gold`, purchaseData)
+			const response = await apiClient.post(`/user/gold`, { ...purchaseData, idempotency_key: key })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
 			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status, details: error.response?.data }
 		}
-	},
+	}),
 
 	/**
 	 * Gets the user's saved payment methods for P2P offers (`GET /user/payment-methods`).

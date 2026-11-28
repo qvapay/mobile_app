@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useReducer } from 'react'
+import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useReducer, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import useContentPadding from '../../hooks/useContentPadding'
@@ -22,6 +22,8 @@ import PixMethodPicker from './pix/PixMethodPicker'
 
 import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
+import { duplicateNotice, isDuplicateReplay, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
+import useProfileRefresh from '../../hooks/useProfileRefresh'
 import { useTopupBrandDetailQuery } from './storeQueries'
 import { tinyfiNumber } from '../../helpers'
 import useSatsDiscount from './useSatsDiscount'
@@ -241,17 +243,29 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 		onRecipientRequired: askRecipient,
 	})
 
+	// Un solo envío a la vez. La clave de idempotencia la pone `storeApi` atada a estos datos:
+	// repetir la MISMA recarga tras un corte devuelve la original, no recarga dos veces
+	const submittingRef = useRef(false)
+	const refreshProfile = useProfileRefresh()
 	const handleConfirm = useCallback(async () => {
-		if (!selectedOffer) return
+		if (!selectedOffer || submittingRef.current) return
 		if (!hasBalance) { toast.error(i18n.t('store.toasts.insufficientBalance')); return }
 		if (withRecipient && !recipientValid) { toast.error(i18n.t('store.topupBrand.recipient.invalid')); return }
+		submittingRef.current = true
 		setSubmitting(true)
 		const sats = satsDiscount.enabled ? { use_satoshis: true } : {}
 		const res: ApiResult<unknown> = selectedOffer.source === 'cuba'
 			? await storeApi.purchasePhonePackage({ ...cubaFields(), ...sats })
 			: await storeApi.purchaseTopup({ ...topupFields(), ...sats })
+		submittingRef.current = false
 		setSubmitting(false)
-		if (res.success) {
+		if (res.success && isDuplicateReplay(res)) {
+			// Ya estaba hecha (su respuesta se perdió): no se cobró otra vez. El saldo local
+			// puede llevar o no ese cobro, así que se relee en vez de restarlo
+			refreshProfile()
+			toast.success(i18n.t('store.topupBrand.toasts.sent'), { description: duplicateNotice() })
+			navigation.goBack()
+		} else if (res.success) {
 			// Reflejar el gasto real (cash_paid) y los sats restantes sin refetch
 			satsDiscount.applyPurchaseResult(res.data as StorePurchaseResult, offerPrice)
 			toast.success(i18n.t('store.topupBrand.toasts.sent'), { description: i18n.t('store.topupBrand.toasts.sentDescription') })
@@ -260,10 +274,13 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 			// El backend lo exige aunque la ficha dijera otra cosa: se muestra el campo
 			setNeedsRecipient(true)
 			toast.error(i18n.t('store.toasts.error'), { description: res.error || i18n.t('store.topupBrand.recipient.required') })
+		} else if (isNetworkFailure(res)) {
+			// Sin respuesta la recarga pudo hacerse igual: reintentar va con la misma clave
+			toast.error(i18n.t('store.toasts.error'), { description: `${res.error || i18n.t('errors.network')}. ${safeRetryHint()}` })
 		} else {
 			toast.error(i18n.t('store.toasts.error'), { description: res.error })
 		}
-	}, [selectedOffer, hasBalance, withRecipient, recipientValid, cubaFields, topupFields, satsDiscount, offerPrice, navigation])
+	}, [selectedOffer, hasBalance, withRecipient, recipientValid, cubaFields, topupFields, satsDiscount, offerPrice, navigation, refreshProfile])
 
 	if (loading) {
 		return (

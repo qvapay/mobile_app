@@ -14,7 +14,9 @@
 		"requestPin": "Request PIN"
 	},
 	"idempotency": {
-		"safeRetryHint": "You can retry with no risk of duplicating the operation."
+		"safeRetryHint": "You can retry with no risk of duplicating the operation.",
+		"tryAgain": "The operation could not be completed. Please try again.",
+		"alreadyProcessed": "This operation had already been processed. It was not repeated or charged again."
 	},
 	"iap": {
 		"unknownError": "Unknown error",

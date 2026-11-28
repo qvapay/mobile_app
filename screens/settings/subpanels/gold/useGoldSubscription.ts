@@ -24,6 +24,7 @@ import useProfileRefresh, { PROFILE_QUERY } from '../../../../hooks/useProfileRe
 
 // API
 import { userApi } from '../../../../api/userApi'
+import { duplicateNotice, isDuplicateReplay, isNetworkFailure, safeRetryHint } from '../../../../helpers/idempotency'
 
 // Toast
 import { toast } from 'sonner-native'
@@ -261,6 +262,8 @@ export default function useGoldSubscription(): GoldSubscription {
 						try {
 							// OJO: `GoldPurchaseInput` declara `duration: string` pero aquí viaja un
 							// NUMBER (1 | 12) — el backend lo acepta; se manda tal cual.
+							// La clave de idempotencia la pone `userApi` atada a destinatario y duración:
+							// repetir la MISMA compra tras un corte no cobra ni suma otro periodo.
 							const result = await userApi.purchaseGold({
 								uuid: user.uuid as string,
 								duration: duration as unknown as string
@@ -269,7 +272,12 @@ export default function useGoldSubscription(): GoldSubscription {
 							if (result.success) {
 								const purchased = result.data as GoldPayload | undefined
 								activateGold(purchased!.golden_expire)
-								toast.success(t('settings.goldCheck.toasts.subscribed'))
+								// Una compra que ya estaba hecha (su respuesta se perdió) no se cobró otra vez
+								if (isDuplicateReplay(result)) { toast.success(t('settings.goldCheck.toasts.subscribed'), { description: duplicateNotice() }) }
+								else { toast.success(t('settings.goldCheck.toasts.subscribed')) }
+							} else if (isNetworkFailure(result)) {
+								// Sin respuesta la compra pudo hacerse igual: reintentar va con la misma clave
+								toast.error(`${result.error || t('errors.network')}. ${safeRetryHint()}`)
 							} else { toast.error(result.error || t('settings.goldCheck.toasts.subscribeFailed')) }
 
 						} catch (error) {
