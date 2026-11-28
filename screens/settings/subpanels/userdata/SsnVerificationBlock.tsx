@@ -46,7 +46,8 @@ type Props = {
 	hasUnsavedChanges?: boolean
 }
 
-const SUPPORT_MAILTO = 'mailto:soporte@qvapay.com'
+// Los casos se atienden solo con un ticket en el sitio de soporte, nunca por correo
+const SUPPORT_URL = 'https://support.qvapay.com'
 
 /**
  * Bloque «Verificación del SSN» (solo con `us_person` GUARDADO): contrasta SSN + nombre
@@ -132,7 +133,7 @@ const SsnVerificationBlock = ({ cip, onHighlight, hasUnsavedChanges = false }: P
 			case 'gold': navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.GOLD_CHECK, initial: false }); break
 			case 'kyc': navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.KYC, initial: false }); break
 			case 'field': onHighlight(action.field); break
-			case 'support': Linking.openURL(SUPPORT_MAILTO); break
+			case 'support': Linking.openURL(SUPPORT_URL); break
 			default: break
 		}
 	}, [navigation, onHighlight])

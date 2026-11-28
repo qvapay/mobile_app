@@ -1003,7 +1003,7 @@
 				"SSN_MISSING": "Save your SSN/ITIN in your details before verifying it.",
 				"DOCUMENT_REQUIRED": "We need the name and date of birth from your verified document. Verify your identity again.",
 				"ADDRESS_REQUIRED": "Complete your US address in your details.",
-				"ATTEMPTS_EXHAUSTED": "You've used up your verification attempts for the last 30 days. Write to support.",
+				"ATTEMPTS_EXHAUSTED": "You've used up your verification attempts for the last 30 days. Follow up on your case at support.qvapay.com.",
 				"SDN_BLOCKED": "Not available for this account.",
 				"STAFF_ACCOUNT": "Not available for this account.",
 				"UNAVAILABLE": "SSN verification is not available right now."
@@ -1012,7 +1012,7 @@
 				"gold": "Learn about GOLD",
 				"kyc": "Verify identity",
 				"field": "Complete your details",
-				"support": "Write to support"
+				"support": "Open a support case"
 			}
 		},
 		"emailChange": {
