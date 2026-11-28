@@ -1,5 +1,5 @@
-Novedades de QvaPay 3.16.10:
-• Foto de perfil y portada desde los archivos del teléfono, para Android sin los servicios de Google al día.
-• El historial de intercambios se actualiza solo cuando termina un swap.
-• PIX en el carrito: un pago que entra tarde también saca lo pagado del carrito.
+Novedades de QvaPay 3.16.11:
+• Tienda: repetir una compra de gift card o una recarga tras un corte de conexión ya no la cobra dos veces.
+• Lo mismo en GOLD con saldo y en los depósitos y retiros de ahorros.
+• Verificación de SSN: al agotar los intentos, el enlace lleva al sitio de soporte.
 • Arreglos y estabilidad.
