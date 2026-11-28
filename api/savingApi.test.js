@@ -9,11 +9,14 @@ jest.mock('./client', () => ({
 
 import { apiClient } from './client'
 import { savingApi } from './savingApi'
+import { resetIdempotencyKeys } from '../helpers/idempotency'
 
 const ok = (data, status = 200) => ({ data, status })
 const apiError = (data, status = 422) => ({ response: { data, status } })
 
-beforeEach(() => jest.clearAllMocks())
+const KEY = expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/)
+
+beforeEach(() => { jest.clearAllMocks(); resetIdempotencyKeys() })
 
 describe('getSummary', () => {
 
@@ -89,14 +92,14 @@ describe('deposit', () => {
 	test('posts the amount with an empty default description', async () => {
 		apiClient.post.mockResolvedValueOnce(ok({ id: 1 }, 201))
 		const result = await savingApi.deposit(50)
-		expect(apiClient.post).toHaveBeenCalledWith('/saving/deposit', { amount: 50, description: '' })
+		expect(apiClient.post).toHaveBeenCalledWith('/saving/deposit', { amount: 50, description: '', idempotency_key: KEY })
 		expect(result).toEqual({ success: true, data: { id: 1 }, status: 201 })
 	})
 
 	test('posts the amount with a custom description', async () => {
 		apiClient.post.mockResolvedValueOnce(ok({ id: 2 }))
 		await savingApi.deposit(25.5, 'Ahorro mensual')
-		expect(apiClient.post).toHaveBeenCalledWith('/saving/deposit', { amount: 25.5, description: 'Ahorro mensual' })
+		expect(apiClient.post).toHaveBeenCalledWith('/saving/deposit', { amount: 25.5, description: 'Ahorro mensual', idempotency_key: KEY })
 	})
 
 	test('prefers errorData.message when errorData.error is absent', async () => {
@@ -119,7 +122,7 @@ describe('withdraw', () => {
 	test('posts the amount with an empty default description', async () => {
 		apiClient.post.mockResolvedValueOnce(ok({ id: 3 }))
 		const result = await savingApi.withdraw(30)
-		expect(apiClient.post).toHaveBeenCalledWith('/saving/withdraw', { amount: 30, description: '' })
+		expect(apiClient.post).toHaveBeenCalledWith('/saving/withdraw', { amount: 30, description: '', idempotency_key: KEY })
 		expect(result).toEqual({ success: true, data: { id: 3 }, status: 200 })
 	})
 
@@ -179,5 +182,41 @@ describe('getEarnings', () => {
 		apiClient.get.mockRejectedValueOnce(apiError({}, 500))
 		const result = await savingApi.getEarnings()
 		expect(result.error).toBe('No se pudieron obtener las ganancias')
+	})
+})
+
+describe('idempotencia de los movimientos', () => {
+
+	const sentKey = (n) => apiClient.post.mock.calls[n][1].idempotency_key
+
+	test('repetir el mismo depósito tras un corte manda la MISMA clave', async () => {
+		apiClient.post
+			.mockRejectedValueOnce(new Error('timeout of 20000ms exceeded'))
+			.mockResolvedValueOnce(ok({ success: true, duplicate: true }))
+
+		await savingApi.deposit(25)
+		const replay = await savingApi.deposit(25)
+
+		expect(sentKey(1)).toBe(sentKey(0))
+		expect(replay.data.duplicate).toBe(true)
+	})
+
+	test('otro importe, o retirar en vez de depositar, es otro movimiento', async () => {
+		apiClient.post.mockRejectedValue(new Error('Network Error'))
+
+		await savingApi.deposit(25)
+		await savingApi.deposit(30)
+		await savingApi.withdraw(25)
+
+		expect(new Set([sentKey(0), sentKey(1), sentKey(2)]).size).toBe(3)
+	})
+
+	test('hecho el depósito, repetirlo es un depósito nuevo', async () => {
+		apiClient.post.mockResolvedValue(ok({ success: true }))
+
+		await savingApi.deposit(25)
+		await savingApi.deposit(25)
+
+		expect(sentKey(1)).not.toBe(sentKey(0))
 	})
 })

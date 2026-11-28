@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from 'react'
+import { useEffect, useReducer, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native'
 import type { ImageStyle, TextStyle, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,7 @@ import { scaleType, useContainerStyles, useTextStyles } from '../../theme/themeU
 
 // API (deposit/withdraw — las lecturas viven en React Query)
 import { savingApi } from '../../api/savingApi'
+import { duplicateNotice, isDuplicateReplay, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
 import { useQueryClient } from '@tanstack/react-query'
 import { trimToFirstPage } from '../../api/queryUtils'
 import { useSavingsSummaryQuery } from '../../hooks/useSavingsSummaryQuery'
@@ -136,7 +137,11 @@ const Savings = ({ route }: SavingsProps) => {
 		if (initialAction === 'deposit' || initialAction === 'withdraw') { openModal(initialAction) }
 	}, [initialAction]) // eslint-disable-line react-hooks/exhaustive-deps
 
+	// Un solo movimiento a la vez. La clave de idempotencia la pone `savingApi` atada al importe:
+	// repetir el MISMO movimiento tras un corte devuelve el original, no lo hace dos veces
+	const movingRef = useRef(false)
 	const handleModalSubmit = async () => {
+		if (movingRef.current) return
 		const amount = parseAmountInput(modalAmount)
 		if (!amount || amount < 1) {
 			toast.error(t('crypto.savings.toasts.minAmount'))
@@ -151,13 +156,16 @@ const Savings = ({ route }: SavingsProps) => {
 			return
 		}
 
+		movingRef.current = true
 		dispatchModal({ type: 'setLoading', loading: true })
 		try {
 			const res = modalType === 'deposit'
 				? await savingApi.deposit(amount)
 				: await savingApi.withdraw(amount)
 			if (res.success) {
-				toast.success(modalType === 'deposit' ? t('crypto.savings.toasts.depositDone') : t('crypto.savings.toasts.withdrawDone'))
+				// Un movimiento que ya estaba hecho (su respuesta se perdió) no se celebra como nuevo
+				if (isDuplicateReplay(res)) { toast.info(duplicateNotice()) }
+				else { toast.success(modalType === 'deposit' ? t('crypto.savings.toasts.depositDone') : t('crypto.savings.toasts.withdrawDone')) }
 				dispatchModal({ type: 'close' })
 				// Invalidar la raíz de ahorros refresca resumen y movimientos aquí,
 				// en el dashboard de Invest y en la página 2 del BalanceCard. La
@@ -169,12 +177,18 @@ const Savings = ({ route }: SavingsProps) => {
 				// histórico refresca con UNA petición, no una por página cargada
 				queryClient.setQueriesData({ queryKey: ['transactions'] }, trimToFirstPage)
 				queryClient.invalidateQueries({ queryKey: ['transactions'] })
+			} else if (isNetworkFailure(res)) {
+				// Sin respuesta el movimiento pudo hacerse igual: reintentar va con la misma clave
+				toast.error(`${res.error || t('crypto.savings.toasts.networkError')}. ${safeRetryHint()}`)
 			} else {
 				toast.error(res.error || t('crypto.savings.toasts.operationError'))
 			}
 		} catch (e) {
 			toast.error((e as Error)?.message || t('crypto.savings.toasts.networkError'))
-		} finally { dispatchModal({ type: 'setLoading', loading: false }) }
+		} finally {
+			movingRef.current = false
+			dispatchModal({ type: 'setLoading', loading: false })
+		}
 	}
 
 	if (isLoading) return <QPLoader />
